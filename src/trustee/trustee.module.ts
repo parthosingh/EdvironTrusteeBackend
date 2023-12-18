@@ -12,6 +12,7 @@ config();
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
     JwtModule.registerAsync({
       useFactory: () => ({
+        secret: process.env.JWT_SECRET,
         signOptions: { expiresIn: '30d' },
       }),
     }),
