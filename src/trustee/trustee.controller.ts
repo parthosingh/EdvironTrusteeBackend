@@ -44,6 +44,7 @@ export class TrusteeController {
         phone_number: string 
     ){
         
+         
         
         const link = this.trusteeService.genrateLink(phone_number)
         return link
@@ -144,47 +145,5 @@ export class TrusteeController {
         }
     }
 
-
-    @Post('create-school')
-    async createSchool(
-        @Body()
-        body:{name: string; phone_number: string, email: string, school_name: string},
-
-        @Req() req
-    ){
-
-        if(!body.name || !body.phone_number || !body.email || !body.school_name)
-        {
-            throw new BadRequestException('Fill all fields')
-        }
-
-        try{
-            
-            const school = await this.trusteeService.createSchool(body.phone_number, body.name, body.email, body.school_name, req.user);
-            return school;
-        }catch(error){
-            console.log(error.response);
-            if(error.response.statusCode === 409){
-                throw new ConflictException(error.message)
-            }
-            throw new BadRequestException(error.message)
-        }
-    }
-  @Post('createStudent')
-  async createStudent(
-    @Body()
-    body,
-  ) {
-    try {
-      const student = await this.trusteeService.createStudent(
-        body,
-        body.schoolId,
-        body.userId,
-      );
-      return student;
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
+    
 }
-

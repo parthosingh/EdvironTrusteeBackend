@@ -28,7 +28,7 @@ export class TrusteeService {
         .exec();
 
       if (checkMail) {
-        throw new ConflictException(${email} already exist);
+        throw new ConflictException(`${email} already exist`);
       }
 
       const trustee = await new this.trusteeModel({
@@ -85,7 +85,7 @@ export class TrusteeService {
         try{
 
             const token = jwt.sign(phone_number,process.env.PRIVATE_TRUSTEE_KEY )
-            const response = await axios.get(${process.env.MAIN_BACKEN_URL}/api/trustee/payment-link?token=${token})
+            const response = await axios.get(`${process.env.MAIN_BACKEN_URL}/api/trustee/payment-link?token=${token}`)
             return response.data
         }catch(error){
            throw new BadGatewayException(error.message)
@@ -155,7 +155,7 @@ export class TrusteeService {
       const trustee = await this.trusteeModel.findById(trusteeId);
 
       if (!trustee) {
-        throw new ConflictException(no trustee found);
+        throw new ConflictException(`no trustee found`);
       }
       const schools = await this.trusteeSchoolModel
         .find(
@@ -190,7 +190,7 @@ export class TrusteeService {
             }
             const token = jwt.sign(info,process.env.PRIVATE_TRUSTEE_KEY,{expiresIn:'1h'})
             
-            const section = await axios.post(${process.env.MAIN_SERVER_URL}/api/trustee/section,{
+            const section = await axios.post(`${process.env.MAIN_BACKEN_URL}/api/trustee/section`,{
                 token:token
             }) 
             return section.data
@@ -307,7 +307,7 @@ export class TrusteeService {
         const token = this.jwtService.sign(data, { secret: process.env.PRIVATE_TRUSTEE_KEY });
     
         // Making a POST request to an external endpoint
-        const schoolToken = await axios.post(${process.env.MAIN_SERVER_URL}/gen-school-token, {
+        const schoolToken = await axios.post(`${process.env.MAIN_SERVER_URL}/api/trustee/gen-school-token`, {
           token: token,
         });
 
@@ -333,7 +333,7 @@ export class TrusteeService {
             }
             const token = this.jwtService.sign(data,{secret:process.env.PRIVATE_TRUSTEE_KEY});
             
-            const school = await axios.post(${process.env.MAIN_SERVER_URL}/create-school,{
+            const school = await axios.post(`${process.env.MAIN_SERVER_URL}/api/trustee/create-school`,{
                 token:token
             })
 
@@ -369,32 +369,6 @@ export class TrusteeService {
     }
 
 
-    async createStudent(Student, schoolId, userId) {
-        try {
-          const Key = process.env.JWT_FOR_TRUSTEE_AUTH;
-          const info = {
-            ...Student,
-            schoolId: schoolId,
-            userId: userId,
-          };
-          const token = this.jwtService.sign(info, {
-            secret: Key,
-            expiresIn: '2h',
-          });
-          const student = await axios.post(
-            ${process.env.MAIN_SERVER_URL}/api/trustee/createStudent,
-            {
-              token: token,
-            },
-          );
-          return student.data;
-        } catch (error) {
-          if (error.response.data.statusCode === 409) {
-            throw new ConflictException(error.response.data.message);
-          }
-          throw new BadRequestException(error.message);
-        }
-      }
+  
 
-}
 }
