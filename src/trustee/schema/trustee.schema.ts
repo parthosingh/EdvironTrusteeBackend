@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field } from '@nestjs/graphql';
-import * as bcrypt from 'bcrypt';
 import { Document } from 'mongoose';
+import bcrypt from 'bcrypt'
 
 @ObjectType() // Define GraphQL object type
 @Schema({ timestamps: true })
-export class Trustee extends Document {
+export class Trustee extends Document { 
   @Field()
   @Prop({ required: true })
   name: string;
