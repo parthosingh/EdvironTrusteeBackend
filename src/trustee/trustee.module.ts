@@ -10,6 +10,7 @@ import { SchoolSchema } from './schema/school.schema';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TrusteeGuard } from './trustee.guard';
 import { config } from 'dotenv';
+import { SchoolSchema } from './schema/school.schema';
 config();
 
 @Module({
