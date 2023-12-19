@@ -170,4 +170,21 @@ export class TrusteeController {
             throw new BadRequestException(error.message)
         }
     }
+  @Post('createStudent')
+  async createStudent(
+    @Body()
+    body,
+  ) {
+    try {
+      const student = await this.trusteeService.createStudent(
+        body,
+        body.schoolId,
+        body.userId,
+      );
+      return student;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 }
+

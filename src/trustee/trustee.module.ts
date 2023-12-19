@@ -19,6 +19,7 @@ config();
     MongooseModule.forFeature([{name:'TrusteeSchool',schema:SchoolSchema}]),
     JwtModule.registerAsync({
       useFactory: () => ({
+        secret: process.env.JWT_SECRET,
         signOptions: { expiresIn: '30d' },
       }),
     }),
