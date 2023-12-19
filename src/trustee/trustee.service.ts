@@ -303,7 +303,7 @@ export class TrusteeService {
           throw new UnauthorizedException();
         }
     
-        const data = { schoolId: school.school_id, admin_id: school.super_admin_id };
+        const data = { schoolId: school.school_id};
         const token = this.jwtService.sign(data, { secret: process.env.PRIVATE_TRUSTEE_KEY });
     
         // Making a POST request to an external endpoint

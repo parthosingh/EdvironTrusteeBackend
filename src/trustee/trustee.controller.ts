@@ -44,8 +44,6 @@ export class TrusteeController {
         phone_number: string 
     ){
         
-         
-        
         const link = this.trusteeService.genrateLink(phone_number)
         return link
     }
