@@ -1,7 +1,9 @@
-import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
-import { UnauthorizedException, UseGuards } from '@nestjs/common';
+import { UnauthorizedException,ConflictException, BadRequestException, UseGuards } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
+import { TrusteeSchool } from './schema/school.schema';
+
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -30,6 +32,29 @@ export class TrusteeResolver {
   }
 }
 
+@Query(() => [TrusteeSchool])
+  async getSchoolQuery(
+    @Args('trustee_id') id: string,
+    @Args('limit', { type: () => Int, defaultValue: 5 }) limit: number,
+    @Args('offset', { type: () => Int, defaultValue: 0 }) offset: number,
+  ): Promise<any[]> {
+    try {
+      const schools = await this.trusteeService.getSchools(id, limit, offset);
+
+      return schools;
+    } catch (error) {
+      const customError = {
+        message: error.message,
+        statusCode: error.status,
+      };
+      if (error instanceof ConflictException) {
+        throw new ConflictException(customError);
+      } else {
+        throw new BadRequestException(customError);
+      }
+    }
+  }
+
 
 // Define a type for the AuthResponse
 
@@ -38,6 +63,8 @@ class AuthResponse {
   @Field(() => String)
   token: string;
 }
+
+
 
 
 // {

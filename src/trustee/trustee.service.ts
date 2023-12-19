@@ -3,16 +3,18 @@ import mongoose, { Types } from 'mongoose';
 import { ConflictException, Injectable,BadGatewayException, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Trustee } from './schema/trustee.schema';
+import { TrusteeSchool } from './schema/school.schema';
 import * as jwt from 'jsonwebtoken';
 import axios from 'axios'
 import * as bcrypt from 'bcrypt';
-
 
 @Injectable()
 export class TrusteeService {
   constructor(
     @InjectModel(Trustee.name)
     private trusteeModel: mongoose.Model<Trustee>,
+      @InjectModel(TrusteeSchool.name)
+    private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
   ) {} 
 
@@ -151,6 +153,34 @@ export class TrusteeService {
           throw new UnauthorizedException("Invalid API key");
         }
       }
+      
+       async getSchools(trusteeId: string, limit: number, offset: number) {
+    try {
+      if (!Types.ObjectId.isValid(trusteeId)) {
+        throw new BadRequestException('Invalid trusteeID format');
+      }
+      const trustee = await this.trusteeModel.findById(trusteeId);
+
+      if (!trustee) {
+        throw new ConflictException(`no trustee found`);
+      }
+      const schools = await this.trusteeSchoolModel
+        .find(
+          { trustee_id: trusteeId },
+          { school_id: 1, school_name: 1, _id: 0 },
+        )
+        .skip(offset)
+        .limit(limit)
+        .exec();
+      return schools;
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw new ConflictException(error.message);
+      } else {
+        throw new BadRequestException(error.message);
+      }
+    }
+  }
 
 
 }
