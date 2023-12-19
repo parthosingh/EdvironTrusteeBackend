@@ -1,10 +1,10 @@
-import { NotFoundException, Param, Get, Controller, Post, Body, BadRequestException, UnauthorizedException, Req, UseGuards } from '@nestjs/common';
+import { Trustee } from './schema/trustee.schema';
+import * as jwt from 'jsonwebtoken'
+import { JwtPayload } from 'jsonwebtoken';
+import { Controller,Post,Get, Body, BadRequestException, ConflictException, Query, UseGuards, Req, UnauthorizedException,  NotFoundException, Param  } from '@nestjs/common';
 import { TrusteeService } from './trustee.service';
-import * as JWT from 'jsonwebtoken';
-import { JwtPayload } from 'jsonwebtoken'
 import {JwtService} from '@nestjs/jwt'
 import { TrusteeGuard } from './trustee.guard';
-
 
 
 @Controller('trustee')
@@ -14,34 +14,44 @@ export class TrusteeController {
         private readonly jwtService: JwtService
         ){}
 
-    // @Get('validate')
-    // async validateApiKey(
-    //   @Req() req,
-    // ):Promise<{payload: any}> {
+    @Get()
+    async findTrustee():Promise<Trustee[]>{
+        return this.trusteeService.findTrustee()
+    }
+ 
 
-    //   try {
-    //     const authorizationHeader = req.headers.authorization;
+    @Post()
+    async createTrustee(
+        @Body()
+        token
+    ):Promise<Trustee>{
+        try{
+            const info: JwtPayload = jwt.verify(token.data,process.env.PRIVATE_TRUSTEE_KEY) as JwtPayload;
+            const credential = await this.trusteeService.createTrustee(info);
+            return credential
+             
+        }catch(e){
+            
+            if(e.response.statusCode === 409){
+                throw new ConflictException(e.message)
+            }
+            throw new BadRequestException(e.message)  
+        }
+    }
+    
 
-    //     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    //     throw new UnauthorizedException('Invalid Authorization header format');
-    //     }
+ @Get('payment-link')
+    async genratePaymentLink(
+        @Query('phone_number') 
+        phone_number: string 
+    ){
+        
+        
+        const link = this.trusteeService.genrateLink(phone_number)
+        return link
+    }
 
-    //     const token = authorizationHeader.split(' ')[1];
-
-    //     const trustee = await this.trusteeService.validateApiKey(token);
-    //   return trustee;
-    //   } catch (error) {
-    //     if(error instanceof NotFoundException){
-    //       throw new NotFoundException(error.message)
-    //     } else {
-    //       throw new UnauthorizedException(error.message);
-    //     }
-    //   }
-    // }  
-
-
-    @Get('get-user')
-    @UseGuards(TrusteeGuard)
+ @Get('get-user')
     async validateApiKey(@Req() req): Promise<{ payload: any }> {
       try {
         // If the request reaches here, the token is valid
@@ -58,5 +68,4 @@ export class TrusteeController {
           throw new UnauthorizedException(error.message);
         }
       }
-    }
 }
