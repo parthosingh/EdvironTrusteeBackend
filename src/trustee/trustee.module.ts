@@ -11,14 +11,14 @@ import { SchoolSchema } from './schema/school.schema';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TrusteeGuard } from './trustee.guard';
 import { config } from 'dotenv';
+import { SchoolSchema } from './schema/school.schema';
 config();
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
-    MongooseModule.forFeature([
-      { name: 'TrusteeSchool', schema: SchoolSchema },
-    ]),
+    MongooseModule.forFeature([{name:'TrusteeSchool',schema:SchoolSchema}]),
+  
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },
