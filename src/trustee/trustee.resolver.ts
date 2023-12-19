@@ -1,4 +1,4 @@
-import { Resolver, Query, Args } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
 import { TrusteeSchool } from './schema/school.schema';
 import { ConflictException, BadRequestException } from '@nestjs/common';
@@ -12,9 +12,13 @@ export class TrusteeResolver {
     return 'Hello, World!!!';
   }
   @Query(() => [TrusteeSchool])
-  async getSchoolQuery(@Args('trustee_id') id: string): Promise<any[]> {
+  async getSchoolQuery(
+    @Args('trustee_id') id: string,
+    @Args('limit', { type: () => Int, defaultValue: 5 }) limit: number,
+    @Args('offset', { type: () => Int, defaultValue: 0 }) offset: number,
+  ): Promise<any[]> {
     try {
-      const schools = await this.trusteeService.getSchools(id);
+      const schools = await this.trusteeService.getSchools(id, limit, offset);
 
       return schools;
     } catch (error) {

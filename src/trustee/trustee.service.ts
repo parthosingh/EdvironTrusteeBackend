@@ -16,7 +16,7 @@ export class TrusteeService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
   ) {}
-  async getSchools(trusteeId: string) {
+  async getSchools(trusteeId: string, limit: number, offset: number) {
     try {
       if (!Types.ObjectId.isValid(trusteeId)) {
         throw new BadRequestException('Invalid trusteeID format');
@@ -31,6 +31,8 @@ export class TrusteeService {
           { trustee_id: trusteeId },
           { school_id: 1, school_name: 1, _id: 0 },
         )
+        .skip(offset)
+        .limit(limit)
         .exec();
       return schools;
     } catch (error) {
