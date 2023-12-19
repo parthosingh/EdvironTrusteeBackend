@@ -1,7 +1,9 @@
-import { Resolver, Query, Args, Int } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
+import { UnauthorizedException,ConflictException, BadRequestException, UseGuards } from '@nestjs/common';
+import { ObjectType, Field } from '@nestjs/graphql';
 import { TrusteeSchool } from './schema/school.schema';
-import { ConflictException, BadRequestException } from '@nestjs/common';
+
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -11,7 +13,26 @@ export class TrusteeResolver {
   async hello(): Promise<string> {
     return 'Hello, World!!!';
   }
-  @Query(() => [TrusteeSchool])
+
+  @Mutation(() => AuthResponse) // Use the AuthResponse type
+  async loginTrustee(
+    @Args('email') email_id: string,
+    @Args('password') password_hash: string
+  ): Promise<AuthResponse> {
+    try {
+      const { token } = await this.trusteeService.loginAndGenerateToken(email_id, password_hash);
+      return { token };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new Error('Invalid email or password');
+      } else {
+        throw new Error('An error occurred during login');
+      }
+    }
+  }
+}
+
+@Query(() => [TrusteeSchool])
   async getSchoolQuery(
     @Args('trustee_id') id: string,
     @Args('limit', { type: () => Int, defaultValue: 5 }) limit: number,
@@ -33,4 +54,23 @@ export class TrusteeResolver {
       }
     }
   }
+
+
+// Define a type for the AuthResponse
+
+@ObjectType()
+class AuthResponse {
+  @Field(() => String)
+  token: string;
 }
+
+
+
+
+// {
+//   "query": "mutation($email: String!, $password: String!) { loginTrustee(email: $email, password: $password) }",
+//   "variables": {
+//     "email": "testaccount@testgmail.com",
+//     "password": "123"
+//   }
+// }

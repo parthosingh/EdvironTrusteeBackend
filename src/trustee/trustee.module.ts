@@ -6,10 +6,11 @@ import { TrusteeSchema } from './schema/trustee.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { TrusteeResolver } from './trustee.resolver';
 import { GraphQLModule } from '@nestjs/graphql';
-import { ApolloDriver } from '@nestjs/apollo';
 
-import { config } from 'dotenv';
 import { SchoolSchema } from './schema/school.schema';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { TrusteeGuard } from './trustee.guard';
+import { config } from 'dotenv';
 config();
 
 @Module({
@@ -33,6 +34,6 @@ config();
     }),
   ],
   controllers: [TrusteeController],
-  providers: [TrusteeService, TrusteeResolver],
+  providers: [TrusteeService,TrusteeResolver, TrusteeGuard],
 })
 export class TrusteeModule {}
