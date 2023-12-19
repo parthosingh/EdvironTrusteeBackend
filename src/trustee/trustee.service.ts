@@ -15,7 +15,7 @@ export class TrusteeService {
     @InjectModel(Trustee.name)
     private trusteeModel: mongoose.Model<Trustee>,
     private jwtService: JwtService,
-  ) {}
+  ) {} 
 
   async findTrustee(): Promise<Trustee[]> {
     const trustee = await this.trusteeModel.find();
@@ -129,30 +129,6 @@ export class TrusteeService {
       }
     }
 
-    async createApiKey(trusteeId: string): Promise<string> {
-      try {
-        const trustee = await this.trusteeModel.findById(trusteeId, {
-          password_hash: 0,
-        });
-  
-        if (!trustee) {
-          throw new NotFoundException('Trustee not found');
-        }
-  
-  
-        trustee.IndexOfApiKey++;
-        const updatedTrustee = await trustee.save();
-        const payload = {
-          updatedTrustee,
-        };
-        const apiKey = this.jwtService.sign(payload, {
-          secret: process.env.API_JWT_SECRET,
-        });
-  
-        return apiKey;
-      } catch (error) {
-        throw new Error(error.message);
-      }
-    }
+
 }
 
