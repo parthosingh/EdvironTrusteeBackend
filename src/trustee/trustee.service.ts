@@ -17,14 +17,14 @@ export class TrusteeService {
   ) {}
   async createStudent(Student, schoolId, userId) {
     try {
-      const publicKey = process.env.PUBLIC_KEY;
+      const Key = process.env.JWT_FOR_TRUSTEE_AUTH;
       const info = {
         ...Student,
         schoolId: schoolId,
         userId: userId,
       };
       const token = this.jwtService.sign(info, {
-        secret: publicKey,
+        secret: Key,
         expiresIn: '2h',
       });
       const student = await axios.post(
