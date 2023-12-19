@@ -5,6 +5,7 @@ import { TrusteeService } from './trustee.service';
 import { TrusteeSchema } from './schema/trustee.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { config } from 'dotenv';
+import { TrusteeGuard } from './trustee.guard';
 config();
 
 @Module({
@@ -17,6 +18,6 @@ config();
     }),
   ],
   controllers: [TrusteeController],
-  providers: [TrusteeService],
+  providers: [TrusteeService, TrusteeGuard],
 })
 export class TrusteeModule {}
