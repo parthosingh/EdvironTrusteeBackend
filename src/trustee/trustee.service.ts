@@ -65,7 +65,7 @@ export class TrusteeService {
       const updatedTrustee = await trustee.save();
       const payload = {
         trusteeId: updatedTrustee._id,
-        IdexOfApiKey: updatedTrustee.IndexOfApiKey,
+        IndexOfApiKey: updatedTrustee.IndexOfApiKey,
       };
       const apiKey = this.jwtService.sign(payload, {
         secret: process.env.JWT_FOR_TRUSTEE_AUTH,
