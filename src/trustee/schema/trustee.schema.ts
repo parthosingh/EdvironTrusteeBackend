@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field } from '@nestjs/graphql';
-import * as bcrypt from 'bcrypt';
 import { Document } from 'mongoose';
+import bcrypt from 'bcrypt'
 
 @ObjectType() // Define GraphQL object type
 @Schema({ timestamps: true })
-export class Trustee extends Document {
+export class Trustee extends Document { 
   @Field()
   @Prop({ required: true })
   name: string;
@@ -32,3 +32,25 @@ export class Trustee extends Document {
 }
 
 export const TrusteeSchema = SchemaFactory.createForClass(Trustee);
+
+// bcrypt code for hashing password salt = 10
+TrusteeSchema.pre('save', async function (next) {
+  const trustee: any = this; 
+
+  // Hash the password only if it has been modified or is new
+  if (!trustee.isModified('password_hash')) {
+    return next();
+  }
+
+  try {
+    
+    const saltRounds = 10;
+    const hash = await bcrypt.hash(trustee.password_hash, saltRounds);
+
+    
+    trustee.password_hash = hash;
+    next();
+  } catch (error) {
+    return next(error);
+  }
+});

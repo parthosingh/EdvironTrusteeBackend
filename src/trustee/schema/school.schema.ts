@@ -1,20 +1,25 @@
-import { Schema,Prop, SchemaFactory } from "@nestjs/mongoose";
-import { ObjectId, Types } from "mongoose";
+import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
+import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectId, Types } from 'mongoose';
 
-@Schema({timestamps:true})
-export class TrusteeSchool{
-    @Prop({type: Types.ObjectId})
-    school_id:ObjectId;
+@ObjectType()
+@Schema({ timestamps: true })
+export class TrusteeSchool {
+  @Prop({ type: Types.ObjectId })
+  @Field(() => ID)
+  school_id: ObjectId;
 
-    @Prop({type: Types.ObjectId})
-    trustee_id:ObjectId;
+  @Prop({ type: Types.ObjectId })
+  @Field(() => ID)
+  trustee_id: ObjectId;
 
-    @Prop({})
-    school_name:string
+  @Prop({})
+  @Field(() => String)
+  school_name: string;
 
-    @Prop({})
-    super_admin_id: string
-} 
+  @Prop({})
+  @Field(() => String)
+  super_admin_id: string;
+}
 
-
-export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool)
+export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool);
