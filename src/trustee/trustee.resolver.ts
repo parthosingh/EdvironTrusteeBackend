@@ -30,9 +30,8 @@ export class TrusteeResolver {
       }
     }
   }
-}
 
-@Query(() => [TrusteeSchool])
+  @Query(() => [TrusteeSchool])
   async getSchoolQuery(
     @Args('trustee_id') id: string,
     @Args('limit', { type: () => Int, defaultValue: 5 }) limit: number,
@@ -54,6 +53,10 @@ export class TrusteeResolver {
       }
     }
   }
+}
+
+
+
 
 
 // Define a type for the AuthResponse
@@ -63,14 +66,3 @@ class AuthResponse {
   @Field(() => String)
   token: string;
 }
-
-
-
-
-// {
-//   "query": "mutation($email: String!, $password: String!) { loginTrustee(email: $email, password: $password) }",
-//   "variables": {
-//     "email": "testaccount@testgmail.com",
-//     "password": "123"
-//   }
-// }

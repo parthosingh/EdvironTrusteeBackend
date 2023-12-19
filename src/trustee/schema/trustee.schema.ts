@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field } from '@nestjs/graphql';
 import { Document } from 'mongoose';
+import bcrypt from 'bcrypt'
 
 @ObjectType() // Define GraphQL object type
 @Schema({ timestamps: true })

@@ -91,9 +91,7 @@ export class TrusteeService {
             const response = await axios.get(`${process.env.MAIN_BACKEN_URL}/api/trustee/payment-link?token=${token}`)
             return response.data
         }catch(error){
-            console.log(error);
-            
-            throw new BadGatewayException(error.message)
+           throw new BadGatewayException(error.message)
         }
     }
   
@@ -148,8 +146,6 @@ export class TrusteeService {
 
           return userTrustee;
         } catch (error) {
-            // console.log(error);
-            
           throw new UnauthorizedException("Invalid API key");
         }
       }
