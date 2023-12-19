@@ -68,7 +68,7 @@ export class TrusteeService {
         IdexOfApiKey: updatedTrustee.IndexOfApiKey,
       };
       const apiKey = this.jwtService.sign(payload, {
-        secret: process.env.API_JWT_SECRET,
+        secret: process.env.JWT_FOR_TRUSTEE_AUTH,
       });
 
       return apiKey;
