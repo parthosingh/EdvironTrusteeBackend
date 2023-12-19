@@ -15,10 +15,7 @@ export class TrusteeController {
         private readonly jwtService: JwtService
         ){}
 
-    @Get()
-    async findTrustee():Promise<Trustee[]>{
-        return this.trusteeService.findTrustee()
-    }
+
  
 
     @Post()
@@ -126,4 +123,5 @@ export class TrusteeController {
                 throw new BadRequestException(error.message)
             }
 
+}
 }

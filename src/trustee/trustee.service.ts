@@ -20,11 +20,6 @@ export class TrusteeService {
     private jwtService: JwtService,
   ) {} 
 
-  async findTrustee(): Promise<Trustee[]> {
-    const trustee = await this.trusteeModel.find();
-    return trustee;
-  }
-
   async createTrustee(info): Promise<Trustee> {
     const { name, email, password, school_limit } = info;
     try {
