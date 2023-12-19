@@ -5,7 +5,7 @@ import { Document } from 'mongoose';
 
 @ObjectType() // Define GraphQL object type
 @Schema({ timestamps: true })
-export class Trustee extends Document {
+export class Trustee extends Document { 
   @Field()
   @Prop({ required: true })
   name: string;
