@@ -1,9 +1,8 @@
 import { JwtService } from '@nestjs/jwt';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { ConflictException, Injectable,BadGatewayException, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Trustee } from './schema/trustee.schema';
-import * as  mongoose from 'mongoose';
 import * as jwt from 'jsonwebtoken';
 import axios from 'axios'
 import * as bcrypt from 'bcrypt';
@@ -128,7 +127,30 @@ export class TrusteeService {
         throw new UnauthorizedException('Invalid credentials');
       }
     }
+  
+   async validateApiKey(apiKey: string): Promise<any> {
+        try {
+          const decodedPayload = this.jwtService.verify(apiKey, {
+            secret: process.env.JWT_FOR_TRUSTEE_AUTH,
+          });
+
+          const trustee = await this.trusteeModel.findById(decodedPayload.trusteeId);
+
+          if(!trustee)
+            throw new NotFoundException('trustee not found')
+    
+          if(trustee.IndexOfApiKey !== decodedPayload.IndexOfApiKey)
+            throw new Error('API key expired')
+          
+        const userTrustee = {id: trustee._id, name: trustee.name, email: trustee.email_id}
+
+          return userTrustee;
+        } catch (error) {
+            // console.log(error);
+            
+          throw new UnauthorizedException("Invalid API key");
+        }
+      }
 
 
 }
-

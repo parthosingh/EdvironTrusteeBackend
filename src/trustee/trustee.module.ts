@@ -9,6 +9,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 
 import { config } from 'dotenv';
+import { TrusteeGuard } from './trustee.guard';
 config();
 
 @Module({
@@ -29,6 +30,6 @@ config();
     }),
   ],
   controllers: [TrusteeController],
-  providers: [TrusteeService, TrusteeResolver],
+  providers: [TrusteeService,TrusteeResolver, TrusteeGuard],
 })
 export class TrusteeModule {}
