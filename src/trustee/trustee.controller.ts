@@ -33,6 +33,7 @@ export class TrusteeController {
       const credential = await this.trusteeService.createTrustee(info);
       return credential;
     } catch (e) {
+      console.log();
       if (e.response.statusCode === 409) {
         throw new ConflictException(e.message);
       }
