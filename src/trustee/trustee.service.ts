@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import mongoose, { Types } from 'mongoose';
+import mongoose, { Types, ObjectId } from 'mongoose';
 import { ConflictException, Injectable,BadGatewayException, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Trustee } from './schema/trustee.schema';
@@ -7,6 +7,8 @@ import { TrusteeSchool } from './schema/school.schema';
 import * as jwt from 'jsonwebtoken';
 import axios from 'axios'
 import * as bcrypt from 'bcrypt';
+import {JwtPayload} from 'jsonwebtoken'
+
 
 @Injectable()
 export class TrusteeService {
@@ -177,6 +179,33 @@ export class TrusteeService {
       }
     }
   }
+  
+  
+  async createSection(school_id,data:object){
+
+        try{
+            
+            if (!Types.ObjectId.isValid(school_id)) {
+                throw new BadRequestException('Invalid school_id format');
+            }
+            
+            const info = {
+                school_id:school_id,
+                data:data 
+            }
+            const token = jwt.sign(info,process.env.PRIVATE_TRUSTEE_KEY,{expiresIn:'1h'})
+            
+            const section = await axios.post(`${process.env.MAIN_SERVER_URL}/api/trustee/section`,{
+                token:token
+            }) 
+            return section.data
+        }catch(error){
+            if(error.response.data.statusCode === 409){
+                throw new ConflictException(error.response.data.message)
+            }
+            throw new BadRequestException(error.message);
+        }
+    }
 
 
 }
