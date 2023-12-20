@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TrusteeController } from './trustee.controller';
 import { TrusteeService } from './trustee.service';
-import { TrusteeSchema } from './schema/trustee.schema';
+import { TrusteeSchema } from '../schema/trustee.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { TrusteeResolver } from './trustee.resolver';
 import { GraphQLModule } from '@nestjs/graphql';
-import { SchoolSchema } from './schema/school.schema';
+import { SchoolSchema } from '../schema/school.schema';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TrusteeGuard } from './trustee.guard';
 import { config } from 'dotenv';
@@ -15,10 +15,9 @@ config();
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
-    MongooseModule.forFeature([{name:'TrusteeSchool',schema:SchoolSchema}]),
+    MongooseModule.forFeature([{ name: 'TrusteeSchool', schema: SchoolSchema }]),
     JwtModule.registerAsync({
       useFactory: () => ({
-        secret: process.env.JWT_SECRET,
         signOptions: { expiresIn: '30d' },
       }),
     }),
@@ -32,6 +31,6 @@ config();
     }),
   ],
   controllers: [TrusteeController],
-  providers: [TrusteeService,TrusteeResolver, TrusteeGuard],
+  providers: [TrusteeService, TrusteeResolver, TrusteeGuard],
 })
-export class TrusteeModule {}
+export class TrusteeModule { }

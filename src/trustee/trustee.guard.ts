@@ -40,7 +40,7 @@ export class TrusteeGuard implements CanActivate {
 
   private async validateToken(token: string): Promise<any | null> {
     try {
-      return await this.trusteeService.validateApiKey(token);
+      return await this.trusteeService.validateTrustee(token);
     } catch (error) {
       return null;
     }

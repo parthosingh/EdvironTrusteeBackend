@@ -1,8 +1,6 @@
-import { Trustee } from './schema/trustee.schema';
-import * as jwt from 'jsonwebtoken';
+import { Trustee } from '../schema/trustee.schema';
 import { JwtPayload } from 'jsonwebtoken';
 import {
-  Controller,
   Post,
   Get,
   Body,
@@ -15,11 +13,12 @@ import {
   NotFoundException,
   Param,
   ForbiddenException,
+  Controller,
 } from '@nestjs/common';
-import { TrusteeService } from './trustee.service';
 import { JwtService } from '@nestjs/jwt';
 import { TrusteeGuard } from './trustee.guard';
 import { Types } from 'mongoose';
+import { TrusteeService } from './trustee.service';
 
 @Controller('trustee')
 export class TrusteeController {
@@ -34,10 +33,10 @@ export class TrusteeController {
     token,
   ): Promise<Trustee> {
     try {
-      const info: JwtPayload = jwt.verify(
+      const info: JwtPayload = this.jwtService.verify(
         token.data,
-        process.env.PRIVATE_TRUSTEE_KEY,
-      ) as JwtPayload;
+        {secret:process.env.PRIVATE_TRUSTEE_KEY}
+      );
       const credential = await this.trusteeService.createTrustee(info);
       return credential;
     } catch (e) {
@@ -48,23 +47,15 @@ export class TrusteeController {
     }
   }
 
-  @Get('payment-link')
-  async genratePaymentLink(
-    @Query('phone_number')
-    phone_number: string,
-  ) {
-    const link = this.trusteeService.genrateLink(phone_number);
-    return link;
-  }
 
   @Get('get-user')
-  async validateApiKey(@Req() req): Promise<{ payload: any }> {
+  async validateUser(@Req() req): Promise<{ payload: any }> {
     try {
       // If the request reaches here, the token is valid
       const authorizationHeader = req.headers.authorization;
       const token = authorizationHeader.split(' ')[1];
 
-      const trustee = await this.trusteeService.validateApiKey(token);
+      const trustee = await this.trusteeService.validateTrustee(token);
 
       return trustee;
     } catch (error) {
@@ -73,28 +64,6 @@ export class TrusteeController {
       } else {
         throw new UnauthorizedException(error.message);
       }
-    }
-  }
-
-  @Post('section')
-  async createSection(
-    @Body()
-    body: {
-      school_id: string;
-      data: { className: string; section: string };
-    },
-  ) {
-    try {
-      const section = await this.trusteeService.createSection(
-        body.school_id,
-        body.data,
-      );
-      return section;
-    } catch (error) {
-      if (error.response.statusCode === 409) {
-        throw new ConflictException(error.message);
-      }
-      throw new BadRequestException(error.message);
     }
   }
 
@@ -114,9 +83,9 @@ export class TrusteeController {
     },
   ) {
     try {
-      const data: JwtPayload = jwt.verify(
+      const data: JwtPayload = this.jwtService.verify(
         token.token,
-        process.env.PRIVATE_TRUSTEE_KEY,
+        {secret:process.env.PRIVATE_TRUSTEE_KEY},
       ) as JwtPayload;
       const trusteeId = new Types.ObjectId(data.trustee_id);
       const trustee = await this.trusteeService.findOneTrustee(trusteeId);
@@ -147,7 +116,6 @@ export class TrusteeController {
     param: { school_id: string },
     @Req() req,
   ) {
-    //         req.user = '657c8eb0de948adeb738b0f5';
     try {
       const schoolToken = await this.trusteeService.generateSchoolToken(
         param.school_id,
@@ -160,20 +128,5 @@ export class TrusteeController {
       throw error;
     }
   }
-  @Post('createStudent')
-  async createStudent(
-    @Body()
-    body,
-  ) {
-    try {
-      const student = await this.trusteeService.createStudent(
-        body,
-        body.schoolId,
-        body.userId,
-      );
-      return student;
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
+ 
 }

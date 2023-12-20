@@ -2,7 +2,7 @@ import { Resolver, Mutation, Args, Query, Int } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
 import { UnauthorizedException,ConflictException, BadRequestException, UseGuards } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
-import { TrusteeSchool } from './schema/school.schema';
+import { TrusteeSchool } from '../schema/school.schema';
 
 
 @Resolver('Trustee')
@@ -24,6 +24,8 @@ export class TrusteeResolver {
       return { token };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
+        console.log(error);
+        
         throw new Error('Invalid email or password');
       } else {
         throw new Error('An error occurred during login');

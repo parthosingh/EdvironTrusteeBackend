@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TrusteeService } from './trustee.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { Trustee } from './schema/trustee.schema'; 
+import { Trustee } from '../schema/trustee.schema'; 
 import { mock } from 'node:test';
 import { Connection, Model } from 'mongoose';
 import { Mode } from 'node:fs';
