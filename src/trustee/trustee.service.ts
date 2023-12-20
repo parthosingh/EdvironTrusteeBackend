@@ -26,32 +26,6 @@ export class TrusteeService {
     private jwtService: JwtService,
   ) {}
 
-  async createTrustee(info): Promise<Trustee> {
-    const { name, email, password, school_limit } = info;
-    try {
-      const checkMail = await this.trusteeModel
-        .findOne({ email_id: email })
-        .exec();
-
-      if (checkMail) {
-        throw new ConflictException(`${email} already exist`);
-      }
-
-      const trustee = await new this.trusteeModel({
-        name: name,
-        email_id: email,
-        password_hash: password,
-        school_limit: school_limit,
-      }).save();
-      return trustee;
-    } catch (error) {
-      if (error.response.statusCode === 409) {
-        throw new ConflictException(error.message);
-      }
-      throw new BadRequestException(error.message);
-    }
-  }
-
   async loginAndGenerateToken(
     emailId: string,
     passwordHash: string,
@@ -137,84 +111,6 @@ export class TrusteeService {
     }
   }
 
-
-  async findTrustee(page, pageSize) {
-    try {
-      const totalItems = await this.trusteeModel.countDocuments();
-      const totalPages = Math.ceil(totalItems / pageSize);
-
-      const trustee = await this.trusteeModel
-        .find()
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .exec();
-
-      const pagination = {
-        data: trustee,
-        page,
-        pageSize,
-        totalPages,
-        totalItems,
-      };
-      return pagination;
-    } catch (err) {
-      throw new NotFoundException(err.message);
-    }
-  }
-
-  async findOneTrustee(trustee_id: Types.ObjectId) {
-    try {
-      const trustee = await this.trusteeModel.findOne(trustee_id);
-      return trustee;
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
-
-  async checkSchoolLimit(trustee_id) {
-    const countDocs = await this.trusteeSchoolModel.countDocuments({
-      trustee_id,
-    });
-    console.log(countDocs);
-    return countDocs;
-  }
-
-  async assignSchool(
-    school_id: Types.ObjectId,
-    trustee_id: Types.ObjectId,
-    school_name: string,
-  ) {
-    try {
-      const trustee = await this.trusteeModel.findOne(
-        new Types.ObjectId(trustee_id),
-      );
-      const countSchool = await this.checkSchoolLimit(trustee_id);
-      const check = await this.trusteeSchoolModel.find({
-        trustee_id,
-        school_id,
-      });
-
-      if (check.length > 0) {
-        throw new ForbiddenException('alrady assigned');
-      }
-      if (countSchool === trustee.school_limit) {
-        throw new ForbiddenException('You cannot add more school');
-      }
-      const school = await new this.trusteeSchoolModel({
-        school_id,
-        trustee_id,
-        school_name,
-      }).save();
-      return school;
-    } catch (error) {
-      if (error.response.statusCode === 403) {
-        throw new ForbiddenException(error.message);
-      }
-
-      throw new BadGatewayException(error.message);
-    }
-  }
-
   async generateSchoolToken(
     schoolId: string,
     password: string,
@@ -247,12 +143,12 @@ export class TrusteeService {
 
       const data = { schoolId: school.school_id };
       const token = this.jwtService.sign(data, {
-        secret: process.env.PRIVATE_TRUSTEE_KEY,
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
 
       // Making a POST request to an external endpoint
       const schoolToken = await axios.post(
-        `${process.env.MAIN_SERVER_URL}/api/trustee/gen-school-token`,
+        `${process.env.MAIN_BACKEND_URL}/api/trustee/gen-school-token`,
         {
           token: token,
         },

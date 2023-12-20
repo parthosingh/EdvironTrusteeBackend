@@ -7,7 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TrusteeResolver } from './trustee.resolver';
 import { GraphQLModule } from '@nestjs/graphql';
 import { SchoolSchema } from '../schema/school.schema';
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { ApolloDriver } from '@nestjs/apollo';
 import { TrusteeGuard } from './trustee.guard';
 import { config } from 'dotenv';
 config();

@@ -9,9 +9,12 @@ import {
     Req,
     UnauthorizedException,
     NotFoundException,
+    UseGuards,
 } from '@nestjs/common';
 import { ErpService } from './erp.service';
 import { JwtService } from '@nestjs/jwt';
+import { ErpGuard } from './erp.guard';
+import { ObjectId } from 'mongoose';
 
 
 @Controller('erp')
@@ -21,7 +24,14 @@ export class ErpController {
         private readonly jwtService: JwtService,
     ) { }
 
+    @Post('create-api-token')
+    @UseGuards(ErpGuard)
+    async createToken() {
+        // complete create token
+    }
+
     @Get('payment-link')
+    @UseGuards(ErpGuard)
     async genratePaymentLink(
         @Query('phone_number')
         phone_number: string,
@@ -31,7 +41,11 @@ export class ErpController {
     }
 
     @Get('get-user')
-    async validateApiKey(@Req() req): Promise<{ payload: any }> {
+    async validateApiKey(@Req() req): Promise<{
+        id: ObjectId,
+        name: string,
+        email: string
+    }> {
         try {
             // If the request reaches here, the token is valid
             const authorizationHeader = req.headers.authorization;
@@ -40,6 +54,7 @@ export class ErpController {
             const trustee = await this.erpService.validateApiKey(token);
 
             return trustee;
+
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw new NotFoundException(error.message);
@@ -49,7 +64,8 @@ export class ErpController {
         }
     }
 
-    @Post('section')
+    @Post('create-section')
+    @UseGuards(ErpGuard)
     async createSection(
         @Body()
         body: {
@@ -71,7 +87,8 @@ export class ErpController {
         }
     }
 
-    @Post('createStudent')
+    @Post('create-student')
+    @UseGuards(ErpGuard)
     async createStudent(
         @Body()
         body,
@@ -80,11 +97,36 @@ export class ErpController {
             const student = await this.erpService.createStudent(
                 body,
                 body.schoolId,
-                body.userId,
             );
             return student;
         } catch (error) {
             throw new BadRequestException(error.message);
+        }
+    }
+
+    @Post('create-school')
+    @UseGuards(ErpGuard)
+    async createSchool(
+        @Body()
+        body: { name: string; phone_number: string, email: string, school_name: string },
+
+        @Req() req
+    ): Promise<any> {
+
+        if (!body.name || !body.phone_number || !body.email || !body.school_name) {
+            throw new BadRequestException('Fill all fields')
+        }
+
+        try {
+
+            const school = await this.erpService.createSchool(body.phone_number, body.name, body.email, body.school_name, req.userTrustee);
+            return school;
+        } catch (error) {
+            console.log(error.response);
+            if (error.response.statusCode === 409) {
+                throw new ConflictException(error.message)
+            }
+            throw new BadRequestException(error.message)
         }
     }
 
