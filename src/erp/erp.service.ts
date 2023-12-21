@@ -1,4 +1,11 @@
-import { BadGatewayException, BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
@@ -8,14 +15,13 @@ import { Trustee } from 'src/schema/trustee.schema';
 
 @Injectable()
 export class ErpService {
-
   constructor(
     @InjectModel(Trustee.name)
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
-  ) { }
+  ) {}
 
   async createApiKey(trusteeId: string): Promise<string> {
     try {
@@ -37,7 +43,8 @@ export class ErpService {
         IndexOfApiKey: updatedTrustee.IndexOfApiKey,
       };
       const apiKey = this.jwtService.sign(payload, {
-        secret: process.env.JWT_SECRET_FOR_API_KEY, expiresIn: '30d'
+        secret: process.env.JWT_SECRET_FOR_API_KEY,
+        expiresIn: '30d',
       });
 
       return apiKey;
@@ -51,7 +58,10 @@ export class ErpService {
 
   async genrateLink(phone_number: string) {
     try {
-      const token = this.jwtService.sign({ phone_number }, { secret: process.env.JWT_SECRET_FOR_INTRANET, expiresIn: '2h' });
+      const token = this.jwtService.sign(
+        { phone_number },
+        { secret: process.env.JWT_SECRET_FOR_INTRANET, expiresIn: '2h' },
+      );
       const response = await axios.get(
         `${process.env.MAIN_BACKEN_URL}/api/trustee/payment-link?token=${token}`,
       );
@@ -98,7 +108,10 @@ export class ErpService {
         school_id: school_id,
         data: data,
       };
-      const token = this.jwtService.sign(info, { secret: process.env.JWT_SECRET_FOR_INTRANET, expiresIn: '2h' });
+      const token = this.jwtService.sign(info, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+        expiresIn: '2h',
+      });
 
       const section = await axios.post(
         `${process.env.MAIN_BACKEN_URL}/api/trustee/section`,
@@ -130,7 +143,8 @@ export class ErpService {
         school_name,
       };
       const token = this.jwtService.sign(data, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET, expiresIn: '2h'
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+        expiresIn: '2h',
       });
 
       const school = await axios.post(
@@ -184,20 +198,20 @@ export class ErpService {
         expiresIn: '2h',
       });
       const student = await axios.post(
-        `${process.env.MAIN_BACKEND_URL}/createStudent`,
+        `${process.env.MAIN_BACKEND_URL}/api/trustee/createStudent`,
         {
           token: token,
         },
       );
       return student.data;
     } catch (error) {
-      if (error.response) {
-        if (error.response.data.statusCode === 409) {
-          throw new ConflictException(error.response.data.message);
-        }
+      if (error.response && error.response.data.statusCode === 409) {
+        throw new ConflictException(error.response.data);
+      } else if (error.response && error.response.data.statusCode === 400) {
+        throw new BadRequestException(error.response.data);
+      } else {
+        throw new BadRequestException(error);
       }
-
-      throw new BadRequestException(error.message);
     }
   }
 }
