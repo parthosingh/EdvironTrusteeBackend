@@ -71,6 +71,36 @@ export class TrusteeResolver {
       }
     }
   }
+
+  @Query(() => User)
+  async getUserQuery(@Context() context): Promise<TrusteeUser> {
+    try {
+      console.log(context.req.truste);
+      
+      const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
+      const userTrustee = await this.trusteeService.validateTrustee(token);
+
+      // Map the trustee data to the User type
+      const user: TrusteeUser = {
+        _id: userTrustee.id,
+        name: userTrustee.name,
+        email_id: userTrustee.email,
+      };
+
+      return user;
+    } catch (error) {
+      const customError = {
+        message: error.message,
+        statusCode: error.status,
+      };
+      if (error instanceof ConflictException) {
+        throw new ConflictException(customError);
+      } else {
+        throw new BadRequestException(customError);
+      }
+    }
+  }
+
 }
 
 
@@ -105,4 +135,15 @@ class SchoolTokenResponse {
 
   @Field(() => User)
   user: User;
+}
+
+// Define a type for the User
+@ObjectType()
+class TrusteeUser {
+  @Field()
+  _id: string;
+  @Field()
+  name: string;
+  @Field()
+  email_id: string;
 }
