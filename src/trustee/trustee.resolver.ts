@@ -1,22 +1,34 @@
 import { Resolver, Mutation, Args, Query, Int, Context } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
-import { UnauthorizedException, ConflictException, BadRequestException, UseGuards } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+  UseGuards,
+  NotFoundException,
+} from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
 import { TrusteeSchool } from '../schema/school.schema';
 import { TrusteeGuard } from './trustee.guard';
-
+import { ErpService } from 'src/erp/erp.service';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
-  constructor(private readonly trusteeService: TrusteeService) { }
+  constructor(
+    private readonly trusteeService: TrusteeService,
+    private readonly erpService: ErpService,
+  ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
     @Args('email') email_id: string,
-    @Args('password') password_hash: string
+    @Args('password') password_hash: string,
   ): Promise<AuthResponse> {
     try {
-      const { token } = await this.trusteeService.loginAndGenerateToken(email_id, password_hash);
+      const { token } = await this.trusteeService.loginAndGenerateToken(
+        email_id,
+        password_hash,
+      );
       return { token };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -32,11 +44,15 @@ export class TrusteeResolver {
   async generateSchoolToken(
     @Args('schoolId') schoolId: string,
     @Args('password') password: string,
-    @Context() context
+    @Context() context,
   ): Promise<SchoolTokenResponse> {
     try {
       const userId = context.req.trustee;
-      const { token, user } = await this.trusteeService.generateSchoolToken(schoolId, password, userId);
+      const { token, user } = await this.trusteeService.generateSchoolToken(
+        schoolId,
+        password,
+        userId,
+      );
       return { token, user };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -52,7 +68,7 @@ export class TrusteeResolver {
   async getSchoolQuery(
     @Args('limit', { type: () => Int, defaultValue: 5 }) limit: number,
     @Args('offset', { type: () => Int, defaultValue: 0 }) offset: number,
-    @Context() context
+    @Context() context,
   ): Promise<any[]> {
     try {
       const id = context.req.trustee;
@@ -71,12 +87,30 @@ export class TrusteeResolver {
       }
     }
   }
-
+  @Mutation(() => ApiKey)
+  @UseGuards(TrusteeGuard)
+  async createApiKey(@Context() context): Promise<ApiKey> {
+    try {
+      const id = context.req.trustee;
+      const apiKey = await this.erpService.createApiKey(id);
+      return { key: apiKey };
+    } catch (error) {
+      const customError = {
+        message: error.message,
+        statusCode: error.status,
+      };
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(customError);
+      } else {
+        throw new BadRequestException(customError);
+      }
+    }
+  }
   @Query(() => User)
   async getUserQuery(@Context() context): Promise<TrusteeUser> {
     try {
       console.log(context.req.truste);
-      
+
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userTrustee = await this.trusteeService.validateTrustee(token);
 
@@ -100,9 +134,7 @@ export class TrusteeResolver {
       }
     }
   }
-
 }
-
 
 // Define a type for the AuthResponse
 @ObjectType()
@@ -146,4 +178,10 @@ class TrusteeUser {
   name: string;
   @Field()
   email_id: string;
+}
+
+@ObjectType()
+class ApiKey {
+  @Field()
+  key: string;
 }
