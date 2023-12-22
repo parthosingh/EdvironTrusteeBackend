@@ -109,8 +109,6 @@ export class TrusteeResolver {
   @Query(() => User)
   async getUserQuery(@Context() context): Promise<TrusteeUser> {
     try {
-      console.log(context.req.truste);
-
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userTrustee = await this.trusteeService.validateTrustee(token);
 

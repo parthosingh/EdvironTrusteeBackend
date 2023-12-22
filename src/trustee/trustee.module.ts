@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { TrusteeController } from './trustee.controller';
 import { TrusteeService } from './trustee.service';
 import { TrusteeSchema } from '../schema/trustee.schema';
 import { JwtModule } from '@nestjs/jwt';
@@ -33,7 +32,7 @@ config();
       playground: process.env.NODE_ENV === 'dev',
     }),
   ],
-  controllers: [TrusteeController],
+  controllers: [],
   providers: [ErpService, TrusteeService, TrusteeResolver, TrusteeGuard],
 })
 export class TrusteeModule {}

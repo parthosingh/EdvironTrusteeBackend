@@ -123,7 +123,6 @@ export class ErpController {
             );
             return school;
         } catch (error) {
-            console.log(error.response);
             if (error.response.statusCode === 409) {
                 throw new ConflictException(error.message);
             }
