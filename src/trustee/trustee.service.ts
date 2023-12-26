@@ -24,7 +24,7 @@ export class TrusteeService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async loginAndGenerateToken(
     emailId: string,
@@ -51,7 +51,7 @@ export class TrusteeService {
       };
 
       return {
-        token: await this.jwtService.sign(payload, {secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH, expiresIn: "30d"}),
+        token: await this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH, expiresIn: "30d" }),
       };
     } catch (error) {
       console.error('Error in login process:', error);
@@ -127,10 +127,11 @@ export class TrusteeService {
       if (!trustee) {
         throw new NotFoundException('Trustee not found');
       }
-
       if (!school) {
         throw new NotFoundException('School not found!');
       }
+      if (school.trustee_id !== trustee._id)
+        throw new UnauthorizedException('')
 
       // Password validation and JWT token generation
       const passwordMatch = await bcrypt.compare(
@@ -161,9 +162,11 @@ export class TrusteeService {
         throw error;
       } else if (error.request) {
         throw new BadRequestException('No response received from the server');
-      } else {
+      } else if (error instanceof UnauthorizedException || error instanceof NotFoundException)
+        throw error
+      else {
         throw new BadRequestException('Request setup error');
       }
     }
-  }  
+  }
 }
