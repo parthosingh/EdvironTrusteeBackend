@@ -29,22 +29,22 @@ export class ErpController {
         @Query('phone_number')
         phone_number: string,
     ) {
+        
         const link = this.erpService.genrateLink(phone_number);
         return link;
     }
 
     @Get('get-user')
+    @UseGuards(ErpGuard)
     async validateApiKey(@Req() req): Promise<{
-        id: ObjectId;
         name: string;
-        email: string;
+        email_id: string;
+        phone_number: number
     }> {
         try {
-            // If the request reaches here, the token is valid
-            const authorizationHeader = req.headers.authorization;
-            const token = authorizationHeader.split(' ')[1];
-
-            const trustee = await this.erpService.validateApiKey(token);
+            
+            const trusteeId = req.userTrustee.id;
+            const trustee = await this.erpService.getUser(trusteeId);
 
             return trustee;
         } catch (error) {
@@ -64,15 +64,20 @@ export class ErpController {
             school_id: string;
             data: { className: string; section: string };
         },
+        @Req() req
     ) {
         try {
+            const trustee_id = req.userTrustee.id
             const section = await this.erpService.createSection(
                 body.school_id,
                 body.data,
+                trustee_id
             );
             return section;
         } catch (error) {
-            if (error.response.statusCode === 409) {
+            if(error.response && error.response.statusCode===404){
+                throw new NotFoundException(error.message)
+            }else if (error.response.statusCode === 409) {
                 throw new ConflictException(error.message);
             }
             throw new BadRequestException(error.message);
@@ -84,15 +89,21 @@ export class ErpController {
     async createStudent(
         @Body()
         body,
+        @Req() req
     ) {
         try {
-            const student = await this.erpService.createStudent(body, body.schoolId);
+            const trustee_id = req.userTrustee.id
+            const student = await this.erpService.createStudent(body, body.school_id,trustee_id);
             return student;
         } catch (error) {
-            if (error instanceof ConflictException) {
+          
+           if (error instanceof ConflictException) {
                 throw new ConflictException(error.message);
+            }else if(error.response && error.response.statusCode===404){
+                throw new NotFoundException(error.message)
+            }else{
+                throw new BadRequestException(error.message);
             }
-            throw new BadRequestException(error.message);
         }
     }
 
@@ -119,7 +130,7 @@ export class ErpController {
                 body.name,
                 body.email,
                 body.school_name,
-                req.userTrustee,
+                req.userTrustee.id,
             );
             return school;
         } catch (error) {
