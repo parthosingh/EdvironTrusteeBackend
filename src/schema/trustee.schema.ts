@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field } from '@nestjs/graphql';
 import { Document } from 'mongoose';
-import bcrypt from 'bcrypt'
+import * as bcrypt from 'bcrypt'
 
 @ObjectType() // Define GraphQL object type
 @Schema({ timestamps: true })
@@ -46,7 +46,6 @@ TrusteeSchema.pre('save', async function (next) {
     
     const saltRounds = 10;
     const hash = await bcrypt.hash(trustee.password_hash, saltRounds);
-
     
     trustee.password_hash = hash;
     next();

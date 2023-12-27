@@ -14,7 +14,7 @@ export class MainBackendService {
   ) { }
 
   async createTrustee(info): Promise<Trustee> {
-    const { name, email, password, school_limit } = info;
+    const { name, email, password, school_limit, phone_number } = info;
     try {
       const checkMail = await this.trusteeModel
         .findOne({ email_id: email })
@@ -29,10 +29,13 @@ export class MainBackendService {
         email_id: email,
         password_hash: password,
         school_limit: school_limit,
+        phone_number: phone_number
       }).save();
       return trustee;
     } catch (error) {
-      if (error.response.statusCode === 409) {
+      console.log(error);
+      
+      if (error.response && error.response.statusCode === 409) {
         throw new ConflictException(error.message);
       }
       throw new BadRequestException(error.message);
@@ -45,10 +48,11 @@ export class MainBackendService {
       const totalPages = Math.ceil(totalItems / pageSize);
 
       const trustee = await this.trusteeModel
-        .find()
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .exec();
+    .find()
+    .sort({ createdAt: -1 })  
+    .limit(pageSize)
+    .exec();
+
 
       const pagination = {
         data: trustee,
@@ -57,6 +61,7 @@ export class MainBackendService {
         totalPages,
         totalItems,
       };
+      
       return pagination;
     } catch (err) {
       throw new NotFoundException(err.message);

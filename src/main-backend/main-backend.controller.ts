@@ -26,7 +26,7 @@ export class MainBackendController {
         const credential = await this.mainBackendService.createTrustee(info);
         return credential;
       } catch (e) {
-        if (e.response.statusCode === 409) {
+        if (e.response && e.response.statusCode === 409) {
           throw new ConflictException(e.message);
         }
         throw new BadRequestException(e.message);
