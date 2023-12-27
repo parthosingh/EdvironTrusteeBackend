@@ -130,9 +130,9 @@ export class TrusteeService {
       if (!school) {
         throw new NotFoundException('School not found!');
       }
-      if (school.trustee_id !== trustee._id)
-        throw new UnauthorizedException('')
-
+      if (school.trustee_id.toString() !== trustee._id.toString())
+        throw new NotFoundException('School not found for trustee')
+      
       // Password validation and JWT token generation
       const passwordMatch = await bcrypt.compare(
         password,
@@ -154,7 +154,6 @@ export class TrusteeService {
           token: token,
         },
       );
-
       return schoolToken.data;
     } catch (error) {
       // Structured error handling for different scenarios

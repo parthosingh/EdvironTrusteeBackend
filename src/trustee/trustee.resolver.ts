@@ -56,7 +56,9 @@ export class TrusteeResolver {
       return { token, user };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
-        throw new Error('Invalid email or password');
+        throw new Error('Invalid password');
+      }else if(error instanceof NotFoundException){
+        throw error
       } else {
         throw new Error('Error generating school token');
       }
