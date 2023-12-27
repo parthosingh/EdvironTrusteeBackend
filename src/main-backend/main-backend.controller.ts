@@ -38,7 +38,7 @@ export class MainBackendController {
       @Query('page') page: number,
       @Query('pageSize') pageSize: number,
     ) {
-      const trustee :string = this.jwtService.sign({data:await this.mainBackendService.findTrustee(page, pageSize)},{secret:process.env.JWT_SECRET_FOR_INTRANET})
+      const trustee :string = this.jwtService.sign(await this.mainBackendService.findTrustee(page, pageSize),{secret:process.env.JWT_SECRET_FOR_INTRANET})
       return trustee;
     }
   
