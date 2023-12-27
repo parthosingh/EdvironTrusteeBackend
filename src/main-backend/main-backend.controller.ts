@@ -38,7 +38,8 @@ export class MainBackendController {
       @Query('page') page: number,
       @Query('pageSize') pageSize: number,
     ) {
-      return this.mainBackendService.findTrustee(page, pageSize);
+      const trustee :string = this.jwtService.sign({data:await this.mainBackendService.findTrustee(page, pageSize)},{secret:process.env.JWT_SECRET_FOR_INTRANET})
+      return trustee;
     }
   
     @Post('assign-school')
