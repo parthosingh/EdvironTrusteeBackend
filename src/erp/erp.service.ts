@@ -44,8 +44,10 @@ export class ErpService {
       };
       const apiKey = this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET_FOR_API_KEY,
-        expiresIn: '30d',
       });
+      const lastFourChars = apiKey.slice(-4);
+      updatedTrustee.apiKey = lastFourChars;
+      await updatedTrustee.save();
 
       return apiKey;
     } catch (error) {
@@ -65,9 +67,9 @@ export class ErpService {
       const response = await axios.get(
         `${process.env.MAIN_BACKEND_URL}/api/trustee/payment-link?token=${token}`,
       );
-      const link = this.jwtService.verify(response.data,{
-        secret: process.env.JWT_SECRET_FOR_INTRANET
-      })
+      const link = this.jwtService.verify(response.data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
       return link;
     } catch (error) {
       throw new BadGatewayException(error.message);
@@ -97,25 +99,24 @@ export class ErpService {
 
       return userTrustee;
     } catch (error) {
-      if(error instanceof NotFoundException)
-        throw error
+      if (error instanceof NotFoundException) throw error;
       throw new UnauthorizedException('Invalid API key');
     }
   }
 
-  async createSection(school_id, data: object,trustee_id:ObjectId) {
+  async createSection(school_id, data: object, trustee_id: ObjectId) {
     try {
       if (!Types.ObjectId.isValid(school_id)) {
         throw new BadRequestException('Invalid school_id format');
       }
-      const schoolId = new Types.ObjectId(school_id)
+      const schoolId = new Types.ObjectId(school_id);
 
       const checkSchool = await this.trusteeSchoolModel.findOne({
         trustee_id,
-        school_id:schoolId
-      })
-      if(!checkSchool){
-        throw new NotFoundException('school not found for given trustee')
+        school_id: schoolId,
+      });
+      if (!checkSchool) {
+        throw new NotFoundException('school not found for given trustee');
       }
 
       const info = {
@@ -133,16 +134,16 @@ export class ErpService {
           token: token,
         },
       );
-      const section = this.jwtService.verify(sectionToken.data,{
-        secret:process.env.JWT_SECRET_FOR_INTRANET
-      })
-      return section
+      const section = this.jwtService.verify(sectionToken.data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      return section;
     } catch (error) {
       if (error.response.data && error.response.data.statusCode === 409) {
         throw new ConflictException(error.response.data.message);
-      }else if(error.response && error.response.statusCode === 404){
-        throw new NotFoundException(error.message)
-      }else{
+      } else if (error.response && error.response.statusCode === 404) {
+        throw new NotFoundException(error.message);
+      } else {
         throw new BadRequestException(error.message);
       }
     }
@@ -156,7 +157,6 @@ export class ErpService {
     trustee: ObjectId,
   ): Promise<any> {
     try {
-      
       const data = {
         phone_number,
         name,
@@ -174,23 +174,21 @@ export class ErpService {
           token: token,
         },
       );
-      
-      const school=this.jwtService.verify(schoolToken.data,{
-        secret:process.env.JWT_SECRET_FOR_INTRANET
-      }) 
-       
-      const schoolId = new Types.ObjectId(school.adminInfo.school_id)
-      
+
+      const school = this.jwtService.verify(schoolToken.data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+
+      const schoolId = new Types.ObjectId(school.adminInfo.school_id);
+
       const trusteeSchool = await this.trusteeSchoolModel.create({
         school_id: schoolId,
         school_name: school.updatedSchool.updates.name,
         trustee_id: trustee,
       });
-      
-      
+
       return school;
     } catch (error) {
-     
       if (error.response) {
         // The request was made and the server responded with a non-success status code
         if (error.response.status === 409) {
@@ -215,18 +213,17 @@ export class ErpService {
     }
   }
 
-  async createStudent(Student, schoolId,trustee_id) {
+  async createStudent(Student, schoolId, trustee_id) {
     try {
       const Key = process.env.JWT_SECRET_FOR_INTRANET;
 
-      const school_Id = new Types.ObjectId(schoolId)
+      const school_Id = new Types.ObjectId(schoolId);
       const checkSchool = await this.trusteeSchoolModel.findOne({
         trustee_id,
-        school_id:school_Id
-      })
-      if(!checkSchool){
-        
-        throw new NotFoundException('school not found for given trustee')
+        school_id: school_Id,
+      });
+      if (!checkSchool) {
+        throw new NotFoundException('school not found for given trustee');
       }
 
       const info = {
@@ -244,23 +241,24 @@ export class ErpService {
         },
       );
 
-      const student = this.jwtService.verify(studentToken.data,{
-        secret: Key
-      })
-      
+      const student = this.jwtService.verify(studentToken.data, {
+        secret: Key,
+      });
+
       return student;
     } catch (error) {
-      
       if (error.response.data && error.response.data.statusCode === 400) {
         throw new BadRequestException(error.response.data);
-      }else if (error.response.data && error.response.data.statusCode === 409) {
+      } else if (
+        error.response.data &&
+        error.response.data.statusCode === 409
+      ) {
         throw new ConflictException(error.response.data);
-      }else if(error.response && error.response.statusCode === 404){
-        throw new NotFoundException(error.message)
-      }else if(error instanceof NotFoundException){
-        throw error
+      } else if (error.response && error.response.statusCode === 404) {
+        throw new NotFoundException(error.message);
+      } else if (error instanceof NotFoundException) {
+        throw error;
       } else {
-        
         throw new BadRequestException(error.message);
       }
     }
@@ -269,14 +267,16 @@ export class ErpService {
   async getUser(trusteeId: ObjectId) {
     try {
       const trustee = await this.trusteeModel.findById(trusteeId);
-      if (!trustee)
-        throw new NotFoundException('Trustee doesn not exist');
-      const userInfo = { name: trustee.name, email_id: trustee.email_id, phone_number: trustee.phone_number }
+      if (!trustee) throw new NotFoundException('Trustee doesn not exist');
+      const userInfo = {
+        name: trustee.name,
+        email_id: trustee.email_id,
+        phone_number: trustee.phone_number,
+      };
       return userInfo;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      throw new ConflictException('Error in finding trustee')
+      throw new ConflictException('Error in finding trustee');
     }
   }
 }
- 

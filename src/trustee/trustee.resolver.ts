@@ -113,14 +113,13 @@ export class TrusteeResolver {
     try {
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userTrustee = await this.trusteeService.validateTrustee(token);
-
       // Map the trustee data to the User type
       const user: TrusteeUser = {
         _id: userTrustee.id,
         name: userTrustee.name,
         email_id: userTrustee.email,
+        apiKey: userTrustee.apiKey,
       };
-
       return user;
     } catch (error) {
       const customError = {
@@ -158,6 +157,8 @@ class User {
   access: string;
   @Field()
   school_id: string;
+  @Field()
+  apiKey: string;
 }
 
 @ObjectType()
@@ -178,6 +179,8 @@ class TrusteeUser {
   name: string;
   @Field()
   email_id: string;
+  @Field()
+  apiKey: string;
 }
 
 @ObjectType()

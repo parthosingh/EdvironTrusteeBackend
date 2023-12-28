@@ -24,7 +24,7 @@ export class TrusteeService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
-  ) { }
+  ) {}
 
   async loginAndGenerateToken(
     emailId: string,
@@ -32,7 +32,6 @@ export class TrusteeService {
   ): Promise<{ token: string }> {
     try {
       const trustee = await this.trusteeModel.findOne({ email_id: emailId });
-
       if (!trustee) {
         throw new UnauthorizedException('Invalid credentials');
       }
@@ -51,10 +50,12 @@ export class TrusteeService {
       };
 
       return {
-        token: await this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH, expiresIn: "30d" }),
+        token: await this.jwtService.sign(payload, {
+          secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
+          expiresIn: '30d',
+        }),
       };
     } catch (error) {
-      console.error('Error in login process:', error);
       throw new UnauthorizedException('Invalid credentials');
     }
   }
@@ -65,9 +66,7 @@ export class TrusteeService {
         secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
       });
 
-      const trustee = await this.trusteeModel.findById(
-        decodedPayload.id,
-      );
+      const trustee = await this.trusteeModel.findById(decodedPayload.id);
 
       if (!trustee) throw new NotFoundException('trustee not found');
 
@@ -75,8 +74,8 @@ export class TrusteeService {
         id: trustee._id,
         name: trustee.name,
         email: trustee.email_id,
+        apiKey: trustee.apiKey,
       };
-
       return userTrustee;
     } catch (error) {
       throw new UnauthorizedException('Invalid API key');
@@ -131,8 +130,8 @@ export class TrusteeService {
         throw new NotFoundException('School not found!');
       }
       if (school.trustee_id.toString() !== trustee._id.toString())
-        throw new NotFoundException('School not found for trustee')
-      
+        throw new NotFoundException('School not found for trustee');
+
       // Password validation and JWT token generation
       const passwordMatch = await bcrypt.compare(
         password,
@@ -161,8 +160,11 @@ export class TrusteeService {
         throw error;
       } else if (error.request) {
         throw new BadRequestException('No response received from the server');
-      } else if (error instanceof UnauthorizedException || error instanceof NotFoundException)
-        throw error
+      } else if (
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException
+      )
+        throw error;
       else {
         throw new BadRequestException('Request setup error');
       }
