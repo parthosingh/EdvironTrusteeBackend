@@ -1,13 +1,11 @@
 import { JwtService } from '@nestjs/jwt';
-import mongoose, { Types, ObjectId } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import {
   ConflictException,
   Injectable,
-  BadGatewayException,
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
   Body,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -69,16 +67,15 @@ export class TrusteeService {
       const trustee = await this.trusteeModel.findById(decodedPayload.id);
 
       if (!trustee) throw new NotFoundException('trustee not found');
-
       const userTrustee = {
         id: trustee._id,
         name: trustee.name,
         email: trustee.email_id,
-        apiKey: trustee.apiKey,
+        apiKey: trustee.apiKey || null,
       };
       return userTrustee;
     } catch (error) {
-      throw new UnauthorizedException('Invalid API key');
+      throw new UnauthorizedException('Invalid token');
     }
   }
 

@@ -108,7 +108,7 @@ export class TrusteeResolver {
       }
     }
   }
-  @Query(() => User)
+  @Query(() => TrusteeUser)
   async getUserQuery(@Context() context): Promise<TrusteeUser> {
     try {
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
@@ -157,8 +157,6 @@ class User {
   access: string;
   @Field()
   school_id: string;
-  @Field()
-  apiKey: string;
 }
 
 @ObjectType()
@@ -179,7 +177,7 @@ class TrusteeUser {
   name: string;
   @Field()
   email_id: string;
-  @Field()
+  @Field({nullable:true})
   apiKey: string;
 }
 
