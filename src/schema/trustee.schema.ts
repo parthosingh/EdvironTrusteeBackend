@@ -30,7 +30,7 @@ export class Trustee extends Document {
   @Prop()
   phone_number: number;
 
-  @Field()
+  @Field({nullable:true})
   @Prop()
   apiKey: string;
 }
