@@ -110,7 +110,6 @@ export class ErpService {
         throw new BadRequestException('Invalid school_id format');
       }
       const schoolId = new Types.ObjectId(school_id);
-
       const checkSchool = await this.trusteeSchoolModel.findOne({
         trustee_id,
         school_id: schoolId,
@@ -217,10 +216,10 @@ export class ErpService {
     try {
       const Key = process.env.JWT_SECRET_FOR_INTRANET;
 
-      const school_Id = new Types.ObjectId(schoolId);
+      const school_id = new Types.ObjectId(schoolId);
       const checkSchool = await this.trusteeSchoolModel.findOne({
         trustee_id,
-        school_id: school_Id,
+        school_id,
       });
       if (!checkSchool) {
         throw new NotFoundException('school not found for given trustee');

@@ -1,4 +1,11 @@
-import { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
 import { TrusteeSchool } from 'src/schema/school.schema';
@@ -11,7 +18,7 @@ export class MainBackendService {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
-  ) { }
+  ) {}
 
   async createTrustee(info): Promise<Trustee> {
     const { name, email, password, school_limit, phone_number } = info;
@@ -29,12 +36,12 @@ export class MainBackendService {
         email_id: email,
         password_hash: password,
         school_limit: school_limit,
-        phone_number: phone_number
+        phone_number: phone_number,
       }).save();
       return trustee;
     } catch (error) {
       console.log(error);
-      
+
       if (error.response && error.response.statusCode === 409) {
         throw new ConflictException(error.message);
       }
@@ -48,11 +55,10 @@ export class MainBackendService {
       const totalPages = Math.ceil(totalItems / pageSize);
 
       const trustee = await this.trusteeModel
-    .find()
-    .sort({ createdAt: -1 })  
-    .limit(pageSize)
-    .exec();
-
+        .find()
+        .sort({ createdAt: -1 })
+        .limit(pageSize)
+        .exec();
 
       const pagination = {
         data: trustee,
@@ -61,7 +67,7 @@ export class MainBackendService {
         totalPages,
         totalItems,
       };
-      
+
       return pagination;
     } catch (err) {
       throw new NotFoundException(err.message);
@@ -77,7 +83,7 @@ export class MainBackendService {
     }
   }
 
-  async checkSchoolLimit(trustee_id : Types.ObjectId) {
+  async checkSchoolLimit(trustee_id: Types.ObjectId) {
     const countDocs = await this.trusteeSchoolModel.countDocuments({
       trustee_id,
     });

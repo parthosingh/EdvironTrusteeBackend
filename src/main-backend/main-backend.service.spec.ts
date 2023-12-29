@@ -6,21 +6,19 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeSchool } from '../schema/school.schema';
 
+const mockMainBackendService = {
+  createTrustee: jest.fn(),
+  findTrustee: jest.fn(),
+  findOneTrustee: jest.fn(),
+  checkSchoolLimit: jest.fn(),
+};
 
-
-const mockMainBackendService={
-  createTrustee:jest.fn(),
-  findTrustee:jest.fn(),
-  findOneTrustee:jest.fn(),
-  checkSchoolLimit:jest.fn()
-}
-
-const trusteeObj={
-  name:'john Doe',
-  email_id:'example@gmail.com',
-  password_hash:'password',
-  school_limit:150
-}
+const trusteeObj = {
+  name: 'john Doe',
+  email_id: 'example@gmail.com',
+  password_hash: 'password',
+  school_limit: 150,
+};
 
 const MockJwtService = {
   sign: jest.fn(),
@@ -30,24 +28,27 @@ const MockTrusteeSchoolModel = {
   findOne: jest.fn(),
 };
 
-const mockTrusteeModel ={
-  find:jest.fn(),
-  findOne:jest.fn(),
-  countDocuments:jest.fn(),
-}
+const mockTrusteeModel = {
+  find: jest.fn(),
+  findOne: jest.fn(),
+  countDocuments: jest.fn(),
+};
 
 describe('MainBackendService', () => {
   let service: MainBackendService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MainBackendService,
+      providers: [
+        MainBackendService,
         { provide: Connection, useValue: {} },
         { provide: getModelToken(Trustee.name), useValue: mockTrusteeModel },
-        { provide: getModelToken(TrusteeSchool.name), useValue: MockTrusteeSchoolModel },
-        
-        { provide: JwtService, useValue: MockJwtService }, // Provide the mockJwtService
+        {
+          provide: getModelToken(TrusteeSchool.name),
+          useValue: MockTrusteeSchoolModel,
+        },
 
+        { provide: JwtService, useValue: MockJwtService }, // Provide the mockJwtService
       ],
     }).compile();
 
@@ -57,8 +58,8 @@ describe('MainBackendService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-  describe('findTrustee',()=>{
-    it('should return trustee array',async()=>{
+  describe('findTrustee', () => {
+    it('should return trustee array', async () => {
       const page = 1;
       const pageSize = 10;
       const totalItems = 20;
@@ -83,6 +84,6 @@ describe('MainBackendService', () => {
         totalPages: Math.ceil(totalItems / pageSize),
         totalItems,
       });
-    })
-  })
+    });
+  });
 });

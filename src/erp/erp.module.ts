@@ -9,15 +9,17 @@ import { JwtModule } from '@nestjs/jwt';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
-    MongooseModule.forFeature([{name:'TrusteeSchool',schema:SchoolSchema}]),
+    MongooseModule.forFeature([
+      { name: 'TrusteeSchool', schema: SchoolSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_API_KEY,
         signOptions: { expiresIn: '2h' },
       }),
-    })
+    }),
   ],
   providers: [ErpService],
-  controllers: [ErpController]
+  controllers: [ErpController],
 })
 export class ErpModule {}

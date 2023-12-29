@@ -16,7 +16,6 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => String)
   school_name: string;
-
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool);

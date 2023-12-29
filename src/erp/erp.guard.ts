@@ -7,9 +7,7 @@ import { ErpService } from './erp.service';
 export class ErpGuard implements CanActivate {
   constructor(private readonly erpService: ErpService) {} // Inject your authentication service
 
-  async canActivate(
-    context: ExecutionContext,
-  ): Promise<boolean> {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const authorizationHeader = request.headers['authorization'];
 

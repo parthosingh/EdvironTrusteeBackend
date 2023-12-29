@@ -5,10 +5,14 @@ import { TrusteeService } from './trustee.service';
 export class TrusteeGuard implements CanActivate {
   constructor(private readonly trusteeService: TrusteeService) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest() || GqlExecutionContext.create(context).getContext().req;
+    const request =
+      context.switchToHttp().getRequest() ||
+      GqlExecutionContext.create(context).getContext().req;
     const extractTokenFromRequest = (req: any): string | null => {
       const authorizationHeader = req.headers?.authorization;
-      return authorizationHeader?.startsWith('Bearer ') ? authorizationHeader.split(' ')[1] : null;
+      return authorizationHeader?.startsWith('Bearer ')
+        ? authorizationHeader.split(' ')[1]
+        : null;
     };
     const validateToken = async (token: string): Promise<any | null> => {
       try {

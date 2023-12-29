@@ -9,15 +9,17 @@ import { SchoolSchema } from 'src/schema/school.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
-    MongooseModule.forFeature([{ name: 'TrusteeSchool', schema: SchoolSchema }]),
+    MongooseModule.forFeature([
+      { name: 'TrusteeSchool', schema: SchoolSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
-        secret:process.env.JWT_SECRET_FOR_INTRANET,
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
         signOptions: { expiresIn: '1h' },
       }),
     }),
   ],
   providers: [MainBackendService],
-  controllers: [MainBackendController]
+  controllers: [MainBackendController],
 })
 export class MainBackendModule {}
