@@ -40,8 +40,6 @@ export class MainBackendService {
       }).save();
       return trustee;
     } catch (error) {
-      console.log(error);
-
       if (error.response && error.response.statusCode === 409) {
         throw new ConflictException(error.message);
       }
