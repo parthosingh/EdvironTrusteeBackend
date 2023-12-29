@@ -55,6 +55,7 @@ export class MainBackendService {
       const trustee = await this.trusteeModel
         .find()
         .sort({ createdAt: -1 })
+        .skip((page - 1) * pageSize) 
         .limit(pageSize)
         .exec();
 
