@@ -113,9 +113,10 @@ export class TrusteeService {
     trusteeId: string,
   ) {
     try {
+      const schoolObjectId = new mongoose.Types.ObjectId(schoolId)
       // Parallel execution of database queries using Promise.all()
       const [school, trustee] = await Promise.all([
-        this.trusteeSchoolModel.findOne({ school_id: schoolId }),
+        this.trusteeSchoolModel.findOne({ school_id: schoolObjectId }),
         this.trusteeModel.findById(trusteeId),
       ]);
 
