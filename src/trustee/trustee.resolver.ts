@@ -29,6 +29,7 @@ export class TrusteeResolver {
         email_id,
         password_hash,
       );
+
       return { token };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -65,18 +66,20 @@ export class TrusteeResolver {
     }
   }
 
-  @Query(() => [TrusteeSchool])
+  @Query(() => getSchool)
   @UseGuards(TrusteeGuard)
   async getSchoolQuery(
-    @Args('limit', { type: () => Int, defaultValue: 5 }) limit: number,
-    @Args('offset', { type: () => Int, defaultValue: 0 }) offset: number,
+    @Args('page', { type: () => Int, defaultValue: 1 }) page: number,
     @Context() context,
-  ): Promise<any[]> {
+  ): Promise<any> {
     try {
       const id = context.req.trustee;
-      const schools = await this.trusteeService.getSchools(id, limit, offset);
-
-      return schools;
+      const schools = await this.trusteeService.getSchools(id, page);
+      return {
+        schools: schools.schoolData,
+        total_pages: schools.total_pages,
+        page: page,
+      };
     } catch (error) {
       const customError = {
         message: error.message,
@@ -177,7 +180,7 @@ class TrusteeUser {
   name: string;
   @Field()
   email_id: string;
-  @Field({nullable:true})
+  @Field({ nullable: true })
   apiKey: string;
 }
 
@@ -185,4 +188,23 @@ class TrusteeUser {
 class ApiKey {
   @Field()
   key: string;
+}
+
+@ObjectType()
+class School {
+  @Field()
+  school_name: string;
+
+  @Field()
+  school_id: string;
+}
+
+@ObjectType()
+class getSchool {
+  @Field(() => [School])
+  schools: [School];
+  @Field()
+  total_pages: number;
+  @Field()
+  page: number;
 }

@@ -33,7 +33,6 @@ export class TrusteeService {
       if (!trustee) {
         throw new UnauthorizedException('Invalid credentials');
       }
-
       const passwordMatch = await bcrypt.compare(
         passwordHash,
         trustee.password_hash,
@@ -42,7 +41,6 @@ export class TrusteeService {
       if (!passwordMatch) {
         throw new UnauthorizedException('Invalid credentials');
       }
-
       const payload = {
         id: trustee._id,
       };
@@ -79,25 +77,31 @@ export class TrusteeService {
     }
   }
 
-  async getSchools(trusteeId: string, limit: number, offset: number) {
+  async getSchools(trusteeId: string, page: number) {
     try {
       if (!Types.ObjectId.isValid(trusteeId)) {
         throw new BadRequestException('Invalid trusteeID format');
       }
+      const trusteeObjectId = new mongoose.Types.ObjectId(trusteeId);
+
       const trustee = await this.trusteeModel.findById(trusteeId);
 
       if (!trustee) {
         throw new ConflictException(`no trustee found`);
       }
+      const count = await this.trusteeSchoolModel.countDocuments({
+        trustee_id: trusteeObjectId,
+      });
+      const pageSize = 3;
       const schools = await this.trusteeSchoolModel
         .find(
-          { trustee_id: trusteeId },
+          { trustee_id: trusteeObjectId },
           { school_id: 1, school_name: 1, _id: 0 },
         )
-        .skip(offset)
-        .limit(limit)
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
         .exec();
-      return schools;
+      return { schoolData: schools, total_pages: Math.ceil(count / pageSize) };
     } catch (error) {
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
@@ -113,7 +117,7 @@ export class TrusteeService {
     trusteeId: string,
   ) {
     try {
-      const schoolObjectId = new mongoose.Types.ObjectId(schoolId)
+      const schoolObjectId = new mongoose.Types.ObjectId(schoolId);
       // Parallel execution of database queries using Promise.all()
       const [school, trustee] = await Promise.all([
         this.trusteeSchoolModel.findOne({ school_id: schoolObjectId }),
