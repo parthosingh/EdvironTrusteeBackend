@@ -28,7 +28,7 @@ export class Trustee extends Document {
 
   @Field()
   @Prop()
-  phone_number: number;
+  phone_number: string;
 
   @Field({nullable:true, defaultValue:null})
   @Prop()

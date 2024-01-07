@@ -10,8 +10,8 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import mongoose, { ObjectId, Types } from 'mongoose';
-import { TrusteeSchool } from 'src/schema/school.schema';
-import { Trustee } from 'src/schema/trustee.schema';
+import { TrusteeSchool } from '../schema/school.schema';
+import { Trustee } from '../schema/trustee.schema';
 
 @Injectable()
 export class ErpService {
@@ -104,7 +104,7 @@ export class ErpService {
     }
   }
 
-  async createSection(school_id, data: object, trustee_id: ObjectId) {
+  async createSection(school_id, data: object, trustee_id) {
     try {
       if (!Types.ObjectId.isValid(school_id)) {
         throw new BadRequestException('Invalid school_id format');

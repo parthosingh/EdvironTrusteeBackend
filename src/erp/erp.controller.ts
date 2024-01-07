@@ -41,11 +41,13 @@ export class ErpController {
   async validateApiKey(@Req() req): Promise<{
     name: string;
     email_id: string;
-    phone_number: number;
+    phone_number: string;
   }> {
     try {
       const trusteeId = req.userTrustee.id;
       const trustee = await this.erpService.getUser(trusteeId);
+      
+      
       return trustee;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -77,7 +79,7 @@ export class ErpController {
     } catch (error) {
       if (error.response && error.response.statusCode === 404) {
         throw new NotFoundException(error.message);
-      } else if (error.response.statusCode === 409) {
+      } else if (error.response  && error.response.statusCode === 409) {
         throw new ConflictException(error.message);
       }
       throw new BadRequestException(error.message);
