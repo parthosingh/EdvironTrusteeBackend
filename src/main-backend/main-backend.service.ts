@@ -27,8 +27,7 @@ export class MainBackendService {
         .findOne({ email_id: email })
 
       if (checkMail) {
-        console.log('mail',checkMail);
-        
+       
         throw new ConflictException(`${email} already exist`);
       }
 
@@ -96,18 +95,23 @@ export class MainBackendService {
   }
 
   async assignSchool(
-    school_id: Types.ObjectId,
-    trustee_id: Types.ObjectId,
-    school_name: string,
+    info
   ) {
-    try {
+    try { 
+     const {school_id,trustee_id,school_name}=info
+
+      const trusteeId=new Types.ObjectId(trustee_id.toString())
+      const schoolId=new Types.ObjectId(school_id.toString())
       const trustee = await this.trusteeModel.findOne(
-        {_id:trustee_id},
+        {_id:trusteeId},
       );
+      if(!trustee){
+        throw new NotFoundException('trustee not found');
+      }
       const countSchool = await this.checkSchoolLimit(trustee_id);
       const check = await this.trusteeSchoolModel.find({
-        trustee_id,
-        school_id,
+        trusteeId,
+        schoolId,
       });
 
       if (check.length > 0) {
@@ -117,17 +121,18 @@ export class MainBackendService {
         throw new ForbiddenException('You cannot add more school');
       }
       const school = await this.trusteeSchoolModel.create({
-        school_id,
+        schoolId,
         trustee_id,
         school_name,
       })
       return school;
     } catch (error) {
+      
       if (error.response && error.response.statusCode === 403) {
         throw new ForbiddenException(error.message);
       }
 
       throw new BadGatewayException(error.message);
-    }
+    } 
   }
 }

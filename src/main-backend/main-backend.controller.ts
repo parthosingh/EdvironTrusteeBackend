@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { MainBackendService } from './main-backend.service';
 import { JwtPayload } from 'jsonwebtoken';
 import { Trustee } from 'src/schema/trustee.schema';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -23,10 +23,14 @@ export class MainBackendController {
           body.data,
           {secret:process.env.JWT_SECRET_FOR_INTRANET}
         );
-        const trustee = await this.mainBackendService.createTrustee(info)
+        
+        
+      const trustee = await this.mainBackendService.createTrustee(info)
       
 
       const trusteeToken = this.jwtService.sign({ credential: trustee })
+     
+      
       return trusteeToken
       } catch (e) {
         if (e.response && e.response.statusCode === 409) {
@@ -53,24 +57,28 @@ export class MainBackendController {
       },
     ) {
       try {
-        const data: JwtPayload = this.jwtService.verify(
+        const data = this.jwtService.verify(
           token.token,
           {secret:process.env.JWT_SECRET_FOR_INTRANET},
-        ) as JwtPayload;
-        const trusteeId = new Types.ObjectId(data.trustee_id);
-        const trustee = await this.mainBackendService.findOneTrustee(trusteeId);
-  
-        if (!trustee) {
-          throw new NotFoundException('trustee not found');
-        }
-  
-        return await this.mainBackendService.assignSchool(
-          data.school_id,
-          data.trustee_id,
-          data.school_name,
+        ) 
+        const assignSchool = await this.mainBackendService.assignSchool(
+          data
         );
+        
+        const payload = {
+          school_id:assignSchool.school_id,
+          trustee_id:assignSchool.trustee_id,
+          school_name:assignSchool.school_name,
+        }
+
+        const schooltoken = this.jwtService.sign(payload,{secret:process.env.JWT_SECRET_FOR_INTRANET})
+        
+          
+          
+        return schooltoken
       } catch (error) {
-        if (error.response.statusCode === 403) {
+        
+        if (error.response && error.response.statusCode === 403) {
           throw new ForbiddenException(error.message);
         }
   

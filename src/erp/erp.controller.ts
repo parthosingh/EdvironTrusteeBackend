@@ -128,7 +128,8 @@ export class ErpController {
     if (!body.name || !body.phone_number || !body.email || !body.school_name) {
       throw new BadRequestException('Fill all fields');
     }
-
+   
+    
     try {
       const school = await this.erpService.createSchool(
         body.phone_number,
@@ -137,8 +138,11 @@ export class ErpController {
         body.school_name,
         req.userTrustee.id,
       );
+      
       return school;
     } catch (error) {
+      
+      
       if (error.response && error.response.statusCode === 409) {
         throw new ConflictException(error.message);
       }

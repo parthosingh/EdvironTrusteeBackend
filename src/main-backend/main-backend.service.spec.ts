@@ -247,6 +247,11 @@ describe('MainBackendService', () => {
         trustee_id: trusteeId,
         school_name: schoolName,
       };
+      const info={
+       school_id: '658e759736ba0754ca45d0c3',
+       trustee_id:'658e759736ba0754ca45d0c2',
+       school_name:"Test School"
+      }
   
       jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(mockTrustee);
       jest.spyOn(trusteeSchoolModel, 'countDocuments').mockResolvedValue(0);
@@ -254,12 +259,12 @@ describe('MainBackendService', () => {
 
       jest.spyOn(trusteeSchoolModel, 'create').mockResolvedValue(mockSchool as any);
   
-      const result = await service.assignSchool(schoolId, trusteeId, schoolName);
+      const result = await service.assignSchool(info);
   
       expect(trusteeModel.findOne).toHaveBeenCalledWith(new Types.ObjectId(trusteeId));
       expect(trusteeSchoolModel.countDocuments).toHaveBeenCalledWith({ trustee_id: trusteeId });
-      expect(trusteeSchoolModel.find).toHaveBeenCalledWith({ trustee_id: trusteeId, school_id: schoolId });
-      expect(trusteeSchoolModel.create).toHaveBeenCalledWith(mockSchool);
+      expect(trusteeSchoolModel.find).toHaveBeenCalledWith({ trustee_id: info.trustee_id, school_id: info.school_id });
+      expect(trusteeSchoolModel.create).toHaveBeenCalledWith(info);
       expect(result).toEqual(mockSchool);
     });
   
@@ -280,12 +285,18 @@ describe('MainBackendService', () => {
         updatedAt: "2024-01-05T12:10:10.300Z",
         __v: 0
       };
-  
+      
+      const info={
+        school_id: '658e759736ba0754ca45d0c3',
+        trustee_id:'658e759736ba0754ca45d0c2',
+        school_name:"school"
+       }
       jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(mockTrustee);
       jest.spyOn(trusteeSchoolModel, 'countDocuments').mockResolvedValue(0);
       jest.spyOn(trusteeSchoolModel, 'find').mockResolvedValue([{ school_id: schoolId }]);
   
-      await expect(service.assignSchool(schoolId, trusteeId, schoolName))
+      
+      await expect(service.assignSchool(info))
         .rejects.toThrowError(ForbiddenException);
     });
   
@@ -310,7 +321,13 @@ describe('MainBackendService', () => {
       jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(mockTrustee);
       jest.spyOn(trusteeSchoolModel, 'countDocuments').mockResolvedValue(2);
   
-      await expect(service.assignSchool(schoolId, trusteeId, schoolName))
+      const info={
+        school_id: '658e759736ba0754ca45d0c3',
+        trustee_id:'658e759736ba0754ca45d0c2',
+        school_name:"school"
+       }
+
+      await expect(service.assignSchool(info))
         .rejects.toThrowError(ForbiddenException);
     });
   
@@ -338,8 +355,12 @@ describe('MainBackendService', () => {
   
       // Simulating an unknown error by rejecting the create method
       jest.spyOn(trusteeSchoolModel, 'create').mockRejectedValue(new Error('Unknown error'));
-  
-      await expect(service.assignSchool(schoolId, trusteeId, schoolName))
+      const info={
+        school_id: '658e759736ba0754ca45d0c3',
+        trustee_id:'658e759736ba0754ca45d0c2',
+        school_name:"school"
+       }
+      await expect(service.assignSchool(info))
         .rejects.toThrowError(BadGatewayException);
     });
   });
