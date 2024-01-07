@@ -23,7 +23,11 @@ export class MainBackendController {
           body.data,
           {secret:process.env.JWT_SECRET_FOR_INTRANET}
         );
-        return this.jwtService.sign({credential:await this.mainBackendService.createTrustee(info)},{secret:process.env.JWT_SECREET_FOR_INTRANET})
+        const trustee = await this.mainBackendService.createTrustee(info)
+      
+
+      const trusteeToken = this.jwtService.sign({ credential: trustee })
+      return trusteeToken
       } catch (e) {
         if (e.response && e.response.statusCode === 409) {
           throw new ConflictException(e.message);

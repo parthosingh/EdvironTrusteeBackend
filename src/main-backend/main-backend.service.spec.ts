@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 import { getModelToken } from '@nestjs/mongoose';
 import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { BadGatewayException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 jest.mock('@nestjs/jwt');
 
@@ -131,6 +131,8 @@ describe('MainBackendService', () => {
 
 
   });
+  
+  
 
   describe('findTrustee', () => {
     it('should return arrays of trustee', async () => {
@@ -169,7 +171,7 @@ describe('MainBackendService', () => {
       const page = 1;
       const pageSize = 5;
 
-      await expect(service.findTrustee(page, pageSize)).rejects.toThrowError(BadRequestException);
+      await expect(service.findTrustee(page, pageSize)).rejects.toThrowError(NotFoundException);
 
     })
   })
@@ -220,6 +222,7 @@ describe('MainBackendService', () => {
       
     })
   })
+  
   describe('assignSchool', () => {
     it('should return assigned school', async () => {
       const schoolId = new Types.ObjectId('658e759736ba0754ca45d0c3');

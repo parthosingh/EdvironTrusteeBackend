@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
-import { TrusteeSchool } from 'src/schema/school.schema';
-import { Trustee } from 'src/schema/trustee.schema';
+import { TrusteeSchool } from '../schema/school.schema';
+import { Trustee } from '../schema/trustee.schema';
 
 @Injectable()
 export class MainBackendService {
@@ -20,26 +20,32 @@ export class MainBackendService {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
   ) {}
 
-  async createTrustee(info): Promise<Trustee> {
+  async createTrustee(info){
     const { name, email, password, school_limit, phone_number } = info;
     try {
       const checkMail = await this.trusteeModel
         .findOne({ email_id: email })
-        .exec();
 
       if (checkMail) {
+        console.log('mail',checkMail);
+        
         throw new ConflictException(`${email} already exist`);
       }
 
-      const trustee = await new this.trusteeModel({
+      const trustee = await this.trusteeModel.create({
         name: name,
         email_id: email,
         password_hash: password,
         school_limit: school_limit,
         phone_number: phone_number,
-      }).save();
+      })
+      
+      
+
       return trustee;
     } catch (error) {
+      
+      
       if (error.response && error.response.statusCode === 409) {
         throw new ConflictException(error.message);
       }
@@ -96,7 +102,7 @@ export class MainBackendService {
   ) {
     try {
       const trustee = await this.trusteeModel.findOne(
-        new Types.ObjectId(trustee_id),
+        {_id:trustee_id},
       );
       const countSchool = await this.checkSchoolLimit(trustee_id);
       const check = await this.trusteeSchoolModel.find({
@@ -110,14 +116,14 @@ export class MainBackendService {
       if (countSchool === trustee.school_limit) {
         throw new ForbiddenException('You cannot add more school');
       }
-      const school = await new this.trusteeSchoolModel({
+      const school = await this.trusteeSchoolModel.create({
         school_id,
         trustee_id,
         school_name,
-      }).save();
+      })
       return school;
     } catch (error) {
-      if (error.response.statusCode === 403) {
+      if (error.response && error.response.statusCode === 403) {
         throw new ForbiddenException(error.message);
       }
 
