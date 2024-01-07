@@ -92,7 +92,7 @@ export class TrusteeService {
       const count = await this.trusteeSchoolModel.countDocuments({
         trustee_id: trusteeObjectId,
       });
-      const pageSize = 3;
+      const pageSize = 10;
       const schools = await this.trusteeSchoolModel
         .find(
           { trustee_id: trusteeObjectId },
