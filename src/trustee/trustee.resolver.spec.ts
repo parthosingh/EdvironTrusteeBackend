@@ -109,49 +109,54 @@ describe('TrusteeResolver', () => {
     expect(resolver).toBeDefined();
   });
   describe('getSchoolQuery', () => {
-    it('should get a list of schools for given trustee', async () => {
-      const trusteeId = mockTrustee._id;
+    it('should return school data and total pages', async () => {
+      const mockPage = 1;
+      const mockContext = { req: { trustee: mockTrustee._id } };
+      const mockGetSchool: any = {
+        schoolData: [
+          { school_name: 'School 1', school_id: '1' },
+          { school_name: 'School 2', school_id: '2' },
+        ],
+        total_pages: 3,
+        page: 1,
+      };
 
-      jest.spyOn(service, 'getSchools');
+      jest.spyOn(service, 'getSchools').mockResolvedValue(mockGetSchool);
 
-      const schools = await resolver.getSchoolQuery(5, 0, {
-        req: { trustee: trusteeId },
+      const result = await resolver.getSchoolQuery(mockPage, mockContext);
+
+      expect(service.getSchools).toHaveBeenCalledWith(
+        mockTrustee._id,
+        mockPage,
+      );
+      expect(result).toEqual({
+        schools: mockGetSchool.schoolData,
+        total_pages: mockGetSchool.total_pages,
+        page: mockPage,
       });
-
-      expect(service.getSchools).toHaveBeenCalledWith(trusteeId, 5, 0);
-      expect(schools).toEqual(mockTrusteeSchools);
     });
-    it('should handle ConflictException', async () => {
-      const mockContext = {
-        req: { trustee: 'trustee_id' },
-      };
+    it('should handle ConflictException and throw ConflictException', async () => {
+      const mockTrusteeId = mockTrustee._id;
+      const mockPage = 1;
+      const mockContext = { req: { trustee: mockTrusteeId } };
+      const mockError = new ConflictException('Conflict');
+      jest.spyOn(service, 'getSchools').mockRejectedValue(mockError);
 
-      jest
-        .spyOn(service, 'getSchools')
-        .mockRejectedValue(new ConflictException('Conflict occurred'));
-
-      try {
-        await resolver.getSchoolQuery(5, 0, mockContext);
-      } catch (error) {
-        expect(error).toBeInstanceOf(ConflictException);
-        expect(error.message).toBe('Conflict occurred');
-      }
+      await expect(
+        resolver.getSchoolQuery(mockPage, mockContext),
+      ).rejects.toThrow(ConflictException);
     });
-    it('should handle other errors with BadRequestException', async () => {
-      const mockContext = {
-        req: { trustee: 'trustee_id' },
-      };
 
-      jest
-        .spyOn(service, 'getSchools')
-        .mockRejectedValue(new Error('Some generic error'));
+    it('should handle other errors and throw BadRequestException', async () => {
+      const mockTrusteeId = 'trusteeId';
+      const mockPage = 1;
+      const mockContext = { req: { trustee: mockTrusteeId } };
+      const mockError = new Error('Some error');
+      jest.spyOn(service, 'getSchools').mockRejectedValue(mockError);
 
-      try {
-        await resolver.getSchoolQuery(5, 0, mockContext);
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message).toBe('Some generic error');
-      }
+      await expect(
+        resolver.getSchoolQuery(mockPage, mockContext),
+      ).rejects.toThrow(BadRequestException);
     });
   });
   describe('createApiKey', () => {

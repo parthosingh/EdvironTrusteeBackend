@@ -10,7 +10,7 @@ import {
 import { ObjectType, Field } from '@nestjs/graphql';
 import { TrusteeSchool } from '../schema/school.schema';
 import { TrusteeGuard } from './trustee.guard';
-import { ErpService } from 'src/erp/erp.service';
+import { ErpService } from '../erp/erp.service';
 
 @Resolver('Trustee')
 export class TrusteeResolver {

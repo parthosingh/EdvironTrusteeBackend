@@ -112,7 +112,7 @@ describe('ErpController', () => {
 
       expect(result).toEqual(mockPaymentLink);
     });
-    it('should throw BadRequestException',async()=>{
+    it('should throw BadRequestException', async () => {
       jest
         .spyOn(service, 'genrateLink')
         .mockRejectedValueOnce({ message: 'Bad Request' });
@@ -120,47 +120,55 @@ describe('ErpController', () => {
       await expect(
         controller.genratePaymentLink('7000061755'),
       ).rejects.toThrowError(BadRequestException);
-    })
+    });
   });
-  describe('validateApiKey',()=>{
-    it('should return api key',async()=>{
-      const name='raj'
-      const email='somemail@edviron.com',
-      phone_number='70000000'
-      const trustee_id = new Types.ObjectId('658e759736ba0754ca45d0c2')
+  describe('validateApiKey', () => {
+    it('should return api key', async () => {
+      const name = 'raj';
+      const email = 'somemail@edviron.com',
+        phone_number = '70000000';
+      const trustee_id = new Types.ObjectId('658e759736ba0754ca45d0c2');
       const mockTrustee = {
         name: 'test 001',
         email_id: 'one@gmail',
-        password_hash: '$2b$10$.ykb8jlprPpauXQl6pK2jePMPVl6XI0qxjLF6chZHY8dF0T/zNW76',
+        password_hash:
+          '$2b$10$.ykb8jlprPpauXQl6pK2jePMPVl6XI0qxjLF6chZHY8dF0T/zNW76',
         school_limit: 150,
         IndexOfApiKey: 0,
         phone_number: '444444444',
         _id: trustee_id,
-        apiKey:'opop',
-        createdAt: "2024-01-05T12:10:10.300Z",
-        updatedAt: "2024-01-05T12:10:10.300Z",
-        __v: 0
+        apiKey: 'opop',
+        createdAt: '2024-01-05T12:10:10.300Z',
+        updatedAt: '2024-01-05T12:10:10.300Z',
+        __v: 0,
       };
-      jest.spyOn(service,'getUser').mockResolvedValue(mockTrustee)
+      jest.spyOn(service, 'getUser').mockResolvedValue(mockTrustee);
 
-      const result = await controller.validateApiKey(mockRequest)
+      const result = await controller.validateApiKey(mockRequest);
       expect(service.getUser).toHaveBeenCalledWith(mockRequest.userTrustee.id);
       expect(result).toEqual(mockTrustee);
+    });
 
-    })
-   
     it('should throw NotFoundException for user not found', async () => {
-      jest.spyOn(service, 'getUser').mockRejectedValueOnce(new NotFoundException('User not found'));
-  
-      await expect(controller.validateApiKey(mockRequest)).rejects.toThrowError(NotFoundException);
+      jest
+        .spyOn(service, 'getUser')
+        .mockRejectedValueOnce(new NotFoundException('User not found'));
+
+      await expect(controller.validateApiKey(mockRequest)).rejects.toThrowError(
+        NotFoundException,
+      );
     });
-  
+
     it('should throw UnauthorizedException for other errors', async () => {
-      jest.spyOn(service, 'getUser').mockRejectedValueOnce(new Error('Some error'));
-  
-      await expect(controller.validateApiKey(mockRequest)).rejects.toThrowError(UnauthorizedException);
+      jest
+        .spyOn(service, 'getUser')
+        .mockRejectedValueOnce(new Error('Some error'));
+
+      await expect(controller.validateApiKey(mockRequest)).rejects.toThrowError(
+        UnauthorizedException,
+      );
     });
-  })
+  });
 
   describe('createSection', () => {
     it('should return created section', async () => {
@@ -193,9 +201,7 @@ describe('ErpController', () => {
 
       const mockJwtToken = { some: 'data' };
 
-      jest
-        .spyOn(service, 'createSection')
-        .mockResolvedValueOnce(mockResponse);
+      jest.spyOn(service, 'createSection').mockResolvedValueOnce(mockResponse);
 
       const result = await controller.createSection(body, {
         userTrustee: { id: 'trustee_id' },
@@ -247,8 +253,8 @@ describe('ErpController', () => {
     });
   });
 
-  describe('createSchool',()=>{
-    it('should return created school',async()=>{
+  describe('createSchool', () => {
+    it('should return created school', async () => {
       const mockRequestBody = {
         name: 'John Doe',
         phone_number: '1234567890',
@@ -260,18 +266,20 @@ describe('ErpController', () => {
         .spyOn(service, 'createSchool')
         .mockResolvedValue(mockCreatedSchoolData);
 
-        const result = await controller.createSchool(mockRequestBody, mockRequest);
+      const result = await controller.createSchool(
+        mockRequestBody,
+        mockRequest,
+      );
 
-
-        expect(service.createSchool).toHaveBeenCalledWith(
-          mockRequestBody.phone_number,
-          mockRequestBody.name,
-          mockRequestBody.email,
-          mockRequestBody.school_name,
-          mockRequest.userTrustee.id,
-        );
-        expect(result).toEqual(mockCreatedSchoolData);
-    })
+      expect(service.createSchool).toHaveBeenCalledWith(
+        mockRequestBody.phone_number,
+        mockRequestBody.name,
+        mockRequestBody.email,
+        mockRequestBody.school_name,
+        mockRequest.userTrustee.id,
+      );
+      expect(result).toEqual(mockCreatedSchoolData);
+    });
     it('should throw ConflictException for duplicate school creation', async () => {
       const mockRequestBody = {
         name: 'John Doe',
@@ -282,10 +290,12 @@ describe('ErpController', () => {
 
       jest
         .spyOn(service, 'createSchool')
-        .mockRejectedValueOnce({ response: { statusCode: 409, message: 'Conflict' } });
+        .mockRejectedValueOnce({
+          response: { statusCode: 409, message: 'Conflict' },
+        });
 
       await expect(
-        controller.createSchool(mockRequestBody, mockRequest)
+        controller.createSchool(mockRequestBody, mockRequest),
       ).rejects.toThrowError(ConflictException);
     });
 
@@ -302,11 +312,10 @@ describe('ErpController', () => {
         .mockRejectedValueOnce({ message: 'Some error' });
 
       await expect(
-        controller.createSchool(mockRequestBody, mockRequest)
+        controller.createSchool(mockRequestBody, mockRequest),
       ).rejects.toThrowError(BadRequestException);
     });
-    
-  })
+  });
 
   describe('createStudent', () => {
     it('should create a student successfully', async () => {
@@ -342,37 +351,25 @@ describe('ErpController', () => {
         .mockRejectedValue(new ConflictException('Conflict'));
 
       await expect(
-        service.createStudent(
-          mockStudent,
-          mockStudent.school_id,
-          mockRequest.userTrustee.id,
-        ),
+        controller.createStudent(mockStudent, mockRequest),
       ).rejects.toThrow(ConflictException);
     });
     it('should handle NotFoundException', async () => {
       jest
         .spyOn(service, 'createStudent')
-        .mockRejectedValue(new NotFoundException('Not found'));
+        .mockRejectedValue(new NotFoundException('Conflict'));
 
       await expect(
-        service.createStudent(
-          mockStudent,
-          mockStudent.school_id,
-          mockRequest.userTrustee.id,
-        ),
+        controller.createStudent(mockStudent, mockRequest),
       ).rejects.toThrow(NotFoundException);
     });
     it('should handle other errors with BadRequestException', async () => {
       jest
         .spyOn(service, 'createStudent')
-        .mockRejectedValue(new BadRequestException('Some error'));
+        .mockRejectedValue({ message: 'Bad Request' });
 
       await expect(
-        service.createStudent(
-          mockStudent,
-          mockStudent.school_id,
-          mockRequest.userTrustee.id,
-        ),
+        controller.createStudent(mockStudent, mockRequest),
       ).rejects.toThrow(BadRequestException);
     });
   });
