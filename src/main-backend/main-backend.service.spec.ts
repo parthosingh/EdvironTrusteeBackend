@@ -248,8 +248,8 @@ describe('MainBackendService', () => {
         school_name: schoolName,
       };
       const info={
-        school_id:'658e759736ba0754ca45d0c2',
-        trustee_id: '658e759736ba0754ca45d0c3',
+        school_id:'658e759736ba0754ca45d0c3',
+        trustee_id: '658e759736ba0754ca45d0c2',
         school_name:"Test School"
       }
   
@@ -263,7 +263,7 @@ describe('MainBackendService', () => {
   
       expect(trusteeModel.findOne).toHaveBeenCalledWith(new Types.ObjectId(trusteeId));
       expect(trusteeSchoolModel.countDocuments).toHaveBeenCalledWith({ trustee_id: trusteeId });
-      expect(trusteeSchoolModel.find).toHaveBeenCalledWith({school_id: "658e759736ba0754ca45d0c2",trustee_id: "658e759736ba0754ca45d0c3"});
+      expect(trusteeSchoolModel.find).toHaveBeenCalledWith({school_id: schoolId,trustee_id: trusteeId});
       expect(trusteeSchoolModel.create).toHaveBeenCalledWith(info);
       expect(result).toEqual(mockSchool);
     });

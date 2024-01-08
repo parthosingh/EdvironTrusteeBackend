@@ -121,7 +121,7 @@ export class MainBackendService {
         throw new ForbiddenException('You cannot add more school');
       }
       const school = await this.trusteeSchoolModel.create({
-        schoolId,
+        school_id,
         trustee_id,
         school_name,
       })
