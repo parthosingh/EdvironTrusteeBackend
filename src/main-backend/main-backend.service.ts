@@ -110,8 +110,8 @@ export class MainBackendService {
       }
       const countSchool = await this.checkSchoolLimit(trustee_id);
       const check = await this.trusteeSchoolModel.find({
-        trusteeId,
-        schoolId,
+        trustee_id:trusteeId,
+        school_id:schoolId,
       });
 
       if (check.length > 0) {

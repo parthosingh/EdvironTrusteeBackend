@@ -132,4 +132,15 @@ describe('TrusteeService', () => {
       );
     });
   });
+  describe("generateSchoolToken",()=>{
+    it('should return genrated token',async()=>{
+      const schoolId = 'schoolId';
+      const password = 'password';
+      const trusteeId = 'trusteeId';
+
+      // jest.spyOn(mongoose.Types.ObjectId, 'isValid').mockReturnValue(true);
+      jest.spyOn(trusteeModel, 'findById').mockResolvedValue(null);
+
+    })
+  })
 });

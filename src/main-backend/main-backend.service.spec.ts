@@ -248,9 +248,9 @@ describe('MainBackendService', () => {
         school_name: schoolName,
       };
       const info={
-       school_id: '658e759736ba0754ca45d0c3',
-       trustee_id:'658e759736ba0754ca45d0c2',
-       school_name:"Test School"
+        school_id:'658e759736ba0754ca45d0c2',
+        trustee_id: '658e759736ba0754ca45d0c3',
+        school_name:"Test School"
       }
   
       jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(mockTrustee);
@@ -263,7 +263,7 @@ describe('MainBackendService', () => {
   
       expect(trusteeModel.findOne).toHaveBeenCalledWith(new Types.ObjectId(trusteeId));
       expect(trusteeSchoolModel.countDocuments).toHaveBeenCalledWith({ trustee_id: trusteeId });
-      expect(trusteeSchoolModel.find).toHaveBeenCalledWith({ trustee_id: info.trustee_id, school_id: info.school_id });
+      expect(trusteeSchoolModel.find).toHaveBeenCalledWith({school_id: "658e759736ba0754ca45d0c2",trustee_id: "658e759736ba0754ca45d0c3"});
       expect(trusteeSchoolModel.create).toHaveBeenCalledWith(info);
       expect(result).toEqual(mockSchool);
     });
