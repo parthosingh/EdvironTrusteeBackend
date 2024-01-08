@@ -140,7 +140,7 @@ export class TrusteeService {
         trustee.password_hash,
       );
       if (!passwordMatch) {
-        throw new UnauthorizedException();
+        throw new UnauthorizedException('Invalid email or password');
       }
 
       const data = { schoolId: school.school_id };

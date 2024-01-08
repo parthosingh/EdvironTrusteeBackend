@@ -159,6 +159,142 @@ describe('ErpService', () => {
         `${process.env.MAIN_BACKEND_URL}/api/trustee/payment-link?token=${mockToken}`,
       );
     });
+    it('should throw BadRequestException for invalid phone number', async () => {
+      const axiosPostMock = jest.spyOn(axios, 'post');
+      const mockBadRequestResponse = {
+        response: {
+          status: 404,
+          data: {
+            statusCode: 404,
+            message: 'Invalid phone number!',
+          },
+        },
+      };
+      jest.spyOn(MockJwtService, 'sign').mockImplementation(() => mockToken);
+      axiosPostMock.mockRejectedValueOnce(mockBadRequestResponse);
+    
+      const mockInput = {
+        name: 'Priyanshu',
+        phone_number: 'invalid_phone',
+        email: 'some.school@school.com',
+        school_name: 'Some School',
+        trustee_id: new Types.ObjectId('658e759736ba0754ca45d0c2'),
+      };
+      const trusteeobj = new Types.ObjectId('658e759736ba0754ca45d0c2');
+    
+      await expect(
+        service.createSchool(
+          mockInput.phone_number,
+          mockInput.name,
+          mockInput.email,
+          mockInput.school_name,
+          trusteeobj as any,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+    it('should throw BadRequestException for invalid email address', async () => {
+      const axiosPostMock = jest.spyOn(axios, 'post');
+      const mockBadRequestResponse = {
+        response: {
+          status: 404,
+          data: {
+            statusCode: 404,
+            message: 'Invalid email!',
+          },
+        },
+      };
+      jest.spyOn(MockJwtService, 'sign').mockImplementation(() => mockToken);
+      axiosPostMock.mockRejectedValueOnce(mockBadRequestResponse);
+    
+      const mockInput = {
+        name: 'Priyanshu',
+        phone_number: 'invalid_phone',
+        email: 'some.school@school.com',
+        school_name: 'Some School',
+        trustee_id: new Types.ObjectId('658e759736ba0754ca45d0c2'),
+      };
+      const trusteeobj = new Types.ObjectId('658e759736ba0754ca45d0c2');
+    
+      await expect(
+        service.createSchool(
+          mockInput.phone_number,
+          mockInput.name,
+          mockInput.email,
+          mockInput.school_name,
+          trusteeobj as any,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+    it('should throw BadRequestException for invalid email address', async () => {
+      const axiosPostMock = jest.spyOn(axios, 'post');
+      const mockBadRequestResponse = {
+        response: {
+          status: 404,
+          data: {
+            statusCode: 404,
+            message: 'User already exists',
+          },
+        },
+      };
+      jest.spyOn(MockJwtService, 'sign').mockImplementation(() => mockToken);
+      axiosPostMock.mockRejectedValueOnce(mockBadRequestResponse);
+    
+      const mockInput = {
+        name: 'Priyanshu',
+        phone_number: 'invalid_phone',
+        email: 'some.school@school.com',
+        school_name: 'Some School',
+        trustee_id: new Types.ObjectId('658e759736ba0754ca45d0c2'),
+      };
+      const trusteeobj = new Types.ObjectId('658e759736ba0754ca45d0c2');
+    
+      await expect(
+        service.createSchool(
+          mockInput.phone_number,
+          mockInput.name,
+          mockInput.email,
+          mockInput.school_name,
+          trusteeobj as any,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+    
+    it('should throw BadRequestException for other invalid requests', async () => {
+      const axiosPostMock = jest.spyOn(axios, 'post');
+      const mockBadRequestResponse = {
+        response: {
+          status: 400,
+          data: {
+            statusCode: 400,
+            message: 'Some other invalid request message',
+          },
+        },
+      };
+      jest.spyOn(MockJwtService, 'sign').mockImplementation(() => mockToken);
+      axiosPostMock.mockRejectedValueOnce(mockBadRequestResponse);
+    
+      const mockInput = {
+        name: 'Priyanshu',
+        phone_number: '7000061777',
+        email: 'some.school@school.com',
+        school_name: 'Some School',
+        trustee_id: new Types.ObjectId('658e759736ba0754ca45d0c2'),
+      };
+      const trusteeobj = new Types.ObjectId('658e759736ba0754ca45d0c2');
+    
+      await expect(
+        service.createSchool(
+          mockInput.phone_number,
+          mockInput.name,
+          mockInput.email,
+          mockInput.school_name,
+          trusteeobj as any,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+    
+    // Add similar tests for other catch blocks...
+    
   });
 
   describe('createSection', () => {
