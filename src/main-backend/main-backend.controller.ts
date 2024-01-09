@@ -28,7 +28,9 @@ export class MainBackendController {
       const trustee = await this.mainBackendService.createTrustee(info)
       
 
-      const trusteeToken = this.jwtService.sign({ credential: trustee })
+      const trusteeToken = this.jwtService.sign({ credential: trustee },{
+        secret:process.env.JWT_SECRET_FOR_INTRANET
+      })
      
       
       return trusteeToken

@@ -125,7 +125,7 @@ describe('MainBackendController', () => {
         // Assert
         expect(jwtService.verify).toHaveBeenCalledWith(mockData.data ,{ secret: process.env.JWT_SECRET_FOR_INTRANET });
         expect(service.createTrustee).toHaveBeenCalledWith(info);
-        expect(jwtService.sign).toHaveBeenCalledWith({ credential: mockTrustee });
+        expect(jwtService.sign).toHaveBeenCalledWith({ credential: mockTrustee} ,{ secret: process.env.JWT_SECRET_FOR_INTRANET });
         expect(result).toEqual(mockToken);
     
 
