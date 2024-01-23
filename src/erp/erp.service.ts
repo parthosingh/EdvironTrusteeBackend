@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -156,6 +157,11 @@ export class ErpService {
     trustee: ObjectId,
   ): Promise<any> {
     try {
+      const no_of_schools = await this.trusteeSchoolModel.countDocuments({trustee_id:trustee});
+      const existingTrustee = await this.trusteeModel.findById(trustee);
+      if(no_of_schools >= existingTrustee.school_limit){
+        throw new ForbiddenException('School limit reached');
+      }
       const data = {
         phone_number,
         name,
@@ -191,22 +197,21 @@ export class ErpService {
       if (error.response) {
         // The request was made and the server responded with a non-success status code
         if (error.response.status === 409) {
-          throw new ConflictException(error.response.data.message);
-        } else if (error.response.data.message == 'Invalid phone number!') {
+          throw new ConflictException(error.response.data?.message);
+        } else if (error.response.data?.message == 'Invalid phone number!') {
           throw new BadRequestException('Invalid phone number!');
-        } else if (error.response.data.message == 'Invalid email!') {
+        } else if (error.response.data?.message == 'Invalid email!') {
           throw new BadRequestException('Invalid email!');
-        } else if (error.response.data.message === 'User already exists') {
+        } else if (error.response.data?.message === 'User already exists') {
           throw new BadRequestException('User already exists');
+        }else if(error instanceof ForbiddenException){
+          throw error
         } else {
-          // Handle other server response errors
           throw new BadRequestException('Failed to create school');
         }
       } else if (error.request) {
-        // The request was made but no response was received
         throw new BadRequestException('No response received from the server');
-      } else {
-        // Something happened in setting up the request that triggered an Error
+      }else {
         throw new BadRequestException('Request setup error');
       }
     }
@@ -246,14 +251,14 @@ export class ErpService {
 
       return student;
     } catch (error) {
-      if (error.response.data && error.response.data.statusCode === 400) {
+      if (error.response?.data && error.response?.data?.statusCode === 400) {
         throw new BadRequestException(error.response.data);
       } else if (
-        error.response.data &&
-        error.response.data.statusCode === 409
+        error.response?.data &&
+        error.response?.data.statusCode === 409
       ) {
         throw new ConflictException(error.response.data);
-      } else if (error.response && error.response.statusCode === 404) {
+      } else if (error.response && error.response?.statusCode === 404) {
         throw new NotFoundException(error.message);
       } else if (error instanceof NotFoundException) {
         throw error;
