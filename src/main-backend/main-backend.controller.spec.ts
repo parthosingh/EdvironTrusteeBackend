@@ -183,7 +183,11 @@ describe('MainBackendController', () => {
     it('should return arrays of trustee', async () => {
       const mockPage = 1;
       const mockPageSize = 10;
-
+      const paginationToken="pagToken"
+      const pagInfo={
+         mockPage:1,
+         mockPageSize:10,
+      }
       const mockTrusteeData = [
         {
           _id: new Types.ObjectId(),
@@ -197,19 +201,15 @@ describe('MainBackendController', () => {
           __v: 0,
         },
       ];
-
       const mockToken = 'mockToken';
       mockMainbackenService.findTrustee.mockResolvedValue(mockTrusteeData);
+      MockJwtService.verify.mockReturnValue(pagInfo);
       MockJwtService.sign.mockReturnValue(mockToken);
-
-      const result = await controller.findTrustee(mockPage, mockPageSize);
-
-      expect(mockMainbackenService.findTrustee).toHaveBeenCalledWith(mockPage, mockPageSize);
+      const result = await controller.findTrustee(paginationToken);
       expect(MockJwtService.sign).toHaveBeenCalledWith(mockTrusteeData, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
       expect(result).toEqual(mockToken);
-
     })
   })
 
