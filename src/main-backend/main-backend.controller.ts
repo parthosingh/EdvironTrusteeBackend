@@ -44,12 +44,14 @@ export class MainBackendController {
 
     @Get('find-all-trustee')
     async findTrustee(
-      @Query('page') page: number,
-      @Query('pageSize') pageSize: number,
+      @Query('token') token: string,
     ) {
-      const trustee :string = this.jwtService.sign(await this.mainBackendService.findTrustee(page, pageSize),{secret:process.env.JWT_SECRET_FOR_INTRANET})
+      
+      const paginationInfo:JwtPayload=this.jwtService.verify(token,{secret:process.env.JWT_SECRET_FOR_INTRANET},) as JwtPayload
+      const trustee  = this.jwtService.sign(await this.mainBackendService.findTrustee(paginationInfo.page, paginationInfo.pageSize),{secret:process.env.JWT_SECRET_FOR_INTRANET})
       return trustee;
-    }
+    } 
+  
   
     @Post('assign-school')
     async assignSchool(
