@@ -51,7 +51,10 @@ export class MainBackendController {
       const trustee  = this.jwtService.sign(await this.mainBackendService.findTrustee(paginationInfo.page, paginationInfo.pageSize),{secret:process.env.JWT_SECRET_FOR_INTRANET})
       return trustee;
     } 
+<<<<<<< HEAD
   
+=======
+>>>>>>> 8a24b2c (secure get all trustee endpoint)
   
     @Post('assign-school')
     async assignSchool(
