@@ -197,6 +197,9 @@ class School {
 
   @Field()
   school_id: string;
+
+  @Field()
+  pg_key:string
 }
 
 @ObjectType()

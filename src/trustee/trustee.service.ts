@@ -101,7 +101,14 @@ export class TrusteeService {
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .exec();
-      return { schoolData: schools, total_pages: Math.ceil(count / pageSize) };
+
+        //change later after implementing pg key
+        const modifiedSchools = schools.map((school) => ({
+          ...school.toObject(),
+          pg_key: 'someKey',
+        }));
+      
+      return { schoolData: modifiedSchools, total_pages: Math.ceil(count / pageSize) };
     } catch (error) {
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
@@ -172,4 +179,6 @@ export class TrusteeService {
       }
     }
   }
+
+
 }
