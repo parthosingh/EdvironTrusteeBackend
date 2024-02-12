@@ -22,7 +22,7 @@ export class TrusteeService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async loginAndGenerateToken(
     emailId: string,
@@ -96,19 +96,13 @@ export class TrusteeService {
       const schools = await this.trusteeSchoolModel
         .find(
           { trustee_id: trusteeObjectId },
-          { school_id: 1, school_name: 1, _id: 0 },
+          { school_id: 1, school_name: 1, _id: 0, pg_key: 1 },
         )
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .exec();
 
-        //change later after implementing pg key
-        const modifiedSchools = schools.map((school) => ({
-          ...school.toObject(),
-          pg_key: 'someKey',
-        }));
-      
-      return { schoolData: modifiedSchools, total_pages: Math.ceil(count / pageSize) };
+      return { schoolData: schools, total_pages: Math.ceil(count / pageSize) };
     } catch (error) {
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
@@ -179,6 +173,5 @@ export class TrusteeService {
       }
     }
   }
-
 
 }

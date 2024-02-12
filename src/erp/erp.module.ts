@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ErpService } from './erp.service';
 import { ErpController } from './erp.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { TrusteeSchema } from 'src/schema/trustee.schema';
-import { SchoolSchema } from 'src/schema/school.schema';
+import { TrusteeSchema } from '../schema/trustee.schema';
+import { SchoolSchema } from '../schema/school.schema';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({

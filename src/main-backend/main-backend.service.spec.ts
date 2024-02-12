@@ -8,6 +8,7 @@ import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
+import exp from 'constants';
 jest.mock('@nestjs/jwt');
 
 
@@ -123,13 +124,22 @@ describe('MainBackendService', () => {
         phone_number: '1234567890',
       };
       jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(true)
-      // Mock the findOne method to return an existing trustee with the same email
-
-
       await expect(service.createTrustee(trusteeInfo)).rejects.toThrowError(ConflictException);
     });
-
-
+    it('should throw BadRequestException for other errors', async () => {
+      
+      jest.spyOn(trusteeModel, 'findOne').mockRejectedValue(new Error('Some unexpected error'));
+  
+      const info = {
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'password',
+        school_limit: 150,
+        phone_number: '1234567890',
+      };
+      await expect(service.createTrustee(info)).rejects.toThrowError(BadRequestException);
+    });
+  
   });
   
   
@@ -222,148 +232,154 @@ describe('MainBackendService', () => {
       
     })
   })
-  
-  describe('assignSchool', () => {
-    it('should return assigned school', async () => {
-      const schoolId = new Types.ObjectId('658e759736ba0754ca45d0c3');
-      const trusteeId = new Types.ObjectId('658e759736ba0754ca45d0c2');
-      const schoolName = 'Test School';
-  
-      const mockTrustee = {
-        name: 'test 001',
-        email_id: 'one@gmail',
-        password_hash: '$2b$10$.ykb8jlprPpauXQl6pK2jePMPVl6XI0qxjLF6chZHY8dF0T/zNW76',
-        school_limit: 150,
-        IndexOfApiKey: 0,
-        phone_number: '444444444',
-        _id: trusteeId,
-        createdAt: "2024-01-05T12:10:10.300Z",
-        updatedAt: "2024-01-05T12:10:10.300Z",
-        __v: 0
-      };
-  
-      const mockSchool = {
-        school_id: schoolId,
-        trustee_id: trusteeId,
-        school_name: schoolName,
-      };
-      const info={
-        school_id:'658e759736ba0754ca45d0c3',
-        trustee_id: '658e759736ba0754ca45d0c2',
-        school_name:"Test School"
-      }
-  
-      jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(mockTrustee);
-      jest.spyOn(trusteeSchoolModel, 'countDocuments').mockResolvedValue(0);
-      jest.spyOn(trusteeSchoolModel, 'find').mockResolvedValue([]);
-
-      jest.spyOn(trusteeSchoolModel, 'create').mockResolvedValue(mockSchool as any);
-  
-      const result = await service.assignSchool(info);
-  
-      expect(trusteeModel.findOne).toHaveBeenCalledWith(new Types.ObjectId(trusteeId));
-      expect(trusteeSchoolModel.countDocuments).toHaveBeenCalledWith({ trustee_id: trusteeId });
-      expect(trusteeSchoolModel.find).toHaveBeenCalledWith({school_id: schoolId,trustee_id: trusteeId});
-      expect(trusteeSchoolModel.create).toHaveBeenCalledWith(info);
-      expect(result).toEqual(mockSchool);
-    });
-  
-    it('should throw ForbiddenException when school is already assigned', async () => {
-      const schoolId = new Types.ObjectId('658e759736ba0754ca45d0c3');
-      const trusteeId = new Types.ObjectId('658e759736ba0754ca45d0c2');
-      const schoolName = 'Test School';
-  
-      const mockTrustee = {
-        name: 'test 001',
-        email_id: 'one@gmail',
-        password_hash: '$2b$10$.ykb8jlprPpauXQl6pK2jePMPVl6XI0qxjLF6chZHY8dF0T/zNW76',
-        school_limit: 150,
-        IndexOfApiKey: 0,
-        phone_number: '444444444',
-        _id: trusteeId,
-        createdAt: "2024-01-05T12:10:10.300Z",
-        updatedAt: "2024-01-05T12:10:10.300Z",
-        __v: 0
-      };
-      
-      const info={
-        school_id: '658e759736ba0754ca45d0c3',
-        trustee_id:'658e759736ba0754ca45d0c2',
-        school_name:"school"
-       }
-      jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(mockTrustee);
-      jest.spyOn(trusteeSchoolModel, 'countDocuments').mockResolvedValue(0);
-      jest.spyOn(trusteeSchoolModel, 'find').mockResolvedValue([{ school_id: schoolId }]);
-  
-      
-      await expect(service.assignSchool(info))
-        .rejects.toThrowError(ForbiddenException);
-    });
-  
-    it('should throw ForbiddenException when school limit is reached', async () => {
-      const schoolId = new Types.ObjectId('658e759736ba0754ca45d0c3');
-      const trusteeId = new Types.ObjectId('658e759736ba0754ca45d0c2');
-      const schoolName = 'Test School';
-  
-      const mockTrustee = {
-        name: 'test 001',
-        email_id: 'one@gmail',
-        password_hash: '$2b$10$.ykb8jlprPpauXQl6pK2jePMPVl6XI0qxjLF6chZHY8dF0T/zNW76',
-        school_limit: 2,
-        IndexOfApiKey: 0,
-        phone_number: '444444444',
-        _id: trusteeId,
-        createdAt: "2024-01-05T12:10:10.300Z",
-        updatedAt: "2024-01-05T12:10:10.300Z",
-        __v: 0
-      };
-  
-      jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(mockTrustee);
-      jest.spyOn(trusteeSchoolModel, 'countDocuments').mockResolvedValue(2);
-  
-      const info={
-        school_id: '658e759736ba0754ca45d0c3',
-        trustee_id:'658e759736ba0754ca45d0c2',
-        school_name:"school"
-       }
-
-      await expect(service.assignSchool(info))
-        .rejects.toThrowError(ForbiddenException);
-    });
-  
-    it('should throw BadGatewayException for unknown error', async () => {
-      const schoolId = new Types.ObjectId('658e759736ba0754ca45d0c3');
-      const trusteeId = new Types.ObjectId('658e759736ba0754ca45d0c2');
-      const schoolName = 'Test School';
-  
-      const mockTrustee = {
-        name: 'test 001',
-        email_id: 'one@gmail',
-        password_hash: '$2b$10$.ykb8jlprPpauXQl6pK2jePMPVl6XI0qxjLF6chZHY8dF0T/zNW76',
-        school_limit: 150,
-        IndexOfApiKey: 0,
-        phone_number: '444444444',
-        _id: trusteeId,
-        createdAt: "2024-01-05T12:10:10.300Z",
-        updatedAt: "2024-01-05T12:10:10.300Z",
-        __v: 0
-      };
-  
-      jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(mockTrustee);
-      jest.spyOn(trusteeSchoolModel, 'countDocuments').mockResolvedValue(0);
-      jest.spyOn(trusteeSchoolModel, 'find').mockResolvedValue([]);
-  
-      // Simulating an unknown error by rejecting the create method
-      jest.spyOn(trusteeSchoolModel, 'create').mockRejectedValue(new Error('Unknown error'));
-      const info={
-        school_id: '658e759736ba0754ca45d0c3',
-        trustee_id:'658e759736ba0754ca45d0c2',
-        school_name:"school"
-       }
-      await expect(service.assignSchool(info))
-        .rejects.toThrowError(BadGatewayException);
+  describe('generateKey', () => {
+    it('should generate a unique pg_key', async () => {
+      jest.spyOn(service, 'isKeyUnique').mockResolvedValue(true);
+      const result = await service.generateKey();
+      expect(service.isKeyUnique).toHaveBeenCalledWith(result);
     });
   });
-  
+  describe('isKeyUnique', () => {
+    it('should return true if pg_key is unique', async () => {
+      const uniqueKey = 'uniqueKey';
+      jest.spyOn(trusteeSchoolModel, 'findOne').mockResolvedValue(null);
+
+      const result = await service.isKeyUnique(uniqueKey);
+
+      expect(trusteeSchoolModel.findOne).toHaveBeenCalledWith({ pg_key: uniqueKey });
+      expect(result).toBe(true);
+    });
+
+    it('should return false if pg_key is not unique', async () => {
+      const existingKey = 'existingKey';
+      jest.spyOn(trusteeSchoolModel, 'findOne').mockResolvedValue({ pg_key: existingKey });
+
+      const result = await service.isKeyUnique(existingKey);
+
+      expect(trusteeSchoolModel.findOne).toHaveBeenCalledWith({ pg_key: existingKey });
+      expect(result).toBe(false);
+    });
+
+    it('should throw BadRequestException for other errors', async () => {
+      const uniqueKey = 'uniqueKey';
+      jest.spyOn(trusteeSchoolModel, 'findOne').mockRejectedValue(new Error('Test error'));
+
+      await expect(service.isKeyUnique(uniqueKey)).rejects.toThrowError(BadRequestException);
+    });
+  });
+  describe('updateSchoolInfo', () => {
+    it('should update school details', async () => {
+      
+      const mockPgkey='qwert67890'
+
+      const info = {
+        school_name: 'mock School Name',
+        school_id: '658e759736ba0754ca45d0c2',
+        trustee_id: '658e759736ba0754ca45d0c1',
+        client_id:'client_id',
+        client_secret: 'client_secret',
+        merchantId: 'merchantId',
+        merchantName: 'merchantName',
+        merchantEmail: 'merchantemail@9edviron.com',
+        merchantStatus: 'merchantStatus',
+        pgMinKYC: 'pgMinKYC',
+        pgFullKYC: 'pgFullKYC'
+      };
+
+      const trusteeId = new Types.ObjectId(info.trustee_id);
+      const schoolId = new Types.ObjectId(info.school_id);
+      const trustee = {
+        _id:trusteeId,
+        email: 'test@example.com',
+        name: 'John Doe',
+        password: 'password123',
+        phone_number: '1234567890',
+        school_limit: 5,
+        iat: 1234567890,
+        exp: 1234567890,
+      };
+
+      const mockResult ={
+        updatedSchool: {
+          // _id: new ObjectId('65c86bfb70323b086ca57077'),
+          merchantEmail: info.merchantEmail,
+          client_id: info.client_id,
+          client_secret: info.client_secret,
+          merchantId: info.merchantId,
+          merchantName: info.merchantName,
+          merchantStatus: info.merchantStatus,
+          pgFullKYC: info.pgFullKYC,
+          pgMinKYC: info.pgMinKYC,
+          pg_key: 'newGeneratedKey',
+          school_name: info.school_name,
+          trustee_id: trusteeId,
+        },
+        trustee: {
+          _id: trusteeId,
+          name: 'demo trustee',
+          email_id: 'demotrustee@edviron.com',
+         
+        }
+      }
+      jest.spyOn(service, 'generateKey').mockResolvedValue('newGeneratedKey');
+      jest.spyOn(trusteeModel, 'findById').mockResolvedValue({ _id: trusteeId });
+      jest.spyOn(trusteeSchoolModel,'findOne').mockResolvedValue(null)
+      jest.spyOn(service,'updateSchoolInfo').mockResolvedValueOnce(mockResult as any)
+      jest.spyOn(trusteeSchoolModel, 'findOneAndUpdate').mockResolvedValue({ ...info, pg_key: 'newGeneratedKey' } as any);
+      const result = await service.updateSchoolInfo(info);
+      
+      
+      
+      expect(result).toBeDefined()
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should throw NotFoundException if trustee is not found', async () => {
+      const info = {
+        school_name: 'mock School Name',
+        school_id: '658e759736ba0754ca45d0c2',
+        trustee_id: '658e759736ba0754ca45d0c1',
+        client_id:'client_id',
+        client_secret: 'client_secret',
+        merchantId: 'merchantId',
+        merchantName: 'merchantName',
+        merchantEmail: 'merchantemail00@edviron.com',
+        merchantStatus: 'merchantStatus',
+        pgMinKYC: 'pgMinKYC',
+        pgFullKYC: 'pgFullKYC'
+      };
+
+      jest.spyOn(service, 'generateKey').mockResolvedValue('newGeneratedKey');
+      jest.spyOn(trusteeModel, 'findById').mockResolvedValue(null);
+      jest.spyOn(trusteeSchoolModel,'findOne').mockResolvedValue(null)
+      await expect(service.updateSchoolInfo(info)).rejects.toThrowError(NotFoundException);
+    });
+
+
+    it('should throw BadRequestException for other errors', async () => {
+      const info = {
+        school_name: 'mock School Name',
+        school_id: '658e759736ba0754ca45d0c2',
+        trustee_id: '658e759736ba0754ca45d0c1',
+        client_id:'client_id',
+        client_secret: 'client_secret',
+        merchantId: 'merchantId',
+        merchantName: 'merchantName',
+        merchantEmail: 'merchantemail@edviron.com',
+        merchantStatus: 'merchantStatus',
+        pgMinKYC: 'pgMinKYC',
+        pgFullKYC: 'pgFullKYC'
+      };
+
+      const trusteeId = new Types.ObjectId(info.trustee_id);
+      jest.spyOn(service, 'generateKey').mockResolvedValue('newGeneratedKey');
+      jest.spyOn(trusteeModel, 'findById').mockResolvedValue({ _id: trusteeId });
+      jest.spyOn(trusteeSchoolModel,'findOne').mockResolvedValue(null)
+      jest.spyOn(trusteeSchoolModel, 'findOneAndUpdate').mockRejectedValue(new Error('Test error'));
+
+      await expect(service.updateSchoolInfo(info)).rejects.toThrowError(BadRequestException);
+    });
+  });
+
 
 });

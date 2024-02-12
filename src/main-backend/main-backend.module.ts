@@ -3,8 +3,8 @@ import { MainBackendService } from './main-backend.service';
 import { MainBackendController } from './main-backend.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
-import { TrusteeSchema } from 'src/schema/trustee.schema';
-import { SchoolSchema } from 'src/schema/school.schema';
+import { TrusteeSchema } from '../schema/trustee.schema';
+import { SchoolSchema } from '../schema/school.schema';
 
 @Module({
   imports: [

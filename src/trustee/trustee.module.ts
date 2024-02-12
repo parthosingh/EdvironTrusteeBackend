@@ -9,7 +9,8 @@ import { SchoolSchema } from '../schema/school.schema';
 import { ApolloDriver } from '@nestjs/apollo';
 import { TrusteeGuard } from './trustee.guard';
 import { config } from 'dotenv';
-import { ErpService } from 'src/erp/erp.service';
+import { ErpService } from '../erp/erp.service';
+import { MainBackendService } from '../main-backend/main-backend.service';
 config();
 
 @Module({
@@ -33,6 +34,6 @@ config();
     }),
   ],
   controllers: [],
-  providers: [ErpService, TrusteeService, TrusteeResolver, TrusteeGuard],
+  providers: [ErpService, TrusteeService, TrusteeResolver, TrusteeGuard,MainBackendService],
 })
 export class TrusteeModule {}

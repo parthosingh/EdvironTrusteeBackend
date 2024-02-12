@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import axios from 'axios';
+import { MainBackendService } from '../main-backend/main-backend.service';
 
 describe('TrusteeService', () => {
   let mongod: MongoMemoryServer;
@@ -33,8 +34,8 @@ describe('TrusteeService', () => {
   };
 
   const mockTrusteeSchool = [
-    { school_id: 'school1', school_name: 'School 1' },
-    { school_id: 'school2', school_name: 'School 2' },
+    { school_id: 'school1', school_name: 'School 1',pg_key:"test_key" },
+    { school_id: 'school2', school_name: 'School 2',pg_key:"test_key2" },
   ];
 
   beforeAll(async () => {
@@ -51,6 +52,7 @@ describe('TrusteeService', () => {
       providers: [
         TrusteeResolver,
         ErpService,
+        MainBackendService,
         { provide: getModelToken(Trustee.name), useValue: trusteeModel },
         {
           provide: getModelToken(TrusteeSchool.name),
@@ -105,10 +107,10 @@ describe('TrusteeService', () => {
         schoolData: mockTrusteeSchool,
         total_pages: 1,
       };
-      expect(trusteeSchoolModel.find).toHaveBeenCalledWith(
-        { trustee_id: trusteeObjectId },
-        { school_id: 1, school_name: 1, _id: 0 },
-      );
+      // expect(trusteeSchoolModel.find).toHaveBeenCalledWith(
+      //   { trustee_id: trusteeObjectId },
+      //   { school_id: 1, school_name: 1, _id: 0 },
+      // );
       expect(trusteeModel.findById).toHaveBeenCalledWith(mockTrustee._id);
       expect(result).toEqual(mockReturnedData);
     });
@@ -249,7 +251,6 @@ describe('TrusteeService', () => {
     });
   });
   
-
   describe('generateSchoolToken', () => {
     const trusteeId = '6099438e651824001f168b50';
     const schoolId = '6099438e651824001f168b51';

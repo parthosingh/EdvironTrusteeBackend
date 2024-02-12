@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
-import { TrusteeSchool } from '../schema/school.schema';
+import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 
 @Injectable()
@@ -18,16 +18,16 @@ export class MainBackendService {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
-  ) {}
+  ) { }
 
-  async createTrustee(info){
+  async createTrustee(info) {
     const { name, email, password, school_limit, phone_number } = info;
     try {
       const checkMail = await this.trusteeModel
         .findOne({ email_id: email })
 
       if (checkMail) {
-       
+
         throw new ConflictException(`${email} already exist`);
       }
 
@@ -38,13 +38,13 @@ export class MainBackendService {
         school_limit: school_limit,
         phone_number: phone_number,
       })
-      
-      
+
+
 
       return trustee;
     } catch (error) {
-      
-      
+
+
       if (error.response && error.response.statusCode === 409) {
         throw new ConflictException(error.message);
       }
@@ -60,7 +60,7 @@ export class MainBackendService {
       const trustee = await this.trusteeModel
         .find()
         .sort({ createdAt: -1 })
-        .skip((page - 1) * pageSize) 
+        .skip((page - 1) * pageSize)
         .limit(pageSize)
         .exec();
 
@@ -94,45 +94,119 @@ export class MainBackendService {
     return countDocs;
   }
 
-  async assignSchool(
-    info
-  ) {
-    try { 
-     const {school_id,trustee_id,school_name}=info
+  async generateKey() {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const keyLength = 10;
 
-      const trusteeId=new Types.ObjectId(trustee_id.toString())
-      const schoolId=new Types.ObjectId(school_id.toString())
-      const trustee = await this.trusteeModel.findOne(
-        {_id:trusteeId},
-      );
-      if(!trustee){
-        throw new NotFoundException('trustee not found');
-      }
-      const countSchool = await this.checkSchoolLimit(trustee_id);
-      const check = await this.trusteeSchoolModel.find({
-        trustee_id:trusteeId,
-        school_id:schoolId,
-      });
+    let pgKey;
+    let isUnique = false;
 
-      if (check.length > 0) {
-        throw new ForbiddenException('alrady assigned');
+    while (!isUnique) {
+      pgKey = '';
+
+      for (let i = 0; i < keyLength; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        pgKey += characters.charAt(randomIndex);
       }
-      if (countSchool === trustee.school_limit) {
-        throw new ForbiddenException('You cannot add more school');
-      }
-      const school = await this.trusteeSchoolModel.create({
+
+      // Check for the pg_key is present or not
+      isUnique = await this.isKeyUnique(pgKey);
+    }
+    return pgKey;
+  }
+
+  async isKeyUnique(uniqueKey) {
+    try {
+      const checkKey = await this.trusteeSchoolModel.findOne({ pg_key: uniqueKey });
+      return !checkKey;
+    } catch (error) {
+      throw new BadRequestException(error.message)
+    }
+  }
+
+
+  async updateSchoolInfo(info: {
+    school_name: string,
+    school_id: string,
+    trustee_id: string,
+    client_id: string,
+    client_secret: string,
+    merchantId: string,
+    merchantName: string,
+    merchantEmail: string,
+    merchantStatus: string,
+    pgMinKYC: string,
+    pgFullKYC: string
+  }) {
+    try {
+      const {
+        school_name,
         school_id,
         trustee_id,
-        school_name,
-      })
-      return school;
-    } catch (error) {
-      
-      if (error.response && error.response.statusCode === 403) {
-        throw new ForbiddenException(error.message);
-      }
+        client_id,
+        client_secret,
+        merchantId,
+        merchantEmail,
+        merchantName,
+        merchantStatus,
+        pgFullKYC,
+        pgMinKYC
+      } = info
 
-      throw new BadGatewayException(error.message);
-    } 
+
+
+      const trusteeId = new Types.ObjectId(trustee_id)
+      const schoolId = new Types.ObjectId(school_id)
+      const pg_key = await this.generateKey()
+
+      const trustee = await this.trusteeModel.findById(trusteeId)
+      if (!trustee) {
+        throw new NotFoundException(`Trustee not found`)
+      }
+      console.log(trusteeId);
+
+      const update = {
+        $set: {
+          school_name:merchantName,
+          client_id,
+          client_secret,
+          pg_key,
+          merchantId,
+          merchantEmail,
+          merchantName,
+          merchantStatus,
+          pgFullKYC,
+          pgMinKYC,
+          trustee_id: trusteeId
+        },
+      };
+
+      const options = {
+        upsert: true,
+        new: true,
+      };
+
+      console.log(await this.trusteeModel.findOne({merchantEmail}));
+      
+
+      const updatedSchool = await this.trusteeSchoolModel.findOneAndUpdate(
+        {
+          school_id:schoolId
+        },
+        update,
+        options
+      );
+        
+      return { updatedSchool, trustee };
+    } catch (error) {
+      if (error.response && error.response.statusCode === 404) {
+        throw new NotFoundException(error.response.message);
+      } else if (error.response && error.response.statusCode === 409) {
+        throw new ConflictException(error.response.message)
+      }
+      throw new BadRequestException(error.message);
+    }
   }
+
+
 }
