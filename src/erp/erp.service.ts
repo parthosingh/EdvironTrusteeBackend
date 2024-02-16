@@ -207,6 +207,7 @@ export class ErpService {
         }else if(error instanceof ForbiddenException){
           throw error
         } else {
+          console.log(error.response.data);
           throw new BadRequestException('Failed to create school');
         }
       } else if (error.request) {
