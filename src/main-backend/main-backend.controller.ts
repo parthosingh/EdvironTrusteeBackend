@@ -4,6 +4,7 @@ import { MainBackendService } from './main-backend.service';
 import { JwtPayload } from 'jsonwebtoken';
 import { Trustee } from '../schema/trustee.schema';
 import mongoose, { Types } from 'mongoose';
+import { TrusteeService } from 'src/trustee/trustee.service';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -11,6 +12,8 @@ export class MainBackendController {
   constructor(
     private mainBackendService: MainBackendService,
     private readonly jwtService: JwtService,
+    private readonly trusteeService: TrusteeService,
+
   ) { }
 
   @Post('create-trustee')
@@ -126,13 +129,13 @@ export class MainBackendController {
         'pgMinKYC',
         'pgFullKYC',
       ];
-  
+
       const missingFields = requiredFields.filter(field => !data[field]);
-  
+
       if (missingFields.length > 0) {
         throw new BadRequestException(`Missing fields: ${missingFields.join(', ')}`);
       }
-          
+
       const info = {
         school_name: data.school_name,
         school_id: data.school_id,
@@ -150,9 +153,9 @@ export class MainBackendController {
       const response = {
         school_id: school.updatedSchool.school_id,
         school_name: school.updatedSchool.school_name,
-        trustee:{
-          name:school.trustee.name,
-          id:school.trustee._id,
+        trustee: {
+          name: school.trustee.name,
+          id: school.trustee._id,
         },
         msg: `${school.updatedSchool.school_name} is Updated`
       }
@@ -163,11 +166,127 @@ export class MainBackendController {
     } catch (error) {
       if (error.response && error.response.statusCode === 404) {
         throw new NotFoundException(error.response.message)
-      }else if(error.response &&  error.response.statusCode === 409 ){
+      } else if (error.response && error.response.statusCode === 409) {
         throw new ConflictException(error.response.message)
       }
       throw new BadRequestException(error.message)
 
+    }
+  }
+
+  @Post('assign-school')
+  async onboarderAssignSchool(@Body() body: { data: string },) {
+    try{
+
+    
+    const data: JwtPayload = await this.jwtService.verify(
+      body.data,
+      { secret: process.env.JWT_SECRET_FOR_INTRANET })
+
+
+    const requiredFields = [
+      'name',
+      'school_id',
+      'trusteeId',
+    ];
+
+    const missingFields = requiredFields.filter(field => !data[field]);
+
+    if (missingFields.length > 0) {
+      throw new BadRequestException(`Missing fields: ${missingFields.join(', ')}`);
+    }
+
+    const info = {
+      school_name: data.name,
+      school_id: data.school_id,
+      trustee_id: data.trusteeId,
+    }
+    const schoolInfo = await this.mainBackendService.assignSchool(info)
+
+    const payload = {
+      school_id: schoolInfo.school_id,
+      trustee_id: schoolInfo.trustee_id,
+      pg_key: schoolInfo.pg_key,
+    }
+    const responseToken = await this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_INTRANET })
+
+    return responseToken
+  }catch(error){
+    throw new BadRequestException(error.message)
+  }
+  }
+  @Get('trustee-schools')
+  async getTrusteeSchool(@Query('token') token: string,) {
+    try {
+
+      const trustee: JwtPayload = this.jwtService.verify(token, { secret: process.env.JWT_SECRET_FOR_INTRANET },) as JwtPayload
+
+
+      const schools = await this.trusteeService.getTrusteeSchools(trustee.id, trustee.page)
+
+      const schoolInfo = {
+        schools: schools.schoolData,
+        total_pages: schools.total_pages,
+        page: trustee.page,
+      };
+      const responseToken = await this.jwtService.sign(schoolInfo, { secret: process.env.JWT_SECRET_FOR_INTRANET })
+
+      return responseToken
+    } catch (error) {
+      throw new BadRequestException(error.message)
+    }
+
+
+  }
+
+  @Post('assignOnboarderToTrustee')
+  async assignOnboarderToTrustee(
+    @Body()
+    token: {
+      token: string
+    }
+  ) {
+    try {
+      const ids = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+
+      const val = await this.mainBackendService.assignOnboarderToTrustee(ids.erp_id, ids.onboarder_id);
+
+
+      const payload = {
+        _id: val._id,
+        name: val.name,
+        email_id: val.email_id,
+        password_hash: val.password_hash,
+        school_limit: val.school_limit,
+        IndexOfApiKey: val.IndexOfApiKey,
+        phone_number: val.phone_number
+      }
+
+      const res = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+
+      return res;
+    }
+    catch (err) {
+      throw new Error(err);
+    }
+  }
+
+
+  @Get('getAllErpOfOnboarder')
+  async getAllErpOfOnboarder(
+    @Query('token') token: string,
+  ) {
+    try {
+
+      const data = this.jwtService.verify(token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+      const val = await this.mainBackendService.getAllErpOfOnboarder(data.onboarder_id, data.page);
+
+
+      const res = this.jwtService.sign(val, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+      return res;
+    }
+    catch (err) {
+      throw new Error(err);
     }
   }
 

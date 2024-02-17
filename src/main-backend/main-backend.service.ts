@@ -10,6 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
+import { log } from 'node:console';
 
 @Injectable()
 export class MainBackendService {
@@ -153,8 +154,6 @@ export class MainBackendService {
         pgMinKYC
       } = info
 
-
-
       const trusteeId = new Types.ObjectId(trustee_id)
       const schoolId = new Types.ObjectId(school_id)
       const pg_key = await this.generateKey()
@@ -163,11 +162,10 @@ export class MainBackendService {
       if (!trustee) {
         throw new NotFoundException(`Trustee not found`)
       }
-      console.log(trusteeId);
 
       const update = {
         $set: {
-          school_name:merchantName,
+          school_name: merchantName,
           client_id,
           client_secret,
           pg_key,
@@ -186,17 +184,15 @@ export class MainBackendService {
         new: true,
       };
 
-      console.log(await this.trusteeModel.findOne({merchantEmail}));
-      
 
       const updatedSchool = await this.trusteeSchoolModel.findOneAndUpdate(
         {
-          school_id:schoolId
+          school_id: schoolId
         },
         update,
         options
       );
-        
+
       return { updatedSchool, trustee };
     } catch (error) {
       if (error.response && error.response.statusCode === 404) {
@@ -208,5 +204,70 @@ export class MainBackendService {
     }
   }
 
+  async assignSchool(info: {
+    school_name: string,
+    school_id: string,
+    trustee_id: string,
+  }) {
+    try {
+
+      const { school_name, school_id, trustee_id } = info
+      const trusteeId = new Types.ObjectId(trustee_id)
+      const schoolId = new Types.ObjectId(school_id)
+      const trustee = await this.trusteeModel.findById(trusteeId)
+      if (!trustee) {
+        throw new NotFoundException(`Trustee not found`)
+      }
+      const pg_key = await this.generateKey()
+
+      const school = await this.trusteeSchoolModel.create({
+        school_name,
+        school_id: schoolId,
+        trustee_id: trusteeId,
+        pg_key,
+      });
+      return school
+    } catch (e) {
+      throw new BadRequestException(e.message)
+
+    }
+
+  }
+
+
+  async assignOnboarderToTrustee(erp_id: string, onboarder_id: string) {
+    try {
+      const res = this.trusteeModel.findOneAndUpdate(
+        { _id: erp_id },
+        { onboarder_id: onboarder_id },
+        { returnDocument: "after" }
+      )
+
+      return res;
+    }
+    catch (err) {
+      throw new Error(err);
+    }
+  }
+
+  async getAllErpOfOnboarder(onboarder_id: string,page) {
+    try {
+      const pageSize = 10;
+      
+      const count = await this.trusteeModel.countDocuments({
+        onboarder_id: onboarder_id
+      });
+      const res = await this.trusteeModel.
+        find({ onboarder_id: onboarder_id })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .exec();
+
+      return { trustee: res,page, total_pages: Math.ceil(count / pageSize) };
+    }
+    catch (err) {
+      throw new Error(err);
+    }
+  }
 
 }
