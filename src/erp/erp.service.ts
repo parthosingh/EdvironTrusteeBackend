@@ -13,6 +13,11 @@ import axios from 'axios';
 import mongoose, { ObjectId, Types } from 'mongoose';
 import { TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
+import * as nodemailer from "nodemailer";
+import * as path from 'path';
+import * as fs from 'fs';
+import * as handlebars from 'handlebars';
+
 
 @Injectable()
 export class ErpService {
@@ -287,4 +292,139 @@ export class ErpService {
       throw new ConflictException('Error in finding trustee');
     }
   }
+
+
+  async sendPaymentLinkToWhatsaap(
+    body: {
+      student_name: string,
+      phone_no: string,
+      amount: number,
+      reason: string,
+      school_id: string,
+      paymentURL: string
+    },
+  ) {
+    try {
+      const obj = {
+        messaging_product: 'whatsapp',
+        to: '+91' + body.phone_no,
+        type: 'template',
+        template: {
+          name: 'custom_payment_link',
+          language: {
+            code: 'en',
+          },
+          components: [
+            {
+              type: 'body',
+              parameters: [
+                {
+                  type: 'text',
+                  text: body.student_name
+                },
+                {
+                  type: 'text',
+                  text: body.amount
+                },
+                {
+                  type: 'text',
+                  text: body.reason
+                }
+              ],
+            },
+            {
+              type: "button",
+              sub_type: 'url',
+              index: '0',
+              parameters: [
+                {
+                  type: 'text',
+                  text: body.paymentURL
+                }
+              ]
+            }
+          ],
+        },
+      };
+
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://graph.facebook.com/v16.0/103031782859865/messages',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + process.env.FACEBOOK_ACCESS_TOKEN,
+        },
+        data: obj,
+      };
+
+      await axios.request(config);
+
+      return `Whatsaap message successfully sent to ${body.student_name} on ${body.phone_no}`
+    }
+    catch (error) {
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Server responded with an error:', error.response.data);
+        console.error('Status Code:', error.response.status);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received from the server');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error setting up the request:', error.message);
+      }
+      throw new Error(error);
+    }
+  }
+
+  async sendPaymentLinkTOMail(
+    body: {
+      student_name: string,
+      mail_id: string,
+      school_id: string,
+      amount: number,
+      reason: string,
+      paymentURL: string
+    }
+  ) {
+    try {
+      const __dirname = path.resolve();
+      const filePath = path.join(__dirname, 'src/erp/sendPaymentLink.html');
+      const source = fs.readFileSync(filePath, 'utf-8').toString();
+      const template = handlebars.compile(source);
+
+      const replacements = {
+        student_name: body.student_name,
+        payment_url: body.paymentURL,
+        reason: body.reason,
+        amount: body.amount
+      };
+
+      const htmlToSend = template(replacements);
+
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      const mailOptions = {
+        from: "rpbarmaiya@gmail.com",
+        to: body.mail_id,
+        subject: "Pay through this link",
+        html: htmlToSend
+      };
+      const info = await transporter.sendMail(mailOptions);
+
+      return `Payment link successfully send to ${body.student_name} on ${body.mail_id}`;
+    }
+    catch (err) {
+      throw new Error(err);
+    }
+  }
+
 }
