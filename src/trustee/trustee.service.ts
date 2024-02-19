@@ -145,7 +145,7 @@ export class TrusteeService {
       }
     }
   }
-
+  
   async generateSchoolToken(
     schoolId: string,
     password: string,
