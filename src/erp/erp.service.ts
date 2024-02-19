@@ -427,4 +427,51 @@ export class ErpService {
     }
   }
 
+  async sendPaymentLink(
+    body: {
+      student_name: string,
+      phone_no: string,
+      amount: number,
+      reason: string,
+      school_id: string,
+      mail_id: string,
+      paymentURL: string
+    }
+  ){
+    try{
+      const {student_name, phone_no, amount, reason, school_id, mail_id, paymentURL} = body;
+
+      if(body.mail_id){
+        await this.sendPaymentLinkTOMail({
+          student_name,
+          amount,
+          reason,
+          school_id,
+          mail_id,
+          paymentURL
+        })
+
+        console.log("mail sent")
+      }
+
+      if(body.phone_no){
+        await this.sendPaymentLinkToWhatsaap({
+          student_name,
+          phone_no,
+          amount,
+          reason,
+          school_id,
+          paymentURL
+        })
+
+        console.log("whatsaap sent");
+      }
+
+      return "Notification sent scuccessfully";
+    }
+    catch(err){
+      throw new Error(err.message);
+    }
+  }
+
 }
