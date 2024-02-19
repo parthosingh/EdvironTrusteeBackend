@@ -322,7 +322,7 @@ export class ErpController {
   }
 
   @Post("sendPaymentLink")
-  // @UseGuards(ErpGuard)
+  @UseGuards(ErpGuard)
   async sendPaymentLink(
     @Body()
     body: {
