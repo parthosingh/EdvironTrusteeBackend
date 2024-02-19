@@ -25,12 +25,8 @@ async function bootstrap() {
     'https://qa.onboarding.edviron.com',
     'https://dev.trustee.edviron.com',
     'https://dev.api.edviron.com',
-<<<<<<< HEAD
-    "https://trustee.edviron.com"
-=======
     "https://trustee.edviron.com",
     "https://dev.trustee.edviron.com"
->>>>>>> cc8067b (Update main.ts)
   ];
   app.enableCors({
     origin: function (origin, callback) {
