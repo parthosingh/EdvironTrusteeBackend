@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { Connection, connect, Model, Schema } from 'mongoose';
+import { Connection, connect, Model, Schema, Types } from 'mongoose';
 import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
 import { getModelToken } from '@nestjs/mongoose';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
@@ -8,12 +8,14 @@ import { TrusteeService } from './trustee.service';
 import { ErpService } from '../erp/erp.service';
 import { TrusteeResolver } from './trustee.resolver';
 import { JwtService } from '@nestjs/jwt';
+import { ObjectId } from 'mongodb';
 import {
   ConflictException,
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { MainBackendService } from '../main-backend/main-backend.service';
 
 describe('TrusteeResolver', () => {
   let resolver: TrusteeResolver;
@@ -23,6 +25,7 @@ describe('TrusteeResolver', () => {
   let trusteeSchoolModel: Model<TrusteeSchool>;
   let erpService: ErpService;
   let service: TrusteeService;
+  let mainbackendService: MainBackendService
 
   const mockTrustee = {
     _id: '658e759736ba0754ca45d0c2',
@@ -34,7 +37,7 @@ describe('TrusteeResolver', () => {
     apiKey: 'sampledApiKey',
     save: jest.fn().mockReturnThis(),
   };
-  const mockTrusteeSchools: TrusteeSchool[] = [
+  const mockTrusteeSchools = [
     {
       school_id: new Schema.Types.ObjectId('6099438e651824001f168b50', {
         suppressWarning: true,
@@ -43,15 +46,14 @@ describe('TrusteeResolver', () => {
         suppressWarning: true,
       }),
       school_name: 'School A',
-    },
-    {
-      school_id: new Schema.Types.ObjectId('6099438e651824001f168b53', {
-        suppressWarning: true,
-      }),
-      trustee_id: new Schema.Types.ObjectId('6099438e651824001f168b54', {
-        suppressWarning: true,
-      }),
-      school_name: 'School B',
+      merchantId: 'merchantId',
+      merchantName: 'merchantName',
+      merchantEmail: 'merchantemail@edviron.com',
+      merchantStatus: 'merchantStatus',
+      pgMinKYC: 'pgMinKYC',
+      pgFullKYC: 'pgFullKYC',
+
+
     },
   ];
 
@@ -69,6 +71,7 @@ describe('TrusteeResolver', () => {
       providers: [
         TrusteeResolver,
         ErpService,
+        MainBackendService,
         { provide: getModelToken(Trustee.name), useValue: trusteeModel },
         {
           provide: getModelToken(TrusteeSchool.name),
@@ -85,7 +88,11 @@ describe('TrusteeResolver', () => {
         },
         {
           provide: ErpService,
-          useValue: { createApiKey: jest.fn()  },
+          useValue: { createApiKey: jest.fn() },
+        },
+        {
+          provide: MainBackendService,
+          useValue: { createApiKey: jest.fn(), generateKey: jest.fn() },
         },
         {
           provide: JwtService,
@@ -95,6 +102,7 @@ describe('TrusteeResolver', () => {
     }).compile();
     service = module.get<TrusteeService>(TrusteeService);
     erpService = module.get<ErpService>(ErpService);
+    mainbackendService = module.get<MainBackendService>(MainBackendService);
     resolver = module.get<TrusteeResolver>(TrusteeResolver);
   });
   afterAll(async () => {
@@ -251,7 +259,7 @@ describe('TrusteeResolver', () => {
       ).rejects.toThrowError('An error occurred during login');
     });
   });
-  
+
   describe('generateSchoolToken', () => {
     it('should return SchoolTokenResponse with token and user on successful generation', async () => {
       // Arrange
@@ -407,4 +415,33 @@ describe('TrusteeResolver', () => {
       ).rejects.toThrowError(BadRequestException);
     });
   });
+  describe('resetKey', () => {
+    it('should reset pg_key', async () => {
+      const schoolId = new Types.ObjectId(1).toHexString();
+      const trusteeId = new Types.ObjectId(2).toHexString();
+      const mockContext = { req: { trustee: trusteeId } };
+      const mockSchool = {
+        school_id: schoolId,
+        trustee_id: trusteeId,
+        school_name: 'School A',
+        merchantId: 'merchantId',
+        merchantName: 'merchantName',
+        merchantEmail: 'merchantemail@edviron.com',
+        merchantStatus: 'merchantStatus',
+        pgMinKYC: 'pgMinKYC',
+        pgFullKYC: 'pgFullKYC',
+      };
+
+      jest.spyOn(trusteeSchoolModel, 'findOne').mockResolvedValueOnce({
+        ...mockSchool,
+        save: jest.fn(), // Mock the save function
+      });
+      jest.spyOn(mainbackendService,'generateKey').mockResolvedValueOnce('E234RTGLO0')
+      const result = await resolver.resetKey(mockContext, schoolId);
+
+      expect(result).toEqual({ pg_key: 'E234RTGLO0' });
+      expect(mainbackendService.generateKey).toHaveBeenCalled();
+      
+    });
+  })
 });

@@ -18,6 +18,8 @@ import { ErpGuard } from './erp.guard';
 import { InjectModel, Schema } from '@nestjs/mongoose';
 import { TrusteeSchool } from '../schema/school.schema';
 import mongoose, { Types } from 'mongoose';
+import axios from 'axios';
+
 
 @Controller('erp')
 export class ErpController {
@@ -26,7 +28,7 @@ export class ErpController {
     private readonly jwtService: JwtService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
-  ) {}
+  ) { }
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -297,14 +299,13 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -317,6 +318,96 @@ export class ErpController {
         throw new BadRequestException('Invalid sign');
       console.log('error in collect request status check', error);
       throw error;
+    }
+  }
+
+  @Post("sendPaymentLink")
+  @UseGuards(ErpGuard)
+  async sendPaymentLink(
+    @Body()
+    body: {
+      student_name: string,
+      phone_no: string,
+      amount: number,
+      reason: string,
+      school_id: string,
+      mail_id: string
+    },
+    @Req() req
+  ){
+    try{
+
+      if(!body.student_name) throw new NotFoundException("student name required");
+      if(!body.amount) throw new NotFoundException("amount required");
+      if(!body.reason) throw new NotFoundException("reason required");
+      if(!body.student_name) throw new NotFoundException("school id required");
+      if(!body.phone_no && !body.mail_id) throw new NotFoundException("atleast one contact detail required from phone no or mail id");
+
+      const {student_name, phone_no, amount, reason, school_id, mail_id} = body;
+      
+      const authToken = req.headers['authorization'].substring(7);
+
+      const payload = {
+        school_id: body.school_id,
+        amount: body.amount,
+        callback_url: "https://google.com"
+      }
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(body.school_id),
+      })
+
+      const token = this.jwtService.sign(payload, { secret: school.pg_key });
+      const data = JSON.stringify({
+        school_id: body.school_id,
+        amount: body.amount,
+        callback_url: "https://google.com",
+        sign: token
+      })
+
+      const temp = await axios.request({
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `https://vanilla.edviron.com/erp/create-collect-request`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        data: data,
+      });
+
+      const paymentURL = temp.data.collect_request_url;
+
+      if(body.mail_id){
+        await this.erpService.sendPaymentLinkTOMail({
+          student_name,
+          amount,
+          reason,
+          school_id,
+          mail_id,
+          paymentURL
+        })
+
+        console.log("mail sent")
+      }
+
+      if(body.phone_no){
+        await this.erpService.sendPaymentLinkToWhatsaap({
+          student_name,
+          phone_no,
+          amount,
+          reason,
+          school_id,
+          paymentURL
+        })
+
+        console.log("whatsaap sent");
+      }
+
+      return "Notification sent scuccessfully";
+    }
+    catch(err){
+      throw new Error(err.message);
     }
   }
 }

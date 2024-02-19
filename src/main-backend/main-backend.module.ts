@@ -3,8 +3,9 @@ import { MainBackendService } from './main-backend.service';
 import { MainBackendController } from './main-backend.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
-import { TrusteeSchema } from 'src/schema/trustee.schema';
-import { SchoolSchema } from 'src/schema/school.schema';
+import { TrusteeSchema } from '../schema/trustee.schema';
+import { SchoolSchema } from '../schema/school.schema';
+import { TrusteeService } from 'src/trustee/trustee.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { SchoolSchema } from 'src/schema/school.schema';
       }),
     }),
   ],
-  providers: [MainBackendService],
+  providers: [MainBackendService,TrusteeService],
   controllers: [MainBackendController],
 })
 export class MainBackendModule {}

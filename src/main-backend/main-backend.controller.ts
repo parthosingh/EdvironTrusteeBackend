@@ -52,7 +52,6 @@ export class MainBackendController {
       return trustee;
     } 
   
-  
     @Post('assign-school')
     async assignSchool(
       @Body()

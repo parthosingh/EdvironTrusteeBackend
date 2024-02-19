@@ -28,6 +28,30 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => String)
   pg_key: string;
+  
+  @Prop({})
+  @Field(() => String)
+  merchantId: string;
+
+  @Prop({})
+  @Field(() => String)
+  merchantName: string;
+
+  @Prop({})
+  @Field(() => String)
+  merchantEmail: string;
+
+  @Prop({})
+  @Field(() => String)
+  merchantStatus: string;
+
+  @Prop({})
+  @Field(() => String)
+  pgMinKYC: string;
+
+  @Prop({})
+  @Field(() => String)
+  pgFullKYC: string;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool);

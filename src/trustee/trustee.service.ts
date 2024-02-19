@@ -92,7 +92,7 @@ export class TrusteeService {
       const count = await this.trusteeSchoolModel.countDocuments({
         trustee_id: trusteeObjectId,
       });
-      const pageSize = 10;
+      const pageSize = 10; 
       const schools = await this.trusteeSchoolModel
         .find(
           { trustee_id: trusteeObjectId },
@@ -101,6 +101,41 @@ export class TrusteeService {
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .exec();
+      return { schoolData: schools, total_pages: Math.ceil(count / pageSize) };
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw new ConflictException(error.message);
+      } else {
+        throw new BadRequestException(error.message);
+      }
+    }
+  }
+  async getTrusteeSchools(trusteeId: string, page: number) {
+    
+    try {
+      if (!Types.ObjectId.isValid(trusteeId)) {
+        throw new BadRequestException('Invalid trusteeID format');
+      }
+      const trusteeObjectId = new mongoose.Types.ObjectId(trusteeId);
+
+      const trustee = await this.trusteeModel.findById(trusteeId);
+
+      if (!trustee) {
+        throw new ConflictException(`no trustee found`);
+      }
+      const count = await this.trusteeSchoolModel.countDocuments({
+        trustee_id: trusteeObjectId,
+      });
+      const pageSize = 10; 
+      const schools = await this.trusteeSchoolModel
+        .find(
+          { trustee_id: trusteeObjectId }
+        )
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .exec();
+
+        
       return { schoolData: schools, total_pages: Math.ceil(count / pageSize) };
     } catch (error) {
       if (error instanceof ConflictException) {
