@@ -5,6 +5,7 @@ import { JwtPayload } from 'jsonwebtoken';
 import { Trustee } from '../schema/trustee.schema';
 import mongoose, { Types } from 'mongoose';
 import { TrusteeService } from 'src/trustee/trustee.service';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -13,7 +14,8 @@ export class MainBackendController {
     private mainBackendService: MainBackendService,
     private readonly jwtService: JwtService,
     private readonly trusteeService: TrusteeService,
-
+    @InjectModel(Trustee.name)
+    private readonly trusteeModel: mongoose.Model<Trustee>
   ) { }
 
   @Post('create-trustee')
@@ -157,11 +159,14 @@ export class MainBackendController {
     if (missingFields.length > 0) {
       throw new BadRequestException(`Missing fields: ${missingFields.join(', ')}`);
     }
+    const trusteeId = new Types.ObjectId(data.trusteeId)
+    const trustee = await this.trusteeModel.findById(trusteeId);
 
     const info = {
       school_name: data.name,
       school_id: data.school_id,
       trustee_id: data.trusteeId,
+      trustee_name: trustee.name
     }
     const schoolInfo = await this.mainBackendService.assignSchool(info)
 
