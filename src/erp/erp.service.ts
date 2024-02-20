@@ -405,17 +405,23 @@ export class ErpService {
       const htmlToSend = template(replacements);
 
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        pool: true,
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
+          type: 'OAuth2',
           user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
+          clientId: process.env.OAUTH_CLIENT_ID,
+          clientSecret: process.env.OAUTH_CLIENT_SECRET,
+          refreshToken: process.env.OAUTH_REFRESH_TOKEN
         },
       });
 
       const mailOptions = {
-        from: "rpbarmaiya@gmail.com",
+        from: process.env.EMAIL_USER,
         to: body.mail_id,
-        subject: "Pay through this link",
+        subject: "Fee reminder",
         html: htmlToSend
       };
       const info = await transporter.sendMail(mailOptions);
