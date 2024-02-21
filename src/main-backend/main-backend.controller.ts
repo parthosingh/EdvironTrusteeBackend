@@ -142,8 +142,6 @@ export class MainBackendController {
   async onboarderAssignSchool(@Body() body: { data: string },) {
     try{
 
-    console.log("INSIDE");
-    
     const data: JwtPayload = await this.jwtService.verify(
       body.data,
       { secret: process.env.JWT_SECRET_FOR_INTRANET })
@@ -162,7 +160,6 @@ export class MainBackendController {
     }
     const trusteeId = new Types.ObjectId(data.trusteeId)
     const trustee = await this.trusteeModel.findById(trusteeId);
-    console.log(trustee, "trustee");
     
 
     const info = {
