@@ -13,6 +13,10 @@ import { Trustee } from '../schema/trustee.schema';
 import { TrusteeSchool } from '../schema/school.schema';
 import axios from 'axios';
 import * as bcrypt from 'bcrypt';
+import * as nodemailer from "nodemailer";
+import * as path from 'path';
+import * as fs from 'fs';
+import * as handlebars from 'handlebars';
 
 @Injectable()
 export class TrusteeService {
@@ -22,7 +26,9 @@ export class TrusteeService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
-  ) {}
+  ) { }
+
+
 
   async loginAndGenerateToken(
     emailId: string,
@@ -92,7 +98,7 @@ export class TrusteeService {
       const count = await this.trusteeSchoolModel.countDocuments({
         trustee_id: trusteeObjectId,
       });
-      const pageSize = 10; 
+      const pageSize = 10;
       const schools = await this.trusteeSchoolModel
         .find(
           { trustee_id: trusteeObjectId },
@@ -111,7 +117,7 @@ export class TrusteeService {
     }
   }
   async getTrusteeSchools(trusteeId: string, page: number) {
-    
+
     try {
       if (!Types.ObjectId.isValid(trusteeId)) {
         throw new BadRequestException('Invalid trusteeID format');
@@ -126,7 +132,7 @@ export class TrusteeService {
       const count = await this.trusteeSchoolModel.countDocuments({
         trustee_id: trusteeObjectId,
       });
-      const pageSize = 10; 
+      const pageSize = 10;
       const schools = await this.trusteeSchoolModel
         .find(
           { trustee_id: trusteeObjectId }
@@ -135,7 +141,7 @@ export class TrusteeService {
         .limit(pageSize)
         .exec();
 
-        
+
       return { schoolData: schools, total_pages: Math.ceil(count / pageSize) };
     } catch (error) {
       if (error instanceof ConflictException) {
@@ -145,7 +151,7 @@ export class TrusteeService {
       }
     }
   }
-  
+
   async generateSchoolToken(
     schoolId: string,
     password: string,
@@ -207,4 +213,109 @@ export class TrusteeService {
       }
     }
   }
+
+  async sentMails(email, mailOptions) {
+    try {
+
+      const transporter = nodemailer.createTransport({
+        pool: true,
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+          type: 'OAuth2',
+          user: process.env.EMAIL_USER,
+          clientId: process.env.OAUTH_CLIENT_ID,
+          clientSecret: process.env.OAUTH_CLIENT_SECRET,
+          refreshToken: process.env.OAUTH_REFRESH_TOKEN
+        },
+      });
+
+
+      const info = await transporter.sendMail(mailOptions);
+      return true
+    } catch (error) {
+      console.log(error);
+
+      throw new BadRequestException(error.message)
+    }
+  }
+
+  async sentResetMail(email) {
+    try {
+      const trustee = await this.trusteeModel.findOne({ email_id: email })
+      if (!trustee) {
+        throw new NotFoundException('Trustee Not Found')
+      }
+
+      const expirationTime = Math.floor(Date.now() / 1000) + 1 * 60; // 30 minutes
+      const secretKey = process.env.JWT_SECRET_FOR_RESETPASSWORD_LINK;
+      const data = {
+        email: email,
+        // exp: expirationTime
+      }
+      const token = this.jwtService.sign(data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+        expiresIn: expirationTime //30 mins
+      });
+
+      const resetURL = `${process.env.TRUSTEE_DASHBOARD_URL}/reset-password?token=${token}`
+      const __dirname = path.resolve();
+      const filePath = path.join(__dirname, 'src/trustee/reset-mail-template.html');
+      const source = fs.readFileSync(filePath, 'utf-8').toString();
+      const template = handlebars.compile(source);
+
+      const replacements = {
+        email: email,
+        url: resetURL
+      };
+
+      const htmlToSend = template(replacements);
+
+
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Reset password",
+        html: htmlToSend
+      };
+      // const info = await transporter.sendMail(mailOptions);
+      await this.sentMails(email, mailOptions)
+      return true
+    } catch (error) {
+      console.log(error);
+
+      throw new BadRequestException(error.message)
+    }
+  }
+
+  async restetPassword(email, password) {
+    try{
+
+      const trustee = await this.trusteeModel.findOne({ email_id: email })
+      if (!trustee) {
+        throw new NotFoundException('Trustee Not Found')
+      }
+      
+      trustee.password_hash = password
+      await trustee.save()
+      return true
+    }catch(error){
+      throw new BadRequestException(error.message)
+    }
+  }
+
+  async verifyresetToken(token) {
+    try {
+      const data = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET
+      })
+      return true
+    } catch (err) {
+      // console.log(err);
+      return false
+    }
+  }
+
 }
