@@ -235,6 +235,7 @@ export class ErpController {
         clientId: school.client_id,
         clientSecret: school.client_secret,
         webHook: webHookUrl || null,
+        disabled_modes: school.disabled_modes,
       });
       let config = {
         method: 'post',
