@@ -52,6 +52,10 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => String)
   pgFullKYC: string;
+
+  @Prop({required: true, default: []})
+  @Field(() => [String])
+  disabled_modes: string[];
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool);
