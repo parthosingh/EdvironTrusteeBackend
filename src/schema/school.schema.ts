@@ -2,6 +2,28 @@ import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 
+
+@ObjectType()
+export class rangeCharge {
+  @Field(() => Number, {nullable: true})
+  upto: Number
+
+  @Field(() => Number)
+  charge: Number
+}
+
+@ObjectType()
+export class PlatformCharge {
+  @Field(() => String)
+  platform_type: String
+
+  @Field(() => String)
+  payment_mode: String
+
+  @Field(() => [rangeCharge], {nullable: true})
+  range_charge: rangeCharge[]
+}
+
 @ObjectType()
 @Schema({ timestamps: true })
 export class TrusteeSchool {
@@ -56,6 +78,10 @@ export class TrusteeSchool {
   @Prop({required: true, default: []})
   @Field(() => [String])
   disabled_modes: string[];
+
+  @Prop()
+  @Field(() => [PlatformCharge], {defaultValue: []})
+  platform_charges: PlatformCharge[]
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool);

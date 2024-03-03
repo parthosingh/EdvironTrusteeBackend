@@ -6,6 +6,7 @@ import { config } from 'dotenv';
 import { TrusteeModule } from './trustee/trustee.module';
 import { ErpModule } from './erp/erp.module';
 import { MainBackendModule } from './main-backend/main-backend.module';
+import { PlatformChargesModule } from './platform-charges/platform-charges.module';
 config();
 
 @Module({
@@ -14,6 +15,7 @@ config();
     TrusteeModule,
     ErpModule,
     MainBackendModule,
+    PlatformChargesModule
   ],
 
   controllers: [AppController],
