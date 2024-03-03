@@ -7,7 +7,7 @@ try {
   const data = yaml.load(yamlFile);
 
   //updating SSL certificates
-  data["files"]['/etc/pki/tls/certs/server.crt']["source"] = "hhttps://edv-certificates.s3.ap-south-1.amazonaws.com/prod/vanilla_certificate.crt"
+  data["files"]['/etc/pki/tls/certs/server.crt']["source"] = "https://edv-certificates.s3.ap-south-1.amazonaws.com/prod/vanilla_certificate.crt"
   data["files"]["/etc/pki/tls/certs/server.key"]["source"] = "https://edv-certificates.s3.ap-south-1.amazonaws.com/prod/vanilla_private.key"
 
 
