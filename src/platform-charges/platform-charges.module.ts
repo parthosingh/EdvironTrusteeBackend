@@ -4,9 +4,11 @@ import { PlatformChargeService } from "./platform-charges.service";
 import { MongooseModule } from "@nestjs/mongoose";
 import { JwtModule } from "@nestjs/jwt";
 import { SchoolSchema } from "src/schema/school.schema";
+import { TrusteeSchema } from "src/schema/trustee.schema";
 
 @Module({
     imports: [
+        MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
         MongooseModule.forFeature([
             { name: 'TrusteeSchool', schema: SchoolSchema },
         ]),

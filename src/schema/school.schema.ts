@@ -20,7 +20,7 @@ export class PlatformCharge {
   @Field(() => String)
   payment_mode: String
 
-  @Field(() => [rangeCharge], {nullable: true})
+  @Field(() => [rangeCharge], {defaultValue: []})
   range_charge: rangeCharge[]
 }
 
