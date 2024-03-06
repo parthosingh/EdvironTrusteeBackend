@@ -161,6 +161,8 @@ export class TrusteeResolver {
     await school.save();
     return { pg_key };
   }
+
+
   @Mutation(() => String)
   async sentKycInvite(
     @Args('school_name') school_name: string,
