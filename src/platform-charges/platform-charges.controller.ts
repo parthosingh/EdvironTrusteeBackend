@@ -66,7 +66,7 @@ export class PlatformChargesController {
             console.log("deleting");
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
 
-            const {trusteeId, trusteeSchoolId, platform_type, payment_mode} = body;
+            const {trusteeSchoolId, platform_type, payment_mode} = body;
 
             const val = await this.platformChargeService.deletePlatformCharge(
                 trusteeSchoolId,

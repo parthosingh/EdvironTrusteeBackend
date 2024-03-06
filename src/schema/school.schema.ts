@@ -3,10 +3,19 @@ import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 
 
+export enum charge_type {
+  FLAT="FLAT",
+  PERCENT="PERCENT"
+}
+
+
 @ObjectType()
 export class rangeCharge {
   @Field(() => Number, {nullable: true})
   upto: Number
+
+  @Field(() => String)
+  charge_type: charge_type
 
   @Field(() => Number)
   charge: Number
