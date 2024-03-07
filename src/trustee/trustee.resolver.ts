@@ -176,7 +176,6 @@ export class TrusteeResolver {
     console.log(client_id, "clientId");
     
 
-    // Fetch all settlement reports for the retrieved merchantId
     let settlementReports = [];
     settlementReports = await this.settlementReportModel.find({merchantId:client_id});
 
