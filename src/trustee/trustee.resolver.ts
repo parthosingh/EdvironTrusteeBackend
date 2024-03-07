@@ -14,6 +14,7 @@ import { ErpService } from '../erp/erp.service';
 import mongoose, { Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { InjectModel } from '@nestjs/mongoose';
+import { SettlementReport } from 'src/schema/settlement.schema';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -22,7 +23,9 @@ export class TrusteeResolver {
     private readonly erpService: ErpService,
     private mainBackendService: MainBackendService,
     @InjectModel(TrusteeSchool.name)
-    private trusteeSchoolModel: mongoose.Model<TrusteeSchool>
+    private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
+    @InjectModel(SettlementReport.name)
+    private settlementReportModel: mongoose.Model<SettlementReport>
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -162,6 +165,22 @@ export class TrusteeResolver {
       await school.save()
       return {pg_key} 
       
+  }
+
+  @Query(() => [SettlementReport])
+  async getSettlementReportsBySchoolId(@Args('schoolId') schoolId: string) {
+    const client_id = (await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(schoolId) })).client_id;
+    if (!client_id) {
+      throw new Error('School not found');
+    }
+    console.log(client_id, "clientId");
+    
+
+    // Fetch all settlement reports for the retrieved merchantId
+    let settlementReports = [];
+    settlementReports = await this.settlementReportModel.find({merchantId:client_id});
+
+    return settlementReports;
   }
 }
 
