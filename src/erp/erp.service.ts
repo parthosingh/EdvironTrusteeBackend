@@ -538,7 +538,9 @@ export class ErpService {
             tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
             status:'Settled',
             utrNumber: response.data.data[0].settlement_utr,
-            settlementDate:new Date(new Date().getTime() - 86400000 * 1).toDateString()
+            settlementDate:new Date(new Date().getTime() - 86400000 * 1).toDateString(),
+            trustee:merchant.trustee_id,
+            schoolName:merchant.school_name
           });
           await settlementReport.save();
 

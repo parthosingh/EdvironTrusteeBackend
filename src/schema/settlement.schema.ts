@@ -1,6 +1,8 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { ObjectId } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { Trustee, TrusteeSchema } from './trustee.schema';
 
 @ObjectType()
 @Schema({timestamps:true})
@@ -30,7 +32,7 @@ export class SettlementReport extends Document {
   @Field(() => String)
   status: string;
 
-  @Prop({ required: true, type: String})
+  @Prop({ required: true, type: String, unique:true})
   @Field(() => String)
   utrNumber: string;
 
@@ -41,6 +43,14 @@ export class SettlementReport extends Document {
   @Prop({ required: true, type: String })
   @Field(() => String)
   merchantId: string;
+
+  @Prop({required:true, type: Types.ObjectId, ref:"Trustee" })
+  @Field(() => ID)
+  trustee: ObjectId;
+
+  @Prop({ type: String, required:true})
+  @Field(() => String)
+  schoolName: string;
 }
 
 export const SettlementSchema = SchemaFactory.createForClass(SettlementReport);

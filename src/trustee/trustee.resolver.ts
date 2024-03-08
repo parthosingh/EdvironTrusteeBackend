@@ -168,16 +168,17 @@ export class TrusteeResolver {
   }
 
   @Query(() => [SettlementReport])
-  async getSettlementReportsBySchoolId(@Args('schoolId') schoolId: string) {
-    const client_id = (await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(schoolId) })).client_id;
+  @UseGuards(TrusteeGuard)
+  async getSettlementReportsBySchoolId( @Context() context,@Args('schoolId') schoolId: string) {
+
+    const merchant = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(schoolId)});
+    
+    const client_id = merchant?.client_id;
     if (!client_id) {
       throw new Error('School not found');
     }
-    console.log(client_id, "clientId");
-    
-
     let settlementReports = [];
-    settlementReports = await this.settlementReportModel.find({merchantId:client_id});
+    settlementReports = await this.settlementReportModel.find({trustee:new Types.ObjectId(context.req.trustee)});
 
     return settlementReports;
   }
