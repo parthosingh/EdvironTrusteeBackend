@@ -1,7 +1,7 @@
 import { ConflictException, Get, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import mongoose from "mongoose";
-import { TrusteeSchool, rangeCharge } from "src/schema/school.schema";
+import { TrusteeSchool, charge_type, rangeCharge } from "src/schema/school.schema";
 import { Trustee } from "src/schema/trustee.schema";
 
 @Injectable()
@@ -20,14 +20,12 @@ export class PlatformChargeService {
         range_charge: rangeCharge
     ) {
         try {
-            const platformCharges = await this.trusteeSchoolModel.findOne({ _id: trusteeSchoolId });
+            const trusteeSchool = await this.trusteeSchoolModel.findOne({ _id: trusteeSchoolId });
+            if (!trusteeSchool) throw new Error("Trustee school not found");
 
-            if (!platformCharges) throw new Error("Trustee school not found");
-
-            platformCharges.platform_charges.forEach((platformCharge) => {
+            trusteeSchool.platform_charges.forEach((platformCharge) => {
                 if (platformCharge.platform_type === platform_type && platformCharge.payment_mode === payment_mode) {
-                    console.log(platformCharge);
-                    throw new ConflictException('This payment method already present');
+                    throw new ConflictException('MDR already present');
                 }
             })
 
@@ -58,18 +56,17 @@ export class PlatformChargeService {
         payment_mode: String
     ) {
         try {
-            const platformCharges = await this.trusteeSchoolModel.findOne({ _id: trusteeSchoolId });
-
-            if (!platformCharges) throw new Error("Trustee school not found");
+            const trusteeSchool = await this.trusteeSchoolModel.findOne({ _id: trusteeSchoolId });
+            if (!trusteeSchool) throw new Error("Trustee school not found");
 
             let isFound = 0;
-            platformCharges.platform_charges.forEach((platformCharge) => {
+            trusteeSchool.platform_charges.forEach((platformCharge) => {
                 if (platformCharge.platform_type === platform_type && platformCharge.payment_mode === payment_mode) {
                     isFound = 1;
                 }
             })
 
-            if (!isFound) throw new Error("Payment method not present")
+            if (!isFound) throw new Error("MDR not present")
 
             const res = await this.trusteeSchoolModel.findOneAndUpdate(
                 { _id: trusteeSchoolId },
@@ -91,36 +88,44 @@ export class PlatformChargeService {
         }
     }
 
-    async platformCharge(
+    async finalAmountWithMDR(
         trusteeSchoolId: String,
         platform_type: String,
         payment_mode: String,
-        amount: Number
+        amount: number
     ) {
         try {
-            const platformCharges = await this.trusteeSchoolModel.findOne({ _id: trusteeSchoolId });
-
-            if (!platformCharges) throw new Error("Trustee school not found");
-            if (!platformCharges.platform_charges) throw new Error("Charges not set");
+            if(amount < 0) throw new Error("Amount should be positive")
+            const trusteeSchool = await this.trusteeSchoolModel.findOne({ _id: trusteeSchoolId });
+            if (!trusteeSchool) throw new Error("Trustee school not found");
 
             let ranges = null;
-
-            platformCharges.platform_charges.forEach((platformCharge) => {
+            trusteeSchool.platform_charges.forEach((platformCharge) => {
                 if (platformCharge.platform_type === platform_type && platformCharge.payment_mode === payment_mode) {
                     ranges = platformCharge.range_charge;
                 }
             })
 
-            if (!ranges) throw new Error("Payment method not present")
+            if (!ranges) throw new Error("MDR not found")
 
-            let platformCharge = 0;
-            ranges.forEach((range) => {
-                if (!range.upto || range.upto >= amount) {
-                    platformCharge = range.charge
+            let platformCharge = null;
+            ranges.forEach((range: any) => {
+                if (!platformCharge && (!range.upto || range.upto >= amount)) {
+                    platformCharge = range
                 }
             })
+            
+            let finalAmount: number = amount;
 
-            return platformCharge;
+            if(platformCharge.charge_type === charge_type.FLAT){
+                finalAmount += platformCharge.charge
+            }
+            else if(platformCharge.charge_type = charge_type.PERCENT){
+                finalAmount += (amount*platformCharge.charge)/100;
+                console.log(((amount*platformCharge.charge)/100));
+            }
+
+            return finalAmount.toFixed(2);
         }
         catch (err) {
             throw new Error(err);

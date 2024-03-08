@@ -25,11 +25,7 @@ export class PlatformChargesController {
         }
     ) {
         try {
-            console.log("hello");
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
-
-            console.log(body);
-
             const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
 
             const val = await this.platformChargeService.AddPlatformCharge(
@@ -43,14 +39,10 @@ export class PlatformChargesController {
                 platform_charges: val.platform_charges
             };
 
-            console.log(val.platform_charges[0].range_charge)
-
             const res = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_INTRANET });
-
             return res;
         }
         catch (err) {
-            console.log("tarun: ", err);
             throw new ConflictException(err.message);
         }
     }
@@ -63,9 +55,7 @@ export class PlatformChargesController {
         }
     ) {
         try {
-            console.log("deleting");
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
-
             const {trusteeSchoolId, platform_type, payment_mode} = body;
 
             const val = await this.platformChargeService.deletePlatformCharge(
@@ -79,23 +69,21 @@ export class PlatformChargesController {
             };
 
             const res = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_INTRANET });
-
             return res;
         }
         catch (err) {
-            console.log(err);
             throw new Error(err);
         }
     }
 
-    @Get('platform-charge')
-    async platformCharge(
+    @Get('final-amount-with-MDR')
+    async finalAmountWithMDR(
         @Body()
         body
     ) {
         try {
-            const { school_id, platform_type, payment_mode, amount } = body;
-            return await this.platformChargeService.platformCharge(school_id, platform_type, payment_mode, amount);
+            const { trusteeSchoolId, platform_type, payment_mode, amount } = body;
+            return await this.platformChargeService.finalAmountWithMDR(trusteeSchoolId, platform_type, payment_mode, amount);
         }
         catch (err) {
             return err.message;
@@ -107,7 +95,6 @@ export class PlatformChargesController {
     async getAllTrusteeInSiglePage(){
         try{
             const data = await this.platformChargeService.getAllTrustee();
-
             const res = this.jwtService.sign(data, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             return res;
         }
@@ -122,11 +109,8 @@ export class PlatformChargesController {
         @Query('token') token: string
     ){
         try{
-            console.log(token);
             const {trusteeId} = this.jwtService.verify(token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
-            console.log(trusteeId);
             const val = await this.platformChargeService.getAllTrusteeSchool(trusteeId)
-            console.log(val);
             const res = this.jwtService.sign(val, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             return res;
         }
