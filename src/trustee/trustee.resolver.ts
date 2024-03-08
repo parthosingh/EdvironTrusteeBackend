@@ -169,7 +169,7 @@ export class TrusteeResolver {
 
   @Query(() => [SettlementReport])
   @UseGuards(TrusteeGuard)
-  async getSettlementReportsBySchoolId( @Context() context,@Args('schoolId') schoolId: string) {
+  async getSettlementReports( @Context() context,@Args('schoolId') schoolId: string) {
 
     const merchant = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(schoolId)});
     
