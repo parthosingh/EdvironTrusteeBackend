@@ -175,11 +175,10 @@ export class TrusteeResolver {
     
     const client_id = merchant?.client_id;
     if (!client_id) {
-      throw new Error('School not found');
+      throw new Error('PG not enabled for this school');
     }
     let settlementReports = [];
     settlementReports = await this.settlementReportModel.find({trustee:new Types.ObjectId(context.req.trustee)});
-
     return settlementReports;
   }
 }
