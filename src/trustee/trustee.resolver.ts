@@ -15,6 +15,7 @@ import mongoose, { Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { SettlementReport } from 'src/schema/settlement.schema';
+import { JwtService } from '@nestjs/jwt';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -25,7 +26,8 @@ export class TrusteeResolver {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
-    private settlementReportModel: mongoose.Model<SettlementReport>
+    private settlementReportModel: mongoose.Model<SettlementReport>,
+    private readonly jwtService: JwtService,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -174,6 +176,52 @@ export class TrusteeResolver {
     settlementReports = await this.settlementReportModel.find({trustee:new Types.ObjectId(context.req.trustee)});
     return settlementReports;
   }
+  
+  @Query(()=>[TransactionReport])
+  @UseGuards(TrusteeGuard)
+  async getTransactionReport( @Context() context) {
+
+    let transactionReport:[TransactionReport];
+
+    const merchants = await this.trusteeSchoolModel.find({trustee_id:context.req.trustee});
+    merchants.forEach((merchant) => {
+      if(!merchant.client_id) return;
+      console.log(
+        `getting report for ${merchant.merchantName}(${merchant.client_id})`,
+      );
+
+      const axios = require('axios');
+      const secretKey = 'your_secret_key_here';
+
+      let data = this.jwtService.sign({client_id:merchant.client_id},{secret:secretKey});
+      console.log(this.jwtService.verify(data, {secret:secretKey}),"data");
+      
+      let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: '',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'x-partner-merchantid': merchant.client_id,
+        },
+        data: data,
+      };
+
+      axios
+        .request(config)
+        .then(async (response) => {
+          console.log('response', response.data.data[0]); 
+          if(response.data.data.length === 0) return;
+          transactionReport.push(response.data.data[0])
+        
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    });
+  return transactionReport
+  }
 }
 
 // Define a type for the AuthResponse
@@ -255,4 +303,18 @@ class getSchool {
   total_pages: number;
   @Field()
   page: number;
+}
+
+@ObjectType()
+class TransactionReport{
+  @Field()
+  collect_id: string;
+  @Field()
+  date_time: string;
+  @Field()
+  order_amount: number;
+  @Field()
+  transaction_amount: number;
+  @Field()
+  payment_method: string
 }
