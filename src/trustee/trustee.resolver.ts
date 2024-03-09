@@ -177,50 +177,63 @@ export class TrusteeResolver {
     return settlementReports;
   }
   
-  @Query(()=>[TransactionReport])
-  @UseGuards(TrusteeGuard)
-  async getTransactionReport( @Context() context) {
+  // @Query(()=>[TransactionReport])
+  // @UseGuards(TrusteeGuard)
+  // async getTransactionReport( @Context() context) {
 
-    let transactionReport:[TransactionReport];
+  //   let transactionReport:[TransactionReport];
 
-    const merchants = await this.trusteeSchoolModel.find({trustee_id:context.req.trustee});
-    merchants.forEach((merchant) => {
-      if(!merchant.client_id) return;
-      console.log(
-        `getting report for ${merchant.merchantName}(${merchant.client_id})`,
-      );
+  //   const merchants = await this.trusteeSchoolModel.find({trustee_id:context.req.trustee});
+  //   merchants.forEach((merchant) => {
+  //     if(!merchant.client_id) return;
+  //     console.log(
+  //       `getting report for ${merchant.merchantName}(${merchant.client_id})`,
+  //     );
 
-      const axios = require('axios');
-      const secretKey = 'your_secret_key_here';
+  //     const axios = require('axios');
+  //     const secretKey = 'your_secret_key_here';
 
-      let data = this.jwtService.sign({client_id:merchant.client_id},{secret:secretKey});
-      console.log(this.jwtService.verify(data, {secret:secretKey}),"data");
+  //     let data = this.jwtService.sign({client_id:merchant.client_id},{secret:secretKey});
+  //     console.log(this.jwtService.verify(data, {secret:secretKey}),"data");
       
-      let config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: '',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          'x-partner-merchantid': merchant.client_id,
-        },
-        data: data,
-      };
+  //     let config = {
+  //       method: 'post',
+  //       maxBodyLength: Infinity,
+  //       url: '',
+  //       headers: {
+  //         accept: 'application/json',
+  //         'content-type': 'application/json',
+  //         'x-partner-merchantid': merchant.client_id,
+  //       },
+  //       data: data,
+  //     };
 
-      axios
-        .request(config)
-        .then(async (response) => {
-          console.log('response', response.data.data[0]); 
-          if(response.data.data.length === 0) return;
-          transactionReport.push(response.data.data[0])
+  //     axios
+  //       .request(config)
+  //       .then(async (response) => {
+  //         console.log('response', response.data.data[0]); 
+  //         if(response.data.data.length === 0) return;
+  //         transactionReport.push(response.data.data[0])
         
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    });
-  return transactionReport
+  //       })
+  //       .catch((error) => {
+  //         console.log(error);
+  //       });
+  //   });
+  // return transactionReport
+  // }
+
+  @Query(()=>[School])
+  @UseGuards(TrusteeGuard)
+  async getAllSchoolQuery(
+    @Context() context,
+  ): Promise<any> {
+    try {
+      const id = context.req.trustee;
+      return await this.trusteeSchoolModel.find({trustee_id:context.req.trustee})
+    } catch (error) {
+     throw error
+    }
   }
 }
 
