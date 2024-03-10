@@ -239,7 +239,7 @@ export class TrusteeResolver {
       return transactionReport;
     } catch (error) {
       console.log(error);
-      throw error; // Re-throw the error to be handled by the caller
+      throw error;
     }
   }
   
