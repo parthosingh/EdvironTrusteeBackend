@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args, Query, Int, Context } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int, Context, InputType } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
 import {
   UnauthorizedException,
@@ -14,11 +14,9 @@ import { ErpService } from '../erp/erp.service';
 import mongoose, { Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { InjectModel } from '@nestjs/mongoose';
-
 import { SettlementReport } from 'src/schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
-
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -258,13 +256,53 @@ export class TrusteeResolver {
      throw error
     }
   }
+
+  @Mutation(()=>verifyRes)
+  async resetMails(@Args('email') email:string){
+    await this.trusteeService.sentResetMail(email)
+    return {active:true}
+  }
+ 
+  @Mutation(()=>resetPassResponse)
+  async resetPassword(
+    @Args('email') email:string,
+    @Args('password') password:string
+    
+    ){
+    await this.trusteeService.restetPassword(email,password)
+    return {msg:`Password Change`}
+  }
+
+  @Query(()=>verifyRes)
+  async verifyToken(
+    @Args('token') token:string
+  ){
+    const res=await this.trusteeService.verifyresetToken(token)
+    return {active:res}
+  }
+
+  
+
 }
+
+
 
 // Define a type for the AuthResponse
 @ObjectType()
 class AuthResponse {
   @Field(() => String)
   token: string;
+}
+
+@ObjectType()
+class resetPassResponse{
+  @Field()
+  msg:string
+}
+@ObjectType()
+class verifyRes{
+  @Field()
+  active:boolean
 }
 
 // Define a type for school token response
