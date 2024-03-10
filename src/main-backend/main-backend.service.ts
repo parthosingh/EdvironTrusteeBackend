@@ -10,7 +10,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
-import { log } from 'node:console';
 
 @Injectable()
 export class MainBackendService {
@@ -151,7 +150,7 @@ export class MainBackendService {
       const trusteeId = new Types.ObjectId(trustee_id)
       const schoolId = new Types.ObjectId(school_id)
 
-      const trusteeSchool = await this.trusteeSchoolModel.findOne({trustee_id:trusteeId, school_id:schoolId})
+      const trusteeSchool = await this.trusteeSchoolModel.findOne({ trustee_id: trusteeId, school_id: schoolId })
       if (!trusteeSchool) {
         throw new NotFoundException(`School not found for Trustee`)
       }
@@ -181,7 +180,7 @@ export class MainBackendService {
         options
       );
 
-      return { updatedSchool};
+      return { updatedSchool };
     } catch (error) {
       if (error.response && error.response.statusCode === 404) {
         throw new NotFoundException(error.response.message);
@@ -238,10 +237,10 @@ export class MainBackendService {
     }
   }
 
-  async getAllErpOfOnboarder(onboarder_id: string,page) {
+  async getAllErpOfOnboarder(onboarder_id: string, page) {
     try {
       const pageSize = 10;
-      
+
       const count = await this.trusteeModel.countDocuments({
         onboarder_id: onboarder_id
       });
@@ -251,7 +250,7 @@ export class MainBackendService {
         .limit(pageSize)
         .exec();
 
-      return { trustee: res,page, total_pages: Math.ceil(count / pageSize) };
+      return { trustee: res, page, total_pages: Math.ceil(count / pageSize) };
     }
     catch (err) {
       throw new Error(err);

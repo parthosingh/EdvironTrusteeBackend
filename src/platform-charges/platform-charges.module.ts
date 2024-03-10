@@ -5,6 +5,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { JwtModule } from "@nestjs/jwt";
 import { SchoolSchema } from "src/schema/school.schema";
 import { TrusteeSchema } from "src/schema/trustee.schema";
+import { MainBackendService } from "src/main-backend/main-backend.service";
 
 @Module({
     imports: [
@@ -19,7 +20,7 @@ import { TrusteeSchema } from "src/schema/trustee.schema";
             }),
         })
     ],
-    providers: [PlatformChargeService],
+    providers: [PlatformChargeService, MainBackendService],
     controllers: [PlatformChargesController]
 })
 
