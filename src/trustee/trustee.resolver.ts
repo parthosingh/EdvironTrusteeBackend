@@ -27,10 +27,9 @@ export class TrusteeResolver {
     private readonly jwtService: JwtService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
-
     @InjectModel(SettlementReport.name)
     private settlementReportModel: mongoose.Model<SettlementReport>,
-    private readonly jwtService: JwtService,
+    
 
   ) {}
 
