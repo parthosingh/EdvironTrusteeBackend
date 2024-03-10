@@ -25,6 +25,7 @@ export class PlatformChargesController {
         }
     ) {
         try {
+            console.log("hello");
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
 
@@ -40,9 +41,11 @@ export class PlatformChargesController {
             };
 
             const res = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+            console.log(res);
             return res;
         }
         catch (err) {
+            console.log(err);
             throw new ConflictException(err.message);
         }
     }

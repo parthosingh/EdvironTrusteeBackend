@@ -1,6 +1,7 @@
 import { ConflictException, Get, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
+import { consumers } from "node:stream";
 import { TrusteeSchool, charge_type, rangeCharge } from "src/schema/school.schema";
 import { Trustee } from "src/schema/trustee.schema";
 
@@ -143,9 +144,10 @@ export class PlatformChargeService {
         }
     }
 
-    async getAllTrusteeSchool(trusteeId: String){
+    async getAllTrusteeSchool(trusteeId: string){
         try{
-            const schools = await this.trusteeSchoolModel.find({trustee_id: trusteeId}, {school_id: 1, school_name: 1, platform_charges: 1});
+            const schools = await this.trusteeSchoolModel.find({trustee_id: new Types.ObjectId(trusteeId)}, {school_id: 1, school_name: 1, platform_charges: 1});
+            console.log(schools);
             return {schools: schools};
         }
         catch(err){
