@@ -229,7 +229,8 @@ export class TrusteeResolver {
         if (response.data.length > 0 && response.data !== 'No orders found for clientId') {
           const modifiedResponseData = response.data.map(item => ({
             ...item,
-            school_name: merchant.school_name
+            school_name: merchant.school_name,
+            school_id:merchant.school_id
           }));
           transactionReport.push(...modifiedResponseData);
         }
@@ -391,4 +392,8 @@ class TransactionReport{
   payment_method: string
   @Field({nullable:true})
   school_name: string
+  @Field({nullable:true})
+  school_id:string
+  @Field({nullable:true})
+  status:string
 }
