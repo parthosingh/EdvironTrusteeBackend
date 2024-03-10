@@ -31,7 +31,7 @@ export class PlatformChargeService {
                 _id: trusteeSchoolId,
             });
             if (!trusteeSchool) throw new Error('Trustee school not found');
-            if (trusteeSchool.pgMinKYC === 'MIN_KYC_APPROVED')
+            if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
                 throw new Error('KYC not approved');
 
             trusteeSchool.platform_charges.forEach((platformCharge) => {
@@ -84,7 +84,7 @@ export class PlatformChargeService {
             });
 
             if (AllOtherFieldPresent && !trusteeSchool.pg_key) {
-                let pgKey = this.mainBackendService.generateKey;
+                let pgKey = await this.mainBackendService.generateKey();
                 await this.trusteeSchoolModel.findByIdAndUpdate(trusteeSchool._id, {
                     $set: { pg_key: pgKey },
                 });
