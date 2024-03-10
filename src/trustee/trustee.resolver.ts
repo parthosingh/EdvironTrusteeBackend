@@ -14,8 +14,11 @@ import { ErpService } from '../erp/erp.service';
 import mongoose, { Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { InjectModel } from '@nestjs/mongoose';
+
 import { SettlementReport } from 'src/schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
+import axios from 'axios';
+
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -23,11 +26,14 @@ export class TrusteeResolver {
     private readonly trusteeService: TrusteeService,
     private readonly erpService: ErpService,
     private mainBackendService: MainBackendService,
+    private readonly jwtService: JwtService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
+
     @InjectModel(SettlementReport.name)
     private settlementReportModel: mongoose.Model<SettlementReport>,
     private readonly jwtService: JwtService,
+
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -123,7 +129,6 @@ export class TrusteeResolver {
     }
   }
 
- 
   @Query(() => TrusteeUser)
   async getUserQuery(@Context() context): Promise<TrusteeUser> {
     try {
@@ -150,23 +155,42 @@ export class TrusteeResolver {
     }
   }
 
-  @Mutation(()=>pg_key)
+  @Mutation(() => pg_key)
   @UseGuards(TrusteeGuard)
-  async resetKey(
-    @Context() context,
-    @Args('school_id') school_id: string
-    ){
-      const trusteeId = context.req.trustee
-      const schoolId=new Types.ObjectId(school_id)
-      const school = await this.trusteeSchoolModel.findOne({
-        trustee_id:trusteeId,
-        school_id:schoolId
-      })
-      const pg_key=await this.mainBackendService.generateKey()
-      school.pg_key=pg_key
-      await school.save()
-      return {pg_key} 
-      
+  async resetKey(@Context() context, @Args('school_id') school_id: string) {
+    const trusteeId = context.req.trustee;
+    const schoolId = new Types.ObjectId(school_id);
+    const school = await this.trusteeSchoolModel.findOne({
+      trustee_id: trusteeId,
+      school_id: schoolId,
+    });
+    const pg_key = await this.mainBackendService.generateKey();
+    school.pg_key = pg_key;
+    await school.save();
+    return { pg_key };
+  }
+
+
+  @Mutation(() => String)
+  async sentKycInvite(
+    @Args('school_name') school_name: string,
+    @Args('school_id') school_id: string,
+  ) {
+    const payload = {
+      school_name,
+      school_id,
+    };
+
+    const token = await this.jwtService.sign(payload, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    await axios.post(
+      `${process.env.MAIN_BACKEND_URL}/api/trustee/sentkycinvite`,
+      {
+        token: token,
+      },
+    );
+    return 'kyc invite sent';
   }
 
   @Query(() => [SettlementReport])
@@ -283,7 +307,7 @@ class TrusteeUser {
 }
 
 @ObjectType()
-class pg_key{
+class pg_key {
   @Field()
   pg_key: string;
 }
@@ -302,9 +326,8 @@ class School {
   @Field()
   school_id: string;
 
-  @Field(() => String, { nullable: true }) 
+  @Field(() => String, { nullable: true })
   pg_key: string;
-
 }
 
 @ObjectType()
