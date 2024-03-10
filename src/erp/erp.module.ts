@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TrusteeSchema } from '../schema/trustee.schema';
 import { SchoolSchema } from '../schema/school.schema';
 import { JwtModule } from '@nestjs/jwt';
+import { SettlementSchema } from 'src/schema/settlement.schema';
 
 @Module({
   imports: [
@@ -18,6 +19,9 @@ import { JwtModule } from '@nestjs/jwt';
         signOptions: { expiresIn: '2h' },
       }),
     }),
+    MongooseModule.forFeature([
+      { name: 'SettlementReport', schema: SettlementSchema },
+    ]),
   ],
   providers: [ErpService],
   controllers: [ErpController],

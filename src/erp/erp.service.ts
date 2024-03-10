@@ -13,11 +13,12 @@ import axios from 'axios';
 import mongoose, { ObjectId, Types } from 'mongoose';
 import { TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
-import * as nodemailer from "nodemailer";
+import * as nodemailer from 'nodemailer';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as handlebars from 'handlebars';
-
+import { Cron } from '@nestjs/schedule';
+import { SettlementReport } from 'src/schema/settlement.schema';
 
 @Injectable()
 export class ErpService {
@@ -27,6 +28,8 @@ export class ErpService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
+    @InjectModel(SettlementReport.name)
+    private settlementReportModel: mongoose.Model<SettlementReport>
   ) {}
 
   async createApiKey(trusteeId: string): Promise<string> {
@@ -162,9 +165,11 @@ export class ErpService {
     trustee: ObjectId,
   ): Promise<any> {
     try {
-      const no_of_schools = await this.trusteeSchoolModel.countDocuments({trustee_id:trustee});
+      const no_of_schools = await this.trusteeSchoolModel.countDocuments({
+        trustee_id: trustee,
+      });
       const existingTrustee = await this.trusteeModel.findById(trustee);
-      if(no_of_schools >= existingTrustee.school_limit){
+      if (no_of_schools >= existingTrustee.school_limit) {
         throw new ForbiddenException('School limit reached');
       }
       const data = {
@@ -212,15 +217,15 @@ export class ErpService {
           throw new BadRequestException('Invalid email!');
         } else if (error.response.data?.message === 'User already exists') {
           throw new BadRequestException('User already exists');
-        }else if(error instanceof ForbiddenException){
-          throw error
+        } else if (error instanceof ForbiddenException) {
+          throw error;
         } else {
           console.log(error.response.data);
           throw new BadRequestException('Failed to create school');
         }
       } else if (error.request) {
         throw new BadRequestException('No response received from the server');
-      }else {
+      } else {
         throw new BadRequestException('Request setup error');
       }
     }
@@ -293,17 +298,14 @@ export class ErpService {
     }
   }
 
-
-  async sendPaymentLinkToWhatsaap(
-    body: {
-      student_name: string,
-      phone_no: string,
-      amount: number,
-      reason: string,
-      school_id: string,
-      paymentURL: string
-    },
-  ) {
+  async sendPaymentLinkToWhatsaap(body: {
+    student_name: string;
+    phone_no: string;
+    amount: number;
+    reason: string;
+    school_id: string;
+    paymentURL: string;
+  }) {
     try {
       const obj = {
         messaging_product: 'whatsapp',
@@ -320,29 +322,29 @@ export class ErpService {
               parameters: [
                 {
                   type: 'text',
-                  text: body.student_name
+                  text: body.student_name,
                 },
                 {
                   type: 'text',
-                  text: body.amount
+                  text: body.amount,
                 },
                 {
                   type: 'text',
-                  text: body.reason
-                }
+                  text: body.reason,
+                },
               ],
             },
             {
-              type: "button",
+              type: 'button',
               sub_type: 'url',
               index: '0',
               parameters: [
                 {
                   type: 'text',
-                  text: body.paymentURL
-                }
-              ]
-            }
+                  text: body.paymentURL,
+                },
+              ],
+            },
           ],
         },
       };
@@ -360,9 +362,8 @@ export class ErpService {
 
       await axios.request(config);
 
-      return `Whatsaap message successfully sent to ${body.student_name} on ${body.phone_no}`
-    }
-    catch (error) {
+      return `Whatsaap message successfully sent to ${body.student_name} on ${body.phone_no}`;
+    } catch (error) {
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
@@ -379,16 +380,14 @@ export class ErpService {
     }
   }
 
-  async sendPaymentLinkTOMail(
-    body: {
-      student_name: string,
-      mail_id: string,
-      school_id: string,
-      amount: number,
-      reason: string,
-      paymentURL: string
-    }
-  ) {
+  async sendPaymentLinkTOMail(body: {
+    student_name: string;
+    mail_id: string;
+    school_id: string;
+    amount: number;
+    reason: string;
+    paymentURL: string;
+  }) {
     try {
       const __dirname = path.resolve();
       const filePath = path.join(__dirname, 'src/erp/sendPaymentLink.html');
@@ -399,7 +398,7 @@ export class ErpService {
         student_name: body.student_name,
         payment_url: body.paymentURL,
         reason: body.reason,
-        amount: body.amount
+        amount: body.amount,
       };
 
       const htmlToSend = template(replacements);
@@ -414,70 +413,180 @@ export class ErpService {
           user: process.env.EMAIL_USER,
           clientId: process.env.OAUTH_CLIENT_ID,
           clientSecret: process.env.OAUTH_CLIENT_SECRET,
-          refreshToken: process.env.OAUTH_REFRESH_TOKEN
+          refreshToken: process.env.OAUTH_REFRESH_TOKEN,
         },
       });
 
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: body.mail_id,
-        subject: "Fee reminder",
-        html: htmlToSend
+        subject: 'Fee reminder',
+        html: htmlToSend,
       };
       const info = await transporter.sendMail(mailOptions);
 
       return `Payment link successfully send to ${body.student_name} on ${body.mail_id}`;
-    }
-    catch (err) {
+    } catch (err) {
       throw new Error(err);
     }
   }
 
-  async sendPaymentLink(
-    body: {
-      student_name: string,
-      phone_no: string,
-      amount: number,
-      reason: string,
-      school_id: string,
-      mail_id: string,
-      paymentURL: string
-    }
-  ){
-    try{
-      const {student_name, phone_no, amount, reason, school_id, mail_id, paymentURL} = body;
+  async sendPaymentLink(body: {
+    student_name: string;
+    phone_no: string;
+    amount: number;
+    reason: string;
+    school_id: string;
+    mail_id: string;
+    paymentURL: string;
+  }) {
+    try {
+      const {
+        student_name,
+        phone_no,
+        amount,
+        reason,
+        school_id,
+        mail_id,
+        paymentURL,
+      } = body;
 
-      if(body.mail_id){
+      if (body.mail_id) {
         await this.sendPaymentLinkTOMail({
           student_name,
           amount,
           reason,
           school_id,
           mail_id,
-          paymentURL
-        })
+          paymentURL,
+        });
 
-        console.log("mail sent")
+        console.log('mail sent');
       }
 
-      if(body.phone_no){
+      if (body.phone_no) {
         await this.sendPaymentLinkToWhatsaap({
           student_name,
           phone_no,
           amount,
           reason,
           school_id,
-          paymentURL
-        })
+          paymentURL,
+        });
 
-        console.log("whatsaap sent");
+        console.log('whatsaap sent');
       }
 
-      return "Notification sent scuccessfully";
-    }
-    catch(err){
+      return 'Notification sent scuccessfully';
+    } catch (err) {
       throw new Error(err.message);
     }
   }
 
+  @Cron('0 1 * * *')
+  async sendSettlements() {
+    console.log('running cron');
+    const merchants = await this.trusteeSchoolModel.find({});
+    merchants.forEach((merchant) => {
+      if(!merchant.client_id) return;
+      console.log(
+        `getting report for ${merchant.merchantName}(${merchant.client_id})`,
+      );
+      const start = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
+      end.setHours(23, 59, 59, 999);
+
+      const axios = require('axios');
+      let data = JSON.stringify({
+        pagination: {
+          limit: 1000,
+        },
+        filters: {
+          start_date: start.toISOString(),
+          end_date: end.toISOString(),
+        },
+      });
+
+      let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://api.cashfree.com/pg/settlements',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'x-api-version': '2023-08-01',
+          'x-partner-apikey':
+            process.env.CASHFREE_API_KEY,
+          'x-partner-merchantid': merchant.client_id,
+        },
+        data: data,
+      };
+
+      axios
+        .request(config)
+        .then(async (response) => {
+          console.log('response', response.data.data[0]); 
+          if(response.data.data.length === 0) return;
+
+           const settlementReport = new this.settlementReportModel({
+            settlementAmount: response.data.data[0].payment_amount.toFixed(2),
+            adjustment: 0.00.toString(),
+            netSettlementAmount:response.data.data[0].payment_amount.toFixed(2),
+            merchantId: merchant.client_id,
+            fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+            tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+            status:'Settled',
+            utrNumber: response.data.data[0].settlement_utr,
+            settlementDate:new Date(new Date().getTime() - 86400000 * 1).toDateString(),
+            trustee:merchant.trustee_id,
+            schoolName:merchant.school_name
+          });
+          await settlementReport.save();
+
+          const transporter = nodemailer.createTransport({
+            pool: true,
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+              type: 'OAuth2',
+              user: process.env.EMAIL_USER,
+              clientId: process.env.OAUTH_CLIENT_ID,
+              clientSecret: process.env.OAUTH_CLIENT_SECRET,
+              refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+            },
+          });
+    
+          const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: "tarun.k@edviron.com",
+            subject: 'Settlement Report Dt.' +  new Date(new Date().getTime() - 86400000 * 1).toDateString(),
+            attachments: [
+              {
+                filename: `setllement_report_${merchant.school_name}.csv`,
+                content: `
+                S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
+                1, ${response.data.data[0].payment_amount.toFixed(2)}, ${0.00.toString()}, ${response.data.data[0].payment_amount.toFixed(2)},	${new Date(start.getTime() - 24 * 60 * 60 * 1000)}, ${new Date(start.getTime() - 24 * 60 * 60 * 1000)},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(new Date().getTime() - 86400000 * 1).toDateString()}`,
+              },
+            ],
+            html: `
+            Dear School, <br/><br/>
+            
+            Attached is the settlement report for transactions processed on ${ new Date(new Date().getTime() - 86400000 * 2).toDateString()}. <br/><br/>
+            
+            If you have any questions or require further clarification, feel free to reach out. <br/><br/>
+            
+            Regards,<br/>
+            Edviron Team 
+            `,
+          };
+          const info = await transporter.sendMail(mailOptions);
+          console.log(info);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    });
+  }
 }
