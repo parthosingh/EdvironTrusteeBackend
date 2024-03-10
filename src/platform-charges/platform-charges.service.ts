@@ -2,7 +2,7 @@ import { ConflictException, Get, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import mongoose, { Types } from "mongoose";
 import { consumers } from "node:stream";
-import { TrusteeSchool, charge_type, rangeCharge } from "src/schema/school.schema";
+import { PlatformCharge, TrusteeSchool, charge_type, rangeCharge } from "src/schema/school.schema";
 import { Trustee } from "src/schema/trustee.schema";
 
 @Injectable()
@@ -23,6 +23,7 @@ export class PlatformChargeService {
         try {
             const trusteeSchool = await this.trusteeSchoolModel.findOne({ _id: trusteeSchoolId });
             if (!trusteeSchool) throw new Error("Trustee school not found");
+            if(trusteeSchool.pgMinKYC === "MIN_KYC_APPROVED") throw new Error("KYC not approved");
 
             trusteeSchool.platform_charges.forEach((platformCharge) => {
                 if (platformCharge.platform_type === platform_type && platformCharge.payment_mode === payment_mode) {
@@ -43,6 +44,37 @@ export class PlatformChargeService {
                 },
                 { returnDocument: "after" }
             )
+
+            
+            const OthersFields = [
+                {platform_type: "UPI", payment_mode: "Others"},
+                {platform_type: "DebitCard", payment_mode: "Others"},
+                {platform_type: "NetBanking", payment_mode: "Others"},
+                {platform_type: "CreditCard", payment_mode: "Others"},
+                {platform_type: "Wallet", payment_mode: "Others"},
+                {platform_type: "PayLater", payment_mode: "Others"},
+                {platform_type: "CardLess EMI", payment_mode: "Others"},
+            ]
+
+            let AllOtherFieldPresent = 1;
+
+            OthersFields.forEach((OthersField) => {
+                let found = 0;
+                res.platform_charges.forEach((PlatformCharge) => {
+                    if(PlatformCharge.platform_type === OthersField.platform_type &&
+                        PlatformCharge.payment_mode === OthersField.payment_mode){
+                            found = 1;
+                        }
+                })
+
+                AllOtherFieldPresent = AllOtherFieldPresent & found;
+            })
+
+            if(AllOtherFieldPresent && !trusteeSchool.pg_key){
+                //call your function
+            }   
+            
+
 
             return { platform_charges: res.platform_charges };
         }
