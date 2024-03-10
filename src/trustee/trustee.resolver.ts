@@ -177,51 +177,50 @@ export class TrusteeResolver {
     return settlementReports;
   }
   
-  // @Query(()=>[TransactionReport])
-  // @UseGuards(TrusteeGuard)
-  // async getTransactionReport( @Context() context) {
-
-  //   let transactionReport:[TransactionReport];
-
-  //   const merchants = await this.trusteeSchoolModel.find({trustee_id:context.req.trustee});
-  //   merchants.forEach((merchant) => {
-  //     if(!merchant.client_id) return;
-  //     console.log(
-  //       `getting report for ${merchant.merchantName}(${merchant.client_id})`,
-  //     );
-
-  //     const axios = require('axios');
-  //     const secretKey = 'your_secret_key_here';
-
-  //     let data = this.jwtService.sign({client_id:merchant.client_id},{secret:secretKey});
-  //     console.log(this.jwtService.verify(data, {secret:secretKey}),"data");
-      
-  //     let config = {
-  //       method: 'post',
-  //       maxBodyLength: Infinity,
-  //       url: '',
-  //       headers: {
-  //         accept: 'application/json',
-  //         'content-type': 'application/json',
-  //         'x-partner-merchantid': merchant.client_id,
-  //       },
-  //       data: data,
-  //     };
-
-  //     axios
-  //       .request(config)
-  //       .then(async (response) => {
-  //         console.log('response', response.data.data[0]); 
-  //         if(response.data.data.length === 0) return;
-  //         transactionReport.push(response.data.data[0])
+  @Query(()=>[TransactionReport])
+  @UseGuards(TrusteeGuard)
+  async getTransactionReport(@Context() context) {
+    try {
+      const merchants = await this.trusteeSchoolModel.find({ trustee_id: context.req.trustee });
+      let transactionReport = [];
+  
+      for (const merchant of merchants) {
+        if (!merchant.client_id) continue;
         
-  //       })
-  //       .catch((error) => {
-  //         console.log(error);
-  //       });
-  //   });
-  // return transactionReport
-  // }
+        console.log(`Getting report for ${merchant.merchantName}(${merchant.client_id})`);
+  
+        const axios = require('axios');
+        let token = this.jwtService.sign({ client_id: merchant.client_id }, { secret: process.env.PAYMENTS_SERVICE_SECRET });
+        
+        let config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: 'http://localhost:4001/edviron-pg/transactions-report',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          data: { client_id: merchant.client_id, token },
+        };
+  
+        const response = await axios.request(config);
+        
+        if (response.data.length > 0 && response.data !== 'No orders found for clientId') {
+          const modifiedResponseData = response.data.map(item => ({
+            ...item,
+            school_name: merchant.school_name
+          }));
+          transactionReport.push(...modifiedResponseData);
+        }
+      }
+      
+      return transactionReport;
+    } catch (error) {
+      console.log(error);
+      throw error; // Re-throw the error to be handled by the caller
+    }
+  }
+  
 
   @Query(()=>[School])
   @UseGuards(TrusteeGuard)
@@ -320,14 +319,16 @@ class getSchool {
 
 @ObjectType()
 class TransactionReport{
-  @Field()
+  @Field({nullable:true})
   collect_id: string;
-  @Field()
-  date_time: string;
-  @Field()
+  @Field({nullable:true})
+  updatedAt: string;
+  @Field({nullable:true})
   order_amount: number;
-  @Field()
+  @Field({nullable:true})
   transaction_amount: number;
-  @Field()
+  @Field({nullable:true})
   payment_method: string
+  @Field({nullable:true})
+  school_name: string
 }
