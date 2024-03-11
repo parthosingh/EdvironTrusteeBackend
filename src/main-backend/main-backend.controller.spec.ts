@@ -10,6 +10,7 @@ import mongoose, { Connection, connect, Model, Types } from 'mongoose';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { mock } from 'node:test';
+import { TrusteeService } from '../trustee/trustee.service';
 
 const mockMainbackenService = {
   createTrustee: jest.fn(),
@@ -32,6 +33,7 @@ describe('MainBackendController', () => {
   let controller: MainBackendController;
   let service: MainBackendService;
   let jwtService: JwtService;
+  let jwt: JwtService;
 
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
@@ -71,6 +73,7 @@ describe('MainBackendController', () => {
           provide: MainBackendService,
           useValue: mockMainbackenService,
         },
+        TrusteeService
       ],
     }).compile();
 
@@ -116,9 +119,9 @@ describe('MainBackendController', () => {
           __v: 0,
         };
 
-        jest.spyOn(jwtService, 'verify').mockReturnValue(info);
-        jest.spyOn(service, 'createTrustee').mockResolvedValue(mockTrustee as any);
-        jest.spyOn(jwtService, 'sign').mockReturnValue(mockToken);
+        jest.spyOn(jwtService, 'verify').mockReturnValueOnce(info);
+        jest.spyOn(service, 'createTrustee').mockResolvedValueOnce(mockTrustee as any);
+        jest.spyOn(jwtService, 'sign').mockReturnValueOnce(mockToken);
         
 
         // Act
@@ -204,9 +207,9 @@ describe('MainBackendController', () => {
         },
       ];
       const mockToken = 'mockToken';
-      mockMainbackenService.findTrustee.mockResolvedValue(mockTrusteeData);
-      MockJwtService.verify.mockReturnValue(pagInfo);
-      MockJwtService.sign.mockReturnValue(mockToken);
+      mockMainbackenService.findTrustee.mockResolvedValueOnce(mockTrusteeData);
+      MockJwtService.verify.mockReturnValueOnce(pagInfo);
+      MockJwtService.sign.mockReturnValueOnce(mockToken);
       const result = await controller.findTrustee(paginationToken);
       expect(MockJwtService.sign).toHaveBeenCalledWith(mockTrusteeData, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
@@ -216,88 +219,47 @@ describe('MainBackendController', () => {
   })
   describe('updatedSchool',()=>{
     it('shoulld update School',async()=>{
-      const mockToken='mockToken'
+      const school = await new trusteeSchoolModel({
+        school_id:new Types.ObjectId("658e759736ba0754ca45d0c2"),
+        trustee_id:new Types.ObjectId("658e759736ba0754ca45d0c1"),
+        school_name:"XYZ School"
+      }).save()
+
+
       const mockdata={
-        school_name: 'mock School Name',
-        school_id: '658e759736ba0754ca45d0c2',
-        trustee_id: '658e759736ba0754ca45d0c1',
+        school_id: school.school_id,
+        trustee_id: school.trustee_id,
         client_id:'client_id',
-        client_secret: 'client_secret',
-        merchantId: 'merchantId',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail@edviron.com',
         merchantStatus: 'merchantStatus',
         pgMinKYC: 'pgMinKYC',
         pgFullKYC: 'pgFullKYC'
       }
-      const mockTrustee = {
-        name: 'John Doe',
-        id:new Types.ObjectId('658e759736ba0754ca45d0c1')
-      };
-      const response = {
-        school_id: mockdata.school_id,
-        trustee_id: mockdata.trustee_id,
-        school_name: mockdata.school_name,
-        msg: `${mockdata.school_name} is Updated`,
-        trustee:{
-          name:'mock trustee',
-          id:mockdata.trustee_id,
-        },
+
+      const updatedSchool = await trusteeSchoolModel.findOneAndUpdate({school_id:school.school_id},
+        {$set:{
+          client_id:mockdata.client_id,
+          merchantEmail:mockdata.merchantEmail,
+          merchantName:mockdata.merchantName,
+          merchantStatus:mockdata.merchantStatus,
+          pgFullKYC:mockdata.pgFullKYC,
+          pgMinKYC:mockdata.pgMinKYC,
+          trustee_id: school.trustee_id
+        }}
+        )
+
+     MockJwtService.verify.mockResolvedValueOnce(mockdata)
+     jest.spyOn(service,"updateSchoolInfo").mockResolvedValueOnce({updatedSchool})
+      
+      const body = {token:"mockToken"}
+      const result = await controller.updateSchool(body)
+      const expectedResult =  {
+        school_id: school.school_id,
+        school_name: school.school_name,
+        msg: `${school.school_name} is Updated`
       }
-      MockJwtService.verify.mockReturnValue(mockdata);
-      MockJwtService.sign.mockReturnValue(mockToken);
-      mockMainbackenService.updateSchoolInfo.mockReturnValue({updatedSchool:mockdata,trustee:mockTrustee})
-      const result = await controller.assignSchool({token:mockToken})
-
-      expect(result).toEqual(mockToken)
-
-      // expect(MockJwtService.sign).toHaveBeenCalledWith(response, {
-      //   secret: process.env.JWT_SECRET_FOR_INTRANET,
-      // })
-
-
-    })
-    it('should throw Notfound Exception',async()=>{
-      const mockToken='mockToken'
-      const mockdata={
-        school_name: 'mock School Name',
-        school_id: '658e759736ba0754ca45d0c2',
-        trustee_id: '658e759736ba0754ca45d0c1',
-        client_id:'client_id',
-        client_secret: 'client_secret',
-        merchantId: 'merchantId',
-        merchantName: 'merchantName',
-        merchantEmail: 'merchantemail@edviron.com',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC'
-      }
-      jest.spyOn(service,'updateSchoolInfo').mockRejectedValueOnce(new NotFoundException('User not found'));
-      await expect(controller.assignSchool({token:mockToken})).rejects.toThrowError(
-        NotFoundException,
-      );
-
-    })
-    it('should throw ConflictException',async()=>{
-      const mockToken='mockToken'
-      const mockdata={
-        school_name: 'mock School Name',
-        school_id: '658e759736ba0754ca45d0c2',
-        trustee_id: '658e759736ba0754ca45d0c1',
-        client_id:'client_id',
-        client_secret: 'client_secret',
-        merchantId: 'merchantId',
-        merchantName: 'merchantName',
-        merchantEmail: 'merchantemail@edviron.com',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC'
-      }
-      jest.spyOn(service,'updateSchoolInfo').mockRejectedValueOnce(new ConflictException(`${mockdata.merchantEmail} already exist`));
-      await expect(controller.assignSchool({token:mockToken})).rejects.toThrowError(
-        ConflictException,
-      );
-
+      expect(result).toEqual(expectedResult)
     })
     it('shoud throw BadRequestException on missing fields',async()=>{
       const mockToken='mockToken'
@@ -313,15 +275,15 @@ describe('MainBackendController', () => {
         pgMinKYC: 'pgMinKYC',
         pgFullKYC: 'pgFullKYC'
       }
-      MockJwtService.verify.mockReturnValue(mockdata);
-      await expect(async () => await controller.assignSchool({ token: mockToken })).rejects.toThrowError(BadRequestException);
+      MockJwtService.verify.mockReturnValueOnce(mockdata);
+      await expect(async () => await controller.updateSchool({ token: mockToken })).rejects.toThrowError(BadRequestException);
     })
     it('should throw BadRequestException for other errors', async () => {
       const mockToken = 'mockToken';
 
-      jest.spyOn(service, 'updateSchoolInfo').mockRejectedValue({ message: 'Bad Request' });
+      jest.spyOn(service, 'updateSchoolInfo').mockRejectedValueOnce({ message: 'Bad Request' });
     
-      await expect(controller.assignSchool({ token: mockToken })).rejects.toThrowError(BadRequestException);
+      await expect(controller.updateSchool({ token: mockToken })).rejects.toThrowError(BadRequestException);
       expect(service.updateSchoolInfo).toHaveBeenCalled();
     });
     

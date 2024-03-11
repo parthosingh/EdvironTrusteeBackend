@@ -14,7 +14,7 @@ import { MainBackendService } from './main-backend.service';
 import { JwtPayload } from 'jsonwebtoken';
 import { Trustee } from '../schema/trustee.schema';
 import mongoose, { Types } from 'mongoose';
-import { TrusteeService } from 'src/trustee/trustee.service';
+import { TrusteeService } from '../trustee/trustee.service';
 import { InjectModel } from '@nestjs/mongoose';
 
 @Controller('main-backend')
