@@ -7,6 +7,7 @@ import { TrusteeModule } from './trustee/trustee.module';
 import { ErpModule } from './erp/erp.module';
 import { MainBackendModule } from './main-backend/main-backend.module';
 import { PlatformChargesModule } from './platform-charges/platform-charges.module';
+import { ScheduleModule } from '@nestjs/schedule';
 config();
 
 @Module({
@@ -16,6 +17,7 @@ config();
     ErpModule,
     MainBackendModule,
     PlatformChargesModule
+    ScheduleModule.forRoot()
   ],
 
   controllers: [AppController],

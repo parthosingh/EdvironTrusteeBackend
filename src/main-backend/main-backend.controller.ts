@@ -1,4 +1,14 @@
-import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, NotFoundException, Post, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  ConflictException,
+  Controller,
+  ForbiddenException,
+  Get,
+  NotFoundException,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MainBackendService } from './main-backend.service';
 import { JwtPayload } from 'jsonwebtoken';
@@ -9,14 +19,13 @@ import { InjectModel } from '@nestjs/mongoose';
 
 @Controller('main-backend')
 export class MainBackendController {
-
   constructor(
     private mainBackendService: MainBackendService,
     private readonly jwtService: JwtService,
     private readonly trusteeService: TrusteeService,
     @InjectModel(Trustee.name)
-    private readonly trusteeModel: mongoose.Model<Trustee>
-  ) { }
+    private readonly trusteeModel: mongoose.Model<Trustee>,
+  ) {}
 
   @Post('create-trustee')
   async createTrustee(
@@ -24,21 +33,20 @@ export class MainBackendController {
     body,
   ): Promise<string> {
     try {
-      const info: JwtPayload = this.jwtService.verify(
-        body.data,
-        { secret: process.env.JWT_SECRET_FOR_INTRANET }
+      const info: JwtPayload = this.jwtService.verify(body.data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+
+      const trustee = await this.mainBackendService.createTrustee(info);
+
+      const trusteeToken = this.jwtService.sign(
+        { credential: trustee },
+        {
+          secret: process.env.JWT_SECRET_FOR_INTRANET,
+        },
       );
 
-
-      const trustee = await this.mainBackendService.createTrustee(info)
-
-
-      const trusteeToken = this.jwtService.sign({ credential: trustee }, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET
-      })
-
-
-      return trusteeToken
+      return trusteeToken;
     } catch (e) {
       if (e.response && e.response.statusCode === 409) {
         throw new ConflictException(e.message);
@@ -48,12 +56,17 @@ export class MainBackendController {
   }
 
   @Get('find-all-trustee')
-  async findTrustee(
-    @Query('token') token: string,
-  ) {
-
-    const paginationInfo: JwtPayload = this.jwtService.verify(token, { secret: process.env.JWT_SECRET_FOR_INTRANET },) as JwtPayload
-    const trustee = this.jwtService.sign(await this.mainBackendService.findTrustee(paginationInfo.page, paginationInfo.pageSize), { secret: process.env.JWT_SECRET_FOR_INTRANET })
+  async findTrustee(@Query('token') token: string) {
+    const paginationInfo: JwtPayload = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    }) as JwtPayload;
+    const trustee = this.jwtService.sign(
+      await this.mainBackendService.findTrustee(
+        paginationInfo.page,
+        paginationInfo.pageSize,
+      ),
+      { secret: process.env.JWT_SECRET_FOR_INTRANET },
+    );
     return trustee;
   }
 
@@ -121,85 +134,89 @@ async updateSchool(
 }
 
   @Post('assign-school')
-  async onboarderAssignSchool(@Body() body: { data: string },) {
-    try{
+  async onboarderAssignSchool(@Body() body: { data: string }) {
+    try {
+      const data: JwtPayload = await this.jwtService.verify(body.data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
-    const data: JwtPayload = await this.jwtService.verify(
-      body.data,
-      { secret: process.env.JWT_SECRET_FOR_INTRANET })
+      const requiredFields = ['name', 'school_id', 'trusteeId'];
 
+      const missingFields = requiredFields.filter((field) => !data[field]);
 
-    const requiredFields = [
-      'name',
-      'school_id',
-      'trusteeId',
-    ];
+      if (missingFields.length > 0) {
+        throw new BadRequestException(
+          `Missing fields: ${missingFields.join(', ')}`,
+        );
+      }
+      const trusteeId = new Types.ObjectId(data.trusteeId);
+      const trustee = await this.trusteeModel.findById(trusteeId);
 
-    const missingFields = requiredFields.filter(field => !data[field]);
+      const info = {
+        school_name: data.name,
+        school_id: data.school_id,
+        trustee_id: data.trusteeId,
+      };
+      const schoolInfo = await this.mainBackendService.assignSchool(info);
 
-    if (missingFields.length > 0) {
-      throw new BadRequestException(`Missing fields: ${missingFields.join(', ')}`);
+      const payload = {
+        school_id: schoolInfo.school_id,
+        trustee_id: schoolInfo.trustee_id,
+        pg_key: schoolInfo.pg_key,
+        trustee_name: trustee.name,
+      };
+      const responseToken = await this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+
+      return responseToken;
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
-    const trusteeId = new Types.ObjectId(data.trusteeId)
-    const trustee = await this.trusteeModel.findById(trusteeId);
-    
-
-    const info = {
-      school_name: data.name,
-      school_id: data.school_id,
-      trustee_id: data.trusteeId,
-    }
-    const schoolInfo = await this.mainBackendService.assignSchool(info)
-
-    const payload = {
-      school_id: schoolInfo.school_id,
-      trustee_id: schoolInfo.trustee_id,
-      pg_key: schoolInfo.pg_key,
-      trustee_name: trustee.name
-    }
-    const responseToken = await this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_INTRANET })
-
-    return responseToken
-  }catch(error){
-    throw new BadRequestException(error.message)
-  }
   }
   @Get('trustee-schools')
-  async getTrusteeSchool(@Query('token') token: string,) {
+  async getTrusteeSchool(@Query('token') token: string) {
     try {
+      const trustee: JwtPayload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      }) as JwtPayload;
 
-      const trustee: JwtPayload = this.jwtService.verify(token, { secret: process.env.JWT_SECRET_FOR_INTRANET },) as JwtPayload
-
-
-      const schools = await this.trusteeService.getTrusteeSchools(trustee.id, trustee.page)
+      const schools = await this.trusteeService.getTrusteeSchools(
+        trustee.id,
+        trustee.page,
+      );
 
       const schoolInfo = {
         schools: schools.schoolData,
         total_pages: schools.total_pages,
         page: trustee.page,
       };
-      const responseToken = await this.jwtService.sign(schoolInfo, { secret: process.env.JWT_SECRET_FOR_INTRANET })
+      const responseToken = await this.jwtService.sign(schoolInfo, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
-      return responseToken
+      return responseToken;
     } catch (error) {
-      throw new BadRequestException(error.message)
+      throw new BadRequestException(error.message);
     }
-
-
   }
 
   @Post('assignOnboarderToTrustee')
   async assignOnboarderToTrustee(
     @Body()
     token: {
-      token: string
-    }
+      token: string;
+    },
   ) {
     try {
-      const ids = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+      const ids = this.jwtService.verify(token.token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
-      const val = await this.mainBackendService.assignOnboarderToTrustee(ids.erp_id, ids.onboarder_id);
-
+      const val = await this.mainBackendService.assignOnboarderToTrustee(
+        ids.erp_id,
+        ids.onboarder_id,
+      );
 
       const payload = {
         _id: val._id,
@@ -208,35 +225,36 @@ async updateSchool(
         password_hash: val.password_hash,
         school_limit: val.school_limit,
         IndexOfApiKey: val.IndexOfApiKey,
-        phone_number: val.phone_number
-      }
+        phone_number: val.phone_number,
+      };
 
-      const res = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+      const res = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
       return res;
-    }
-    catch (err) {
+    } catch (err) {
       throw new Error(err);
     }
   }
-
 
   @Get('getAllErpOfOnboarder')
-  async getAllErpOfOnboarder(
-    @Query('token') token: string,
-  ) {
+  async getAllErpOfOnboarder(@Query('token') token: string) {
     try {
+      const data = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      const val = await this.mainBackendService.getAllErpOfOnboarder(
+        data.onboarder_id,
+        data.page,
+      );
 
-      const data = this.jwtService.verify(token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
-      const val = await this.mainBackendService.getAllErpOfOnboarder(data.onboarder_id, data.page);
-
-
-      const res = this.jwtService.sign(val, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+      const res = this.jwtService.sign(val, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
       return res;
-    }
-    catch (err) {
+    } catch (err) {
       throw new Error(err);
     }
   }
-
 }
