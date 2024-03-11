@@ -16,6 +16,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { MainBackendService } from '../main-backend/main-backend.service';
+import { SettlementReport, SettlementSchema } from '../schema/settlement.schema';
+import axios, { AxiosError } from 'axios';
+import { error } from 'console';
 
 describe('TrusteeResolver', () => {
   let resolver: TrusteeResolver;
@@ -25,7 +28,8 @@ describe('TrusteeResolver', () => {
   let trusteeSchoolModel: Model<TrusteeSchool>;
   let erpService: ErpService;
   let service: TrusteeService;
-  let mainbackendService: MainBackendService
+  let mainbackendService: MainBackendService;
+  let settlementModel: Model<SettlementReport>;
 
   const mockTrustee = {
     _id: '658e759736ba0754ca45d0c2',
@@ -66,6 +70,7 @@ describe('TrusteeResolver', () => {
       TrusteeSchool.name,
       SchoolSchema,
     );
+    settlementModel = mongoConnection.model(SettlementReport.name, SettlementSchema)
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -97,6 +102,10 @@ describe('TrusteeResolver', () => {
         {
           provide: JwtService,
           useValue: { sign: jest.fn() },
+        },
+        {
+          provide: getModelToken(SettlementReport.name),
+          useValue: settlementModel,
         },
       ],
     }).compile();
@@ -209,7 +218,6 @@ describe('TrusteeResolver', () => {
   });
   describe('loginTrustee', () => {
     it('should return AuthResponse with token on successful login', async () => {
-      // Arrange
       const mockEmail = 'test@example.com';
       const mockPassword = 'password';
       const mockToken = 'mockToken';
@@ -218,10 +226,8 @@ describe('TrusteeResolver', () => {
         token: mockToken,
       });
 
-      // Act
       const result = await resolver.loginTrustee(mockEmail, mockPassword);
 
-      // Assert
       expect(service.loginAndGenerateToken).toHaveBeenCalledWith(
         mockEmail,
         mockPassword,
@@ -436,12 +442,107 @@ describe('TrusteeResolver', () => {
         ...mockSchool,
         save: jest.fn(), // Mock the save function
       });
-      jest.spyOn(mainbackendService,'generateKey').mockResolvedValueOnce('E234RTGLO0')
+      jest.spyOn(mainbackendService, 'generateKey').mockResolvedValueOnce('E234RTGLO0')
       const result = await resolver.resetKey(mockContext, schoolId);
 
       expect(result).toEqual({ pg_key: 'E234RTGLO0' });
       expect(mainbackendService.generateKey).toHaveBeenCalled();
-      
+
     });
+  });
+
+  it('should get SettlementReports', async () => {
+
+    const report = await new settlementModel({
+      settlementAmount: 4000,
+      adjustment: 400,
+      netSettlementAmount: 200,
+      fromDate: new Date(),
+      tillDate: new Date(),
+      status: "Pending",
+      utrNumber: "446sadasf",
+      settlementDate: new Date(),
+      merchantId: "123456",
+      trustee: new Types.ObjectId(1),
+      schoolName: "XYZ School"
+    }).save()
+    await new settlementModel({
+      settlementAmount: 4000,
+      adjustment: 400,
+      netSettlementAmount: 200,
+      fromDate: new Date(),
+      tillDate: new Date(),
+      status: "Pending",
+      utrNumber: "446sadasf",
+      settlementDate: new Date(),
+      merchantId: "123456",
+      trustee: report.trustee,
+      schoolName: "XYZ School"
+    })
+
+    let context = { req: { trustee: report.trustee } }
+    const expectedResult = await settlementModel.find({ trustee: context.req.trustee })
+    expect(await resolver.getSettlementReports(context)).toEqual(expectedResult);
+
+  })
+
+  it('should get transaction report', async () => {
+    let context = { req: { trustee: new Types.ObjectId(1) } }
+    const school = await new trusteeSchoolModel({
+      trustee_id: context.req.trustee,
+      merchantName: "Demo",
+      client_id: "123456",
+      school_id: new Types.ObjectId(2),
+      school_name:"Example School",
+    }).save()
+
+    const transactionReport = {
+      data: [{
+        collect_id: "123456",
+        updatedAt: "2024-03-11T12:00:00",
+        order_amount: 50.25,
+        transaction_amount: 45.75,
+        payment_method: "Credit Card",
+        school_name: "Example School",
+        school_id: school.school_id,
+        status: "Completed"
+      }]
+    }
+
+    jest.spyOn(axios, "request").mockResolvedValueOnce(transactionReport)
+
+    expect(await resolver.getTransactionReport(context)).toEqual(transactionReport.data);
+
+  })
+
+  it('should give error getting transaction report', async () => {
+    let context = { req: { trustee: new Types.ObjectId(1) } }
+    const school = await new trusteeSchoolModel({
+      trustee_id: context.req.trustee,
+      merchantName: "Demo",
+      client_id: "123456",
+      school_id: new Types.ObjectId(2),
+      school_name:"Example School",
+    }).save()
+
+    jest.spyOn(axios, "request").mockRejectedValueOnce(new AxiosError())
+
+    await expect(resolver.getTransactionReport(context)).rejects.toThrow(AxiosError);
+
+  })
+
+  it('should get all schools', async()=>{
+    const trustee = new Types.ObjectId(1);
+    let context = { req: { trustee: new Types.ObjectId(1) } }
+    await new trusteeSchoolModel( {trustee_id: context.req.trustee,
+      merchantName: "Demo",
+      school_id: new Types.ObjectId(2),
+      school_name:"Example School"}).save()
+    await new trusteeSchoolModel({school_id:new Types.ObjectId(3), trustee_id:context.req.trustee, merchantName: "Demo 2",school_name:"Example School 2" })
+    .save();
+
+    const schools = await trusteeSchoolModel.find({trustee_id:context.req.trustee});
+
+    expect(await resolver.getAllSchoolQuery(context)).toEqual(schools)
   })
 });

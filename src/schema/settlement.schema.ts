@@ -6,7 +6,7 @@ import { Trustee, TrusteeSchema } from './trustee.schema';
 
 @ObjectType()
 @Schema({timestamps:true})
-export class SettlementReport extends Document {
+export class SettlementReport {
  
   @Prop({ required: true, type: Number })
   @Field(() => Number)

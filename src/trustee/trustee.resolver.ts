@@ -14,7 +14,7 @@ import { ErpService } from '../erp/erp.service';
 import mongoose, { Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { InjectModel } from '@nestjs/mongoose';
-import { SettlementReport } from 'src/schema/settlement.schema';
+import { SettlementReport } from '../schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
 
@@ -202,7 +202,7 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async getTransactionReport(@Context() context) {
     try {
-      const merchants = await this.trusteeSchoolModel.find({ trustee_id: context.req.trustee });
+      const merchants = await this.trusteeSchoolModel.find({ trustee_id: new Types.ObjectId(context.req.trustee) });
       let transactionReport = [];
   
       for (const merchant of merchants) {

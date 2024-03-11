@@ -18,7 +18,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as handlebars from 'handlebars';
 import { Cron } from '@nestjs/schedule';
-import { SettlementReport } from 'src/schema/settlement.schema';
+import { SettlementReport } from '../schema/settlement.schema';
 
 @Injectable()
 export class ErpService {

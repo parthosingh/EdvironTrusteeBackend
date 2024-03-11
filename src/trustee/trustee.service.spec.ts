@@ -12,14 +12,17 @@ import { BadRequestException, ConflictException, NotFoundException, Unauthorized
 import * as bcrypt from 'bcrypt';
 import axios from 'axios';
 import { MainBackendService } from '../main-backend/main-backend.service';
+import { SettlementReport } from '../schema/settlement.schema';
 
 describe('TrusteeService', () => {
   let mongod: MongoMemoryServer;
   let mongoConnection: Connection;
   let trusteeModel: Model<Trustee>;
   let trusteeSchoolModel: Model<TrusteeSchool>;
+  let settlementModel: Model<SettlementReport>;
   let service: TrusteeService;
   let jwtService: JwtService;
+  
 
   const mockTrustee = {
     _id: '658e759736ba0754ca45d0c2',
@@ -57,6 +60,10 @@ describe('TrusteeService', () => {
         {
           provide: getModelToken(TrusteeSchool.name),
           useValue: trusteeSchoolModel,
+        },
+        {
+          provide: getModelToken(SettlementReport.name),
+          useValue: settlementModel,
         },
         TrusteeService,
         {
