@@ -3,9 +3,9 @@ import { PlatformChargesController } from "./platform-charges.controller";
 import { PlatformChargeService } from "./platform-charges.service";
 import { MongooseModule } from "@nestjs/mongoose";
 import { JwtModule } from "@nestjs/jwt";
-import { SchoolSchema } from "src/schema/school.schema";
-import { TrusteeSchema } from "src/schema/trustee.schema";
-import { MainBackendService } from "src/main-backend/main-backend.service";
+import { SchoolSchema } from "../schema/school.schema";
+import { TrusteeSchema } from "../schema/trustee.schema";
+import { MainBackendService } from "../main-backend/main-backend.service";
 
 @Module({
     imports: [

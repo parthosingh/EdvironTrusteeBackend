@@ -1,14 +1,14 @@
 import { ConflictException, Get, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
-import { MainBackendService } from 'src/main-backend/main-backend.service';
+import { MainBackendService } from '../main-backend/main-backend.service';
 import {
     PlatformCharge,
     TrusteeSchool,
     charge_type,
     rangeCharge,
-} from 'src/schema/school.schema';
-import { Trustee } from 'src/schema/trustee.schema';
+} from '../schema/school.schema';
+import { Trustee } from '../schema/trustee.schema';
 
 @Injectable()
 export class PlatformChargeService {
@@ -24,7 +24,7 @@ export class PlatformChargeService {
         trusteeSchoolId: String,
         platform_type: String,
         payment_mode: String,
-        range_charge: rangeCharge,
+        range_charge: rangeCharge[],
     ) {
         try {
             const trusteeSchool = await this.trusteeSchoolModel.findOne({

@@ -1,10 +1,10 @@
 import { BadRequestException, Body, ConflictException, Controller, Get, Post, Query } from "@nestjs/common";
 import { PlatformChargeService } from "./platform-charges.service";
 import { InjectModel } from "@nestjs/mongoose";
-import { TrusteeSchool } from "src/schema/school.schema";
+import { TrusteeSchool } from "../schema/school.schema";
 import mongoose from "mongoose";
 import { JwtService } from "@nestjs/jwt";
-import { Trustee } from "src/schema/trustee.schema";
+import { Trustee } from "../schema/trustee.schema";
 
 @Controller('platform-charges')
 export class PlatformChargesController {
