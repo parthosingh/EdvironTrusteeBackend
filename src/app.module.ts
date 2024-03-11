@@ -16,7 +16,7 @@ config();
     TrusteeModule,
     ErpModule,
     MainBackendModule,
-    PlatformChargesModule
+    PlatformChargesModule,
     ScheduleModule.forRoot()
   ],
 

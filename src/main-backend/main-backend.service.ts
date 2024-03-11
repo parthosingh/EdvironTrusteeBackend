@@ -157,7 +157,7 @@ export class MainBackendService {
 
       const update = {
         $set: {
-          school_name: merchantName,
+          // school_name: merchantName,
           client_id,
           merchantEmail,
           merchantName,
