@@ -214,9 +214,9 @@ export class TrusteeResolver {
         let token = this.jwtService.sign({ client_id: merchant.client_id }, { secret: process.env.PAYMENTS_SERVICE_SECRET });
         
         let config = {
-          method: 'post',
+          method: 'get',
           maxBodyLength: Infinity,
-          url: 'http://localhost:4001/edviron-pg/transactions-report',
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report`,
           headers: {
             accept: 'application/json',
             'content-type': 'application/json',
