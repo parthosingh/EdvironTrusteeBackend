@@ -5,7 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TrusteeSchema } from '../schema/trustee.schema';
 import { SchoolSchema } from '../schema/school.schema';
 import { JwtModule } from '@nestjs/jwt';
-import { SettlementSchema } from 'src/schema/settlement.schema';
+import { SettlementSchema } from '../schema/settlement.schema';
 
 @Module({
   imports: [

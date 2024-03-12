@@ -11,7 +11,7 @@ import { TrusteeGuard } from './trustee.guard';
 import { config } from 'dotenv';
 import { ErpService } from '../erp/erp.service';
 import { MainBackendService } from '../main-backend/main-backend.service';
-import { SettlementSchema } from 'src/schema/settlement.schema';
+import { SettlementSchema } from '../schema/settlement.schema';
 config();
 
 @Module({

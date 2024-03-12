@@ -210,7 +210,6 @@ export class TrusteeResolver {
         
         console.log(`Getting report for ${merchant.merchantName}(${merchant.client_id})`);
   
-        const axios = require('axios');
         let token = this.jwtService.sign({ client_id: merchant.client_id }, { secret: process.env.PAYMENTS_SERVICE_SECRET });
         
         let config = {
