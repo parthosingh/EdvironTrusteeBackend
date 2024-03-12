@@ -25,7 +25,7 @@ export class MainBackendController {
     private readonly trusteeService: TrusteeService,
     @InjectModel(Trustee.name)
     private readonly trusteeModel: mongoose.Model<Trustee>,
-  ) {}
+  ) { }
 
   @Post('create-trustee')
   async createTrustee(
@@ -84,54 +84,54 @@ export class MainBackendController {
   // }
 
   @Post('update-school')
-async updateSchool(
-  @Body() body: { token: string },
-) {
-  try {
-    const data: JwtPayload = await this.jwtService.verify(
-      body.token,
-      { secret: process.env.JWT_SECRET_FOR_INTRANET },
-    )
+  async updateSchool(
+    @Body() body: { token: string },
+  ) {
+    try {
+      const data: JwtPayload = await this.jwtService.verify(
+        body.token,
+        { secret: process.env.JWT_SECRET_FOR_INTRANET },
+      )
 
-    const requiredFields = [
-      'school_id',
-      'trustee_id',
-      'client_id',
-      'merchantEmail',
-      'merchantStatus',
-      'pgMinKYC',
-      'pgFullKYC',
-      'merchantName'
-    ];
+      const requiredFields = [
+        'school_id',
+        'trustee_id',
+        'client_id',
+        'merchantEmail',
+        'merchantStatus',
+        'pgMinKYC',
+        'pgFullKYC',
+        'merchantName'
+      ];
 
-    const missingFields = requiredFields.filter(field => !data[field]);
+      const missingFields = requiredFields.filter(field => !data[field]);
 
-    if (missingFields.length > 0) {
-      throw new BadRequestException(`Missing fields: ${missingFields.join(', ')}`);
+      if (missingFields.length > 0) {
+        throw new BadRequestException(`Missing fields: ${missingFields.join(', ')}`);
+      }
+
+      const info = {
+        school_id: data.school_id,
+        trustee_id: data.trustee_id,
+        client_id: data.client_id,
+        merchantName: data.merchantName,
+        merchantEmail: data.merchantEmail,
+        merchantStatus: data.merchantStatus,
+        pgMinKYC: data.pgMinKYC,
+        pgFullKYC: data.pgFullKYC
+      }
+      const school = await this.mainBackendService.updateSchoolInfo(info)
+      const response = {
+        school_id: school.updatedSchool.school_id,
+        school_name: school.updatedSchool.school_name,
+        msg: `${school.updatedSchool.school_name} is Updated`
+      }
+
+      return response
+    } catch (error) {
+      throw new BadRequestException(error.message)
     }
-
-    const info = {
-      school_id: data.school_id,
-      trustee_id: data.trustee_id,
-      client_id: data.client_id,
-      merchantName: data.merchantName,
-      merchantEmail: data.merchantEmail,
-      merchantStatus: data.merchantStatus,
-      pgMinKYC: data.pgMinKYC,
-      pgFullKYC: data.pgFullKYC
-    }
-    const school = await this.mainBackendService.updateSchoolInfo(info)
-    const response = {
-      school_id: school.updatedSchool.school_id,
-      school_name: school.updatedSchool.school_name,
-      msg: `${school.updatedSchool.school_name} is Updated`
-    }
-
-    return response
-  } catch (error) {
-    throw new BadRequestException(error.message)
   }
-}
 
   @Post('assign-school')
   async onboarderAssignSchool(@Body() body: { data: string }) {
