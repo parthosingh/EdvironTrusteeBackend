@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Get, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, ConflictException, Controller, Get, NotFoundException, Post, Query } from "@nestjs/common";
 import { PlatformChargeService } from "./platform-charges.service";
 import { InjectModel } from "@nestjs/mongoose";
 import { TrusteeSchool } from "../schema/school.schema";
@@ -27,6 +27,7 @@ export class PlatformChargesController {
         try {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
+            console.log(body);
 
             if(!trusteeSchoolId) throw new BadRequestException("Trustee school ID Required");
             if(!platform_type) throw new BadRequestException("Platform type Required");
@@ -48,7 +49,13 @@ export class PlatformChargesController {
             return res;
         }
         catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -82,7 +89,13 @@ export class PlatformChargesController {
             return res;
         }
         catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -102,7 +115,13 @@ export class PlatformChargesController {
             return await this.platformChargeService.finalAmountWithMDR(trusteeSchoolId, platform_type, payment_mode, amount);
         }
         catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -115,7 +134,13 @@ export class PlatformChargesController {
             return res;
         }
         catch(err){
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -134,7 +159,13 @@ export class PlatformChargesController {
             return res;
         }
         catch(err){
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -169,7 +200,13 @@ export class PlatformChargesController {
             return res;
         }
         catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 }

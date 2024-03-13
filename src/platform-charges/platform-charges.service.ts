@@ -92,7 +92,13 @@ export class PlatformChargeService {
 
             return { platform_charges: res.platform_charges };
         } catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -134,7 +140,13 @@ export class PlatformChargeService {
 
             return res;
         } catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -180,7 +192,13 @@ export class PlatformChargeService {
 
             return finalAmount.toFixed(2);
         } catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -189,7 +207,13 @@ export class PlatformChargeService {
             const trustees = await this.trusteeModel.find({}, { _id: 1, name: 1 });
             return { trustees: trustees };
         } catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -201,7 +225,13 @@ export class PlatformChargeService {
             );
             return { schools: schools };
         } catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 
@@ -245,7 +275,13 @@ export class PlatformChargeService {
 
             return { platform_charges: res.platform_charges };
         } catch (err) {
-            throw new Error(err);
+            if(err.response?.statusCode === 400){
+                throw new BadRequestException(err.message);
+            }
+            else if(err.response?.statusCode === 404){
+                throw new NotFoundException(err.message);
+            }
+            throw new Error(err.message);
         }
     }
 }
