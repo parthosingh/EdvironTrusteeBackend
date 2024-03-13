@@ -39,7 +39,7 @@ export class PlatformChargeService {
                     platformCharge.platform_type === platform_type &&
                     platformCharge.payment_mode === payment_mode
                 ) {
-                    throw new ConflictException('MDR already present');
+                    throw new Error('MDR already present');
                 }
             });
 

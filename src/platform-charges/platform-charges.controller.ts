@@ -28,6 +28,11 @@ export class PlatformChargesController {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
 
+            if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
+            if(!platform_type) throw new Error("Platform type Required");
+            if(!payment_mode) throw new Error("Payment mode Required");
+            if(!range_charge) throw new Error("Charges Required");
+
             const val = await this.platformChargeService.AddPlatformCharge(
                 trusteeSchoolId,
                 platform_type,
@@ -43,7 +48,7 @@ export class PlatformChargesController {
             return res;
         }
         catch (err) {
-            throw new ConflictException(err.message);
+            throw new Error(err);
         }
     }
 
@@ -57,6 +62,9 @@ export class PlatformChargesController {
         try {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode} = body;
+            if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
+            if(!platform_type) throw new Error("Platform type Required");
+            if(!payment_mode) throw new Error("Payment mode Required");
 
             const val = await this.platformChargeService.deletePlatformCharge(
                 trusteeSchoolId,
@@ -83,6 +91,12 @@ export class PlatformChargesController {
     ) {
         try {
             const { trusteeSchoolId, platform_type, payment_mode, amount } = body;
+
+            if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
+            if(!platform_type) throw new Error("Platform type Required");
+            if(!payment_mode) throw new Error("Payment mode Required");
+            if(!amount) throw new Error("Amount Required");
+
             return await this.platformChargeService.finalAmountWithMDR(trusteeSchoolId, platform_type, payment_mode, amount);
         }
         catch (err) {
@@ -110,6 +124,9 @@ export class PlatformChargesController {
     ){
         try{
             const {trusteeId} = this.jwtService.verify(token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+
+            if(!trusteeId) throw new Error("Trustee ID Required");
+
             const val = await this.platformChargeService.getAllTrusteeSchool(trusteeId)
             const res = this.jwtService.sign(val, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             return res;
