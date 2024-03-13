@@ -62,9 +62,11 @@ export class PlatformChargesController {
         try {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode} = body;
+            
             if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
             if(!platform_type) throw new Error("Platform type Required");
             if(!payment_mode) throw new Error("Payment mode Required");
+            if(payment_mode === "Others") throw new Error("Cannot delete Other MDR")
 
             const val = await this.platformChargeService.deletePlatformCharge(
                 trusteeSchoolId,
@@ -132,6 +134,45 @@ export class PlatformChargesController {
             return res;
         }
         catch(err){
+            throw new Error(err);
+        }
+    }
+
+    @Post('update-platform-charges')
+    async updatePlatformCharge(
+        @Body()
+        token: {
+            token: string
+        }
+    ) {
+        try {
+            console.log("hello");
+            const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+            const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
+            console.log(body);
+
+            if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
+            if(!platform_type) throw new Error("Platform type Required");
+            if(!payment_mode) throw new Error("Payment mode Required");
+            if(!range_charge) throw new Error("Charges Required");
+
+            const val = await this.platformChargeService.updatePlatformCharge(
+                trusteeSchoolId,
+                platform_type,
+                payment_mode,
+                range_charge
+            );
+
+            console.log(val);
+
+            const payload = {
+                platform_charges: val.platform_charges
+            };
+
+            const res = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET_FOR_INTRANET });
+            return res;
+        }
+        catch (err) {
             throw new Error(err);
         }
     }

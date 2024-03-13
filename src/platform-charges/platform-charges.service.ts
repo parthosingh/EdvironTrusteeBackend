@@ -30,9 +30,9 @@ export class PlatformChargeService {
             const trusteeSchool = await this.trusteeSchoolModel.findOne({
                 _id: trusteeSchoolId,
             });
+            console.log(trusteeSchool);
             if (!trusteeSchool) throw new Error('Trustee school not found');
-            if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
-                throw new Error('KYC not approved');
+            if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED') throw new Error('KYC not approved');
 
             trusteeSchool.platform_charges.forEach((platformCharge) => {
                 if (
@@ -201,6 +201,51 @@ export class PlatformChargeService {
             );
             return { schools: schools };
         } catch (err) {
+            throw new Error(err);
+        }
+    }
+
+    async updatePlatformCharge(
+        trusteeSchoolId: String,
+        platform_type: String,
+        payment_mode: String,
+        range_charge: rangeCharge[],
+    ) {
+        try {
+            const trusteeSchool = await this.trusteeSchoolModel.findOne({
+                _id: trusteeSchoolId,
+            });
+
+            if (!trusteeSchool) throw new Error('Trustee school not found');
+            if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED') throw new Error('KYC not approved');
+
+            let isFound = 0;
+            trusteeSchool.platform_charges.forEach((platformCharge) => {
+                if (
+                    platformCharge.platform_type === platform_type &&
+                    platformCharge.payment_mode === payment_mode
+                ) {
+                    isFound = 1;
+                }
+            });
+
+            if (!isFound) throw new Error("MDR not found");
+
+            const res = await this.trusteeSchoolModel.findOneAndUpdate(
+                {
+                    _id: trusteeSchoolId,
+                    "platform_charges.platform_type": platform_type,
+                    "platform_charges.payment_mode": payment_mode
+                },
+                {
+                    $set: { "platform_charges.$.range_charge": range_charge },
+                },
+                { returnDocument: 'after' },
+            );
+            
+            return { platform_charges: res.platform_charges };
+        } catch (err) {
+            console.log(err);
             throw new Error(err);
         }
     }
