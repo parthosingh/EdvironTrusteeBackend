@@ -42,15 +42,15 @@ export class SettlementReport {
 
   @Prop({ required: true, type: String })
   @Field(() => String)
-  merchantId: string;
+  clientId: string;
 
   @Prop({required:true, type: Types.ObjectId, ref:"Trustee" })
   @Field(() => ID)
   trustee: ObjectId;
 
-  @Prop({ type: String, required:true})
-  @Field(() => String)
-  schoolName: string;
+  @Prop({ required:true, type: Types.ObjectId, ref:"TrusteeSchool"})
+  @Field(() => ID)
+  schoolId: ObjectId;
 }
 
 export const SettlementSchema = SchemaFactory.createForClass(SettlementReport);

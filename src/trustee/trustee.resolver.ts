@@ -268,7 +268,7 @@ export class TrusteeResolver {
     @Args('password') password:string
     
     ){
-    await this.trusteeService.restetPassword(email,password)
+    await this.trusteeService.resetPassword(email,password)
     return {msg:`Password Change`}
   }
 

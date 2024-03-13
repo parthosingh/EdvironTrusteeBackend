@@ -533,14 +533,14 @@ export class ErpService {
             settlementAmount: response.data.data[0].payment_amount.toFixed(2),
             adjustment: 0.00.toString(),
             netSettlementAmount:response.data.data[0].payment_amount.toFixed(2),
-            merchantId: merchant.client_id,
+            clientId: merchant.client_id,
             fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
             tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
             status:'Settled',
             utrNumber: response.data.data[0].settlement_utr,
             settlementDate:new Date(new Date().getTime() - 86400000 * 1).toDateString(),
             trustee:merchant.trustee_id,
-            schoolName:merchant.school_name
+            schoolId:merchant.school_id
           });
           await settlementReport.save();
 

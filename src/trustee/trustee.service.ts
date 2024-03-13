@@ -214,7 +214,7 @@ export class TrusteeService {
     }
   }
 
-  async sentMails(email, mailOptions) {
+  async sendMails(email, mailOptions) {
     try {
 
       const transporter = nodemailer.createTransport({
@@ -281,7 +281,7 @@ export class TrusteeService {
         html: htmlToSend
       };
       // const info = await transporter.sendMail(mailOptions);
-      await this.sentMails(email, mailOptions)
+      await this.sendMails(email, mailOptions)
       return true
     } catch (error) {
       console.log(error);
@@ -290,7 +290,7 @@ export class TrusteeService {
     }
   }
 
-  async restetPassword(email, password) {
+  async resetPassword(email, password) {
     try{
 
       const trustee = await this.trusteeModel.findOne({ email_id: email })
