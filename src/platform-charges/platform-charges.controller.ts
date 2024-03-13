@@ -100,7 +100,7 @@ export class PlatformChargesController {
             return await this.platformChargeService.finalAmountWithMDR(trusteeSchoolId, platform_type, payment_mode, amount);
         }
         catch (err) {
-            return err.message;
+            throw new Error(err);
         }
     }
 
