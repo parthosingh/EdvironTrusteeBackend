@@ -28,10 +28,10 @@ export class PlatformChargesController {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
 
-            if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
-            if(!platform_type) throw new Error("Platform type Required");
-            if(!payment_mode) throw new Error("Payment mode Required");
-            if(!range_charge) throw new Error("Charges Required");
+            if(!trusteeSchoolId) throw new BadRequestException("Trustee school ID Required");
+            if(!platform_type) throw new BadRequestException("Platform type Required");
+            if(!payment_mode) throw new BadRequestException("Payment mode Required");
+            if(!range_charge) throw new BadRequestException("Charges Required");
 
             const val = await this.platformChargeService.AddPlatformCharge(
                 trusteeSchoolId,
@@ -63,10 +63,10 @@ export class PlatformChargesController {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode} = body;
 
-            if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
-            if(!platform_type) throw new Error("Platform type Required");
-            if(!payment_mode) throw new Error("Payment mode Required");
-            if(payment_mode === "Others") throw new Error("Cannot delete Other MDR")
+            if(!trusteeSchoolId) throw new BadRequestException("Trustee school ID Required");
+            if(!platform_type) throw new BadRequestException("Platform type Required");
+            if(!payment_mode) throw new BadRequestException("Payment mode Required");
+            if(payment_mode === "Others") throw new BadRequestException("Cannot delete Other MDR")
 
             const val = await this.platformChargeService.deletePlatformCharge(
                 trusteeSchoolId,
@@ -94,10 +94,10 @@ export class PlatformChargesController {
         try {
             const { trusteeSchoolId, platform_type, payment_mode, amount } = body;
 
-            if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
-            if(!platform_type) throw new Error("Platform type Required");
-            if(!payment_mode) throw new Error("Payment mode Required");
-            if(!amount) throw new Error("Amount Required");
+            if(!trusteeSchoolId) throw new BadRequestException("Trustee school ID Required");
+            if(!platform_type) throw new BadRequestException("Platform type Required");
+            if(!payment_mode) throw new BadRequestException("Payment mode Required");
+            if(!amount) throw new BadRequestException("Amount Required");
 
             return await this.platformChargeService.finalAmountWithMDR(trusteeSchoolId, platform_type, payment_mode, amount);
         }
@@ -149,10 +149,10 @@ export class PlatformChargesController {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
 
-            if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
-            if(!platform_type) throw new Error("Platform type Required");
-            if(!payment_mode) throw new Error("Payment mode Required");
-            if(!range_charge) throw new Error("Charges Required");
+            if(!trusteeSchoolId) throw new BadRequestException("Trustee school ID Required");
+            if(!platform_type) throw new BadRequestException("Platform type Required");
+            if(!payment_mode) throw new BadRequestException("Payment mode Required");
+            if(!range_charge) throw new BadRequestException("Charges Required");
 
             const val = await this.platformChargeService.updatePlatformCharge(
                 trusteeSchoolId,

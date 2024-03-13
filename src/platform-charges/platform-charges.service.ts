@@ -1,4 +1,4 @@
-import { ConflictException, Get, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Get, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
@@ -31,15 +31,15 @@ export class PlatformChargeService {
                 _id: trusteeSchoolId,
             });
             
-            if (!trusteeSchool) throw new Error('Trustee school not found');
-            if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED') throw new Error('KYC not approved');
+            if (!trusteeSchool) throw new NotFoundException('Trustee school not found');
+            if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED') throw new BadRequestException('KYC not approved');
 
             trusteeSchool.platform_charges.forEach((platformCharge) => {
                 if (
                     platformCharge.platform_type === platform_type &&
                     platformCharge.payment_mode === payment_mode
                 ) {
-                    throw new Error('MDR already present');
+                    throw new BadRequestException('MDR already present');
                 }
             });
 
@@ -105,7 +105,7 @@ export class PlatformChargeService {
             const trusteeSchool = await this.trusteeSchoolModel.findOne({
                 _id: trusteeSchoolId,
             });
-            if (!trusteeSchool) throw new Error('Trustee school not found');
+            if (!trusteeSchool) throw new NotFoundException('Trustee school not found');
 
             let isFound = 0;
             trusteeSchool.platform_charges.forEach((platformCharge) => {
@@ -117,7 +117,7 @@ export class PlatformChargeService {
                 }
             });
 
-            if (!isFound) throw new Error('MDR not present');
+            if (!isFound) throw new NotFoundException('MDR not present');
 
             const res = await this.trusteeSchoolModel.findOneAndUpdate(
                 { _id: trusteeSchoolId },
@@ -149,7 +149,7 @@ export class PlatformChargeService {
             const trusteeSchool = await this.trusteeSchoolModel.findOne({
                 _id: trusteeSchoolId,
             });
-            if (!trusteeSchool) throw new Error('Trustee school not found');
+            if (!trusteeSchool) throw new NotFoundException('Trustee school not found');
 
             let ranges = null;
             trusteeSchool.platform_charges.forEach((platformCharge) => {
@@ -161,7 +161,7 @@ export class PlatformChargeService {
                 }
             });
 
-            if (!ranges) throw new Error('MDR not found');
+            if (!ranges) throw new NotFoundException('MDR not found');
 
             let platformCharge = null;
             ranges.forEach((range: any) => {
@@ -216,8 +216,8 @@ export class PlatformChargeService {
                 _id: trusteeSchoolId,
             });
 
-            if (!trusteeSchool) throw new Error('Trustee school not found');
-            if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED') throw new Error('KYC not approved');
+            if (!trusteeSchool) throw new NotFoundException('Trustee school not found');
+            if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED') throw new BadRequestException('KYC not approved');
 
             let isFound = 0;
             trusteeSchool.platform_charges.forEach((platformCharge) => {
@@ -229,7 +229,7 @@ export class PlatformChargeService {
                 }
             });
 
-            if (!isFound) throw new Error("MDR not found");
+            if (!isFound) throw new NotFoundException("MDR not found");
 
             const res = await this.trusteeSchoolModel.findOneAndUpdate(
                 {
