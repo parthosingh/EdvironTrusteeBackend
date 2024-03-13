@@ -62,7 +62,7 @@ export class PlatformChargesController {
         try {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode} = body;
-            
+
             if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
             if(!platform_type) throw new Error("Platform type Required");
             if(!payment_mode) throw new Error("Payment mode Required");
@@ -146,10 +146,8 @@ export class PlatformChargesController {
         }
     ) {
         try {
-            console.log("hello");
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
-            console.log(body);
 
             if(!trusteeSchoolId) throw new Error("Trustee school ID Required");
             if(!platform_type) throw new Error("Platform type Required");
@@ -162,8 +160,6 @@ export class PlatformChargesController {
                 payment_mode,
                 range_charge
             );
-
-            console.log(val);
 
             const payload = {
                 platform_charges: val.platform_charges

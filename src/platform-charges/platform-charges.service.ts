@@ -30,7 +30,7 @@ export class PlatformChargeService {
             const trusteeSchool = await this.trusteeSchoolModel.findOne({
                 _id: trusteeSchoolId,
             });
-            console.log(trusteeSchool);
+            
             if (!trusteeSchool) throw new Error('Trustee school not found');
             if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED') throw new Error('KYC not approved');
 
@@ -242,10 +242,9 @@ export class PlatformChargeService {
                 },
                 { returnDocument: 'after' },
             );
-            
+
             return { platform_charges: res.platform_charges };
         } catch (err) {
-            console.log(err);
             throw new Error(err);
         }
     }
