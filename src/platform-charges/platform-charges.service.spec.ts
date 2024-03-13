@@ -75,7 +75,6 @@ describe('PlatformChargesController', () => {
     });
 
     it('should be defined', () => {
-        console.log(platformChargesController);
         expect(platformChargesController).toBeDefined();
     });
 

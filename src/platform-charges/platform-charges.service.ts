@@ -176,7 +176,6 @@ export class PlatformChargeService {
                 finalAmount += platformCharge.charge;
             } else if ((platformCharge.charge_type = charge_type.PERCENT)) {
                 finalAmount += (amount * platformCharge.charge) / 100;
-                console.log((amount * platformCharge.charge) / 100);
             }
 
             return finalAmount.toFixed(2);
@@ -188,7 +187,6 @@ export class PlatformChargeService {
     async getAllTrustee() {
         try {
             const trustees = await this.trusteeModel.find({}, { _id: 1, name: 1 });
-            console.log(trustees);
             return { trustees: trustees };
         } catch (err) {
             throw new Error(err);
@@ -201,7 +199,6 @@ export class PlatformChargeService {
                 { trustee_id: new Types.ObjectId(trusteeId) },
                 { school_id: 1, school_name: 1, platform_charges: 1 },
             );
-            console.log(schools);
             return { schools: schools };
         } catch (err) {
             throw new Error(err);

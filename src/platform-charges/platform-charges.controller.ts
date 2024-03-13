@@ -43,7 +43,6 @@ export class PlatformChargesController {
             return res;
         }
         catch (err) {
-            console.log(err);
             throw new ConflictException(err.message);
         }
     }
