@@ -181,9 +181,6 @@ export class ErpService {
         expiresIn: '2h',
       });
 
-      console.log('token', token);
-      console.log('process.env.MAIN_BACKEND_URL', process.env.MAIN_BACKEND_URL);
-
       const schoolToken = await axios.post(
         `${process.env.MAIN_BACKEND_URL}/api/trustee/create-school`,
         {
