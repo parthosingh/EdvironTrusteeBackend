@@ -177,14 +177,12 @@ export class ErpService {
         name,
         email,
         school_name,
+        trustee_id:trustee
       };
       const token = this.jwtService.sign(data, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
         expiresIn: '2h',
       });
-
-      console.log('token', token);
-      console.log('process.env.MAIN_BACKEND_URL', process.env.MAIN_BACKEND_URL);
 
       const schoolToken = await axios.post(
         `${process.env.MAIN_BACKEND_URL}/api/trustee/create-school`,
