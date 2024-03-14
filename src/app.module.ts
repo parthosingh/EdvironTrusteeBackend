@@ -6,6 +6,7 @@ import { config } from 'dotenv';
 import { TrusteeModule } from './trustee/trustee.module';
 import { ErpModule } from './erp/erp.module';
 import { MainBackendModule } from './main-backend/main-backend.module';
+import { PlatformChargesModule } from './platform-charges/platform-charges.module';
 import { ScheduleModule } from '@nestjs/schedule';
 config();
 
@@ -15,6 +16,7 @@ config();
     TrusteeModule,
     ErpModule,
     MainBackendModule,
+    PlatformChargesModule,
     ScheduleModule.forRoot()
   ],
 

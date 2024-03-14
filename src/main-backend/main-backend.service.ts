@@ -10,7 +10,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
-import { log } from 'node:console';
 
 @Injectable()
 export class MainBackendService {
@@ -127,12 +126,9 @@ export class MainBackendService {
 
 
   async updateSchoolInfo(info: {
-    school_name: string,
     school_id: string,
     trustee_id: string,
     client_id: string,
-    client_secret: string,
-    merchantId: string,
     merchantName: string,
     merchantEmail: string,
     merchantStatus: string,
@@ -141,12 +137,9 @@ export class MainBackendService {
   }) {
     try {
       const {
-        school_name,
         school_id,
         trustee_id,
         client_id,
-        client_secret,
-        merchantId,
         merchantEmail,
         merchantName,
         merchantStatus,
@@ -156,20 +149,16 @@ export class MainBackendService {
 
       const trusteeId = new Types.ObjectId(trustee_id)
       const schoolId = new Types.ObjectId(school_id)
-      const pg_key = await this.generateKey()
 
-      const trustee = await this.trusteeModel.findById(trusteeId)
-      if (!trustee) {
-        throw new NotFoundException(`Trustee not found`)
+      const trusteeSchool = await this.trusteeSchoolModel.findOne({ trustee_id: trusteeId, school_id: schoolId })
+      if (!trusteeSchool) {
+        throw new NotFoundException(`School not found for Trustee`)
       }
 
       const update = {
         $set: {
-          school_name: merchantName,
+          // school_name: merchantName,
           client_id,
-          client_secret,
-          pg_key,
-          merchantId,
           merchantEmail,
           merchantName,
           merchantStatus,
@@ -180,10 +169,8 @@ export class MainBackendService {
       };
 
       const options = {
-        upsert: true,
         new: true,
       };
-
 
       const updatedSchool = await this.trusteeSchoolModel.findOneAndUpdate(
         {
@@ -193,7 +180,7 @@ export class MainBackendService {
         options
       );
 
-      return { updatedSchool, trustee };
+      return { updatedSchool };
     } catch (error) {
       if (error.response && error.response.statusCode === 404) {
         throw new NotFoundException(error.response.message);
@@ -250,10 +237,10 @@ export class MainBackendService {
     }
   }
 
-  async getAllErpOfOnboarder(onboarder_id: string,page) {
+  async getAllErpOfOnboarder(onboarder_id: string, page) {
     try {
       const pageSize = 10;
-      
+
       const count = await this.trusteeModel.countDocuments({
         onboarder_id: onboarder_id
       });
@@ -263,7 +250,7 @@ export class MainBackendService {
         .limit(pageSize)
         .exec();
 
-      return { trustee: res,page, total_pages: Math.ceil(count / pageSize) };
+      return { trustee: res, page, total_pages: Math.ceil(count / pageSize) };
     }
     catch (err) {
       throw new Error(err);

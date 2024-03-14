@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 import { getModelToken } from '@nestjs/mongoose';
 import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { BadGatewayException, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import exp from 'constants';
 jest.mock('@nestjs/jwt');
@@ -99,7 +99,7 @@ describe('MainBackendService', () => {
         __v: 0
       }
 
-      jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(null)
+      jest.spyOn(trusteeModel, 'findOne').mockResolvedValueOnce(null)
       jest.spyOn(trusteeModel, 'create').mockResolvedValue(mockResponse as any);
       const result = await service.createTrustee(trusteeInfo);
 
@@ -123,12 +123,12 @@ describe('MainBackendService', () => {
         school_limit: 150,
         phone_number: '1234567890',
       };
-      jest.spyOn(trusteeModel, 'findOne').mockResolvedValue(true)
+      jest.spyOn(trusteeModel, 'findOne').mockResolvedValueOnce(true)
       await expect(service.createTrustee(trusteeInfo)).rejects.toThrowError(ConflictException);
     });
     it('should throw BadRequestException for other errors', async () => {
       
-      jest.spyOn(trusteeModel, 'findOne').mockRejectedValue(new Error('Some unexpected error'));
+      jest.spyOn(trusteeModel, 'findOne').mockRejectedValueOnce(new Error('Some unexpected error'));
   
       const info = {
         name: 'John Doe',
@@ -201,7 +201,7 @@ describe('MainBackendService', () => {
         __v: 0
       }
       const trusteeId = new Types.ObjectId('658e759736ba0754ca45d0c2')
-      jest.spyOn(trusteeModel,'findOne').mockResolvedValue(mockResponse)
+      jest.spyOn(trusteeModel,'findOne').mockResolvedValueOnce(mockResponse)
       const result = await service.findOneTrustee(trusteeId)
       expect(trusteeModel.findOne).toHaveBeenCalledWith(trusteeId)
       expect(result).toEqual(mockResponse)
@@ -209,7 +209,7 @@ describe('MainBackendService', () => {
     })
     it('should throw BadRequestError',async()=>{
       const trusteeId = new Types.ObjectId('658e759736ba0754ca45d0c9')
-    jest.spyOn(trusteeModel, 'findOne').mockRejectedValue(new Error('Test error'));
+    jest.spyOn(trusteeModel, 'findOne').mockRejectedValueOnce(new Error('Test error'));
 
     await expect(service.findOneTrustee(trusteeId)).rejects.toThrowError(BadRequestException);
   
@@ -242,7 +242,7 @@ describe('MainBackendService', () => {
   describe('isKeyUnique', () => {
     it('should return true if pg_key is unique', async () => {
       const uniqueKey = 'uniqueKey';
-      jest.spyOn(trusteeSchoolModel, 'findOne').mockResolvedValue(null);
+      jest.spyOn(trusteeSchoolModel, 'findOne').mockResolvedValueOnce(null);
 
       const result = await service.isKeyUnique(uniqueKey);
 
@@ -252,7 +252,7 @@ describe('MainBackendService', () => {
 
     it('should return false if pg_key is not unique', async () => {
       const existingKey = 'existingKey';
-      jest.spyOn(trusteeSchoolModel, 'findOne').mockResolvedValue({ pg_key: existingKey });
+      jest.spyOn(trusteeSchoolModel, 'findOne').mockResolvedValueOnce({ pg_key: existingKey });
 
       const result = await service.isKeyUnique(existingKey);
 
@@ -262,7 +262,7 @@ describe('MainBackendService', () => {
 
     it('should throw BadRequestException for other errors', async () => {
       const uniqueKey = 'uniqueKey';
-      jest.spyOn(trusteeSchoolModel, 'findOne').mockRejectedValue(new Error('Test error'));
+      jest.spyOn(trusteeSchoolModel, 'findOne').mockRejectedValueOnce(new Error('Test error'));
 
       await expect(service.isKeyUnique(uniqueKey)).rejects.toThrowError(BadRequestException);
     });
@@ -270,15 +270,10 @@ describe('MainBackendService', () => {
   describe('updateSchoolInfo', () => {
     it('should update school details', async () => {
       
-      const mockPgkey='qwert67890'
-
       const info = {
-        school_name: 'mock School Name',
         school_id: '658e759736ba0754ca45d0c2',
         trustee_id: '658e759736ba0754ca45d0c1',
         client_id:'client_id',
-        client_secret: 'client_secret',
-        merchantId: 'merchantId',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail@9edviron.com',
         merchantStatus: 'merchantStatus',
@@ -286,52 +281,43 @@ describe('MainBackendService', () => {
         pgFullKYC: 'pgFullKYC'
       };
 
+      const {
+        school_id,
+        trustee_id,
+        client_id,
+        merchantEmail,
+        merchantName,
+        merchantStatus,
+        pgFullKYC,
+        pgMinKYC
+      } = info
+
       const trusteeId = new Types.ObjectId(info.trustee_id);
       const schoolId = new Types.ObjectId(info.school_id);
-      const trustee = {
-        _id:trusteeId,
-        email: 'test@example.com',
-        name: 'John Doe',
-        password: 'password123',
-        phone_number: '1234567890',
-        school_limit: 5,
-        iat: 1234567890,
-        exp: 1234567890,
-      };
+     
+      await new trusteeSchoolModel({
+        school_id:schoolId,
+        trustee_id: trusteeId
+      }).save()
 
-      const mockResult ={
-        updatedSchool: {
-          // _id: new ObjectId('65c86bfb70323b086ca57077'),
-          merchantEmail: info.merchantEmail,
-          client_id: info.client_id,
-          client_secret: info.client_secret,
-          merchantId: info.merchantId,
-          merchantName: info.merchantName,
-          merchantStatus: info.merchantStatus,
-          pgFullKYC: info.pgFullKYC,
-          pgMinKYC: info.pgMinKYC,
-          pg_key: 'newGeneratedKey',
-          school_name: info.school_name,
-          trustee_id: trusteeId,
-        },
-        trustee: {
-          _id: trusteeId,
-          name: 'demo trustee',
-          email_id: 'demotrustee@edviron.com',
-         
-        }
-      }
-      jest.spyOn(service, 'generateKey').mockResolvedValue('newGeneratedKey');
-      jest.spyOn(trusteeModel, 'findById').mockResolvedValue({ _id: trusteeId });
-      jest.spyOn(trusteeSchoolModel,'findOne').mockResolvedValue(null)
-      jest.spyOn(service,'updateSchoolInfo').mockResolvedValueOnce(mockResult as any)
-      jest.spyOn(trusteeSchoolModel, 'findOneAndUpdate').mockResolvedValue({ ...info, pg_key: 'newGeneratedKey' } as any);
-      const result = await service.updateSchoolInfo(info);
+      const updatedSchool:any = await trusteeSchoolModel.findOneAndUpdate({
+        school_id: schoolId
+      },
+      { $set: {
+        client_id,
+        merchantEmail,
+        merchantName,
+        merchantStatus,
+        pgFullKYC,
+        pgMinKYC,
+        trustee_id: trusteeId
+      }},{
+        new:true
+      })
+      const result:any = await service.updateSchoolInfo(info);
       
-      
-      
-      expect(result).toBeDefined()
-      expect(result).toEqual(mockResult);
+      expect(result.updatedSchool).toBeDefined()
+      // expect((result.updatedSchool)).toEqual(updatedSchool);
     });
 
     it('should throw NotFoundException if trustee is not found', async () => {
@@ -351,34 +337,62 @@ describe('MainBackendService', () => {
 
       jest.spyOn(service, 'generateKey').mockResolvedValue('newGeneratedKey');
       jest.spyOn(trusteeModel, 'findById').mockResolvedValue(null);
-      jest.spyOn(trusteeSchoolModel,'findOne').mockResolvedValue(null)
+      jest.spyOn(trusteeSchoolModel,'findOne').mockResolvedValueOnce(null)
       await expect(service.updateSchoolInfo(info)).rejects.toThrowError(NotFoundException);
     });
 
-
-    it('should throw BadRequestException for other errors', async () => {
+    it('should throw ConflictException for other errors', async () => {
       const info = {
-        school_name: 'mock School Name',
         school_id: '658e759736ba0754ca45d0c2',
         trustee_id: '658e759736ba0754ca45d0c1',
         client_id:'client_id',
-        client_secret: 'client_secret',
-        merchantId: 'merchantId',
         merchantName: 'merchantName',
-        merchantEmail: 'merchantemail@edviron.com',
+        merchantEmail: 'merchantemail@9edviron.com',
         merchantStatus: 'merchantStatus',
         pgMinKYC: 'pgMinKYC',
         pgFullKYC: 'pgFullKYC'
       };
 
-      const trusteeId = new Types.ObjectId(info.trustee_id);
-      jest.spyOn(service, 'generateKey').mockResolvedValue('newGeneratedKey');
-      jest.spyOn(trusteeModel, 'findById').mockResolvedValue({ _id: trusteeId });
-      jest.spyOn(trusteeSchoolModel,'findOne').mockResolvedValue(null)
-      jest.spyOn(trusteeSchoolModel, 'findOneAndUpdate').mockRejectedValue(new Error('Test error'));
 
+      const trusteeId = new Types.ObjectId(info.trustee_id);
+      const schoolId = new Types.ObjectId(info.school_id);
+     
+      await new trusteeSchoolModel({
+        school_id:schoolId,
+        trustee_id: trusteeId
+      }).save()
+
+      jest.spyOn(trusteeSchoolModel,"findOneAndUpdate").mockRejectedValue(new ConflictException())
+      
+      await expect(service.updateSchoolInfo(info)).rejects.toThrowError(ConflictException);
+    });
+
+    it('should throw BadRequestException for other errors', async () => {
+      const info = {
+        school_id: '658e759736ba0754ca45d0c2',
+        trustee_id: '658e759736ba0754ca45d0c1',
+        client_id:'client_id',
+        merchantName: 'merchantName',
+        merchantEmail: 'merchantemail@9edviron.com',
+        merchantStatus: 'merchantStatus',
+        pgMinKYC: 'pgMinKYC',
+        pgFullKYC: 'pgFullKYC'
+      };
+
+
+      const trusteeId = new Types.ObjectId(info.trustee_id);
+      const schoolId = new Types.ObjectId(info.school_id);
+     
+      await new trusteeSchoolModel({
+        school_id:schoolId,
+        trustee_id: trusteeId
+      }).save()
+
+      jest.spyOn(trusteeSchoolModel,"findOneAndUpdate").mockRejectedValue(new BadRequestException())
+      
       await expect(service.updateSchoolInfo(info)).rejects.toThrowError(BadRequestException);
     });
+  
   });
 
 

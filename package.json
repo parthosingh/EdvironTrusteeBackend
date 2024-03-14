@@ -38,6 +38,7 @@
     "graphql": "^16.8.1",
     "handlebars": "^4.7.8",
     "jsonwebtoken": "^9.0.2",
+    "mongodb-memory-server": "^9.1.7",
     "mongoose": "^8.0.3",
     "nodemailer": "^6.9.9",
     "reflect-metadata": "^0.1.13",

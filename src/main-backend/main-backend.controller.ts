@@ -14,7 +14,7 @@ import { MainBackendService } from './main-backend.service';
 import { JwtPayload } from 'jsonwebtoken';
 import { Trustee } from '../schema/trustee.schema';
 import mongoose, { Types } from 'mongoose';
-import { TrusteeService } from 'src/trustee/trustee.service';
+import { TrusteeService } from '../trustee/trustee.service';
 import { InjectModel } from '@nestjs/mongoose';
 
 @Controller('main-backend')
@@ -25,7 +25,7 @@ export class MainBackendController {
     private readonly trusteeService: TrusteeService,
     @InjectModel(Trustee.name)
     private readonly trusteeModel: mongoose.Model<Trustee>,
-  ) {}
+  ) { }
 
   @Post('create-trustee')
   async createTrustee(
@@ -83,70 +83,53 @@ export class MainBackendController {
   //   return token
   // }
 
-  @Post('assign-trustee-to-school')
-  async assignSchool(@Body() body: { token: string }) {
+  @Post('update-school')
+  async updateSchool(
+    @Body() body: { token: string },
+  ) {
     try {
-      const data: JwtPayload = await this.jwtService.verify(body.token, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
+      const data: JwtPayload = await this.jwtService.verify(
+        body.token,
+        { secret: process.env.JWT_SECRET_FOR_INTRANET },
+      )
+
       const requiredFields = [
-        'school_name',
         'school_id',
         'trustee_id',
         'client_id',
-        'client_secret',
-        'merchantId',
-        'merchantName',
         'merchantEmail',
         'merchantStatus',
         'pgMinKYC',
         'pgFullKYC',
+        'merchantName'
       ];
 
-      const missingFields = requiredFields.filter((field) => !data[field]);
+      const missingFields = requiredFields.filter(field => !data[field]);
 
       if (missingFields.length > 0) {
-        throw new BadRequestException(
-          `Missing fields: ${missingFields.join(', ')}`,
-        );
+        throw new BadRequestException(`Missing fields: ${missingFields.join(', ')}`);
       }
 
       const info = {
-        school_name: data.school_name,
         school_id: data.school_id,
         trustee_id: data.trustee_id,
         client_id: data.client_id,
-        client_secret: data.client_secret,
-        merchantId: data.merchantId,
         merchantName: data.merchantName,
         merchantEmail: data.merchantEmail,
         merchantStatus: data.merchantStatus,
         pgMinKYC: data.pgMinKYC,
-        pgFullKYC: data.pgFullKYC,
-      };
-      const school = await this.mainBackendService.updateSchoolInfo(info);
+        pgFullKYC: data.pgFullKYC
+      }
+      const school = await this.mainBackendService.updateSchoolInfo(info)
       const response = {
         school_id: school.updatedSchool.school_id,
         school_name: school.updatedSchool.school_name,
-        trustee: {
-          name: school.trustee.name,
-          id: school.trustee._id,
-        },
-        msg: `${school.updatedSchool.school_name} is Updated`,
-      };
-
-      const responseToken = this.jwtService.sign(response, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
-
-      return responseToken;
-    } catch (error) {
-      if (error.response && error.response.statusCode === 404) {
-        throw new NotFoundException(error.response.message);
-      } else if (error.response && error.response.statusCode === 409) {
-        throw new ConflictException(error.response.message);
+        msg: `${school.updatedSchool.school_name} is Updated`
       }
-      throw new BadRequestException(error.message);
+
+      return response
+    } catch (error) {
+      throw new BadRequestException(error.message)
     }
   }
 
