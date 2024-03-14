@@ -27,7 +27,6 @@ export class PlatformChargesController {
         try {
             const body = this.jwtService.verify(token.token, { secret: process.env.JWT_SECRET_FOR_INTRANET });
             const {trusteeSchoolId, platform_type, payment_mode, range_charge} = body;
-            console.log(body);
 
             if(!trusteeSchoolId) throw new BadRequestException("Trustee school ID Required");
             if(!platform_type) throw new BadRequestException("Platform type Required");
