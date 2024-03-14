@@ -174,6 +174,7 @@ export class ErpService {
         name,
         email,
         school_name,
+        trustee_id:trustee
       };
       const token = this.jwtService.sign(data, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
