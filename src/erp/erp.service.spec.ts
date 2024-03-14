@@ -18,6 +18,7 @@ import {
   NotFoundException, 
 } from '@nestjs/common';
 import { Mode } from 'fs';
+import { SettlementReport } from '../schema/settlement.schema';
 
 jest.mock('@nestjs/jwt');
 
@@ -51,6 +52,7 @@ describe('ErpService', () => {
   let trusteeSchoolModel: Model<TrusteeSchool>;
   let service: ErpService;
   let jwtService: JwtService;
+  let settlementModel: Model<SettlementReport>;
 
   const mockStudent = {
     _id: '658e759736ba0754ca45d0a4',
@@ -92,9 +94,13 @@ describe('ErpService', () => {
           provide: getModelToken(TrusteeSchool.name),
           useValue: trusteeSchoolModel,
         },
+        {
+          provide: getModelToken(SettlementReport.name),
+          useValue: settlementModel,
+        },
         { provide: JwtService, useValue: MockJwtService }, // Provide the mockJwtService
       ],
-      imports: [JwtModule],
+      imports: [JwtModule, SettlementReport],
     }).compile();
 
     service = module.get<ErpService>(ErpService);

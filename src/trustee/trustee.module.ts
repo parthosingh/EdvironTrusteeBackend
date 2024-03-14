@@ -11,6 +11,7 @@ import { TrusteeGuard } from './trustee.guard';
 import { config } from 'dotenv';
 import { ErpService } from '../erp/erp.service';
 import { MainBackendService } from '../main-backend/main-backend.service';
+import { SettlementSchema } from '../schema/settlement.schema';
 config();
 
 @Module({
@@ -32,6 +33,9 @@ config();
       resolvers: [TrusteeResolver], // Your resolvers here
       playground: process.env.NODE_ENV === 'dev',
     }),
+    MongooseModule.forFeature([
+      { name: 'SettlementReport', schema: SettlementSchema },
+    ]),
   ],
   controllers: [],
   providers: [ErpService, TrusteeService, TrusteeResolver, TrusteeGuard,MainBackendService],

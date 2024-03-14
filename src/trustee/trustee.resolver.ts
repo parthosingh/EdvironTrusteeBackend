@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args, Query, Int, Context } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Query, Int, Context, InputType } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
 import {
   UnauthorizedException,
@@ -14,6 +14,7 @@ import { ErpService } from '../erp/erp.service';
 import mongoose, { Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { InjectModel } from '@nestjs/mongoose';
+import { SettlementReport } from '../schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
 
@@ -26,6 +27,10 @@ export class TrusteeResolver {
     private readonly jwtService: JwtService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
+    @InjectModel(SettlementReport.name)
+    private settlementReportModel: mongoose.Model<SettlementReport>,
+    
+
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -184,13 +189,119 @@ export class TrusteeResolver {
     );
     return 'kyc invite sent';
   }
+
+  @Query(() => [SettlementReport])
+  @UseGuards(TrusteeGuard)
+  async getSettlementReports( @Context() context) {
+    let settlementReports = [];
+    settlementReports = await this.settlementReportModel.find({trustee:new Types.ObjectId(context.req.trustee)});
+    return settlementReports;
+  }
+  
+  @Query(()=>[TransactionReport])
+  @UseGuards(TrusteeGuard)
+  async getTransactionReport(@Context() context) {
+    try {
+      const merchants = await this.trusteeSchoolModel.find({ trustee_id: new Types.ObjectId(context.req.trustee) });
+      let transactionReport = [];
+  
+      for (const merchant of merchants) {
+        if (!merchant.client_id) continue;
+        
+        console.log(`Getting report for ${merchant.merchantName}(${merchant.client_id})`);
+  
+        let token = this.jwtService.sign({ client_id: merchant.client_id }, { secret: process.env.PAYMENTS_SERVICE_SECRET });
+        
+        let config = {
+          method: 'get',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report`,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          data: { client_id: merchant.client_id, token },
+        };
+  
+        const response = await axios.request(config);
+        
+        if (response.data.length > 0 && response.data !== 'No orders found for clientId') {
+          const modifiedResponseData = response.data.map(item => ({
+            ...item,
+            school_name: merchant.school_name,
+            school_id:merchant.school_id
+          }));
+          transactionReport.push(...modifiedResponseData);
+        }
+      }
+      
+      return transactionReport;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+  
+
+  @Query(()=>[School])
+  @UseGuards(TrusteeGuard)
+  async getAllSchoolQuery(
+    @Context() context,
+  ): Promise<any> {
+    try {
+      const id = context.req.trustee;
+      return await this.trusteeSchoolModel.find({trustee_id:context.req.trustee})
+    } catch (error) {
+     throw error
+    }
+  }
+
+  @Mutation(()=>verifyRes)
+  async resetMails(@Args('email') email:string){
+    await this.trusteeService.sentResetMail(email)
+    return {active:true}
+  }
+ 
+  @Mutation(()=>resetPassResponse)
+  async resetPassword(
+    @Args('email') email:string,
+    @Args('password') password:string
+    
+    ){
+    await this.trusteeService.resetPassword(email,password)
+    return {msg:`Password Change`}
+  }
+
+  @Query(()=>verifyRes)
+  async verifyToken(
+    @Args('token') token:string
+  ){
+    const res=await this.trusteeService.verifyresetToken(token)
+    return {active:res}
+  }
+
+  
+
 }
+
+
 
 // Define a type for the AuthResponse
 @ObjectType()
 class AuthResponse {
   @Field(() => String)
   token: string;
+}
+
+@ObjectType()
+class resetPassResponse{
+  @Field()
+  msg:string
+}
+@ObjectType()
+class verifyRes{
+  @Field()
+  active:boolean
 }
 
 // Define a type for school token response
@@ -264,4 +375,24 @@ class getSchool {
   total_pages: number;
   @Field()
   page: number;
+}
+
+@ObjectType()
+class TransactionReport{
+  @Field({nullable:true})
+  collect_id: string;
+  @Field({nullable:true})
+  updatedAt: string;
+  @Field({nullable:true})
+  order_amount: number;
+  @Field({nullable:true})
+  transaction_amount: number;
+  @Field({nullable:true})
+  payment_method: string
+  @Field({nullable:true})
+  school_name: string
+  @Field({nullable:true})
+  school_id:string
+  @Field({nullable:true})
+  status:string
 }

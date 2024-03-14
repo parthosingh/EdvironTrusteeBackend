@@ -18,6 +18,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as handlebars from 'handlebars';
 import { Cron } from '@nestjs/schedule';
+import { SettlementReport } from '../schema/settlement.schema';
 
 @Injectable()
 export class ErpService {
@@ -27,6 +28,8 @@ export class ErpService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
+    @InjectModel(SettlementReport.name)
+    private settlementReportModel: mongoose.Model<SettlementReport>
   ) {}
 
   async createApiKey(trusteeId: string): Promise<string> {
@@ -525,6 +528,22 @@ export class ErpService {
         .then(async (response) => {
           console.log('response', response.data.data[0]); 
           if(response.data.data.length === 0) return;
+
+           const settlementReport = new this.settlementReportModel({
+            settlementAmount: response.data.data[0].payment_amount.toFixed(2),
+            adjustment: 0.00.toString(),
+            netSettlementAmount:response.data.data[0].payment_amount.toFixed(2),
+            clientId: merchant.client_id,
+            fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+            tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+            status:'Settled',
+            utrNumber: response.data.data[0].settlement_utr,
+            settlementDate:new Date(new Date().getTime() - 86400000 * 1).toDateString(),
+            trustee:merchant.trustee_id,
+            schoolId:merchant.school_id
+          });
+          await settlementReport.save();
+
           const transporter = nodemailer.createTransport({
             pool: true,
             host: 'smtp.gmail.com',
