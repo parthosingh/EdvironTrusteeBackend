@@ -102,7 +102,7 @@ export class TrusteeService {
       const schools = await this.trusteeSchoolModel
         .find(
           { trustee_id: trusteeObjectId },
-          { school_id: 1, school_name: 1, _id: 0 },
+          { school_id: 1, school_name: 1, pg_key:1, _id: 0 },
         )
         .skip((page - 1) * pageSize)
         .limit(pageSize)
