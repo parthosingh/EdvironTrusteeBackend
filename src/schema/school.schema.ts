@@ -72,7 +72,7 @@ export class TrusteeSchool {
   @Field(() => String)
   merchantEmail: string;
 
-  @Prop({})
+  @Prop({default:"Not Initiated"})
   @Field(() => String)
   merchantStatus: string;
 

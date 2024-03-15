@@ -17,6 +17,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { SettlementReport } from '../schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
+import { Trustee } from 'src/schema/trustee.schema';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -29,6 +30,8 @@ export class TrusteeResolver {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
     private settlementReportModel: mongoose.Model<SettlementReport>,
+    @InjectModel(Trustee.name)
+    private trusteeModel: mongoose.Model<Trustee>,
 
 
   ) { }
@@ -311,7 +314,7 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async createBulkTrusteeSchool(
-    @Args('input', { type: () => [SchoolInputBulk] }) schools: SchoolInputBulk[],
+    @Args('schools', { type: () => [SchoolInputBulk] }) schools: SchoolInputBulk[],
     @Context() context,
   ) {
     try {
@@ -319,40 +322,38 @@ export class TrusteeResolver {
       let existingSchool = 0;
       let errorInSchool = 0;
       let trusteeSchoolsCreated = 0;
+      let result = '';
+      const trustee = await this.trusteeModel.findById(context.req.trustee);
+      if (!trustee) throw new NotFoundException('Trustee not found');
 
-      const schoolsInfo = { schools, trustee_id: context.req.trustee }
+      const schoolsInfo = { schools, trustee_id: trustee._id, trustee_name: trustee.name }
       const token = this.jwtService.sign(schoolsInfo, { secret: process.env.JWT_SECRET_FOR_INTRANET })
 
-      axios.post(`${process.env.MAIN_BACKEND_URL}/api/trustee/create-bulk-school`, {
+      const response = await axios.post(`${process.env.MAIN_BACKEND_URL}/api/trustee/create-bulk-school`, {
         token,
-    })
-    .then(async response => {
-        console.log(response.data);
-        createdCount = response.data.createdCount;
-        existingSchool = response.data.existingSchool;
+      })
 
-        const newSchools = response.data.schools;
+      const verifiedInfo = this.jwtService.verify(response.data, { secret: process.env.JWT_SECRET_FOR_INTRANET })
 
+      createdCount = verifiedInfo.createdCount;
+      existingSchool = verifiedInfo.alreadyExists;
+      const newSchools = verifiedInfo.schools;
+
+      if (newSchools && newSchools.length !== 0) {
         await Promise.all(newSchools.map(async school => {
-            await new this.trusteeSchoolModel({ 
-                school_id: school.school_id, 
-                school_name: school.school_name, 
-                email: school.school_email, 
-                trustee_id: context.req.trustee 
-            }).save().then(()=>{ trusteeSchoolsCreated++ }).catch(error =>{
-              throw error;
-            });
+          const newTrusteeSchool = await new this.trusteeSchoolModel({
+            school_id: school.school_id,
+            school_name: school.school_name,
+            email: school.school_email,
+            trustee_id: trustee._id
+          }).save()
         }));
+      }
 
-    })
-    .catch(error => {
-        console.error(error);
-        throw new Error();
-    });
-      const result = `${createdCount} schools created, ${existingSchool} already exist, error in Creating ${errorInSchool} schools`;
+      result = `${createdCount} schools created, ${existingSchool} already exist, error in Creating ${errorInSchool} schools`;
       return result;
     } catch (error) {
-      throw error;
+      throw new Error(error.message);
     }
   }
 }
