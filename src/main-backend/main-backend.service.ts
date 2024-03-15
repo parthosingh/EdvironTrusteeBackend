@@ -205,13 +205,11 @@ export class MainBackendService {
       if (!trustee) {
         throw new NotFoundException(`Trustee not found`)
       }
-      const pg_key = await this.generateKey()
 
       const school = await this.trusteeSchoolModel.create({
         school_name,
         school_id: schoolId,
         trustee_id: trusteeId,
-        pg_key,
       });
       return school
     } catch (e) {
