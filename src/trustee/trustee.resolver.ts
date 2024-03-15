@@ -307,26 +307,25 @@ export class TrusteeResolver {
 
   }
 
-  // @Mutation(()=>createSchoolResponse)
-  // @UseGuards(TrusteeGuard)
-  // async createBulkSchool(
-  //   @Args('email') email:string,
-  //   @Args('school_name') school_name:string,
-  //   @Args('phone_number') phone_number:string,
-  //   @Args('admin_name') admin_name:string,
-  //   @Context() context,
-    
-  //   ){
 
-  //     const school = await this.erpService.createSchool(phone_number,admin_name,email,school_name,context.req.trustee);
-  //     const response : createSchoolResponse = {
-  //       admin_id:school.adminInfo._id,
-  //       school_id:school.adminInfo.school_id,
-  //       school_name:school.updatedSchool.updates.name
-  //     }
-  //     return response;
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async createBulkTrusteeSchool(
+    @Args('input', { type: () => [SchoolInputBulk] }) input: SchoolInputBulk[],
+    @Context() context
+  ) {
+    let createdCount = 0;
+    let notCreatedCount = 0;
+    let errorInSchool = 0;
 
-  // }
+    await Promise.all(
+      input.map(async (input) => {
+       
+      }),
+    );
+    const response = `${createdCount} schools created, ${notCreatedCount} already exist, error in Creating ${errorInSchool} schools`;
+    return response;
+  }
 
 }
 
@@ -453,4 +452,14 @@ class createSchoolResponse{
   school_id:string;
   @Field()
   school_name:string;
+}
+
+@InputType()
+export class SchoolInputBulk {
+  @Field()
+  name: string;
+  @Field()
+  email: string;
+  @Field()
+  phone_number: string;
 }
