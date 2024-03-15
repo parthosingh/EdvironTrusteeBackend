@@ -91,6 +91,10 @@ export class TrusteeSchool {
   @Prop()
   @Field(() => [PlatformCharge], {defaultValue: []})
   platform_charges: PlatformCharge[]
+
+  @Prop({})
+  @Field(() => String)
+  email: string;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool);

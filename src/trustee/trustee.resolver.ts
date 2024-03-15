@@ -16,7 +16,7 @@ import { MainBackendService } from '../main-backend/main-backend.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { SettlementReport } from '../schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -29,9 +29,9 @@ export class TrusteeResolver {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
     private settlementReportModel: mongoose.Model<SettlementReport>,
-    
 
-  ) {}
+
+  ) { }
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -192,26 +192,26 @@ export class TrusteeResolver {
 
   @Query(() => [SettlementReport])
   @UseGuards(TrusteeGuard)
-  async getSettlementReports( @Context() context) {
+  async getSettlementReports(@Context() context) {
     let settlementReports = [];
-    settlementReports = await this.settlementReportModel.find({trustee:new Types.ObjectId(context.req.trustee)}).sort({ createdAt: -1 });
+    settlementReports = await this.settlementReportModel.find({ trustee: new Types.ObjectId(context.req.trustee) }).sort({ createdAt: -1 });
     return settlementReports;
   }
-  
-  @Query(()=>[TransactionReport])
+
+  @Query(() => [TransactionReport])
   @UseGuards(TrusteeGuard)
   async getTransactionReport(@Context() context) {
     try {
       const merchants = await this.trusteeSchoolModel.find({ trustee_id: new Types.ObjectId(context.req.trustee) });
       let transactionReport = [];
-  
+
       for (const merchant of merchants) {
         if (!merchant.client_id) continue;
-        
+
         console.log(`Getting report for ${merchant.merchantName}(${merchant.client_id})`);
-  
+
         let token = this.jwtService.sign({ client_id: merchant.client_id }, { secret: process.env.PAYMENTS_SERVICE_SECRET });
-        
+
         let config = {
           method: 'get',
           maxBodyLength: Infinity,
@@ -222,14 +222,14 @@ export class TrusteeResolver {
           },
           data: { client_id: merchant.client_id, token },
         };
-  
+
         const response = await axios.request(config);
-        
+
         if (response.data.length > 0 && response.data !== 'No orders found for clientId') {
           const modifiedResponseData = response.data.map(item => ({
             ...item,
             school_name: merchant.school_name,
-            school_id:merchant.school_id
+            school_id: merchant.school_id
           }));
           transactionReport.push(...modifiedResponseData);
         }
@@ -239,71 +239,71 @@ export class TrusteeResolver {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return dateB - dateA;
-    });
-      
+      });
+
       return transactionReport;
     } catch (error) {
       console.log(error);
       throw error;
     }
   }
-  
 
-  @Query(()=>[School])
+
+  @Query(() => [School])
   @UseGuards(TrusteeGuard)
   async getAllSchoolQuery(
     @Context() context,
   ): Promise<any> {
     try {
       const id = context.req.trustee;
-      return await this.trusteeSchoolModel.find({trustee_id:context.req.trustee})
+      return await this.trusteeSchoolModel.find({ trustee_id: context.req.trustee })
     } catch (error) {
-     throw error
+      throw error
     }
   }
 
-  @Mutation(()=>verifyRes)
-  async resetMails(@Args('email') email:string){
+  @Mutation(() => verifyRes)
+  async resetMails(@Args('email') email: string) {
     await this.trusteeService.sentResetMail(email)
-    return {active:true}
+    return { active: true }
   }
- 
-  @Mutation(()=>resetPassResponse)
+
+  @Mutation(() => resetPassResponse)
   async resetPassword(
-    @Args('email') email:string,
-    @Args('password') password:string
-    
-    ){
-    await this.trusteeService.resetPassword(email,password)
-    return {msg:`Password Change`}
+    @Args('email') email: string,
+    @Args('password') password: string
+
+  ) {
+    await this.trusteeService.resetPassword(email, password)
+    return { msg: `Password Change` }
   }
 
-  @Query(()=>verifyRes)
+  @Query(() => verifyRes)
   async verifyToken(
-    @Args('token') token:string
-  ){
-    const res=await this.trusteeService.verifyresetToken(token)
-    return {active:res}
+    @Args('token') token: string
+  ) {
+    const res = await this.trusteeService.verifyresetToken(token)
+    return { active: res }
   }
 
-  @Mutation(()=>createSchoolResponse)
+  @Mutation(() => createSchoolResponse)
   @UseGuards(TrusteeGuard)
   async createSchool(
-    @Args('email') email:string,
-    @Args('school_name') school_name:string,
-    @Args('phone_number') phone_number:string,
-    @Args('admin_name') admin_name:string,
+    @Args('email') email: string,
+    @Args('school_name') school_name: string,
+    @Args('phone_number') phone_number: string,
+    @Args('admin_name') admin_name: string,
     @Context() context,
-    
-    ){
 
-      const school = await this.erpService.createSchool(phone_number,admin_name,email,school_name,context.req.trustee);
-      const response : createSchoolResponse = {
-        admin_id:school.adminInfo._id,
-        school_id:school.adminInfo.school_id,
-        school_name:school.updatedSchool.updates.name
-      }
-      return response;
+  ) {
+
+    const school = await this.erpService.createSchool(phone_number, admin_name, email, school_name, context.req.trustee);
+    const response: createSchoolResponse = {
+      admin_id: school.adminInfo._id,
+      school_id: school.adminInfo.school_id,
+      school_name: school.updatedSchool.updates.name
+    }
+    return response;
 
   }
 
@@ -311,22 +311,50 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async createBulkTrusteeSchool(
-    @Args('input', { type: () => [SchoolInputBulk] }) input: SchoolInputBulk[],
-    @Context() context
+    @Args('input', { type: () => [SchoolInputBulk] }) schools: SchoolInputBulk[],
+    @Context() context,
   ) {
-    let createdCount = 0;
-    let notCreatedCount = 0;
-    let errorInSchool = 0;
+    try {
+      let createdCount = 0;
+      let existingSchool = 0;
+      let errorInSchool = 0;
+      let trusteeSchoolsCreated = 0;
 
-    await Promise.all(
-      input.map(async (input) => {
-       
-      }),
-    );
-    const response = `${createdCount} schools created, ${notCreatedCount} already exist, error in Creating ${errorInSchool} schools`;
-    return response;
+      const schoolsInfo = { schools, trustee_id: context.req.trustee }
+      const token = this.jwtService.sign(schoolsInfo, { secret: process.env.JWT_SECRET_FOR_INTRANET })
+
+      axios.post(`${process.env.MAIN_BACKEND_URL}/api/trustee/create-bulk-school`, {
+        token,
+    })
+    .then(async response => {
+        console.log(response.data);
+        createdCount = response.data.createdCount;
+        existingSchool = response.data.existingSchool;
+
+        const newSchools = response.data.schools;
+
+        await Promise.all(newSchools.map(async school => {
+            await new this.trusteeSchoolModel({ 
+                school_id: school.school_id, 
+                school_name: school.school_name, 
+                email: school.school_email, 
+                trustee_id: context.req.trustee 
+            }).save().then(()=>{ trusteeSchoolsCreated++ }).catch(error =>{
+              throw error;
+            });
+        }));
+
+    })
+    .catch(error => {
+        console.error(error);
+        throw new Error();
+    });
+      const result = `${createdCount} schools created, ${existingSchool} already exist, error in Creating ${errorInSchool} schools`;
+      return result;
+    } catch (error) {
+      throw error;
+    }
   }
-
 }
 
 
@@ -339,14 +367,14 @@ class AuthResponse {
 }
 
 @ObjectType()
-class resetPassResponse{
+class resetPassResponse {
   @Field()
-  msg:string
+  msg: string
 }
 @ObjectType()
-class verifyRes{
+class verifyRes {
   @Field()
-  active:boolean
+  active: boolean
 }
 
 // Define a type for school token response
@@ -423,43 +451,45 @@ class getSchool {
 }
 
 @ObjectType()
-class TransactionReport{
-  @Field({nullable:true})
+class TransactionReport {
+  @Field({ nullable: true })
   collect_id: string;
-  @Field({nullable:true})
+  @Field({ nullable: true })
   updatedAt: string;
-  @Field({nullable:true})
+  @Field({ nullable: true })
   createdAt: string;
-  @Field({nullable:true})
+  @Field({ nullable: true })
   order_amount: number;
-  @Field({nullable:true})
+  @Field({ nullable: true })
   transaction_amount: number;
-  @Field({nullable:true})
+  @Field({ nullable: true })
   payment_method: string
-  @Field({nullable:true})
+  @Field({ nullable: true })
   school_name: string
-  @Field({nullable:true})
-  school_id:string
-  @Field({nullable:true})
-  status:string
+  @Field({ nullable: true })
+  school_id: string
+  @Field({ nullable: true })
+  status: string
 }
 
 @ObjectType()
-class createSchoolResponse{
+class createSchoolResponse {
   @Field()
   admin_id: string;
   @Field()
-  school_id:string;
+  school_id: string;
   @Field()
-  school_name:string;
+  school_name: string;
 }
 
 @InputType()
 export class SchoolInputBulk {
   @Field()
-  name: string;
+  admin_name: string;
   @Field()
   email: string;
   @Field()
   phone_number: string;
+  @Field()
+  school_name: string;
 }
