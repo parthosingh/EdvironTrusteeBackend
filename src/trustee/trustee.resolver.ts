@@ -286,7 +286,47 @@ export class TrusteeResolver {
     return {active:res}
   }
 
-  
+  @Mutation(()=>createSchoolResponse)
+  @UseGuards(TrusteeGuard)
+  async createSchool(
+    @Args('email') email:string,
+    @Args('school_name') school_name:string,
+    @Args('phone_number') phone_number:string,
+    @Args('admin_name') admin_name:string,
+    @Context() context,
+    
+    ){
+
+      const school = await this.erpService.createSchool(phone_number,admin_name,email,school_name,context.req.trustee);
+      const response : createSchoolResponse = {
+        admin_id:school.adminInfo._id,
+        school_id:school.adminInfo.school_id,
+        school_name:school.updatedSchool.updates.name
+      }
+      return response;
+
+  }
+
+  // @Mutation(()=>createSchoolResponse)
+  // @UseGuards(TrusteeGuard)
+  // async createBulkSchool(
+  //   @Args('email') email:string,
+  //   @Args('school_name') school_name:string,
+  //   @Args('phone_number') phone_number:string,
+  //   @Args('admin_name') admin_name:string,
+  //   @Context() context,
+    
+  //   ){
+
+  //     const school = await this.erpService.createSchool(phone_number,admin_name,email,school_name,context.req.trustee);
+  //     const response : createSchoolResponse = {
+  //       admin_id:school.adminInfo._id,
+  //       school_id:school.adminInfo.school_id,
+  //       school_name:school.updatedSchool.updates.name
+  //     }
+  //     return response;
+
+  // }
 
 }
 
@@ -403,4 +443,14 @@ class TransactionReport{
   school_id:string
   @Field({nullable:true})
   status:string
+}
+
+@ObjectType()
+class createSchoolResponse{
+  @Field()
+  admin_id: string;
+  @Field()
+  school_id:string;
+  @Field()
+  school_name:string;
 }
