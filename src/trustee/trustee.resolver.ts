@@ -194,7 +194,7 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async getSettlementReports( @Context() context) {
     let settlementReports = [];
-    settlementReports = await this.settlementReportModel.find({trustee:new Types.ObjectId(context.req.trustee)});
+    settlementReports = await this.settlementReportModel.find({trustee:new Types.ObjectId(context.req.trustee)}).sort({ createdAt: -1 });
     return settlementReports;
   }
   
@@ -234,6 +234,12 @@ export class TrusteeResolver {
           transactionReport.push(...modifiedResponseData);
         }
       }
+
+      transactionReport.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+    });
       
       return transactionReport;
     } catch (error) {
@@ -383,6 +389,8 @@ class TransactionReport{
   collect_id: string;
   @Field({nullable:true})
   updatedAt: string;
+  @Field({nullable:true})
+  createdAt: string;
   @Field({nullable:true})
   order_amount: number;
   @Field({nullable:true})
