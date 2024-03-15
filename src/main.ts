@@ -26,7 +26,8 @@ async function bootstrap() {
     'https://dev.trustee.edviron.com',
     'https://dev.api.edviron.com',
     "https://trustee.edviron.com",
-    "https://dev.trustee.edviron.com"
+    "https://dev.trustee.edviron.com",
+    "https://partner.edviron.com",
   ];
   app.enableCors({
     origin: function (origin, callback) {
