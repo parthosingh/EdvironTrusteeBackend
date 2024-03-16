@@ -53,6 +53,7 @@ export class ErpService {
       };
       const apiKey = this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET_FOR_API_KEY,
+        expiresIn: '1y'
       });
       const lastFourChars = apiKey.slice(-4);
       updatedTrustee.apiKey = lastFourChars;
