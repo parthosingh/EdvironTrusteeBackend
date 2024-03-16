@@ -202,6 +202,7 @@ export class ErpService {
         school_id: schoolId,
         school_name: school.updatedSchool.updates.name,
         trustee_id: trustee,
+        email:email
       });
 
       return school;

@@ -72,7 +72,7 @@ export class TrusteeSchool {
   @Field(() => String)
   merchantEmail: string;
 
-  @Prop({})
+  @Prop({default:"Not Initiated"})
   @Field(() => String)
   merchantStatus: string;
 
@@ -91,6 +91,10 @@ export class TrusteeSchool {
   @Prop()
   @Field(() => [PlatformCharge], {defaultValue: []})
   platform_charges: PlatformCharge[]
+
+  @Prop({})
+  @Field(() => String)
+  email: string;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool);
