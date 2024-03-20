@@ -1,4 +1,12 @@
-import { Resolver, Mutation, Args, Query, Int, Context, InputType } from '@nestjs/graphql';
+import {
+  Resolver,
+  Mutation,
+  Args,
+  Query,
+  Int,
+  Context,
+  InputType,
+} from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
 import {
   UnauthorizedException,
@@ -32,9 +40,7 @@ export class TrusteeResolver {
     private settlementReportModel: mongoose.Model<SettlementReport>,
     @InjectModel(Trustee.name)
     private trusteeModel: mongoose.Model<Trustee>,
-
-
-  ) { }
+  ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -85,17 +91,12 @@ export class TrusteeResolver {
 
   @Query(() => getSchool)
   @UseGuards(TrusteeGuard)
-  async getSchoolQuery(
-    @Args('page', { type: () => Int, defaultValue: 1 }) page: number,
-    @Context() context,
-  ): Promise<any> {
+  async getSchoolQuery(@Context() context): Promise<any> {
     try {
       const id = context.req.trustee;
-      const schools = await this.trusteeService.getSchools(id, page);
+      const schools = await this.trusteeService.getSchools(id);
       return {
         schools: schools.schoolData,
-        total_pages: schools.total_pages,
-        page: page,
       };
     } catch (error) {
       const customError = {
@@ -170,7 +171,6 @@ export class TrusteeResolver {
     return { pg_key };
   }
 
-
   @Mutation(() => String)
   async sentKycInvite(
     @Args('school_name') school_name: string,
@@ -197,7 +197,9 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async getSettlementReports(@Context() context) {
     let settlementReports = [];
-    settlementReports = await this.settlementReportModel.find({ trustee: new Types.ObjectId(context.req.trustee) }).sort({ createdAt: -1 });
+    settlementReports = await this.settlementReportModel
+      .find({ trustee: new Types.ObjectId(context.req.trustee) })
+      .sort({ createdAt: -1 });
     return settlementReports;
   }
 
@@ -205,15 +207,22 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async getTransactionReport(@Context() context) {
     try {
-      const merchants = await this.trusteeSchoolModel.find({ trustee_id: new Types.ObjectId(context.req.trustee) });
+      const merchants = await this.trusteeSchoolModel.find({
+        trustee_id: new Types.ObjectId(context.req.trustee),
+      });
       let transactionReport = [];
 
       for (const merchant of merchants) {
         if (!merchant.client_id) continue;
 
-        console.log(`Getting report for ${merchant.merchantName}(${merchant.client_id})`);
+        console.log(
+          `Getting report for ${merchant.merchantName}(${merchant.client_id})`,
+        );
 
-        let token = this.jwtService.sign({ client_id: merchant.client_id }, { secret: process.env.PAYMENTS_SERVICE_SECRET });
+        let token = this.jwtService.sign(
+          { client_id: merchant.client_id },
+          { secret: process.env.PAYMENTS_SERVICE_SECRET },
+        );
 
         let config = {
           method: 'get',
@@ -228,11 +237,14 @@ export class TrusteeResolver {
 
         const response = await axios.request(config);
 
-        if (response.data.length > 0 && response.data !== 'No orders found for clientId') {
-          const modifiedResponseData = response.data.map(item => ({
+        if (
+          response.data.length > 0 &&
+          response.data !== 'No orders found for clientId'
+        ) {
+          const modifiedResponseData = response.data.map((item) => ({
             ...item,
             school_name: merchant.school_name,
-            school_id: merchant.school_id
+            school_id: merchant.school_id,
           }));
           transactionReport.push(...modifiedResponseData);
         }
@@ -251,42 +263,38 @@ export class TrusteeResolver {
     }
   }
 
-
   @Query(() => [School])
   @UseGuards(TrusteeGuard)
-  async getAllSchoolQuery(
-    @Context() context,
-  ): Promise<any> {
+  async getAllSchoolQuery(@Context() context): Promise<any> {
     try {
       const id = context.req.trustee;
-      return await this.trusteeSchoolModel.find({ trustee_id: context.req.trustee })
+      return await this.trusteeSchoolModel.find({
+        trustee_id: context.req.trustee,
+      });
     } catch (error) {
-      throw error
+      throw error;
     }
   }
 
   @Mutation(() => verifyRes)
   async resetMails(@Args('email') email: string) {
-    await this.trusteeService.sentResetMail(email)
-    return { active: true }
+    await this.trusteeService.sentResetMail(email);
+    return { active: true };
   }
 
   @Mutation(() => resetPassResponse)
   async resetPassword(
     @Args('email') email: string,
-    @Args('password') password: string
-
+    @Args('password') password: string,
   ) {
-    await this.trusteeService.resetPassword(email, password)
-    return { msg: `Password Change` }
+    await this.trusteeService.resetPassword(email, password);
+    return { msg: `Password Change` };
   }
 
   @Query(() => verifyRes)
-  async verifyToken(
-    @Args('token') token: string
-  ) {
-    const res = await this.trusteeService.verifyresetToken(token)
-    return { active: res }
+  async verifyToken(@Args('token') token: string) {
+    const res = await this.trusteeService.verifyresetToken(token);
+    return { active: res };
   }
 
   @Mutation(() => createSchoolResponse)
@@ -297,24 +305,27 @@ export class TrusteeResolver {
     @Args('phone_number') phone_number: string,
     @Args('admin_name') admin_name: string,
     @Context() context,
-
   ) {
-
-    const school = await this.erpService.createSchool(phone_number, admin_name, email, school_name, context.req.trustee);
+    const school = await this.erpService.createSchool(
+      phone_number,
+      admin_name,
+      email,
+      school_name,
+      context.req.trustee,
+    );
     const response: createSchoolResponse = {
       admin_id: school.adminInfo._id,
       school_id: school.adminInfo.school_id,
-      school_name: school.updatedSchool.updates.name
-    }
+      school_name: school.updatedSchool.updates.name,
+    };
     return response;
-
   }
-
 
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async createBulkTrusteeSchool(
-    @Args('schools', { type: () => [SchoolInputBulk] }) schools: SchoolInputBulk[],
+    @Args('schools', { type: () => [SchoolInputBulk] })
+    schools: SchoolInputBulk[],
     @Context() context,
   ) {
     try {
@@ -326,28 +337,41 @@ export class TrusteeResolver {
       const trustee = await this.trusteeModel.findById(context.req.trustee);
       if (!trustee) throw new NotFoundException('Trustee not found');
 
-      const schoolsInfo = { schools, trustee_id: trustee._id, trustee_name: trustee.name }
-      const token = this.jwtService.sign(schoolsInfo, { secret: process.env.JWT_SECRET_FOR_INTRANET })
+      const schoolsInfo = {
+        schools,
+        trustee_id: trustee._id,
+        trustee_name: trustee.name,
+      };
+      const token = this.jwtService.sign(schoolsInfo, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
-      const response = await axios.post(`${process.env.MAIN_BACKEND_URL}/api/trustee/create-bulk-school`, {
-        token,
-      })
+      const response = await axios.post(
+        `${process.env.MAIN_BACKEND_URL}/api/trustee/create-bulk-school`,
+        {
+          token,
+        },
+      );
 
-      const verifiedInfo = this.jwtService.verify(response.data, { secret: process.env.JWT_SECRET_FOR_INTRANET })
+      const verifiedInfo = this.jwtService.verify(response.data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
       createdCount = verifiedInfo.createdCount;
       existingSchool = verifiedInfo.alreadyExists;
       const newSchools = verifiedInfo.schools;
 
       if (newSchools && newSchools.length !== 0) {
-        await Promise.all(newSchools.map(async school => {
-          const newTrusteeSchool = await new this.trusteeSchoolModel({
-            school_id: school.school_id,
-            school_name: school.school_name,
-            email: school.school_email,
-            trustee_id: trustee._id
-          }).save()
-        }));
+        await Promise.all(
+          newSchools.map(async (school) => {
+            const newTrusteeSchool = await new this.trusteeSchoolModel({
+              school_id: school.school_id,
+              school_name: school.school_name,
+              email: school.school_email,
+              trustee_id: trustee._id,
+            }).save();
+          }),
+        );
       }
 
       result = `${createdCount} schools created, ${existingSchool} already exist, error in Creating ${errorInSchool} schools`;
@@ -359,20 +383,19 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Query(() => TokenResponse)
-  async kycLoginToken(
-    @Args('school_id') school_id: string
-  ) {
-    const token = await this.jwtService.sign({ school_id }, {
-      secret: process.env.JWT_SECRET_FOR_INTRANET,
-    });
-    const res = await axios.get(
-      `${process.env.MAIN_BACKEND_URL}/api/trustee/validate-kyc-login?token=${token}`
+  async kycLoginToken(@Args('school_id') school_id: string) {
+    const token = await this.jwtService.sign(
+      { school_id },
+      {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      },
     );
-    return { token: res.data.token }
+    const res = await axios.get(
+      `${process.env.MAIN_BACKEND_URL}/api/trustee/validate-kyc-login?token=${token}`,
+    );
+    return { token: res.data.token };
   }
 }
-
-
 
 // Define a type for the AuthResponse
 @ObjectType()
@@ -384,12 +407,12 @@ class AuthResponse {
 @ObjectType()
 class resetPassResponse {
   @Field()
-  msg: string
+  msg: string;
 }
 @ObjectType()
 class verifyRes {
   @Field()
-  active: boolean
+  active: boolean;
 }
 
 // Define a type for school token response
@@ -459,8 +482,6 @@ class School {
 
   @Field(() => String, { nullable: true })
   merchantStatus: string;
-
-
 }
 
 @ObjectType()
@@ -486,13 +507,13 @@ class TransactionReport {
   @Field({ nullable: true })
   transaction_amount: number;
   @Field({ nullable: true })
-  payment_method: string
+  payment_method: string;
   @Field({ nullable: true })
-  school_name: string
+  school_name: string;
   @Field({ nullable: true })
-  school_id: string
+  school_id: string;
   @Field({ nullable: true })
-  status: string
+  status: string;
 }
 
 @ObjectType()
