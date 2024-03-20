@@ -17,7 +17,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { SettlementReport } from '../schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
-import { Trustee } from 'src/schema/trustee.schema';
+import { Trustee } from '../schema/trustee.schema';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -356,6 +356,20 @@ export class TrusteeResolver {
       throw new Error(error.message);
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => TokenResponse)
+  async kycLoginToken(
+    @Args('school_id') school_id: string
+  ) {
+    const token = await this.jwtService.sign({ school_id }, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    const res = await axios.get(
+      `${process.env.MAIN_BACKEND_URL}/api/trustee/validate-kyc-login?token=${token}`
+    );
+    return { token: res.data.token }
+  }
 }
 
 
@@ -439,6 +453,14 @@ class School {
 
   @Field(() => String, { nullable: true })
   pg_key: string;
+
+  @Field(() => String, { nullable: true })
+  email: string;
+
+  @Field(() => String, { nullable: true })
+  merchantStatus: string;
+
+
 }
 
 @ObjectType()
@@ -493,4 +515,10 @@ export class SchoolInputBulk {
   phone_number: string;
   @Field()
   school_name: string;
+}
+
+@ObjectType()
+class TokenResponse {
+  @Field()
+  token: string;
 }

@@ -545,4 +545,19 @@ describe('TrusteeResolver', () => {
 
     expect(await resolver.getAllSchoolQuery(context)).toEqual(schools)
   })
+
+  describe('kycLoginToken',()=>{
+    it.only('should return kyc token',async()=>{
+      const school_id = new ObjectId(1).toHexString();
+    const mockResponse = {
+      data:{
+        token:'mockToken'
+      }
+    }
+
+    jest.spyOn(axios,'get').mockResolvedValueOnce(mockResponse)
+    const result = await resolver.kycLoginToken(school_id)
+    expect(result).toMatchObject({token:mockResponse.data.token})
+    })
+  })
 });

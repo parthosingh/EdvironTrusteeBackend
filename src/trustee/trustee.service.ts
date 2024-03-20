@@ -102,11 +102,13 @@ export class TrusteeService {
       const schools = await this.trusteeSchoolModel
         .find(
           { trustee_id: trusteeObjectId },
-          { school_id: 1, school_name: 1, pg_key:1,email:1, _id: 0 },
+          { school_id: 1, school_name: 1, pg_key:1,email:1, _id: 0,merchantStatus:1 },
         )
+        .sort({createdAt:-1})
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .exec();
+        
       return { schoolData: schools, total_pages: Math.ceil(count / pageSize) };
     } catch (error) {
       if (error instanceof ConflictException) {
