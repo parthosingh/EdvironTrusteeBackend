@@ -140,7 +140,7 @@ export class MainBackendController {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
 
-      const requiredFields = ['name', 'school_id', 'trusteeId'];
+      const requiredFields = ['name', 'school_id', 'trusteeId', 'email'];
 
       const missingFields = requiredFields.filter((field) => !data[field]);
 
@@ -156,6 +156,7 @@ export class MainBackendController {
         school_name: data.name,
         school_id: data.school_id,
         trustee_id: data.trusteeId,
+        email:data.email
       };
       const schoolInfo = await this.mainBackendService.assignSchool(info);
 

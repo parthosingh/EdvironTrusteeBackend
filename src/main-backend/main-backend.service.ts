@@ -195,6 +195,7 @@ export class MainBackendService {
     school_name: string,
     school_id: string,
     trustee_id: string,
+    email: string,
   }) {
     try {
 
@@ -211,6 +212,7 @@ export class MainBackendService {
         school_name,
         school_id: schoolId,
         trustee_id: trusteeId,
+        email:info.email
         // pg_key,
       });
       return school
