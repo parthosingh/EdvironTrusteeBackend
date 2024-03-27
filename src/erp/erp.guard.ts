@@ -23,6 +23,7 @@ export class ErpGuard implements CanActivate {
       return true;
     } catch (error) {
       // Handle invalid API key or other errors
+      console.error(error);
       throw new UnauthorizedException('Invalid Bearer token');
     }
   }

@@ -19,6 +19,7 @@ import { InjectModel, Schema } from '@nestjs/mongoose';
 import { TrusteeSchool } from '../schema/school.schema';
 import mongoose, { Types } from 'mongoose';
 import axios from 'axios';
+import { SettlementReport, SettlementSchema } from '../schema/settlement.schema';
 
 @Controller('erp')
 export class ErpController {
@@ -27,6 +28,8 @@ export class ErpController {
     private readonly jwtService: JwtService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
+    @InjectModel(SettlementReport.name)
+    private settlementModel: mongoose.Model<SettlementReport>,
   ) {}
 
   @Get('payment-link')
@@ -438,6 +441,36 @@ export class ErpController {
       return 'Notification sent scuccessfully';
     } catch (err) {
       throw new Error(err.message);
+    }
+  }
+
+  @Get('settlements')
+  @UseGuards(ErpGuard)
+  async getSettlements(@Req() req) {
+    try {
+      const trustee_id = req.userTrustee.id;
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+
+      //paginated query
+      const settlements = await this.settlementModel.find({
+        trustee: trustee_id,
+      }, null, {
+        skip: (page - 1) * limit,
+        limit: limit,
+      });
+      const count = await this.settlementModel.countDocuments({
+        trustee: trustee_id,
+      });
+      const total_pages = Math.ceil(count / limit);
+      return {
+        page,
+        limit,
+        settlements,
+        total_pages
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
   }
 }
