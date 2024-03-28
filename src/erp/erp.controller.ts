@@ -540,7 +540,14 @@ export class ErpController {
         }));
         transactions.push(...modifiedResponseData);
       }
-      return transactions;
+      const total_pages= Math.ceil(transactions.length/limit);
+      return{
+        page,
+        limit,
+        transactions,
+        total_pages
+
+      }
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -602,8 +609,13 @@ export class ErpController {
           transactionReport.push(...modifiedResponseData);
         }
       }
-
-      return transactionReport;
+      const total_pages = Math.ceil(transactionReport.length / limit);
+      return {
+        page,
+        limit,
+        transactionReport,
+        total_pages,
+      };
     } catch (error) {
       console.log(error);
       throw error;
