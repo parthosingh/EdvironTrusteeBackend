@@ -21,6 +21,7 @@ import mongoose, { Types } from 'mongoose';
 import axios from 'axios';
 import { SettlementReport, SettlementSchema } from '../schema/settlement.schema';
 
+
 @Controller('erp')
 export class ErpController {
   constructor(
@@ -239,7 +240,7 @@ export class ErpController {
         clientSecret: school.client_secret,
         webHook: webHookUrl || null,
         disabled_modes: school.disabled_modes,
-        platform_charges: school.platform_charges
+        platform_charges: school.platform_charges,
       });
       let config = {
         method: 'post',
@@ -322,8 +323,6 @@ export class ErpController {
       ) {
         throw new ForbiddenException('request forged');
       }
-
-      const axios = require('axios');
 
       let config = {
         method: 'get',
@@ -453,12 +452,16 @@ export class ErpController {
       const limit = req.query.limit || 10;
 
       //paginated query
-      const settlements = await this.settlementModel.find({
-        trustee: trustee_id,
-      }, null, {
-        skip: (page - 1) * limit,
-        limit: limit,
-      });
+      const settlements = await this.settlementModel.find(
+        {
+          trustee: trustee_id,
+        },
+        null,
+        {
+          skip: (page - 1) * limit,
+          limit: limit,
+        },
+      );
       const count = await this.settlementModel.countDocuments({
         trustee: trustee_id,
       });
@@ -467,10 +470,143 @@ export class ErpController {
         page,
         limit,
         settlements,
-        total_pages
+        total_pages,
       };
     } catch (error) {
       throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get('transactions/:school_id')
+  @UseGuards(ErpGuard)
+  async getTransactions(@Req() req) {
+    try {
+      const trustee_id = req.userTrustee.id;
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(req.params.school_id),
+        trustee_id: trustee_id,
+      });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+      const status = req.query.status || null;
+      const start_date = req.query.start_date || null;
+      const end_date = req.query.end_date || null;
+      const school_id = req.params.school_id;
+      let token = this.jwtService.sign(
+        {
+          client_id: school.client_id,
+        },
+        {
+          noTimestamp: true,
+          secret: process.env.PAYMENTS_SERVICE_SECRET,
+        },
+      );
+
+      let data = {
+        client_id: school.client_id,
+        token: token,
+      };
+
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report`,
+        headers: {
+          accept: 'application/json',
+        },
+        data: data,
+        params: {
+          status,
+          start_date,
+          end_date,
+          page,
+          limit,
+        },
+      };
+      let transactions = [];
+      const response = await axios.request(config);
+      if (
+        response.data.length > 0 &&
+        response.data !== 'No orders found for clientId'
+      ) {
+        const modifiedResponseData = response.data.map((item) => ({
+          ...item,
+          school_name: school.school_name,
+          school_id: school.school_id,
+        }));
+        transactions.push(...modifiedResponseData);
+      }
+      return transactions;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get('transactions')
+  @UseGuards(ErpGuard)
+  async getTransaction(@Req() req) {
+    try {
+      const trustee_id = req.userTrustee.id;
+
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+      const status = req.query.status || null;
+      const start_date = req.query.start_date || null;
+      const end_date = req.query.end_date || null;
+      const merchants = await this.trusteeSchoolModel.find({
+        trustee_id: trustee_id,
+      });
+      let transactionReport = [];
+
+      for (const merchant of merchants) {
+        if (!merchant.client_id) continue;
+
+        let token = this.jwtService.sign(
+          { client_id: merchant.client_id },
+          { secret: process.env.PAYMENTS_SERVICE_SECRET },
+        );
+
+        let config = {
+          method: 'get',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report`,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          data: { client_id: merchant.client_id, token },
+          params: {
+            status,
+            start_date,
+            end_date,
+            page,
+            limit,
+          },
+        };
+
+        const response = await axios.request(config);
+
+        if (
+          response.data.length > 0 &&
+          response.data !== 'No orders found for clientId'
+        ) {
+          const modifiedResponseData = response.data.map((item) => ({
+            ...item,
+            school_name: merchant.school_name,
+            school_id: merchant.school_id,
+          }));
+          transactionReport.push(...modifiedResponseData);
+        }
+      }
+
+      return transactionReport;
+    } catch (error) {
+      console.log(error);
+      throw error;
     }
   }
 }
