@@ -521,8 +521,8 @@ export class ErpController {
         data: data,
         params: {
           status,
-          start_date,
-          end_date,
+          startDate:start_date,
+          endDate:end_date,
           page,
           limit,
         },
@@ -588,8 +588,8 @@ export class ErpController {
           data: { client_id: merchant.client_id, token },
           params: {
             status,
-            start_date,
-            end_date,
+            startDate:start_date,
+            endDate:end_date,
             page,
             limit,
           },
