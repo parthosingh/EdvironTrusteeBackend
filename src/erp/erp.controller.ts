@@ -491,7 +491,7 @@ export class ErpController {
       }
 
       const page = req.query.page || 1;
-      const limit = req.query.limit || 10;
+      let limit = Number(req.query.limit || 10);
       const status = req.query.status || null;
       const start_date = req.query.start_date || null;
       const end_date = req.query.end_date || null;
@@ -521,8 +521,8 @@ export class ErpController {
         data: data,
         params: {
           status,
-          startDate:start_date,
-          endDate:end_date,
+          startDate: start_date,
+          endDate: end_date,
           page,
           limit,
         },
@@ -530,24 +530,24 @@ export class ErpController {
       let transactions = [];
       const response = await axios.request(config);
       if (
-        response.data.length > 0 &&
+        response.data.transactions.length > 0 &&
         response.data !== 'No orders found for clientId'
       ) {
-        const modifiedResponseData = response.data.map((item) => ({
+        const modifiedResponseData = response.data.transactions.map((item) => ({
           ...item,
           school_name: school.school_name,
           school_id: school.school_id,
         }));
         transactions.push(...modifiedResponseData);
       }
-      const total_pages= Math.ceil(transactions.length/limit);
-      return{
+
+      const total_pages = Math.ceil(response.data.totalTransactions / limit);
+      return {
         page,
         limit,
         transactions,
-        total_pages
-
-      }
+        total_pages,
+      };
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -569,6 +569,8 @@ export class ErpController {
       });
       let transactionReport = [];
 
+      let totalData = 0;
+
       for (const merchant of merchants) {
         if (!merchant.client_id) continue;
 
@@ -588,8 +590,8 @@ export class ErpController {
           data: { client_id: merchant.client_id, token },
           params: {
             status,
-            startDate:start_date,
-            endDate:end_date,
+            startDate: start_date,
+            endDate: end_date,
             page,
             limit,
           },
@@ -598,18 +600,21 @@ export class ErpController {
         const response = await axios.request(config);
 
         if (
-          response.data.length > 0 &&
+          response.data.transactions.length > 0 &&
           response.data !== 'No orders found for clientId'
         ) {
-          const modifiedResponseData = response.data.map((item) => ({
-            ...item,
-            school_name: merchant.school_name,
-            school_id: merchant.school_id,
-          }));
+          const modifiedResponseData = response.data.transactions.map(
+            (item) => ({
+              ...item,
+              school_name: merchant.school_name,
+              school_id: merchant.school_id,
+            }),
+          );
           transactionReport.push(...modifiedResponseData);
         }
+        totalData += response.data.totalTransactions;
       }
-      const total_pages = Math.ceil(transactionReport.length / limit);
+      const total_pages = Math.ceil(totalData / limit);
       return {
         page,
         limit,
@@ -618,7 +623,7 @@ export class ErpController {
       };
     } catch (error) {
       console.log(error);
-      throw error;
+      throw new Error(error.message);
     }
   }
 }
