@@ -19,8 +19,10 @@ import { InjectModel, Schema } from '@nestjs/mongoose';
 import { TrusteeSchool } from '../schema/school.schema';
 import mongoose, { Types } from 'mongoose';
 import axios from 'axios';
-import { SettlementReport, SettlementSchema } from '../schema/settlement.schema';
-
+import {
+  SettlementReport,
+  SettlementSchema,
+} from '../schema/settlement.schema';
 
 @Controller('erp')
 export class ErpController {
@@ -448,8 +450,8 @@ export class ErpController {
   async getSettlements(@Req() req) {
     try {
       const trustee_id = req.userTrustee.id;
-      const page = req.query.page || 1;
-      const limit = req.query.limit || 10;
+      const page = Number(req.query.page || 1);
+      const limit = Number(req.query.limit || 10);
 
       //paginated query
       const settlements = await this.settlementModel.find(
@@ -490,8 +492,8 @@ export class ErpController {
         throw new NotFoundException('School not found');
       }
 
-      const page = req.query.page || 1;
-      let limit = Number(req.query.limit || 10);
+      const page = Number(req.query.page || 1);
+      const limit = Number(req.query.limit || 10);
       const status = req.query.status || null;
       const start_date = req.query.start_date || null;
       const end_date = req.query.end_date || null;
@@ -559,8 +561,8 @@ export class ErpController {
     try {
       const trustee_id = req.userTrustee.id;
 
-      const page = req.query.page || 1;
-      const limit = req.query.limit || 10;
+      const page = Number(req.query.page || 1);
+      const limit = Number(req.query.limit || 10);
       const status = req.query.status || null;
       const start_date = req.query.start_date || null;
       const end_date = req.query.end_date || null;
