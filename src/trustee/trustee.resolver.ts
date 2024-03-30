@@ -238,14 +238,16 @@ export class TrusteeResolver {
         const response = await axios.request(config);
 
         if (
-          response.data.length > 0 &&
+          response.data.transactions.length > 0 &&
           response.data !== 'No orders found for clientId'
         ) {
-          const modifiedResponseData = response.data.map((item) => ({
-            ...item,
-            school_name: merchant.school_name,
-            school_id: merchant.school_id,
-          }));
+          const modifiedResponseData = response.data.transactions.map(
+            (item) => ({
+              ...item,
+              school_name: merchant.school_name,
+              school_id: merchant.school_id,
+            }),
+          );
           transactionReport.push(...modifiedResponseData);
         }
       }
