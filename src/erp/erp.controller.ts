@@ -463,7 +463,7 @@ export class ErpController {
           skip: (page - 1) * limit,
           limit: limit,
         },
-      );
+      ).select('-clientId -trustee');
       const count = await this.settlementModel.countDocuments({
         trustee: trustee_id,
       });
@@ -539,6 +539,9 @@ export class ErpController {
           ...item,
           school_name: school.school_name,
           school_id: school.school_id,
+          merchant_id: school.school_id,
+          merchant_name: school.school_name,
+          currency: "INR"
         }));
         transactions.push(...modifiedResponseData);
       }
@@ -610,6 +613,9 @@ export class ErpController {
               ...item,
               school_name: merchant.school_name,
               school_id: merchant.school_id,
+              merchant_id: merchant.school_id,
+              merchant_name: merchant.school_name,
+              currency: 'INR',
             }),
           );
           transactionReport.push(...modifiedResponseData);
