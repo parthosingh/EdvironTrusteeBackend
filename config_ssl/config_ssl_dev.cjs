@@ -1,5 +1,5 @@
-const fs = require("fs");
-const yaml = require("js-yaml")
+const fs = require('fs');
+const yaml = require('js-yaml');
 
 try {
   //reading file
@@ -7,9 +7,10 @@ try {
   const data = yaml.load(yamlFile);
 
   //updating SSL certificates
-  data["files"]['/etc/pki/tls/certs/server.crt']["source"] = "https://edv-certificates.s3.ap-south-1.amazonaws.com/dev/vanilla_certificate.crt"
-  data["files"]["/etc/pki/tls/certs/server.key"]["source"] = "https://edv-certificates.s3.ap-south-1.amazonaws.com/dev/vanilla_private.key"
-
+  data['files']['/etc/pki/tls/certs/server.crt']['source'] =
+    'https://edv-certificates.s3.ap-south-1.amazonaws.com/dev/vanilla_certificate.crt';
+  data['files']['/etc/pki/tls/certs/server.key']['source'] =
+    'https://edv-certificates.s3.ap-south-1.amazonaws.com/dev/vanilla_private.key';
 
   //write file
   const yamlContent = yaml.dump(data);
