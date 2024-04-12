@@ -288,11 +288,9 @@ describe('ErpController', () => {
         school_name: 'Example School',
       };
 
-      jest
-        .spyOn(service, 'createSchool')
-        .mockRejectedValueOnce({
-          response: { statusCode: 409, message: 'Conflict' },
-        });
+      jest.spyOn(service, 'createSchool').mockRejectedValueOnce({
+        response: { statusCode: 409, message: 'Conflict' },
+      });
 
       await expect(
         controller.createSchool(mockRequestBody, mockRequest),

@@ -25,7 +25,7 @@ export class MainBackendController {
     private readonly trusteeService: TrusteeService,
     @InjectModel(Trustee.name)
     private readonly trusteeModel: mongoose.Model<Trustee>,
-  ) { }
+  ) {}
 
   @Post('create-trustee')
   async createTrustee(
@@ -84,14 +84,11 @@ export class MainBackendController {
   // }
 
   @Post('update-school')
-  async updateSchool(
-    @Body() body: { token: string },
-  ) {
+  async updateSchool(@Body() body: { token: string }) {
     try {
-      const data: JwtPayload = await this.jwtService.verify(
-        body.token,
-        { secret: process.env.JWT_SECRET_FOR_INTRANET },
-      )
+      const data: JwtPayload = await this.jwtService.verify(body.token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
       const requiredFields = [
         'school_id',
@@ -101,13 +98,15 @@ export class MainBackendController {
         'merchantStatus',
         'pgMinKYC',
         'pgFullKYC',
-        'merchantName'
+        'merchantName',
       ];
 
-      const missingFields = requiredFields.filter(field => !data[field]);
+      const missingFields = requiredFields.filter((field) => !data[field]);
 
       if (missingFields.length > 0) {
-        throw new BadRequestException(`Missing fields: ${missingFields.join(', ')}`);
+        throw new BadRequestException(
+          `Missing fields: ${missingFields.join(', ')}`,
+        );
       }
 
       const info = {
@@ -118,18 +117,18 @@ export class MainBackendController {
         merchantEmail: data.merchantEmail,
         merchantStatus: data.merchantStatus,
         pgMinKYC: data.pgMinKYC,
-        pgFullKYC: data.pgFullKYC
-      }
-      const school = await this.mainBackendService.updateSchoolInfo(info)
+        pgFullKYC: data.pgFullKYC,
+      };
+      const school = await this.mainBackendService.updateSchoolInfo(info);
       const response = {
         school_id: school.updatedSchool.school_id,
         school_name: school.updatedSchool.school_name,
-        msg: `${school.updatedSchool.school_name} is Updated`
-      }
+        msg: `${school.updatedSchool.school_name} is Updated`,
+      };
 
-      return response
+      return response;
     } catch (error) {
-      throw new BadRequestException(error.message)
+      throw new BadRequestException(error.message);
     }
   }
 
@@ -156,7 +155,7 @@ export class MainBackendController {
         school_name: data.name,
         school_id: data.school_id,
         trustee_id: data.trusteeId,
-        email:data.email
+        email: data.email,
       };
       const schoolInfo = await this.mainBackendService.assignSchool(info);
 

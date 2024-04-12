@@ -20,7 +20,7 @@ import { TrusteeService } from 'src/trustee/trustee.service';
       }),
     }),
   ],
-  providers: [MainBackendService,TrusteeService],
+  providers: [MainBackendService, TrusteeService],
   controllers: [MainBackendController],
 })
 export class MainBackendModule {}

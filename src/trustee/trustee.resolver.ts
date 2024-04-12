@@ -210,7 +210,7 @@ export class TrusteeResolver {
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: new Types.ObjectId(context.req.trustee),
       });
-      let transactionReport = [];
+      const transactionReport = [];
 
       for (const merchant of merchants) {
         if (!merchant.client_id) continue;
@@ -219,12 +219,12 @@ export class TrusteeResolver {
           `Getting report for ${merchant.merchantName}(${merchant.client_id})`,
         );
 
-        let token = this.jwtService.sign(
+        const token = this.jwtService.sign(
           { client_id: merchant.client_id },
           { secret: process.env.PAYMENTS_SERVICE_SECRET },
         );
 
-        let config = {
+        const config = {
           method: 'get',
           maxBodyLength: Infinity,
           url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report?limit=50000`,
@@ -333,8 +333,8 @@ export class TrusteeResolver {
     try {
       let createdCount = 0;
       let existingSchool = 0;
-      let errorInSchool = 0;
-      let trusteeSchoolsCreated = 0;
+      const errorInSchool = 0;
+      const trusteeSchoolsCreated = 0;
       let result = '';
       const trustee = await this.trusteeModel.findById(context.req.trustee);
       if (!trustee) throw new NotFoundException('Trustee not found');

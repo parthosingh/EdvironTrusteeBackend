@@ -38,6 +38,12 @@ config();
     ]),
   ],
   controllers: [],
-  providers: [ErpService, TrusteeService, TrusteeResolver, TrusteeGuard,MainBackendService],
+  providers: [
+    ErpService,
+    TrusteeService,
+    TrusteeResolver,
+    TrusteeGuard,
+    MainBackendService,
+  ],
 })
 export class TrusteeModule {}

@@ -2,35 +2,33 @@ import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 
-
 export enum charge_type {
-  FLAT="FLAT",
-  PERCENT="PERCENT"
+  FLAT = 'FLAT',
+  PERCENT = 'PERCENT',
 }
-
 
 @ObjectType()
 export class rangeCharge {
-  @Field(() => Number, {nullable: true})
-  upto: Number
+  @Field(() => Number, { nullable: true })
+  upto: number;
 
   @Field(() => String)
-  charge_type: charge_type
+  charge_type: charge_type;
 
   @Field(() => Number)
-  charge: Number
+  charge: number;
 }
 
 @ObjectType()
 export class PlatformCharge {
   @Field(() => String)
-  platform_type: String
+  platform_type: string;
 
   @Field(() => String)
-  payment_mode: String
+  payment_mode: string;
 
-  @Field(() => [rangeCharge], {defaultValue: []})
-  range_charge: rangeCharge[]
+  @Field(() => [rangeCharge], { defaultValue: [] })
+  range_charge: rangeCharge[];
 }
 
 @ObjectType()
@@ -59,7 +57,7 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => String)
   pg_key: string;
-  
+
   @Prop({})
   @Field(() => String)
   merchantId: string;
@@ -72,7 +70,7 @@ export class TrusteeSchool {
   @Field(() => String)
   merchantEmail: string;
 
-  @Prop({default:"Not Initiated"})
+  @Prop({ default: 'Not Initiated' })
   @Field(() => String)
   merchantStatus: string;
 
@@ -84,13 +82,13 @@ export class TrusteeSchool {
   @Field(() => String)
   pgFullKYC: string;
 
-  @Prop({required: true, default: []})
+  @Prop({ required: true, default: [] })
   @Field(() => [String])
   disabled_modes: string[];
 
   @Prop()
-  @Field(() => [PlatformCharge], {defaultValue: []})
-  platform_charges: PlatformCharge[]
+  @Field(() => [PlatformCharge], { defaultValue: [] })
+  platform_charges: PlatformCharge[];
 
   @Prop({})
   @Field(() => String)

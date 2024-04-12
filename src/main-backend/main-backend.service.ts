@@ -18,16 +18,14 @@ export class MainBackendService {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
-  ) { }
+  ) {}
 
   async createTrustee(info) {
     const { name, email, password, school_limit, phone_number } = info;
     try {
-      const checkMail = await this.trusteeModel
-        .findOne({ email_id: email })
+      const checkMail = await this.trusteeModel.findOne({ email_id: email });
 
       if (checkMail) {
-
         throw new ConflictException(`${email} already exist`);
       }
 
@@ -37,14 +35,10 @@ export class MainBackendService {
         password_hash: password,
         school_limit: school_limit,
         phone_number: phone_number,
-      })
-
-
+      });
 
       return trustee;
     } catch (error) {
-
-
       if (error.response && error.response.statusCode === 409) {
         throw new ConflictException(error.message);
       }
@@ -95,7 +89,8 @@ export class MainBackendService {
   }
 
   async generateKey() {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const characters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const keyLength = 10;
 
     let pgKey;
@@ -117,23 +112,24 @@ export class MainBackendService {
 
   async isKeyUnique(uniqueKey) {
     try {
-      const checkKey = await this.trusteeSchoolModel.findOne({ pg_key: uniqueKey });
+      const checkKey = await this.trusteeSchoolModel.findOne({
+        pg_key: uniqueKey,
+      });
       return !checkKey;
     } catch (error) {
-      throw new BadRequestException(error.message)
+      throw new BadRequestException(error.message);
     }
   }
 
-
   async updateSchoolInfo(info: {
-    school_id: string,
-    trustee_id: string,
-    client_id: string,
-    merchantName: string,
-    merchantEmail: string,
-    merchantStatus: string,
-    pgMinKYC: string,
-    pgFullKYC: string
+    school_id: string;
+    trustee_id: string;
+    client_id: string;
+    merchantName: string;
+    merchantEmail: string;
+    merchantStatus: string;
+    pgMinKYC: string;
+    pgFullKYC: string;
   }) {
     try {
       const {
@@ -144,15 +140,18 @@ export class MainBackendService {
         merchantName,
         merchantStatus,
         pgFullKYC,
-        pgMinKYC
-      } = info
+        pgMinKYC,
+      } = info;
 
-      const trusteeId = new Types.ObjectId(trustee_id)
-      const schoolId = new Types.ObjectId(school_id)
+      const trusteeId = new Types.ObjectId(trustee_id);
+      const schoolId = new Types.ObjectId(school_id);
 
-      const trusteeSchool = await this.trusteeSchoolModel.findOne({ trustee_id: trusteeId, school_id: schoolId })
+      const trusteeSchool = await this.trusteeSchoolModel.findOne({
+        trustee_id: trusteeId,
+        school_id: schoolId,
+      });
       if (!trusteeSchool) {
-        throw new NotFoundException(`School not found for Trustee`)
+        throw new NotFoundException(`School not found for Trustee`);
       }
 
       const update = {
@@ -164,7 +163,7 @@ export class MainBackendService {
           merchantStatus,
           pgFullKYC,
           pgMinKYC,
-          trustee_id: trusteeId
+          trustee_id: trusteeId,
         },
       };
 
@@ -174,10 +173,10 @@ export class MainBackendService {
 
       const updatedSchool = await this.trusteeSchoolModel.findOneAndUpdate(
         {
-          school_id: schoolId
+          school_id: schoolId,
         },
         update,
-        options
+        options,
       );
 
       return { updatedSchool };
@@ -185,26 +184,25 @@ export class MainBackendService {
       if (error.response && error.response.statusCode === 404) {
         throw new NotFoundException(error.response.message);
       } else if (error.response && error.response.statusCode === 409) {
-        throw new ConflictException(error.response.message)
+        throw new ConflictException(error.response.message);
       }
       throw new BadRequestException(error.message);
     }
   }
 
   async assignSchool(info: {
-    school_name: string,
-    school_id: string,
-    trustee_id: string,
-    email: string,
+    school_name: string;
+    school_id: string;
+    trustee_id: string;
+    email: string;
   }) {
     try {
-
-      const { school_name, school_id, trustee_id } = info
-      const trusteeId = new Types.ObjectId(trustee_id)
-      const schoolId = new Types.ObjectId(school_id)
-      const trustee = await this.trusteeModel.findById(trusteeId)
+      const { school_name, school_id, trustee_id } = info;
+      const trusteeId = new Types.ObjectId(trustee_id);
+      const schoolId = new Types.ObjectId(school_id);
+      const trustee = await this.trusteeModel.findById(trusteeId);
       if (!trustee) {
-        throw new NotFoundException(`Trustee not found`)
+        throw new NotFoundException(`Trustee not found`);
       }
       // const pg_key = await this.generateKey()
 
@@ -212,29 +210,25 @@ export class MainBackendService {
         school_name,
         school_id: schoolId,
         trustee_id: trusteeId,
-        email:info.email
+        email: info.email,
         // pg_key,
       });
-      return school
+      return school;
     } catch (e) {
-      throw new BadRequestException(e.message)
-
+      throw new BadRequestException(e.message);
     }
-
   }
-
 
   async assignOnboarderToTrustee(erp_id: string, onboarder_id: string) {
     try {
       const res = this.trusteeModel.findOneAndUpdate(
         { _id: erp_id },
         { onboarder_id: onboarder_id },
-        { returnDocument: "after" }
-      )
+        { returnDocument: 'after' },
+      );
 
       return res;
-    }
-    catch (err) {
+    } catch (err) {
       throw new Error(err);
     }
   }
@@ -244,19 +238,17 @@ export class MainBackendService {
       const pageSize = 10;
 
       const count = await this.trusteeModel.countDocuments({
-        onboarder_id: onboarder_id
+        onboarder_id: onboarder_id,
       });
-      const res = await this.trusteeModel.
-        find({ onboarder_id: onboarder_id })
+      const res = await this.trusteeModel
+        .find({ onboarder_id: onboarder_id })
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .exec();
 
       return { trustee: res, page, total_pages: Math.ceil(count / pageSize) };
-    }
-    catch (err) {
+    } catch (err) {
       throw new Error(err);
     }
   }
-
 }

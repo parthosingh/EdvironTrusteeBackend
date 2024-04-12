@@ -226,7 +226,7 @@ export class ErpController {
       }
 
       const axios = require('axios');
-      let data = JSON.stringify({
+      const data = JSON.stringify({
         amount,
         callbackUrl: callback_url,
         jwt: this.jwtService.sign(
@@ -244,7 +244,7 @@ export class ErpController {
         disabled_modes: school.disabled_modes,
         platform_charges: school.platform_charges,
       });
-      let config = {
+      const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect`,
@@ -326,7 +326,7 @@ export class ErpController {
         throw new ForbiddenException('request forged');
       }
 
-      let config = {
+      const config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${
@@ -454,16 +454,18 @@ export class ErpController {
       const limit = Number(req.query.limit || 10);
 
       //paginated query
-      const settlements = await this.settlementModel.find(
-        {
-          trustee: trustee_id,
-        },
-        null,
-        {
-          skip: (page - 1) * limit,
-          limit: limit,
-        },
-      ).select('-clientId -trustee');
+      const settlements = await this.settlementModel
+        .find(
+          {
+            trustee: trustee_id,
+          },
+          null,
+          {
+            skip: (page - 1) * limit,
+            limit: limit,
+          },
+        )
+        .select('-clientId -trustee');
       const count = await this.settlementModel.countDocuments({
         trustee: trustee_id,
       });
@@ -498,7 +500,7 @@ export class ErpController {
       const start_date = req.query.start_date || null;
       const end_date = req.query.end_date || null;
       const school_id = req.params.school_id;
-      let token = this.jwtService.sign(
+      const token = this.jwtService.sign(
         {
           client_id: school.client_id,
         },
@@ -508,12 +510,12 @@ export class ErpController {
         },
       );
 
-      let data = {
+      const data = {
         client_id: school.client_id,
         token: token,
       };
 
-      let config = {
+      const config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report`,
@@ -529,7 +531,7 @@ export class ErpController {
           limit,
         },
       };
-      let transactions = [];
+      const transactions = [];
       const response = await axios.request(config);
       if (
         response.data.transactions.length > 0 &&
@@ -541,7 +543,7 @@ export class ErpController {
           school_id: school.school_id,
           merchant_id: school.school_id,
           merchant_name: school.school_name,
-          currency: "INR"
+          currency: 'INR',
         }));
         transactions.push(...modifiedResponseData);
       }
@@ -572,19 +574,19 @@ export class ErpController {
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: trustee_id,
       });
-      let transactionReport = [];
+      const transactionReport = [];
 
       let totalData = 0;
 
       for (const merchant of merchants) {
         if (!merchant.client_id) continue;
 
-        let token = this.jwtService.sign(
+        const token = this.jwtService.sign(
           { client_id: merchant.client_id },
           { secret: process.env.PAYMENTS_SERVICE_SECRET },
         );
 
-        let config = {
+        const config = {
           method: 'get',
           maxBodyLength: Infinity,
           url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report`,

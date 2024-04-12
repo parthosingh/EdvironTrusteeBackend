@@ -30,13 +30,13 @@ export class Trustee extends Document {
   @Prop()
   phone_number: string;
 
-  @Field({nullable:true, defaultValue:null})
+  @Field({ nullable: true, defaultValue: null })
   @Prop()
   apiKey: string;
 
-  @Field(() => String, {nullable: true, defaultValue: null})
+  @Field(() => String, { nullable: true, defaultValue: null })
   @Prop()
-  onboarder_id: string
+  onboarder_id: string;
 }
 
 export const TrusteeSchema = SchemaFactory.createForClass(Trustee);

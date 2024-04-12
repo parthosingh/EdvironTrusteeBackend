@@ -37,7 +37,7 @@ describe('TrusteeGuard', () => {
           useValue: {
             validateTrustees: jest.fn().mockResolvedValue(mockTrustee),
           },
-        }
+        },
       ],
     }).compile();
     service = module.get<TrusteeService>(TrusteeService);
@@ -87,7 +87,6 @@ describe('TrusteeGuard', () => {
 
       // Assert
       expect(result).toBe(true);
-
     });
 
     it('should return false when token is not valid', async () => {
@@ -104,7 +103,11 @@ describe('TrusteeGuard', () => {
 
       // Mock the validateTrustee method
       Object.defineProperty(trusteeGuard, 'trusteeService', {
-        value: { validateTrustee: jest.fn().mockRejectedValue(new Error('Invalid token')) },
+        value: {
+          validateTrustee: jest
+            .fn()
+            .mockRejectedValue(new Error('Invalid token')),
+        },
         writable: true,
       });
 

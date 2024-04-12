@@ -5,9 +5,8 @@ import { Document, Types } from 'mongoose';
 import { Trustee, TrusteeSchema } from './trustee.schema';
 
 @ObjectType()
-@Schema({timestamps:true})
+@Schema({ timestamps: true })
 export class SettlementReport {
- 
   @Prop({ required: true, type: Number })
   @Field(() => Number)
   settlementAmount: number;
@@ -28,11 +27,11 @@ export class SettlementReport {
   @Field(() => Date)
   tillDate: Date;
 
-  @Prop({ required: true, type: String})
+  @Prop({ required: true, type: String })
   @Field(() => String)
   status: string;
 
-  @Prop({ required: true, type: String, unique:true})
+  @Prop({ required: true, type: String, unique: true })
   @Field(() => String)
   utrNumber: string;
 
@@ -44,11 +43,11 @@ export class SettlementReport {
   @Field(() => String)
   clientId: string;
 
-  @Prop({required:true, type: Types.ObjectId, ref:"Trustee" })
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Trustee' })
   @Field(() => ID)
   trustee: ObjectId;
 
-  @Prop({ required:true, type: Types.ObjectId, ref:"TrusteeSchool"})
+  @Prop({ required: true, type: Types.ObjectId, ref: 'TrusteeSchool' })
   @Field(() => ID)
   schoolId: ObjectId;
 }

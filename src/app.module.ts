@@ -17,7 +17,7 @@ config();
     ErpModule,
     MainBackendModule,
     PlatformChargesModule,
-    ScheduleModule.forRoot()
+    ScheduleModule.forRoot(),
   ],
 
   controllers: [AppController],

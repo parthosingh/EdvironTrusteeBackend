@@ -29,7 +29,7 @@ export class ErpService {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
     @InjectModel(SettlementReport.name)
-    private settlementReportModel: mongoose.Model<SettlementReport>
+    private settlementReportModel: mongoose.Model<SettlementReport>,
   ) {}
 
   async createApiKey(trusteeId: string): Promise<string> {
@@ -53,7 +53,7 @@ export class ErpService {
       };
       const apiKey = this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET_FOR_API_KEY,
-        expiresIn: '1y'
+        expiresIn: '1y',
       });
       const lastFourChars = apiKey.slice(-4);
       updatedTrustee.apiKey = lastFourChars;
@@ -178,8 +178,8 @@ export class ErpService {
         name,
         email,
         school_name,
-        trustee_id:trustee,
-        trustee_name:existingTrustee.name
+        trustee_id: trustee,
+        trustee_name: existingTrustee.name,
       };
       const token = this.jwtService.sign(data, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
@@ -203,7 +203,7 @@ export class ErpService {
         school_id: schoolId,
         school_name: school.updatedSchool.updates.name,
         trustee_id: trustee,
-        email:email
+        email: email,
       });
 
       return school;
@@ -489,7 +489,7 @@ export class ErpService {
     console.log('running cron');
     const merchants = await this.trusteeSchoolModel.find({});
     merchants.forEach((merchant) => {
-      if(!merchant.client_id) return;
+      if (!merchant.client_id) return;
       console.log(
         `getting report for ${merchant.merchantName}(${merchant.client_id})`,
       );
@@ -499,7 +499,7 @@ export class ErpService {
       end.setHours(23, 59, 59, 999);
 
       const axios = require('axios');
-      let data = JSON.stringify({
+      const data = JSON.stringify({
         pagination: {
           limit: 1000,
         },
@@ -509,7 +509,7 @@ export class ErpService {
         },
       });
 
-      let config = {
+      const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: 'https://api.cashfree.com/pg/settlements',
@@ -517,8 +517,7 @@ export class ErpService {
           accept: 'application/json',
           'content-type': 'application/json',
           'x-api-version': '2023-08-01',
-          'x-partner-apikey':
-            process.env.CASHFREE_API_KEY,
+          'x-partner-apikey': process.env.CASHFREE_API_KEY,
           'x-partner-merchantid': merchant.client_id,
         },
         data: data,
@@ -527,21 +526,24 @@ export class ErpService {
       axios
         .request(config)
         .then(async (response) => {
-          console.log('response', response.data.data[0]); 
-          if(response.data.data.length === 0) return;
+          console.log('response', response.data.data[0]);
+          if (response.data.data.length === 0) return;
 
-           const settlementReport = new this.settlementReportModel({
+          const settlementReport = new this.settlementReportModel({
             settlementAmount: response.data.data[0].payment_amount.toFixed(2),
-            adjustment: 0.00.toString(),
-            netSettlementAmount:response.data.data[0].payment_amount.toFixed(2),
+            adjustment: (0.0).toString(),
+            netSettlementAmount:
+              response.data.data[0].payment_amount.toFixed(2),
             clientId: merchant.client_id,
             fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
             tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-            status:'Settled',
+            status: 'Settled',
             utrNumber: response.data.data[0].settlement_utr,
-            settlementDate:new Date(new Date().getTime() - 86400000 * 1).toDateString(),
-            trustee:merchant.trustee_id,
-            schoolId:merchant.school_id
+            settlementDate: new Date(
+              new Date().getTime() - 86400000 * 1,
+            ).toDateString(),
+            trustee: merchant.trustee_id,
+            schoolId: merchant.school_id,
           });
           await settlementReport.save();
 
@@ -558,23 +560,37 @@ export class ErpService {
               refreshToken: process.env.OAUTH_REFRESH_TOKEN,
             },
           });
-    
+
           const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: "tarun.k@edviron.com",
-            subject: 'Settlement Report Dt.' +  new Date(new Date().getTime() - 86400000 * 1).toDateString(),
+            to: 'tarun.k@edviron.com',
+            subject:
+              'Settlement Report Dt.' +
+              new Date(new Date().getTime() - 86400000 * 1).toDateString(),
             attachments: [
               {
                 filename: `setllement_report_${merchant.school_name}.csv`,
                 content: `
                 S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
-                1, ${response.data.data[0].payment_amount.toFixed(2)}, ${0.00.toString()}, ${response.data.data[0].payment_amount.toFixed(2)},	${new Date(start.getTime() - 24 * 60 * 60 * 1000)}, ${new Date(start.getTime() - 24 * 60 * 60 * 1000)},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(new Date().getTime() - 86400000 * 1).toDateString()}`,
+                1, ${response.data.data[0].payment_amount.toFixed(
+                  2,
+                )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                  2,
+                )},	${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )}, ${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
+                  new Date().getTime() - 86400000 * 1,
+                ).toDateString()}`,
               },
             ],
             html: `
             Dear School, <br/><br/>
             
-            Attached is the settlement report for transactions processed on ${ new Date(new Date().getTime() - 86400000 * 2).toDateString()}. <br/><br/>
+            Attached is the settlement report for transactions processed on ${new Date(
+              new Date().getTime() - 86400000 * 2,
+            ).toDateString()}. <br/><br/>
             
             If you have any questions or require further clarification, feel free to reach out. <br/><br/>
             

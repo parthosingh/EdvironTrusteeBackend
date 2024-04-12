@@ -36,7 +36,7 @@ describe('ErpGuard', () => {
           useValue: {
             validateApiKey: jest.fn().mockResolvedValue(mockTrustee),
           },
-        }
+        },
       ],
     }).compile();
     erpService = module.get<ErpService>(ErpService);
@@ -69,7 +69,9 @@ describe('ErpGuard', () => {
       } as ExecutionContext;
 
       // Mock the validateApiKey method
-      jest.spyOn(erpService, 'validateApiKey').mockResolvedValue({ id: '123', name: 'John Doe' });
+      jest
+        .spyOn(erpService, 'validateApiKey')
+        .mockResolvedValue({ id: '123', name: 'John Doe' });
 
       // Act
       const result = await erpGuard.canActivate(contextMock);
@@ -91,7 +93,9 @@ describe('ErpGuard', () => {
       } as ExecutionContext;
 
       // Act & Assert
-      await expect(erpGuard.canActivate(contextMock)).rejects.toThrow(UnauthorizedException);
+      await expect(erpGuard.canActivate(contextMock)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException when Bearer token is invalid', async () => {
@@ -107,10 +111,14 @@ describe('ErpGuard', () => {
       } as ExecutionContext;
 
       // Mock the validateApiKey method to throw an error
-      jest.spyOn(erpService, 'validateApiKey').mockRejectedValue(new Error('Invalid Bearer token'));
+      jest
+        .spyOn(erpService, 'validateApiKey')
+        .mockRejectedValue(new Error('Invalid Bearer token'));
 
       // Act & Assert
-      await expect(erpGuard.canActivate(contextMock)).rejects.toThrow(UnauthorizedException);
+      await expect(erpGuard.canActivate(contextMock)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

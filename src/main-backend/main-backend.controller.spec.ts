@@ -7,7 +7,12 @@ import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import { JwtPayload } from 'jsonwebtoken';
 import mongoose, { Connection, connect, Model, Types } from 'mongoose';
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { mock } from 'node:test';
 import { TrusteeService } from '../trustee/trustee.service';
@@ -17,12 +22,12 @@ const mockMainbackenService = {
   findTrustee: jest.fn(),
   findOneTrustee: jest.fn(),
   assignSchool: jest.fn(),
-  updateSchoolInfo:jest.fn()
-}
+  updateSchoolInfo: jest.fn(),
+};
 
 const MockJwtService = {
   sign: jest.fn(),
-  verify: jest.fn()
+  verify: jest.fn(),
 };
 
 describe('MainBackendController', () => {
@@ -73,7 +78,7 @@ describe('MainBackendController', () => {
           provide: MainBackendService,
           useValue: mockMainbackenService,
         },
-        TrusteeService
+        TrusteeService,
       ],
     }).compile();
 
@@ -87,112 +92,117 @@ describe('MainBackendController', () => {
   });
 
   describe('createTrustee', () => {
-      it('should return a signed JWT token', async () => {
+    it('should return a signed JWT token', async () => {
+      const mockData = { data: 'mockData' };
+      const info: JwtPayload = {
+        email: 'test@example.com',
+        name: 'John Doe',
+        password: 'password123',
+        phone_number: '1234567890',
+        school_limit: 5,
+        iat: 1234567890,
+        exp: 1234567890,
+      };
 
-        const mockData = { data: 'mockData' };
-        const info: JwtPayload = {
-          email: 'test@example.com',
-          name: 'John Doe',
-          password: 'password123',
-          phone_number: '1234567890',
-          school_limit: 5,
-          iat: 1234567890,
-          exp: 1234567890,
-        };
+      const jwtPayload = { info };
 
-        const jwtPayload = { info};
-        
+      const mockJwtPayload: JwtPayload = { credential: 'mockCredential' };
+      const mockToken = 'mockToken';
 
-        const mockJwtPayload: JwtPayload = { credential: 'mockCredential' };
-        const mockToken = 'mockToken';
-        
-        const mockTrustee = {
-          // Mocked trustee data
-          _id: new Types.ObjectId(),
-          name: 'John Doe',
-          email_id: 'john@example.com',
-          password_hash: 'hashedPassword',
-          school_limit: 10,
-          phone_number: '1234567890',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          __v: 0,
-        };
+      const mockTrustee = {
+        // Mocked trustee data
+        _id: new Types.ObjectId(),
+        name: 'John Doe',
+        email_id: 'john@example.com',
+        password_hash: 'hashedPassword',
+        school_limit: 10,
+        phone_number: '1234567890',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        __v: 0,
+      };
 
-        jest.spyOn(jwtService, 'verify').mockReturnValueOnce(info);
-        jest.spyOn(service, 'createTrustee').mockResolvedValueOnce(mockTrustee as any);
-        jest.spyOn(jwtService, 'sign').mockReturnValueOnce(mockToken);
-        
+      jest.spyOn(jwtService, 'verify').mockReturnValueOnce(info);
+      jest
+        .spyOn(service, 'createTrustee')
+        .mockResolvedValueOnce(mockTrustee as any);
+      jest.spyOn(jwtService, 'sign').mockReturnValueOnce(mockToken);
 
-        // Act
-        const result = await controller.createTrustee(mockData);
+      // Act
+      const result = await controller.createTrustee(mockData);
 
-        // Assert
-        expect(jwtService.verify).toHaveBeenCalledWith(mockData.data ,{ secret: process.env.JWT_SECRET_FOR_INTRANET });
-        expect(service.createTrustee).toHaveBeenCalledWith(info);
-        expect(jwtService.sign).toHaveBeenCalledWith({ credential: mockTrustee} ,{ secret: process.env.JWT_SECRET_FOR_INTRANET });
-        expect(result).toEqual(mockToken);
-    
-
-
+      // Assert
+      expect(jwtService.verify).toHaveBeenCalledWith(mockData.data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
-      it('should throw ConflictException if email already exists', async () => {
-        // Mock data
-        const mockData = { data: 'mockData' };
-        const info: JwtPayload = {
-          email: 'test@example.com',
-          name: 'John Doe',
-          password: 'password123',
-          phone_number: '1234567890',
-          school_limit: 5,
-          iat: 1234567890,
-          exp: 1234567890,
-        };
-      
-        const conflictError = new ConflictException('Email already exists');
-      
-        jest.spyOn(jwtService, 'verify').mockReturnValue(info);
-        jest.spyOn(service, 'createTrustee').mockRejectedValue(conflictError);
-      
-        // Act and Assert
-        await expect(controller.createTrustee(mockData)).rejects.toThrow(ConflictException);
-      
-        // Ensure that the methods were called with the expected parameters
-        expect(jwtService.verify).toHaveBeenCalledWith(mockData.data, { secret: process.env.JWT_SECRET_FOR_INTRANET });
-        expect(service.createTrustee).toHaveBeenCalledWith(info);
+      expect(service.createTrustee).toHaveBeenCalledWith(info);
+      expect(jwtService.sign).toHaveBeenCalledWith(
+        { credential: mockTrustee },
+        { secret: process.env.JWT_SECRET_FOR_INTRANET },
+      );
+      expect(result).toEqual(mockToken);
+    });
+    it('should throw ConflictException if email already exists', async () => {
+      // Mock data
+      const mockData = { data: 'mockData' };
+      const info: JwtPayload = {
+        email: 'test@example.com',
+        name: 'John Doe',
+        password: 'password123',
+        phone_number: '1234567890',
+        school_limit: 5,
+        iat: 1234567890,
+        exp: 1234567890,
+      };
+
+      const conflictError = new ConflictException('Email already exists');
+
+      jest.spyOn(jwtService, 'verify').mockReturnValue(info);
+      jest.spyOn(service, 'createTrustee').mockRejectedValue(conflictError);
+
+      // Act and Assert
+      await expect(controller.createTrustee(mockData)).rejects.toThrow(
+        ConflictException,
+      );
+
+      // Ensure that the methods were called with the expected parameters
+      expect(jwtService.verify).toHaveBeenCalledWith(mockData.data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
-      
+      expect(service.createTrustee).toHaveBeenCalledWith(info);
+    });
 
     it('should throw BadRequestException for other errors', async () => {
       // Mocking the behavior of jwtService.verify that throws an exception
       jest.spyOn(jwtService, 'verify').mockImplementation(() => {
         throw { message: 'Bad Request' };
-      });const info = {
-        email:"some@mail.com",
-        name:"new trustee",
-        password:"password",
-        phone_number:'4564569875',
-        school_limit:150,
+      });
+      const info = {
+        email: 'some@mail.com',
+        name: 'new trustee',
+        password: 'password',
+        phone_number: '4564569875',
+        school_limit: 150,
         iat: 1704643606,
-        exp: 1704650806
-      } as JwtPayload
+        exp: 1704650806,
+      } as JwtPayload;
 
       // Execute the method and assert
-      await expect(controller.createTrustee({ data: 'mockData' })).rejects.toThrowError(BadRequestException);
+      await expect(
+        controller.createTrustee({ data: 'mockData' }),
+      ).rejects.toThrowError(BadRequestException);
     });
-
-  })
-
+  });
 
   describe('findTrustee', () => {
     it('should return arrays of trustee', async () => {
       const mockPage = 1;
       const mockPageSize = 10;
-      const paginationToken="pagToken"
-      const pagInfo={
-         mockPage:1,
-         mockPageSize:10,
-      }
+      const paginationToken = 'pagToken';
+      const pagInfo = {
+        mockPage: 1,
+        mockPageSize: 10,
+      };
       const mockTrusteeData = [
         {
           _id: new Types.ObjectId(),
@@ -215,78 +225,86 @@ describe('MainBackendController', () => {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
       expect(result).toEqual(mockToken);
-    })
-  })
-  describe('updatedSchool',()=>{
-    it('shoulld update School',async()=>{
+    });
+  });
+  describe('updatedSchool', () => {
+    it('shoulld update School', async () => {
       const school = await new trusteeSchoolModel({
-        school_id:new Types.ObjectId("658e759736ba0754ca45d0c2"),
-        trustee_id:new Types.ObjectId("658e759736ba0754ca45d0c1"),
-        school_name:"XYZ School"
-      }).save()
+        school_id: new Types.ObjectId('658e759736ba0754ca45d0c2'),
+        trustee_id: new Types.ObjectId('658e759736ba0754ca45d0c1'),
+        school_name: 'XYZ School',
+      }).save();
 
-
-      const mockdata={
+      const mockdata = {
         school_id: school.school_id,
         trustee_id: school.trustee_id,
-        client_id:'client_id',
+        client_id: 'client_id',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail@edviron.com',
         merchantStatus: 'merchantStatus',
         pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC'
-      }
+        pgFullKYC: 'pgFullKYC',
+      };
 
-      const updatedSchool = await trusteeSchoolModel.findOneAndUpdate({school_id:school.school_id},
-        {$set:{
-          client_id:mockdata.client_id,
-          merchantEmail:mockdata.merchantEmail,
-          merchantName:mockdata.merchantName,
-          merchantStatus:mockdata.merchantStatus,
-          pgFullKYC:mockdata.pgFullKYC,
-          pgMinKYC:mockdata.pgMinKYC,
-          trustee_id: school.trustee_id
-        }}
-        )
+      const updatedSchool = await trusteeSchoolModel.findOneAndUpdate(
+        { school_id: school.school_id },
+        {
+          $set: {
+            client_id: mockdata.client_id,
+            merchantEmail: mockdata.merchantEmail,
+            merchantName: mockdata.merchantName,
+            merchantStatus: mockdata.merchantStatus,
+            pgFullKYC: mockdata.pgFullKYC,
+            pgMinKYC: mockdata.pgMinKYC,
+            trustee_id: school.trustee_id,
+          },
+        },
+      );
 
-     MockJwtService.verify.mockResolvedValueOnce(mockdata)
-     jest.spyOn(service,"updateSchoolInfo").mockResolvedValueOnce({updatedSchool})
-      
-      const body = {token:"mockToken"}
-      const result = await controller.updateSchool(body)
-      const expectedResult =  {
+      MockJwtService.verify.mockResolvedValueOnce(mockdata);
+      jest
+        .spyOn(service, 'updateSchoolInfo')
+        .mockResolvedValueOnce({ updatedSchool });
+
+      const body = { token: 'mockToken' };
+      const result = await controller.updateSchool(body);
+      const expectedResult = {
         school_id: school.school_id,
         school_name: school.school_name,
-        msg: `${school.school_name} is Updated`
-      }
-      expect(result).toEqual(expectedResult)
-    })
-    it('shoud throw BadRequestException on missing fields',async()=>{
-      const mockToken='mockToken'
-      const mockdata={
+        msg: `${school.school_name} is Updated`,
+      };
+      expect(result).toEqual(expectedResult);
+    });
+    it('shoud throw BadRequestException on missing fields', async () => {
+      const mockToken = 'mockToken';
+      const mockdata = {
         school_name: 'mock School Name',
         school_id: '658e759736ba0754ca45d0c2',
         trustee_id: '658e759736ba0754ca45d0c1',
-        client_id:'client_id',
+        client_id: 'client_id',
         client_secret: 'client_secret',
         merchantId: 'merchantId',
         merchantName: 'merchantName',
         merchantStatus: 'merchantStatus',
         pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC'
-      }
+        pgFullKYC: 'pgFullKYC',
+      };
       MockJwtService.verify.mockReturnValueOnce(mockdata);
-      await expect(async () => await controller.updateSchool({ token: mockToken })).rejects.toThrowError(BadRequestException);
-    })
+      await expect(
+        async () => await controller.updateSchool({ token: mockToken }),
+      ).rejects.toThrowError(BadRequestException);
+    });
     it('should throw BadRequestException for other errors', async () => {
       const mockToken = 'mockToken';
 
-      jest.spyOn(service, 'updateSchoolInfo').mockRejectedValueOnce({ message: 'Bad Request' });
-    
-      await expect(controller.updateSchool({ token: mockToken })).rejects.toThrowError(BadRequestException);
+      jest
+        .spyOn(service, 'updateSchoolInfo')
+        .mockRejectedValueOnce({ message: 'Bad Request' });
+
+      await expect(
+        controller.updateSchool({ token: mockToken }),
+      ).rejects.toThrowError(BadRequestException);
       expect(service.updateSchoolInfo).toHaveBeenCalled();
     });
-    
-  })
-
+  });
 });
