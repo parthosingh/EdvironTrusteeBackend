@@ -168,17 +168,33 @@ export class ErpController {
       amount: number;
       callback_url: string;
       sign: string;
-      phone_no: string;
-      mail_id: string;
-      student_name: string;
-      reason: string;
+      student_phone_no?: string;
+      student_email?: string;
+      student_name?: string;
+      student_id?: string;
+      receipt?: string;
+      // reason: string;
       webHookUrl?: string;
+      sendPaymentLink?: boolean;
+      additional_data?: {};
     },
     @Req() req,
   ) {
     try {
       const trustee_id = req.userTrustee.id;
-      const { school_id, amount, callback_url, sign, webHookUrl } = body;
+      const {
+        school_id,
+        amount,
+        callback_url,
+        sign,
+        webHookUrl,
+        additional_data,
+        student_id,
+        student_email,
+        student_name,
+        student_phone_no,
+        receipt,
+      } = body;
       if (!school_id) {
         throw new BadRequestException('School id is required');
       }
@@ -191,13 +207,13 @@ export class ErpController {
       if (!sign) {
         throw new BadRequestException('sign is required');
       }
-      if (body.phone_no || body.mail_id) {
+      if (body.student_phone_no || body.student_email) {
         if (!body.student_name) {
           throw new BadRequestException('student name is required');
         }
-        if (!body.reason) {
-          throw new BadRequestException('reason is required');
-        }
+        // if (!body.reason) {
+        //   throw new BadRequestException('reason is required');
+        // }
       }
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
@@ -226,7 +242,7 @@ export class ErpController {
       }
 
       const axios = require('axios');
-      const data = JSON.stringify({
+      let data = JSON.stringify({
         amount,
         callbackUrl: callback_url,
         jwt: this.jwtService.sign(
@@ -240,11 +256,19 @@ export class ErpController {
         ),
         clientId: school.client_id,
         clientSecret: school.client_secret,
+        school_id: school_id,
+        trustee_id: trustee_id,
         webHook: webHookUrl || null,
         disabled_modes: school.disabled_modes,
         platform_charges: school.platform_charges,
+        additional_data: additional_data || {},
+        student_id: student_id || null,
+        student_email: student_email || null,
+        student_name: student_name || null,
+        student_phone: student_phone_no || null,
+        student_receipt: receipt || null,
       });
-      const config = {
+      let config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect`,
@@ -255,15 +279,23 @@ export class ErpController {
       };
       const { data: paymentsServiceResp } = await axios.request(config);
 
-      await this.erpService.sendPaymentLink({
-        student_name: body.student_name,
-        phone_no: body.phone_no,
-        amount: body.amount,
-        reason: body.reason,
-        school_id: body.school_id,
-        mail_id: body.mail_id,
-        paymentURL: paymentsServiceResp.url,
-      });
+      let reason = 'fee payment';
+
+      //set some variable here (user input [sendPaymentLink:true])
+      // to send link to student
+      if (body.student_phone_no || body.student_email) {
+        if (body.sendPaymentLink) {
+          await this.erpService.sendPaymentLink({
+            student_name: body.student_name || ' ',
+            phone_no: body.student_phone_no,
+            amount: body.amount,
+            reason: reason,
+            school_id: body.school_id,
+            mail_id: body.student_email,
+            paymentURL: paymentsServiceResp.url,
+          });
+        }
+      }
 
       return {
         collect_request_id: paymentsServiceResp.request._id,
