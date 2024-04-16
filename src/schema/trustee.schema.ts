@@ -3,6 +3,15 @@ import { ObjectType, Field } from '@nestjs/graphql';
 import { Document } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 
+@ObjectType()
+export class WebhookUrlType {
+  @Field(() => Number)
+  id: number;
+
+  @Field(() => String)
+  url: string;
+}
+
 @ObjectType() // Define GraphQL object type
 @Schema({ timestamps: true })
 export class Trustee extends Document {
@@ -41,6 +50,10 @@ export class Trustee extends Document {
   @Field(() => String, { nullable: true, defaultValue: null })
   @Prop()
   brand_name: string;
+
+  @Field(() => [WebhookUrlType], { nullable: true })
+  @Prop({ required: false })
+  webhook_urls: WebhookUrlType[];
 }
 
 export const TrusteeSchema = SchemaFactory.createForClass(Trustee);
