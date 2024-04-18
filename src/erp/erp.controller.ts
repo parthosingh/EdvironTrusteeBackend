@@ -23,6 +23,7 @@ import {
   SettlementReport,
   SettlementSchema,
 } from '../schema/settlement.schema';
+import { Trustee } from 'src/schema/trustee.schema';
 
 @Controller('erp')
 export class ErpController {
@@ -33,6 +34,8 @@ export class ErpController {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
     private settlementModel: mongoose.Model<SettlementReport>,
+    @InjectModel(Trustee.name)
+    private trusteeModel: mongoose.Model<Trustee>,
   ) {}
 
   @Get('payment-link')
@@ -173,8 +176,6 @@ export class ErpController {
       student_name?: string;
       student_id?: string;
       receipt?: string;
-      // reason: string;
-      webHookUrl?: string;
       sendPaymentLink?: boolean;
       additional_data?: {};
     },
@@ -187,7 +188,6 @@ export class ErpController {
         amount,
         callback_url,
         sign,
-        webHookUrl,
         additional_data,
         student_id,
         student_email,
@@ -241,6 +241,29 @@ export class ErpController {
         throw new ForbiddenException('request forged');
       }
 
+      const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
+      const trustee = await this.trusteeModel.findById(trusteeObjId);
+      let webHookUrl = null;
+      if (trustee.webhook_urls.length) {
+        webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
+      }
+
+      const additionalInfo = {
+        student_details: {
+          student_id: student_id,
+          student_email: student_email,
+          student_name: student_name,
+          student_phone_no: student_phone_no,
+          //student_receipt: receipt || null,
+        },
+        additional_fields: {
+          ...additional_data,
+          receipt: receipt,
+        } || {
+          receipt: receipt,
+        },
+      };
+
       const axios = require('axios');
       let data = JSON.stringify({
         amount,
@@ -261,12 +284,7 @@ export class ErpController {
         webHook: webHookUrl || null,
         disabled_modes: school.disabled_modes,
         platform_charges: school.platform_charges,
-        additional_data: additional_data || {},
-        student_id: student_id || null,
-        student_email: student_email || null,
-        student_name: student_name || null,
-        student_phone: student_phone_no || null,
-        student_receipt: receipt || null,
+        additional_data: additionalInfo || {},
       });
       let config = {
         method: 'post',
