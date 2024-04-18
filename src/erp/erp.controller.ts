@@ -639,7 +639,7 @@ export class ErpController {
         const response = await axios.request(config);
 
         if (
-          response.data.transactions.length > 0 &&
+          response.data?.transactions &&
           response.data !== 'No orders found for clientId'
         ) {
           const modifiedResponseData = response.data.transactions.map(
@@ -654,9 +654,12 @@ export class ErpController {
           );
           transactionReport.push(...modifiedResponseData);
         }
-        totalData += response.data.totalTransactions;
+        console.log(response.data.totalTransactions, 'transactions');
+
+        totalData += response.data.totalTransactions || 0;
       }
       const total_pages = Math.ceil(totalData / limit);
+
       return {
         page,
         limit,

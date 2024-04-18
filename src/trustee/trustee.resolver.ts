@@ -238,7 +238,7 @@ export class TrusteeResolver {
         const response = await axios.request(config);
 
         if (
-          response.data.transactions.length > 0 &&
+          response.data?.transactions?.length > 0 &&
           response.data !== 'No orders found for clientId'
         ) {
           const modifiedResponseData = response.data.transactions.map(
