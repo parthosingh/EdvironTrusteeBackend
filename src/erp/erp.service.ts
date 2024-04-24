@@ -173,6 +173,7 @@ export class ErpService {
       if (no_of_schools >= existingTrustee.school_limit) {
         throw new ForbiddenException('School limit reached');
       }
+
       const data = {
         phone_number,
         name,
@@ -181,6 +182,7 @@ export class ErpService {
         trustee_id: trustee,
         trustee_name: existingTrustee.name,
       };
+
       const token = this.jwtService.sign(data, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
         expiresIn: '2h',

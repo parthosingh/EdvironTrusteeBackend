@@ -37,6 +37,10 @@ export class Trustee extends Document {
   @Field(() => String, { nullable: true, defaultValue: null })
   @Prop()
   onboarder_id: string;
+
+  @Field(() => String, { nullable: true, defaultValue: null })
+  @Prop()
+  brand_name: string;
 }
 
 export const TrusteeSchema = SchemaFactory.createForClass(Trustee);

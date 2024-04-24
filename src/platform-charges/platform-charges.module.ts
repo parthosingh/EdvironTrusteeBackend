@@ -6,10 +6,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { SchoolSchema } from '../schema/school.schema';
 import { TrusteeSchema } from '../schema/trustee.schema';
 import { MainBackendService } from '../main-backend/main-backend.service';
-
+import { TrusteeMemberSchema } from '../schema/partner.member.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
+    MongooseModule.forFeature([
+      { name: 'TrusteeMember', schema: TrusteeMemberSchema },
+    ]),
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
     ]),

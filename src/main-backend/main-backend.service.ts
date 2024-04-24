@@ -10,6 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
 import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
+import { TrusteeMember } from '../schema/partner.member.schema';
 
 @Injectable()
 export class MainBackendService {
@@ -18,6 +19,8 @@ export class MainBackendService {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
+    @InjectModel(TrusteeMember.name)
+    private trusteeMemberModel: mongoose.Model<TrusteeMember>,
   ) {}
 
   async createTrustee(info) {
@@ -27,6 +30,10 @@ export class MainBackendService {
 
       if (checkMail) {
         throw new ConflictException(`${email} already exist`);
+      }
+      const checkMember = await this.trusteeMemberModel.findOne({ email });
+      if (checkMember) {
+        throw new ConflictException(`member already exist with same email`);
       }
 
       const trustee = await this.trusteeModel.create({

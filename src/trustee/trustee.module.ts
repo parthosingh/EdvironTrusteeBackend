@@ -12,11 +12,16 @@ import { config } from 'dotenv';
 import { ErpService } from '../erp/erp.service';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { SettlementSchema } from '../schema/settlement.schema';
+import { TrusteeMemberSchema } from '../schema/partner.member.schema';
+import { EmailService } from '../email/email.service';
 config();
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
+    MongooseModule.forFeature([
+      { name: 'TrusteeMember', schema: TrusteeMemberSchema },
+    ]),
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
     ]),
@@ -44,6 +49,7 @@ config();
     TrusteeResolver,
     TrusteeGuard,
     MainBackendService,
+    EmailService,
   ],
 })
 export class TrusteeModule {}

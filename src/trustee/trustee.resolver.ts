@@ -26,6 +26,7 @@ import { SettlementReport } from '../schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
 import { Trustee } from '../schema/trustee.schema';
+import { TrusteeMember } from '../schema/partner.member.schema';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -40,6 +41,8 @@ export class TrusteeResolver {
     private settlementReportModel: mongoose.Model<SettlementReport>,
     @InjectModel(Trustee.name)
     private trusteeModel: mongoose.Model<Trustee>,
+    @InjectModel(TrusteeMember.name)
+    private trusteeMemberModel: mongoose.Model<TrusteeMember>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -71,7 +74,14 @@ export class TrusteeResolver {
     @Context() context,
   ): Promise<SchoolTokenResponse> {
     try {
-      const userId = context.req.trustee;
+      let userId = context.req.trustee;
+
+      const role = context.req.role;
+      if (role !== 'owner' && role !== 'admin') {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
       const { token, user } = await this.trusteeService.generateSchoolToken(
         schoolId,
         password,
@@ -80,7 +90,7 @@ export class TrusteeResolver {
       return { token, user };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
-        throw new Error('Invalid password');
+        throw new Error(error.message);
       } else if (error instanceof NotFoundException) {
         throw error;
       } else {
@@ -93,8 +103,9 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async getSchoolQuery(@Context() context): Promise<any> {
     try {
-      const id = context.req.trustee;
+      let id = context.req.trustee;
       const schools = await this.trusteeService.getSchools(id);
+
       return {
         schools: schools.schoolData,
       };
@@ -112,9 +123,28 @@ export class TrusteeResolver {
   }
   @Mutation(() => ApiKey)
   @UseGuards(TrusteeGuard)
-  async createApiKey(@Context() context): Promise<ApiKey> {
+  async createApiKey(
+    @Args('otp') otp: string,
+    @Context() context,
+  ): Promise<ApiKey> {
     try {
-      const id = context.req.trustee;
+      let id = context.req.trustee;
+
+      const trustee = await this.trusteeModel.findById(id);
+      const role = context.req.role;
+      if (role !== 'owner' && role !== 'admin') {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
+
+      const validate = await this.trusteeService.validateApidOtp(
+        otp,
+        trustee.email_id,
+      );
+      if (!validate) {
+        throw new Error('Invalid OTP');
+      }
       const apiKey = await this.erpService.createApiKey(id);
       return { key: apiKey };
     } catch (error) {
@@ -141,6 +171,10 @@ export class TrusteeResolver {
         name: userTrustee.name,
         email_id: userTrustee.email,
         apiKey: userTrustee.apiKey,
+        role: userTrustee.role,
+        phone_number: userTrustee.phone_number,
+        trustee_id: userTrustee.trustee_id,
+        brand_name: userTrustee.brand_name,
       };
       return user;
     } catch (error) {
@@ -159,28 +193,45 @@ export class TrusteeResolver {
   @Mutation(() => pg_key)
   @UseGuards(TrusteeGuard)
   async resetKey(@Context() context, @Args('school_id') school_id: string) {
-    const trusteeId = context.req.trustee;
+    // const trusteeId = context.req.trustee;
+    let id = context.req.trustee;
+
+    const role = context.req.role;
+    if (role !== 'owner' && role !== 'admin') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
     const schoolId = new Types.ObjectId(school_id);
     const school = await this.trusteeSchoolModel.findOne({
-      trustee_id: trusteeId,
+      trustee_id: id,
       school_id: schoolId,
     });
+
     const pg_key = await this.mainBackendService.generateKey();
+
     school.pg_key = pg_key;
     await school.save();
     return { pg_key };
   }
 
+  @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async sentKycInvite(
     @Args('school_name') school_name: string,
     @Args('school_id') school_id: string,
+    @Context() context,
   ) {
     const payload = {
       school_name,
       school_id,
     };
-
+    const role = context.req.role;
+    if (role !== 'owner' && role !== 'admin') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
     const token = await this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
@@ -196,9 +247,11 @@ export class TrusteeResolver {
   @Query(() => [SettlementReport])
   @UseGuards(TrusteeGuard)
   async getSettlementReports(@Context() context) {
+    let id = context.req.trustee;
+
     let settlementReports = [];
     settlementReports = await this.settlementReportModel
-      .find({ trustee: new Types.ObjectId(context.req.trustee) })
+      .find({ trustee: id })
       .sort({ createdAt: -1 });
     return settlementReports;
   }
@@ -207,8 +260,10 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async getTransactionReport(@Context() context) {
     try {
+      let id = context.req.trustee;
+
       const merchants = await this.trusteeSchoolModel.find({
-        trustee_id: new Types.ObjectId(context.req.trustee),
+        trustee_id: id,
       });
       const transactionReport = [];
 
@@ -269,21 +324,31 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async getAllSchoolQuery(@Context() context): Promise<any> {
     try {
-      const id = context.req.trustee;
+      let id = context.req.trustee;
+
       return await this.trusteeSchoolModel.find({
-        trustee_id: context.req.trustee,
+        trustee_id: id,
       });
     } catch (error) {
       throw error;
     }
   }
 
+  // reset password mail
   @Mutation(() => verifyRes)
   async resetMails(@Args('email') email: string) {
+    const trustee = await this.trusteeModel.findOne({ email_id: email });
+    if (!trustee) {
+      const member = await this.trusteeMemberModel.findOne({ email });
+      if (!member) {
+        throw new Error('User not found');
+      }
+    }
     await this.trusteeService.sentResetMail(email);
     return { active: true };
   }
 
+  // reset password
   @Mutation(() => resetPassResponse)
   async resetPassword(
     @Args('email') email: string,
@@ -293,6 +358,7 @@ export class TrusteeResolver {
     return { msg: `Password Change` };
   }
 
+  //verify reset password token
   @Query(() => verifyRes)
   async verifyToken(@Args('token') token: string) {
     const res = await this.trusteeService.verifyresetToken(token);
@@ -308,13 +374,22 @@ export class TrusteeResolver {
     @Args('admin_name') admin_name: string,
     @Context() context,
   ) {
+    let id = context.req.trustee;
+
+    const role = context.req.role;
+    if (role !== 'owner' && role !== 'admin') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
     const school = await this.erpService.createSchool(
       phone_number,
       admin_name,
       email,
       school_name,
-      context.req.trustee,
+      id,
     );
+
     const response: createSchoolResponse = {
       admin_id: school.adminInfo._id,
       school_id: school.adminInfo.school_id,
@@ -336,7 +411,16 @@ export class TrusteeResolver {
       const errorInSchool = 0;
       const trusteeSchoolsCreated = 0;
       let result = '';
-      const trustee = await this.trusteeModel.findById(context.req.trustee);
+      const role = context.req.role;
+
+      if (role !== 'owner' && role !== 'admin') {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
+      let id = context.req.trustee;
+
+      const trustee = await this.trusteeModel.findById(id);
       if (!trustee) throw new NotFoundException('Trustee not found');
 
       const schoolsInfo = {
@@ -385,7 +469,16 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Query(() => TokenResponse)
-  async kycLoginToken(@Args('school_id') school_id: string) {
+  async kycLoginToken(
+    @Args('school_id') school_id: string,
+    @Context() context,
+  ) {
+    const role = context.req.role;
+    if (role !== 'owner' && role !== 'admin') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
     const token = await this.jwtService.sign(
       { school_id },
       {
@@ -397,6 +490,466 @@ export class TrusteeResolver {
     );
     return { token: res.data.token };
   }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async createMember(
+    @Args('name') name: string,
+    @Args('email') email: string,
+    @Args('phone_number') phone_number: string,
+    @Args('access') access: string,
+    @Args('password') password: string,
+    @Context() context,
+  ) {
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    if (!name || !email || !phone_number || !access || !password) {
+      throw new Error('One or more required fields are missing.');
+    }
+
+    if (!['admin', 'management'].includes(access)) {
+      throw new Error('Invalid access level provided.');
+    }
+
+    if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\+[0-9]+)?$/.test(email)
+    )
+      throw new Error('Invalid Email!');
+    if (!/^\d{10}$/.test(phone_number))
+      throw new Error('Invalid phone number!');
+
+    const trustee = await this.trusteeModel.findOne({
+      $or: [{ email_id: email }, { phone_number: phone_number }],
+    });
+    const member = await this.trusteeMemberModel.findOne({
+      $or: [{ email }, { phone_number }],
+    });
+    if (trustee) {
+      throw new ConflictException(
+        'This email or phone number is already registered for a partner account. Please use a different email or phone number.',
+      );
+    }
+    if (member) {
+      throw new ConflictException('Email or Phone Number is Taken');
+    }
+
+    await new this.trusteeMemberModel({
+      trustee_id: context.req.trustee,
+      name,
+      email,
+      phone_number,
+      access,
+      password_hash: password,
+    }).save();
+
+    return `Member created Successfully`;
+  }
+  @UseGuards(TrusteeGuard)
+  @Query(() => [MemberesResponse])
+  async getAllMembers(@Context() context) {
+    let id = context.req.trustee;
+
+    const allMembers = await this.trusteeMemberModel
+      .find({ trustee_id: id })
+      .select('-password_hash')
+      .sort({ createdAt: -1 });
+    return allMembers;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => ProfileDataResponse)
+  async partnerProfileData(@Context() context) {
+    let id = context.req.trustee;
+
+    const [totalSchool, active, inactive, pending] = await Promise.all([
+      this.trusteeSchoolModel.countDocuments({ trustee_id: id }),
+      this.trusteeSchoolModel.countDocuments({
+        trustee_id: id,
+        pgMinKYC: 'MIN_KYC_APPROVED',
+      }),
+      this.trusteeSchoolModel.countDocuments({
+        trustee_id: id,
+        pgMinKYC: { $in: ['Not Initiated', 'MIN_KYC_REJECTED', null] },
+      }),
+      this.trusteeSchoolModel.countDocuments({
+        trustee_id: id,
+        pgMinKYC: 'MIN_KYC_PENDING',
+      }),
+    ]);
+
+    const response = {
+      totalSchool,
+      kycDetails: {
+        active,
+        pending,
+        inactive,
+      },
+    };
+
+    return response;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async updateTrustee(
+    @Args('name') name: string,
+    @Args('email') email: string,
+    @Args('phone_number') phone_number: string,
+    @Args('password') password: string,
+    @Context() context,
+  ) {
+    let id = context.req.trustee;
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    if (!name || !email || !phone_number || !password) {
+      throw new Error('One or more required fields are missing.');
+    }
+    if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\+[0-9]+)?$/.test(email)
+    )
+      throw new Error('Invalid Email!');
+    if (!/^\d{10}$/.test(phone_number))
+      throw new Error('Invalid phone number!');
+
+    const trustee = await this.trusteeModel.findById(context.req.trustee);
+    if (!trustee) {
+      throw new NotFoundException('User Not found');
+    }
+    const response = await this.trusteeService.updatePartnerDetails(
+      id,
+      name,
+      email,
+      phone_number,
+      password,
+    );
+    return response.message;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async updateProfileDetails(
+    @Args('name') name: string,
+    @Args('brand_name') brand_name: string,
+    @Context() context,
+  ) {
+    let id = context.req.trustee;
+    const role = context.req.role;
+    const trustee = await this.trusteeModel.findById(id);
+    if (!trustee) {
+      throw new NotFoundException('User Not found');
+    }
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    if (!name || !brand_name) {
+      throw new Error('One or more required fields are missing.');
+    }
+    trustee.name = name;
+    trustee.brand_name = brand_name;
+    await trustee.save();
+    return `User updated successfully`;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async updateTrusteeMail(
+    @Args('email') email: string,
+    @Args('otp') otp: string,
+    @Context() context,
+  ) {
+    let id = context.req.trustee;
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    if (!email) {
+      throw new Error('One or more required fields are missing.');
+    }
+    if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\+[0-9]+)?$/.test(email)
+    )
+      throw new Error('Invalid Email!');
+
+    const trustee = await this.trusteeModel.findById(id);
+    if (!trustee) {
+      throw new NotFoundException('User Not found');
+    }
+    const oldEmail = trustee.email_id;
+    const verify = await this.trusteeService.validateUpdateMailOtp(
+      otp,
+      oldEmail,
+    );
+    if (!verify) {
+      throw new Error('Invalid OTP ');
+    }
+
+    trustee.email_id = email;
+    await trustee.save();
+
+    return `Email  updated successfully`;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async updateTrusteePhoneNumber(
+    @Args('phone_number') phone_number: string,
+    @Args('otp') otp: string,
+    @Context() context,
+  ) {
+    let id = context.req.trustee;
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    if (!phone_number) {
+      throw new Error('One or more required fields are missing.');
+    }
+    if (!/^\d{10}$/.test(phone_number))
+      throw new Error('Invalid phone number!');
+    const trustee = await this.trusteeModel.findById(id);
+    if (!trustee) {
+      throw new NotFoundException('User Not found');
+    }
+
+    const verify = await this.trusteeService.validatePhoneNumberOtp(
+      otp,
+      trustee.email_id,
+    );
+
+    if (!verify) {
+      throw new Error('Invalid OTP ');
+    }
+
+    trustee.phone_number = phone_number;
+    await trustee.save();
+
+    return `Phone Number updated successfully`;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async updateMemberDetails(
+    @Args('name') name: string,
+    @Args('user_id') user_id: string,
+    @Args('email') email: string,
+    @Args('phone_number') phone_number: string,
+    @Context() context,
+  ) {
+    const id = context.req.trustee;
+
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    const trustee = await this.trusteeModel.findById(id);
+    if (!trustee) {
+      throw new NotFoundException('User Not Found');
+    }
+    if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\+[0-9]+)?$/.test(email)
+    )
+      throw new Error('Invalid Email!');
+    if (!/^\d{10}$/.test(phone_number))
+      throw new Error('Invalid phone number!');
+    const member = await this.trusteeMemberModel.findById(user_id);
+    //if another trustee try update member of anothers one
+    if (!member) {
+      throw new NotFoundException('Member Not Found');
+    }
+    if (member.trustee_id != id.toString()) {
+      throw new UnauthorizedException(
+        'You are not Authorized to update this user',
+      );
+    }
+    const response = await this.trusteeService.updateMemberDetails(
+      member._id,
+      name,
+      email,
+      phone_number,
+    );
+    return response.message;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async updateAccessLevel(
+    @Args('user_id') user_id: string,
+    @Args('access') access: string,
+    @Context() context,
+  ) {
+    const id = context.req.trustee;
+
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    const trustee = await this.trusteeModel.findById(id);
+    if (!trustee) {
+      throw new NotFoundException('User Not Found');
+    }
+    const member = await this.trusteeMemberModel.findById(user_id);
+    //if another trustee try update member of anothers one
+    if (!member) {
+      throw new NotFoundException('Member Not Found');
+    }
+    if (member.trustee_id != id.toString()) {
+      throw new UnauthorizedException(
+        'You are not Authorized to update this user',
+      );
+    }
+    if (!['admin', 'management'].includes(access)) {
+      throw new Error('Invalid access level provided.');
+    }
+
+    member.access = access;
+    await member.save();
+
+    return 'Access Level updated';
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async verifyPasswordOtp(
+    @Args('otp') otp: string,
+    @Args('password') password: string,
+    @Context() context,
+  ) {
+    const id = context.req.trustee;
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    const trustee = await this.trusteeModel.findById(id);
+    if (!trustee) {
+      throw new NotFoundException('Trustee Not Found');
+    }
+    const email = trustee.email_id;
+    const verify = await this.trusteeService.validatePasswordOtp(otp, email);
+    if (!verify) {
+      throw new Error('Invalid OTP ');
+    }
+    trustee.password_hash = password;
+    await trustee.save();
+    return 'Password reset Successfully';
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async deleteMember(@Args('user_id') user_id: string, @Context() context) {
+    const id = context.req.trustee;
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    const trustee = await this.trusteeModel.findById(id);
+    const member = await this.trusteeMemberModel.findById(user_id);
+    if (!member) {
+      throw new NotFoundException('member not found');
+    }
+    if (!trustee) {
+      throw new NotFoundException('Trustee Not Found');
+    }
+    await this.trusteeMemberModel.findByIdAndDelete(user_id);
+    return `${member.name} deleted Successfully`;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => Boolean)
+  async sendOtp(@Args('type') type: string, @Context() context) {
+    const id = context.req.trustee;
+    const role = context.req.role;
+    if (role !== 'owner') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    const trustee = await this.trusteeModel.findById(id);
+    if (!trustee) {
+      throw new NotFoundException('Trustee Not Found');
+    }
+
+    const email = trustee.email_id;
+    if (type === 'reset') {
+      const mail = await this.trusteeService.sentPasswordOtpMail(email);
+      return mail;
+    } else if (type == 'api') {
+      const mail = await this.trusteeService.sentApiOtpMail(email);
+      return mail;
+    } else if (type == 'email') {
+      const mail = await this.trusteeService.sentUpdateOtpMail(email);
+      return mail;
+    } else if (type == 'phone') {
+      const mail = await this.trusteeService.sentUpdateNumberOtp(email);
+      return mail;
+    } else if (type == 'delete') {
+      const mail = await this.trusteeService.sentDeleteOtp(email);
+      return mail;
+    } else {
+      return false;
+    }
+  }
+}
+
+@ObjectType()
+class KycDetails {
+  @Field()
+  active: number;
+
+  @Field()
+  pending: number;
+
+  @Field()
+  inactive: number;
+}
+
+@ObjectType()
+class ProfileDataResponse {
+  @Field()
+  totalSchool: number;
+  @Field(() => KycDetails)
+  kycDetails: KycDetails;
+}
+@ObjectType()
+class MemberesResponse {
+  @Field(() => String)
+  _id: string;
+
+  @Field(() => String)
+  trustee_id: string;
+
+  @Field(() => String)
+  name: string;
+
+  @Field(() => String)
+  email: string;
+
+  @Field(() => String)
+  phone_number: string;
+
+  @Field(() => String)
+  access: string;
 }
 
 // Define a type for the AuthResponse
@@ -454,6 +1007,14 @@ class TrusteeUser {
   email_id: string;
   @Field({ nullable: true })
   apiKey: string;
+  @Field({ nullable: true })
+  role: string;
+  @Field({ nullable: true })
+  phone_number: string;
+  @Field({ nullable: true })
+  trustee_id: string;
+  @Field({ nullable: true })
+  brand_name: string;
 }
 
 @ObjectType()
@@ -490,9 +1051,9 @@ class School {
 class getSchool {
   @Field(() => [School])
   schools: [School];
-  @Field()
+  @Field({ nullable: true })
   total_pages: number;
-  @Field()
+  @Field({ nullable: true })
   page: number;
 }
 

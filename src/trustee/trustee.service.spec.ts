@@ -18,6 +18,7 @@ import * as bcrypt from 'bcrypt';
 import axios from 'axios';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { SettlementReport } from '../schema/settlement.schema';
+import { ObjectId } from 'mongodb';
 
 describe('TrusteeService', () => {
   let mongod: MongoMemoryServer;
@@ -113,7 +114,7 @@ describe('TrusteeService', () => {
             exec: jest.fn().mockResolvedValue(mockTrusteeSchool),
           }) as any,
       );
-      const result = await service.getSchools(mockTrustee._id, 1);
+      const result = await service.getSchools(mockTrustee._id);
       const mockReturnedData = {
         schoolData: mockTrusteeSchool,
         total_pages: 1,
@@ -128,14 +129,14 @@ describe('TrusteeService', () => {
     it('should throw BadRequestException for invalid trustee ID format', async () => {
       const invalidTrusteeId = 'invalid_id';
       jest.spyOn(Types.ObjectId, 'isValid').mockReturnValue(false);
-      await expect(service.getSchools(invalidTrusteeId, 1)).rejects.toThrow(
+      await expect(service.getSchools(invalidTrusteeId)).rejects.toThrow(
         BadRequestException,
       );
     });
     it('should throw ConflictException when no trustee found', async () => {
       jest.spyOn(mongoose.Types.ObjectId, 'isValid').mockReturnValue(true);
       jest.spyOn(trusteeModel, 'findById').mockResolvedValue(null);
-      await expect(service.getSchools(mockTrustee._id, 1)).rejects.toThrow(
+      await expect(service.getSchools(mockTrustee._id)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -146,7 +147,7 @@ describe('TrusteeService', () => {
         .mockImplementation(() => {
           throw new Error('Some unexpected error');
         });
-      await expect(service.getSchools(errorThrowingId, 1)).rejects.toThrow(
+      await expect(service.getSchools(errorThrowingId)).rejects.toThrow(
         BadRequestException,
       );
     });

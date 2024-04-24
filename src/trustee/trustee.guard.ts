@@ -25,7 +25,9 @@ export class TrusteeGuard implements CanActivate {
     if (!token || !(await validateToken(token))) {
       return false;
     }
-    request.trustee = request.trustee || (await validateToken(token)).id;
+    request.trustee =
+      request.trustee || (await validateToken(token)).trustee_id;
+    request.role = request.role || (await validateToken(token)).role;
     return !!request.trustee;
   }
 }
