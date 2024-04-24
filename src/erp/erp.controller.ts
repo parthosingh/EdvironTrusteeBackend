@@ -11,6 +11,7 @@ import {
   NotFoundException,
   UseGuards,
   ForbiddenException,
+  Res,
 } from '@nestjs/common';
 import { ErpService } from './erp.service';
 import { JwtService } from '@nestjs/jwt';
@@ -254,13 +255,10 @@ export class ErpController {
           student_email: student_email,
           student_name: student_name,
           student_phone_no: student_phone_no,
-          //student_receipt: receipt || null,
+          receipt: receipt,
         },
         additional_fields: {
           ...additional_data,
-          receipt: receipt,
-        } || {
-          receipt: receipt,
         },
       };
 
@@ -550,9 +548,9 @@ export class ErpController {
       const start_date = req.query.start_date || null;
       const end_date = req.query.end_date || null;
       const school_id = req.params.school_id;
-      const token = this.jwtService.sign(
+      let token = this.jwtService.sign(
         {
-          client_id: school.client_id,
+          school_id: school_id,
         },
         {
           noTimestamp: true,
@@ -560,12 +558,12 @@ export class ErpController {
         },
       );
 
-      const data = {
-        client_id: school.client_id,
+      let data = {
+        school_id: school_id,
         token: token,
       };
 
-      const config = {
+      let config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report`,
@@ -581,7 +579,7 @@ export class ErpController {
           limit,
         },
       };
-      const transactions = [];
+      let transactions = [];
       const response = await axios.request(config);
       if (
         response.data?.transactions &&
@@ -589,9 +587,24 @@ export class ErpController {
       ) {
         const modifiedResponseData = response.data.transactions.map((item) => ({
           ...item,
-          school_name: school.school_name,
-          school_id: school.school_id,
-          merchant_id: school.school_id,
+          student_id:
+            JSON.parse(item?.additional_data).student_details?.student_id || '',
+
+          student_name:
+            JSON.parse(item?.additional_data).student_details?.student_name ||
+            '',
+
+          student_email:
+            JSON.parse(item?.additional_data).student_details?.student_email ||
+            '',
+          student_phone_no:
+            JSON.parse(item?.additional_data).student_details
+              ?.student_phone_no || '',
+          receipt:
+            JSON.parse(item?.additional_data).student_details?.receipt || '',
+          additional_data:
+            JSON.parse(item?.additional_data).additional_fields || '',
+
           merchant_name: school.school_name,
           currency: 'INR',
         }));
@@ -624,69 +637,154 @@ export class ErpController {
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: trustee_id,
       });
-      const transactionReport = [];
+      const merchant_ids_to_merchant_map = {};
+      merchants.map((merchant: any) => {
+        merchant_ids_to_merchant_map[merchant.school_id] = merchant;
+      });
 
-      let totalData = 0;
+      let token = this.jwtService.sign(
+        { trustee_id: trustee_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: { trustee_id: trustee_id, token },
+        params: {
+          status,
+          startDate: start_date,
+          endDate: end_date,
+          page,
+          limit,
+        },
+      };
 
-      for (const merchant of merchants) {
-        if (!merchant.client_id) continue;
+      const response = await axios.request(config);
 
-        const token = this.jwtService.sign(
-          { client_id: merchant.client_id },
-          { secret: process.env.PAYMENTS_SERVICE_SECRET },
-        );
+      const total_pages = Math.ceil(response.data.totalTransactions / limit);
+      const transactions = response.data.transactions.map((item: any) => {
+        return {
+          ...item,
+          merchant_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          student_id:
+            JSON.parse(item?.additional_data).student_details?.student_id || '',
 
-        const config = {
-          method: 'get',
-          maxBodyLength: Infinity,
-          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report`,
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
-          data: { client_id: merchant.client_id, token },
-          params: {
-            status,
-            startDate: start_date,
-            endDate: end_date,
-            page,
-            limit,
-          },
+          student_name:
+            JSON.parse(item?.additional_data).student_details?.student_name ||
+            '',
+
+          student_email:
+            JSON.parse(item?.additional_data).student_details?.student_email ||
+            '',
+          student_phone_no:
+            JSON.parse(item?.additional_data).student_details
+              ?.student_phone_no || '',
+          receipt:
+            JSON.parse(item?.additional_data).student_details?.receipt || '',
+          additional_data:
+            JSON.parse(item?.additional_data).additional_fields || '',
+          currency: 'INR',
         };
-
-        const response = await axios.request(config);
-
-        if (
-          response.data?.transactions &&
-          response.data !== 'No orders found for clientId'
-        ) {
-          const modifiedResponseData = response.data.transactions.map(
-            (item) => ({
-              ...item,
-              school_name: merchant.school_name,
-              school_id: merchant.school_id,
-              merchant_id: merchant.school_id,
-              merchant_name: merchant.school_name,
-              currency: 'INR',
-            }),
-          );
-          transactionReport.push(...modifiedResponseData);
-        }
-        console.log(response.data.totalTransactions, 'transactions');
-
-        totalData += response.data.totalTransactions || 0;
-      }
-      const total_pages = Math.ceil(totalData / limit);
-
+      });
       return {
         page,
         limit,
-        transactionReport,
+        transactions,
         total_pages,
       };
     } catch (error) {
       console.log(error);
       throw new Error(error.message);
+    }
+  }
+  @Post('webhook')
+  async webhook(@Body() body, @Res() res) {
+    try {
+      console.log('webhook called', body);
+
+      const decrypted = this.jwtService.verify(body.jwt, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+
+      const trustee_id = decrypted.trustee_id;
+      const school_id = decrypted.school_id;
+      const collect_id = decrypted.collect_id;
+      const amount = decrypted.amount;
+      const status = decrypted.status;
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) throw new NotFoundException('School not found');
+      const pg_key = school.pg_key;
+      // const trusteeId = school.trustee_id;
+      // const trustee = await this.trusteeModel.findById(trusteeId);
+      const webHookUrls = trustee.webhook_urls;
+      if (!trustee) {
+        console.log('trustee not found while sending webhook');
+        throw new NotFoundException('Trustee not found');
+      }
+      if (!pg_key) {
+        throw new BadRequestException(
+          'webhook:PG Key not found for this school',
+        );
+      }
+
+      if (webHookUrls.length) {
+        const token = this.jwtService.sign(
+          {
+            collect_id,
+            amount,
+            status,
+          },
+          { noTimestamp: true, secret: pg_key },
+        );
+
+        const webHookData = {
+          collect_id,
+          amount,
+          status,
+          token,
+        };
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          data: webHookData,
+        };
+        const requests = webHookUrls.map((webhook) => {
+          let url = webhook.url;
+          return axios.request({ ...config, url });
+        });
+        const responses = await Promise.allSettled(requests);
+
+        responses.forEach((response, i) => {
+          if (response.status === 'fulfilled') {
+            console.log(`webhook sent to ${webHookUrls[i].url} `);
+          } else {
+            console.log(`webhook failed to ${webHookUrls[i].url} `);
+          }
+        });
+      } else {
+        console.log(
+          `skipping webhook as no webhook url was set for trustee`,
+          trustee.email_id,
+        );
+      }
+
+      return res.status(200).send('OK');
+    } catch (error) {
+      console.log('error in sending-webhook', error);
+      throw error;
     }
   }
 }
