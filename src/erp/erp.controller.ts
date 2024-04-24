@@ -606,6 +606,8 @@ export class ErpController {
             JSON.parse(item?.additional_data).additional_fields || '',
 
           merchant_name: school.school_name,
+          school_id: school_id,
+          school_name: school.school_name,
           currency: 'INR',
         }));
         transactions.push(...modifiedResponseData);
@@ -682,7 +684,7 @@ export class ErpController {
           student_email:
             JSON.parse(item?.additional_data).student_details?.student_email ||
             '',
-          student_phone_no:
+          student_phone:
             JSON.parse(item?.additional_data).student_details
               ?.student_phone_no || '',
           receipt:
@@ -690,6 +692,9 @@ export class ErpController {
           additional_data:
             JSON.parse(item?.additional_data).additional_fields || '',
           currency: 'INR',
+          school_id: item.merchant_id,
+          school_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
         };
       });
       return {
