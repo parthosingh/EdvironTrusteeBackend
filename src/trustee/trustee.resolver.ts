@@ -265,47 +265,58 @@ export class TrusteeResolver {
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: id,
       });
-      const transactionReport = [];
+      let transactionReport = [];
 
-      for (const merchant of merchants) {
-        if (!merchant.client_id) continue;
+      const merchant_ids_to_merchant_map = {};
+      merchants.map((merchant: any) => {
+        merchant_ids_to_merchant_map[merchant.school_id] = merchant;
+      });
 
-        console.log(
-          `Getting report for ${merchant.merchantName}(${merchant.client_id})`,
-        );
+      let token = this.jwtService.sign(
+        { trustee_id: id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=50000`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: { trustee_id: id, token },
+      };
 
-        const token = this.jwtService.sign(
-          { client_id: merchant.client_id },
-          { secret: process.env.PAYMENTS_SERVICE_SECRET },
-        );
+      const response = await axios.request(config);
 
-        const config = {
-          method: 'get',
-          maxBodyLength: Infinity,
-          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report?limit=50000`,
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
-          data: { client_id: merchant.client_id, token },
+      transactionReport = response.data.transactions.map((item: any) => {
+        return {
+          ...item,
+          merchant_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          student_id:
+            JSON.parse(item?.additional_data).student_details?.student_id || '',
+
+          student_name:
+            JSON.parse(item?.additional_data).student_details?.student_name ||
+            '',
+
+          student_email:
+            JSON.parse(item?.additional_data).student_details?.student_email ||
+            '',
+          student_phone:
+            JSON.parse(item?.additional_data).student_details
+              ?.student_phone_no || '',
+          receipt:
+            JSON.parse(item?.additional_data).student_details?.receipt || '',
+          additional_data:
+            JSON.parse(item?.additional_data).additional_fields || '',
+          currency: 'INR',
+          school_id: item.merchant_id,
+          school_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
         };
-
-        const response = await axios.request(config);
-
-        if (
-          response.data?.transactions?.length > 0 &&
-          response.data !== 'No orders found for clientId'
-        ) {
-          const modifiedResponseData = response.data.transactions.map(
-            (item) => ({
-              ...item,
-              school_name: merchant.school_name,
-              school_id: merchant.school_id,
-            }),
-          );
-          transactionReport.push(...modifiedResponseData);
-        }
-      }
+      });
 
       transactionReport.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
