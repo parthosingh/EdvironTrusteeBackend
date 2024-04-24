@@ -597,7 +597,7 @@ export class ErpController {
           student_email:
             JSON.parse(item?.additional_data).student_details?.student_email ||
             '',
-          student_phone_no:
+          student_phone:
             JSON.parse(item?.additional_data).student_details
               ?.student_phone_no || '',
           receipt:
