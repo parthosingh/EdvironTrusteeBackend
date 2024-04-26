@@ -236,4 +236,56 @@ export class PlatformChargesController {
       throw new Error(err.message);
     }
   }
+
+  @Post('bulk-add-platform-charges')
+  async BulkAddPlatformCharge(
+    @Body()
+    token: {
+      token: string;
+    },
+  ) {
+    try {
+      const body = this.jwtService.verify(token.token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      const { trusteeSchoolId, platform_charges } = body;
+
+      if (!trusteeSchoolId)
+        throw new BadRequestException('Trustee school ID Required');
+      if (!platform_charges)
+        throw new BadRequestException('platform charges Required');
+
+      const data = [];
+      for (let i = 0; i < platform_charges.length; i++) {
+        try {
+          await this.platformChargeService.AddPlatformCharge(
+            trusteeSchoolId,
+            platform_charges[i].platform_type,
+            platform_charges[i].payment_mode,
+            platform_charges[i].range_charge,
+          );
+
+          data.push({ error: null });
+        } catch (err) {
+          data.push({ error: err.message });
+        }
+      }
+
+      const payload = {
+        data: data,
+      };
+
+      const res = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      return res;
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
 }

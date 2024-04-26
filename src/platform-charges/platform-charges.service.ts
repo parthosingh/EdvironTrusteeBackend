@@ -27,9 +27,9 @@ export class PlatformChargeService {
   ) {}
 
   async AddPlatformCharge(
-    trusteeSchoolId: string,
-    platform_type: string,
-    payment_mode: string,
+    trusteeSchoolId: String,
+    platform_type: String,
+    payment_mode: String,
     range_charge: rangeCharge[],
   ) {
     try {
@@ -44,8 +44,10 @@ export class PlatformChargeService {
 
       trusteeSchool.platform_charges.forEach((platformCharge) => {
         if (
-          platformCharge.platform_type === platform_type &&
-          platformCharge.payment_mode === payment_mode
+          platformCharge.platform_type.toLowerCase() ===
+            platform_type.toLowerCase() &&
+          platformCharge.payment_mode.toLowerCase() ===
+            payment_mode.toLowerCase()
         ) {
           throw new BadRequestException('MDR already present');
         }
@@ -81,8 +83,10 @@ export class PlatformChargeService {
         let found = 0;
         res.platform_charges.forEach((PlatformCharge) => {
           if (
-            PlatformCharge.platform_type === OthersField.platform_type &&
-            PlatformCharge.payment_mode === OthersField.payment_mode
+            PlatformCharge.platform_type.toLowerCase() ===
+              OthersField.platform_type.toLowerCase() &&
+            PlatformCharge.payment_mode.toLowerCase() ===
+              OthersField.payment_mode.toLowerCase()
           ) {
             found = 1;
           }
@@ -92,7 +96,7 @@ export class PlatformChargeService {
       });
 
       if (AllOtherFieldPresent && !trusteeSchool.pg_key) {
-        const pgKey = await this.mainBackendService.generateKey();
+        let pgKey = await this.mainBackendService.generateKey();
         await this.trusteeSchoolModel.findByIdAndUpdate(trusteeSchool._id, {
           $set: { pg_key: pgKey },
         });
@@ -110,9 +114,9 @@ export class PlatformChargeService {
   }
 
   async deletePlatformCharge(
-    trusteeSchoolId: string,
-    platform_type: string,
-    payment_mode: string,
+    trusteeSchoolId: String,
+    platform_type: String,
+    payment_mode: String,
   ) {
     try {
       const trusteeSchool = await this.trusteeSchoolModel.findOne({
@@ -158,9 +162,9 @@ export class PlatformChargeService {
   }
 
   async finalAmountWithMDR(
-    trusteeSchoolId: string,
-    platform_type: string,
-    payment_mode: string,
+    trusteeSchoolId: String,
+    platform_type: String,
+    payment_mode: String,
     amount: number,
   ) {
     try {
@@ -241,9 +245,9 @@ export class PlatformChargeService {
   }
 
   async updatePlatformCharge(
-    trusteeSchoolId: string,
-    platform_type: string,
-    payment_mode: string,
+    trusteeSchoolId: String,
+    platform_type: String,
+    payment_mode: String,
     range_charge: rangeCharge[],
   ) {
     try {
@@ -271,8 +275,7 @@ export class PlatformChargeService {
       const res = await this.trusteeSchoolModel.findOneAndUpdate(
         {
           _id: trusteeSchoolId,
-          'platform_charges.platform_type': platform_type,
-          'platform_charges.payment_mode': payment_mode,
+          platform_charges: { $elemMatch: { platform_type, payment_mode } },
         },
         {
           $set: { 'platform_charges.$.range_charge': range_charge },
