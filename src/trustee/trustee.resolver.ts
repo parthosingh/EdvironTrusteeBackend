@@ -27,6 +27,7 @@ import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
+import { ErpGuard } from 'src/erp/erp.guard';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -919,6 +920,70 @@ export class TrusteeResolver {
       return mail;
     } else {
       return false;
+    }
+  }
+
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async generatePaymentLink(
+    @Args("school_id") school_id: string,
+    @Args("amount") amount: string,
+    @Args("callback_url") callback_url: string,
+    @Args("sign") sign: string,
+    @Context() context
+  ){
+    try{
+      if(!school_id) throw new BadRequestException("School id required");
+      if(!amount) throw new BadRequestException("Amount required");
+      if(!callback_url) throw new BadRequestException("Callback url required");
+
+      const trustee_id = context.req.trustee;
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      const school = await this.trusteeSchoolModel.findOne({school_id: new Types.ObjectId(school_id)});
+
+      if(!trustee) throw new BadRequestException("Invalid trustee");
+      if(!school) throw new BadRequestException("Invalid school");
+      if(school.trustee_id.toString() !== trustee._id.toString()) throw new Error("Unauthorized user");
+
+      const verify_val = this.jwtService.verify(sign, {secret: school.pg_key})
+      
+      if(verify_val.school_id !== school_id || verify_val.callback_url !== callback_url || verify_val.amount !== amount){
+        throw new Error("Request forged");
+      }
+
+      const payload = {
+        school_id,
+        amount,
+        callback_url
+      }
+      const sign_val = this.jwtService.sign(payload, {secret: school.pg_key});
+
+      const apiKeyPayload = {
+        trusteeId: trustee._id,
+        IndexOfApiKey: trustee.IndexOfApiKey
+      }
+      const apiKey = this.jwtService.sign(apiKeyPayload, {secret: process.env.JWT_SECRET_FOR_API_KEY});
+
+      const response = await axios.post(
+        `${process.env.URL}/erp/create-collect-request`,
+        {
+            amount,
+            school_id: school_id,
+            callback_url,
+            sign: sign_val
+        },
+        {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+      return response.data.collect_request_url;
+    }
+    catch(err){
+      throw new Error(err);
     }
   }
 }
