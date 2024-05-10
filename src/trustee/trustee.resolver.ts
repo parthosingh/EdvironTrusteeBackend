@@ -14,6 +14,7 @@ import {
   BadRequestException,
   UseGuards,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
 import { TrusteeSchool } from '../schema/school.schema';
@@ -27,7 +28,6 @@ import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
-import { ErpGuard } from 'src/erp/erp.guard';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -942,14 +942,14 @@ export class TrusteeResolver {
       const trustee = await this.trusteeModel.findById(trustee_id);
       const school = await this.trusteeSchoolModel.findOne({school_id: new Types.ObjectId(school_id)});
 
-      if(!trustee) throw new BadRequestException("Invalid trustee");
-      if(!school) throw new BadRequestException("Invalid school");
-      if(school.trustee_id.toString() !== trustee._id.toString()) throw new Error("Unauthorized user");
+      if(!trustee) throw new NotFoundException("Invalid trustee");
+      if(!school) throw new NotFoundException("Invalid school");
+      if(school.trustee_id.toString() !== trustee._id.toString()) throw new UnauthorizedException("Unauthorized user");
 
       const verify_val = this.jwtService.verify(sign, {secret: school.pg_key})
       
       if(verify_val.school_id !== school_id || verify_val.callback_url !== callback_url || verify_val.amount !== amount){
-        throw new Error("Request forged");
+        throw new ForbiddenException("Request forged");
       }
 
       const payload = {
@@ -983,6 +983,10 @@ export class TrusteeResolver {
       return response.data.collect_request_url;
     }
     catch(err){
+      if (err.response.data?.statusCode === 400) throw new BadRequestException(err.response.data?.message);
+      else if (err.response.data?.statusCode === 404) throw new NotFoundException(err.response.data?.message);
+      else if (err.response.data?.statusCode === 401) throw new UnauthorizedException(err.response.data?.message);
+      else if (err.response.data?.statusCode === 403) throw new ForbiddenException(err.response.data?.message);
       throw new Error(err);
     }
   }
