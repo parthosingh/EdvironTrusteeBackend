@@ -271,4 +271,9 @@ export class MainBackendController {
     await this.trusteeService.rejectMdr(body.id, body.comment);
     return `MDR status Update`;
   }
+
+  @Post('save-base-mdr')
+  async savebaseMdr(@Body() body:any){
+    return await this.trusteeService.saveBulkMdr(body.trustee_id,body.base_mdr)
+  }
 }
