@@ -25,6 +25,7 @@ import { TrusteeMember } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
 import { RequestMDR, mdr_status } from 'src/schema/mdr.request.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { SchoolMdr } from 'src/schema/school_mdr.schema';
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number
@@ -50,6 +51,8 @@ export class TrusteeService {
     private requestMDRModel: mongoose.Model<RequestMDR>,
     @InjectModel(BaseMdr.name)
     private baseMdrModel: mongoose.Model<BaseMdr>,
+    @InjectModel(SchoolMdr.name)
+    private schoolMdrModel: mongoose.Model<SchoolMdr>,
   ) {}
 
   async loginAndGenerateToken(
@@ -718,7 +721,7 @@ export class TrusteeService {
     school_id: string[],
     platform_chargers: PlatformCharge[],
   ) {
-    let mdr = await this.requestMDRModel 
+    let mdr = await this.requestMDRModel
       .findOne({ trustee_id })
       .sort({ createdAt: -1 });
 
@@ -785,10 +788,10 @@ export class TrusteeService {
   }
 
   async saveBulkMdr(trustee_id: string, platform_charges: PlatformCharge[]) {
-    const trusteeId=new Types.ObjectId(trustee_id)
+    const trusteeId = new Types.ObjectId(trustee_id);
     await this.baseMdrModel.findOneAndUpdate(
       {
-        trustee_id:trusteeId,
+        trustee_id: trusteeId,
       },
       {
         platform_charges,
@@ -796,7 +799,7 @@ export class TrusteeService {
       { upsert: true, new: true },
     );
 
-    return 'mdr updated'
+    return 'mdr updated';
   }
 
   async rejectMdr(id: string, comment: string) {
@@ -804,7 +807,7 @@ export class TrusteeService {
     mdr.status = mdr_status.REJECTED;
     mdr.comment = comment;
     await mdr.save();
-    return 'status updated'
+    return 'status updated';
   }
 
   async getTrusteeMdr(trustee_id: string) {
@@ -839,5 +842,26 @@ export class TrusteeService {
     );
 
     return `${mode} ${status}`;
+  }
+
+  async getSchoolMdr(school_id: string) {
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new mongoose.Types.ObjectId(school_id),
+      });
+      if (!school) throw new NotFoundException('School not found');
+
+      const schoolMdr = await this.schoolMdrModel.findOne({
+        school_id,
+      });
+      return schoolMdr;
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
   }
 }

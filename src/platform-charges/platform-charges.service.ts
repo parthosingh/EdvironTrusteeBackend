@@ -26,7 +26,7 @@ export class PlatformChargeService {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private mainBackendService: MainBackendService,
     @InjectModel(SchoolMdr.name)
-    private schoolMdrModel:mongoose.Model<SchoolMdr>
+    private schoolMdrModel: mongoose.Model<SchoolMdr>,
   ) {}
 
   async AddPlatformCharge(
@@ -297,16 +297,17 @@ export class PlatformChargeService {
     }
   }
 
-
   async addSchoolMdr(
-    trusteeSchoolId: String,
+    trusteeSchoolId: string,
     platform_type: String,
     payment_mode: String,
     range_charge: rangeCharge[],
   ) {
     try {
+      let school_id = new mongoose.Types.ObjectId(trusteeSchoolId);
+
       const trusteeSchool = await this.trusteeSchoolModel.findOne({
-        _id: trusteeSchoolId,
+        school_id,
       });
 
       if (!trusteeSchool)
@@ -314,9 +315,9 @@ export class PlatformChargeService {
       if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
         throw new BadRequestException('KYC not approved');
 
-      const schoolMdr= await this.schoolMdrModel.findOne({
-        school_id:trusteeSchoolId
-      })
+      const schoolMdr = await this.schoolMdrModel.findOne({
+        school_id,
+      });
       schoolMdr.mdr2.forEach((platformCharge) => {
         if (
           platformCharge.platform_type.toLowerCase() ===
@@ -325,11 +326,11 @@ export class PlatformChargeService {
             payment_mode.toLowerCase()
         ) {
           throw new BadRequestException('MDR already present');
-        } 
+        }
       });
 
       const res = await this.schoolMdrModel.findOneAndUpdate(
-        { school_id: trusteeSchoolId },
+        { school_id },
         {
           $push: {
             mdr2: {
@@ -372,9 +373,14 @@ export class PlatformChargeService {
 
       if (AllOtherFieldPresent && !trusteeSchool.pg_key) {
         let pgKey = await this.mainBackendService.generateKey();
-        await this.trusteeSchoolModel.findByIdAndUpdate(trusteeSchool._id, {
-          $set: { pg_key: pgKey },
-        });
+        await this.trusteeSchoolModel.findOneAndUpdate(
+          {
+            school_id,
+          },
+          {
+            $set: { pg_key: pgKey },
+          },
+        );
       }
 
       return { platform_charges: res.mdr2 };
@@ -389,14 +395,15 @@ export class PlatformChargeService {
   }
   //call this after request approval ,as default value is already given
   async updateSchoolMdr(
-    trusteeSchoolId: String,
+    trusteeSchoolId: string,
     platform_type: String,
     payment_mode: String,
     range_charge: rangeCharge[],
   ) {
     try {
+      let school_id = new mongoose.Types.ObjectId(trusteeSchoolId);
       const trusteeSchool = await this.trusteeSchoolModel.findOne({
-        _id: trusteeSchoolId,
+        school_id,
       });
 
       if (!trusteeSchool)
@@ -404,7 +411,9 @@ export class PlatformChargeService {
       if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
         throw new BadRequestException('KYC not approved');
 
-      const schoolMdr= await this.schoolMdrModel.findOne({school_id:trusteeSchoolId})
+      const schoolMdr = await this.schoolMdrModel.findOne({
+        school_id,
+      });
 
       let isFound = 0;
       schoolMdr.mdr2.forEach((platformCharge) => {
@@ -420,7 +429,7 @@ export class PlatformChargeService {
 
       const res = await this.schoolMdrModel.findOneAndUpdate(
         {
-          school_id: trusteeSchoolId,
+          school_id,
           mdr2: { $elemMatch: { platform_type, payment_mode } },
         },
         {
@@ -441,13 +450,15 @@ export class PlatformChargeService {
   }
 
   async deleteSchoolMdr(
-    trusteeSchoolId: String,
+    trusteeSchoolId: string,
     platform_type: String,
     payment_mode: String,
   ) {
     try {
+      let school_id = new mongoose.Types.ObjectId(trusteeSchoolId);
+
       const trusteeSchool = await this.schoolMdrModel.findOne({
-        school_id: trusteeSchoolId,
+        school_id,
       });
       if (!trusteeSchool)
         throw new NotFoundException('Trustee school not found');
@@ -465,7 +476,7 @@ export class PlatformChargeService {
       if (!isFound) throw new NotFoundException('MDR not present');
 
       const res = await this.schoolMdrModel.findOneAndUpdate(
-        { _id: trusteeSchoolId },
+        { school_id },
         {
           $pull: {
             mdr2: {
@@ -478,6 +489,63 @@ export class PlatformChargeService {
       );
 
       return res;
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
+  async finalMdr(
+    trusteeSchoolId: string,
+    platform_type: String,
+    payment_mode: String,
+    amount: number,
+  ) {
+    try {
+      if (amount < 0) throw new Error('Amount should be positive');
+      let school_id = new mongoose.Types.ObjectId(trusteeSchoolId);
+
+      const trusteeSchool = await this.trusteeSchoolModel.findOne({
+        school_id,
+      });
+      if (!trusteeSchool)
+        throw new NotFoundException('Trustee school not found');
+      const schoolMdr = await this.schoolMdrModel.findOne({
+        school_id,
+      });
+      let ranges = null;
+      schoolMdr.mdr2.forEach((platformCharge) => {
+        if (
+          platformCharge.platform_type === platform_type &&
+          platformCharge.payment_mode === payment_mode
+        ) {
+          ranges = platformCharge.range_charge;
+        }
+      });
+
+      if (!ranges) throw new NotFoundException('MDR not found');
+
+      let platformCharge = null;
+      //can be changed, will work only with sorted range [ascending order,otherwise it will always pick last range.]
+      //[upto null-100,upto 40-50 & amount=30]
+      ranges.forEach((range: any) => {
+        if (!platformCharge && (!range.upto || range.upto >= amount)) {
+          platformCharge = range;
+        }
+      });
+
+      let finalAmount: number = amount;
+
+      if (platformCharge.charge_type === charge_type.FLAT) {
+        finalAmount += platformCharge.charge;
+      } else if ((platformCharge.charge_type = charge_type.PERCENT)) {
+        finalAmount += (amount * platformCharge.charge) / 100;
+      }
+
+      return finalAmount.toFixed(2);
     } catch (err) {
       if (err.response?.statusCode === 400) {
         throw new BadRequestException(err.message);

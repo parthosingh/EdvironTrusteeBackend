@@ -28,6 +28,8 @@ import axios, { AxiosError } from 'axios';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { RequestMDR } from 'src/schema/mdr.request.schema';
+import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { SchoolMdr } from 'src/schema/school_mdr.schema';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -952,7 +954,8 @@ export class TrusteeResolver {
   @Mutation(() => String)
   async bulkRequestMDR(
     @Args('school_id', { type: () => [String] }) school_id: string[],
-    @Args('platform_charge',{type:()=>[PlatformChargesInput]}) platform_charge:PlatformChargesInput[],
+    @Args('platform_charge', { type: () => [PlatformChargesInput] })
+    platform_charge: PlatformChargesInput[],
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
@@ -965,24 +968,65 @@ export class TrusteeResolver {
     await this.trusteeService.bulkEequestMDR(
       trustee_id,
       school_id,
-      platform_charge
+      platform_charge,
     );
-    
-    return 'mdr updated'
+
+    return 'mdr updated';
   }
 
   @UseGuards(TrusteeGuard)
-  @Mutation(()=>String)
+  @Mutation(() => String)
   async tooglePaymentMode(
-    @Args('mode') mode:string,
-    @Args('school_id')school_id:string
-  ){
-    const validModes  = ['wallet', 'cardless', 'netbanking', 'pay_later', 'upi', 'card'];
+    @Args('mode') mode: string,
+    @Args('school_id') school_id: string,
+  ) {
+    const validModes = [
+      'wallet',
+      'cardless',
+      'netbanking',
+      'pay_later',
+      'upi',
+      'card',
+    ];
     if (!validModes.includes(mode)) {
       throw new Error(`Invalid payment mode: ${mode}.`);
     }
-    return await this.trusteeService.toogleDisable(mode,school_id)
-    
+    return await this.trusteeService.toogleDisable(mode, school_id);
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => BaseMdr)
+  async getTrusteeBaseRates(@Context() context) {
+    const trustee_id = context.req.trustee;
+    const trusteeBaseRates =
+      await this.trusteeService.getTrusteeMdr(trustee_id);
+    return trusteeBaseRates;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [SchoolMdr])
+  async getSchoolMdr(@Context() context) {
+    try {
+      const trustee_id = context.req.trustee;
+
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      const schools = await this.trusteeSchoolModel.find({
+        trustee_id: trustee_id,
+      });
+      let schoolMdrs = [];
+
+      if (schools) {
+        const school_ids = schools.map((school) => school.school_id);
+        school_ids.map(async (school) => {
+          schoolMdrs.push(
+            await this.trusteeService.getSchoolMdr(school.toString()),
+          );
+        });
+      }
+      return schoolMdrs;
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 
   // @UseGuards(TrusteeGuard)

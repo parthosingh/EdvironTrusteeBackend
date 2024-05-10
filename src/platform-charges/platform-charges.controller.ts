@@ -314,7 +314,7 @@ export class PlatformChargesController {
       if (!payment_mode) throw new BadRequestException('Payment mode Required');
       if (!range_charge) throw new BadRequestException('Charges Required');
 
-      const val = await this.platformChargeService.AddPlatformCharge(
+      const val = await this.platformChargeService.addSchoolMdr(
         trusteeSchoolId,
         platform_type,
         payment_mode,
