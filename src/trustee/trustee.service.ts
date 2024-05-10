@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import mongoose, { Types } from 'mongoose';
+import mongoose, { ObjectId, Types } from 'mongoose';
 import {
   ConflictException,
   Injectable,
@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Trustee } from '../schema/trustee.schema';
-import { TrusteeSchool } from '../schema/school.schema';
+import { TrusteeSchool, rangeCharge } from '../schema/school.schema';
 import axios from 'axios';
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
@@ -19,6 +19,8 @@ import * as fs from 'fs';
 import * as handlebars from 'handlebars';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
+import { RequestMDR, mdr_status } from 'src/schema/mdr.request.schema';
+import { BaseMdr } from 'src/schema/base.mdr.schema';
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number
@@ -40,6 +42,10 @@ export class TrusteeService {
     private jwtService: JwtService,
     @InjectModel(TrusteeMember.name)
     private trusteeMemberModel: mongoose.Model<TrusteeMember>,
+    @InjectModel(RequestMDR.name)
+    private requestMDRModel: mongoose.Model<RequestMDR>,
+    @InjectModel(BaseMdr.name)
+    private baseMdrModel: mongoose.Model<BaseMdr>,
   ) {}
 
   async loginAndGenerateToken(
@@ -164,6 +170,8 @@ export class TrusteeService {
             _id: 0,
             email: 1,
             pg_key: 1,
+            disabled_modes: 1,
+            platform_charges: 1,
           },
         )
         .sort({ createdAt: -1 })
@@ -591,5 +599,142 @@ export class TrusteeService {
       }
     }
     return false;
+  }
+
+  async requestMDR(
+    trustee_id: ObjectId,
+    school_id: string[],
+    platform_type: string,
+    payment_mode: string,
+    range_charge: rangeCharge[],
+  ) {
+    let mdr = await this.requestMDRModel
+      .findOne({ trustee_id })
+      .sort({ createdAt: -1 });
+    if (mdr.status === mdr_status.PROCESSING){
+      throw new Error('Your MDR is under Processing, You cannot requst for update')
+    }
+      if (!mdr) {
+        mdr = await this.requestMDRModel.create({
+          trustee_id,
+          school_id,
+          platform_charges: [
+            {
+              platform_type,
+              payment_mode,
+              range_charge,
+            },
+          ],
+          status: mdr_status.INITIATED,
+        });
+
+        return 'New MDR created';
+      }
+    if (![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)) {
+      // If status is not PROCESSING, REJECTED, or APPROVED, update the existing MDR
+      const existingPlatformChargeIndex = mdr.platform_charges.findIndex(
+        (pc) =>
+          pc.platform_type.toLowerCase() === platform_type.toLowerCase() &&
+          pc.payment_mode.toLowerCase() === payment_mode.toLowerCase(),
+      );
+
+      if (existingPlatformChargeIndex !== -1) {
+        console.log(existingPlatformChargeIndex,'exist');
+         // Update range_charge for existing platform_charge
+         console.log(mdr.platform_charges[existingPlatformChargeIndex].range_charge);
+         console.log(range_charge);
+         
+         
+         mdr.platform_charges[existingPlatformChargeIndex].range_charge = [...mdr.platform_charges[existingPlatformChargeIndex].range_charge, ...range_charge];
+         await mdr.save()
+      } else {
+        // Add new platform_charge
+        
+        mdr.platform_charges.push({
+          platform_type,
+          payment_mode,
+          range_charge,
+        });
+      }
+      mdr.school_id = school_id;
+      await mdr.save();
+
+      return 'MDR updated';
+    } else {
+      // If status is PROCESSING, REJECTED, or APPROVED, create a new MDR
+      const newMDR = await this.requestMDRModel.create({
+        trustee_id,
+        school_id,
+        platform_charges: [
+          {
+            platform_type,
+            payment_mode,
+            range_charge,
+          },
+        ],
+        status: mdr_status.INITIATED,
+      });
+
+      return 'New MDR created (previous MDR status is not eligible for update)';
+    }
+  }
+
+  async saveBaseMdr(
+    trustee_id: ObjectId,
+    school_id: string,
+    platform_type: String,
+    payment_mode: String,
+    range_charge: rangeCharge[],
+  ) {
+    const res = await this.baseMdrModel.findOneAndUpdate(
+      { trustee_id: trustee_id },
+      {
+        status: mdr_status.PROCESSING,
+        $push: {
+          platform_charges: {
+            platform_type,
+            payment_mode,
+            range_charge,
+          },
+        },
+      },
+      { upsert: true, new: true },
+    );
+  }
+
+  async rejectMdr(id: string, comment: string) {
+    const mdr = await this.requestMDRModel.findById(id);
+    mdr.status = mdr_status.REJECTED;
+    mdr.comment = comment;
+    await mdr.save();
+  }
+
+  async toogleDisable(mode: string, school_id: string) {
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    let status = '';
+    if (!school) {
+      throw new Error(`Schoolnot found.`);
+    }
+    const { disabled_modes } = school;
+
+    const checkIndex = disabled_modes.indexOf(mode);
+    const isModeDisabled = checkIndex !== -1;
+    if (isModeDisabled) {
+      status = 'disabled';
+      disabled_modes.splice(checkIndex, 1);
+    } else {
+      status = 'enabled';
+      disabled_modes.push(mode);
+    }
+
+    await this.trusteeSchoolModel.findOneAndUpdate(
+      { school_id: new Types.ObjectId(school_id) },
+      { disabled_modes },
+      { new: true },
+    );
+
+    return `${mode} ${status}`;
   }
 }

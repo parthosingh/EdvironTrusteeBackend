@@ -16,6 +16,7 @@ import { Trustee } from '../schema/trustee.schema';
 import mongoose, { Types } from 'mongoose';
 import { TrusteeService } from '../trustee/trustee.service';
 import { InjectModel } from '@nestjs/mongoose';
+import { RequestMDR } from 'src/schema/mdr.request.schema';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -25,6 +26,8 @@ export class MainBackendController {
     private readonly trusteeService: TrusteeService,
     @InjectModel(Trustee.name)
     private readonly trusteeModel: mongoose.Model<Trustee>,
+    @InjectModel(RequestMDR.name)
+    private requestMDRModel: mongoose.Model<RequestMDR>,
   ) {}
 
   @Post('create-trustee')
@@ -257,4 +260,7 @@ export class MainBackendController {
       throw new Error(err);
     }
   }
+
+  @Get('getTrusteeMDRRequest')
+  async getTrusteeMDRRequest(){}
 }

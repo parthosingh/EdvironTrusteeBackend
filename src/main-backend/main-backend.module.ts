@@ -5,9 +5,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { TrusteeSchema } from '../schema/trustee.schema';
 import { SchoolSchema } from '../schema/school.schema';
-import { TrusteeService } from 'src/trustee/trustee.service';
+import { TrusteeService } from '../trustee/trustee.service';
 import { TrusteeMemberSchema } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
+import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
+import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { EmailService } from '../email/email.service';
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
     ]),
+    MongooseModule.forFeature([{ name: RequestMDR.name, schema: RequestMDRSchema }]),
+    MongooseModule.forFeature([{ name:  BaseMdr.name, schema: BaseMdrSchema }]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_INTRANET,

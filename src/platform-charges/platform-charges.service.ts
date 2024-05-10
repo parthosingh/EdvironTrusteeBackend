@@ -74,7 +74,7 @@ export class PlatformChargeService {
         { platform_type: 'CreditCard', payment_mode: 'Others' },
         { platform_type: 'Wallet', payment_mode: 'Others' },
         { platform_type: 'PayLater', payment_mode: 'Others' },
-        { platform_type: 'CardLess EMI', payment_mode: 'Others' },
+        { platform_type: 'C ', payment_mode: 'Others' },
       ];
 
       let AllOtherFieldPresent = 1;

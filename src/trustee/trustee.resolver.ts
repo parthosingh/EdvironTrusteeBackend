@@ -16,7 +16,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
-import { TrusteeSchool } from '../schema/school.schema';
+import { PlatformCharge, TrusteeSchool, rangeCharge } from '../schema/school.schema';
 import { TrusteeGuard } from './trustee.guard';
 import { ErpService } from '../erp/erp.service';
 import mongoose, { Types } from 'mongoose';
@@ -27,6 +27,7 @@ import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
+import { RequestMDR } from 'src/schema/mdr.request.schema';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -921,6 +922,45 @@ export class TrusteeResolver {
       return false;
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async requestMDR(
+    @Args('platform_type') platform_type: string,
+    @Args('payment_mode') payment_mode: string,
+    @Args('school_id', { type: () => [String] }) school_id: string[],
+    @Args('range_mode', { type: () => [RangeInput] }) range_mode: RangeInput[],
+    @Context() context,
+  ) {
+    const trustee_id = context.req.trustee;
+    const role = context.req.role;
+    if (role !== 'owner' && role !== 'admin') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    return await this.trusteeService.requestMDR(
+      trustee_id,
+      school_id,
+      platform_type,
+      payment_mode,
+      range_mode,
+    );
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(()=>String)
+  async tooglePaymentMode(
+    @Args('mode') mode:string,
+    @Args('school_id')school_id:string
+  ){
+    const validModes  = ['wallet', 'cardless', 'netbanking', 'pay_later', 'upi', 'card'];
+    if (!validModes.includes(mode)) {
+      throw new Error(`Invalid payment mode: ${mode}.`);
+    }
+    return await this.trusteeService.toogleDisable(mode,school_id)
+    
+  }
 }
 
 @ObjectType()
@@ -1056,6 +1096,12 @@ class School {
 
   @Field(() => String, { nullable: true })
   merchantStatus: string;
+
+  @Field(() => [String], { nullable: true })
+  disabled_modes: [string];
+
+  @Field(() => [PlatformCharge], { nullable: true })
+  platform_charges: [PlatformCharge];
 }
 
 @ObjectType()
@@ -1116,4 +1162,21 @@ export class SchoolInputBulk {
 class TokenResponse {
   @Field()
   token: string;
+}
+
+enum charge_type {
+  FLAT = 'FLAT',
+  PERCENT = 'PERCENT',
+}
+
+@InputType()
+class RangeInput {
+  @Field({ nullable: true })
+  upto: number;
+
+  @Field(() => String)
+  charge_type: charge_type;
+
+  @Field(() => Number)
+  charge: number;
 }
