@@ -15,6 +15,7 @@ import {
   rangeCharge,
 } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
+import { SchoolMdr } from 'src/schema/school_mdr.schema';
 
 @Injectable()
 export class PlatformChargeService {
@@ -24,6 +25,8 @@ export class PlatformChargeService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private mainBackendService: MainBackendService,
+    @InjectModel(SchoolMdr.name)
+    private schoolMdrModel:mongoose.Model<SchoolMdr>
   ) {}
 
   async AddPlatformCharge(
@@ -284,6 +287,197 @@ export class PlatformChargeService {
       );
 
       return { platform_charges: res.platform_charges };
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
+
+
+  async addSchoolMdr(
+    trusteeSchoolId: String,
+    platform_type: String,
+    payment_mode: String,
+    range_charge: rangeCharge[],
+  ) {
+    try {
+      const trusteeSchool = await this.trusteeSchoolModel.findOne({
+        _id: trusteeSchoolId,
+      });
+
+      if (!trusteeSchool)
+        throw new NotFoundException('Trustee school not found');
+      if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
+        throw new BadRequestException('KYC not approved');
+
+      const schoolMdr= await this.schoolMdrModel.findOne({
+        school_id:trusteeSchoolId
+      })
+      schoolMdr.mdr2.forEach((platformCharge) => {
+        if (
+          platformCharge.platform_type.toLowerCase() ===
+            platform_type.toLowerCase() &&
+          platformCharge.payment_mode.toLowerCase() ===
+            payment_mode.toLowerCase()
+        ) {
+          throw new BadRequestException('MDR already present');
+        } 
+      });
+
+      const res = await this.schoolMdrModel.findOneAndUpdate(
+        { school_id: trusteeSchoolId },
+        {
+          $push: {
+            mdr2: {
+              platform_type,
+              payment_mode,
+              range_charge,
+            },
+          },
+        },
+        { returnDocument: 'after' },
+      );
+
+      const OthersFields = [
+        { platform_type: 'UPI', payment_mode: 'Others' },
+        { platform_type: 'DebitCard', payment_mode: 'Others' },
+        { platform_type: 'NetBanking', payment_mode: 'Others' },
+        { platform_type: 'CreditCard', payment_mode: 'Others' },
+        { platform_type: 'Wallet', payment_mode: 'Others' },
+        { platform_type: 'PayLater', payment_mode: 'Others' },
+        { platform_type: 'C ', payment_mode: 'Others' },
+      ];
+
+      let AllOtherFieldPresent = 1;
+
+      OthersFields.forEach((OthersField) => {
+        let found = 0;
+        res.mdr2.forEach((PlatformCharge) => {
+          if (
+            PlatformCharge.platform_type.toLowerCase() ===
+              OthersField.platform_type.toLowerCase() &&
+            PlatformCharge.payment_mode.toLowerCase() ===
+              OthersField.payment_mode.toLowerCase()
+          ) {
+            found = 1;
+          }
+        });
+
+        AllOtherFieldPresent = AllOtherFieldPresent & found;
+      });
+
+      if (AllOtherFieldPresent && !trusteeSchool.pg_key) {
+        let pgKey = await this.mainBackendService.generateKey();
+        await this.trusteeSchoolModel.findByIdAndUpdate(trusteeSchool._id, {
+          $set: { pg_key: pgKey },
+        });
+      }
+
+      return { platform_charges: res.mdr2 };
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
+  //call this after request approval ,as default value is already given
+  async updateSchoolMdr(
+    trusteeSchoolId: String,
+    platform_type: String,
+    payment_mode: String,
+    range_charge: rangeCharge[],
+  ) {
+    try {
+      const trusteeSchool = await this.trusteeSchoolModel.findOne({
+        _id: trusteeSchoolId,
+      });
+
+      if (!trusteeSchool)
+        throw new NotFoundException('Trustee school not found');
+      if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
+        throw new BadRequestException('KYC not approved');
+
+      const schoolMdr= await this.schoolMdrModel.findOne({school_id:trusteeSchoolId})
+
+      let isFound = 0;
+      schoolMdr.mdr2.forEach((platformCharge) => {
+        if (
+          platformCharge.platform_type === platform_type &&
+          platformCharge.payment_mode === payment_mode
+        ) {
+          isFound = 1;
+        }
+      });
+
+      if (!isFound) throw new NotFoundException('MDR not found');
+
+      const res = await this.schoolMdrModel.findOneAndUpdate(
+        {
+          school_id: trusteeSchoolId,
+          mdr2: { $elemMatch: { platform_type, payment_mode } },
+        },
+        {
+          $set: { 'mdr2.$.range_charge': range_charge },
+        },
+        { returnDocument: 'after' },
+      );
+
+      return { platform_charges: res.mdr2 };
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
+
+  async deleteSchoolMdr(
+    trusteeSchoolId: String,
+    platform_type: String,
+    payment_mode: String,
+  ) {
+    try {
+      const trusteeSchool = await this.schoolMdrModel.findOne({
+        school_id: trusteeSchoolId,
+      });
+      if (!trusteeSchool)
+        throw new NotFoundException('Trustee school not found');
+
+      let isFound = 0;
+      trusteeSchool.mdr2.forEach((platformCharge) => {
+        if (
+          platformCharge.platform_type === platform_type &&
+          platformCharge.payment_mode === payment_mode
+        ) {
+          isFound = 1;
+        }
+      });
+
+      if (!isFound) throw new NotFoundException('MDR not present');
+
+      const res = await this.schoolMdrModel.findOneAndUpdate(
+        { _id: trusteeSchoolId },
+        {
+          $pull: {
+            mdr2: {
+              platform_type: platform_type,
+              payment_mode: payment_mode,
+            },
+          },
+        },
+        { returnDocument: 'after' },
+      );
+
+      return res;
     } catch (err) {
       if (err.response?.statusCode === 400) {
         throw new BadRequestException(err.message);
