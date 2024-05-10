@@ -262,5 +262,13 @@ export class MainBackendController {
   }
 
   @Get('getTrusteeMDRRequest')
-  async getTrusteeMDRRequest(){}
+  async getTrusteeMDRRequest(@Query('trustee_id') trustee_id: string) {
+    return await this.trusteeService.getTrusteeMdr(trustee_id);
+  }
+
+  @Post('reject-mdt')
+  async rejectMdr(@Body() body: { id: string; comment: string }) {
+    await this.trusteeService.rejectMdr(body.id, body.comment);
+    return `MDR status Update`;
+  }
 }

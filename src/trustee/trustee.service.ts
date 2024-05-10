@@ -611,25 +611,28 @@ export class TrusteeService {
     let mdr = await this.requestMDRModel
       .findOne({ trustee_id })
       .sort({ createdAt: -1 });
-    if (mdr.status === mdr_status.PROCESSING){
-      throw new Error('Your MDR is under Processing, You cannot requst for update')
-    }
-      if (!mdr) {
-        mdr = await this.requestMDRModel.create({
-          trustee_id,
-          school_id,
-          platform_charges: [
-            {
-              platform_type,
-              payment_mode,
-              range_charge,
-            },
-          ],
-          status: mdr_status.INITIATED,
-        });
 
-        return 'New MDR created';
-      }
+    if (!mdr) {
+      mdr = await this.requestMDRModel.create({
+        trustee_id,
+        school_id,
+        platform_charges: [
+          {
+            platform_type,
+            payment_mode,
+            range_charge,
+          },
+        ],
+        status: mdr_status.INITIATED,
+      });
+
+      return 'New MDR created';
+    }
+    if (mdr.status === mdr_status.PROCESSING) {
+      throw new Error(
+        'Your MDR is under Processing, You cannot requst for update',
+      );
+    }
     if (![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)) {
       // If status is not PROCESSING, REJECTED, or APPROVED, update the existing MDR
       const existingPlatformChargeIndex = mdr.platform_charges.findIndex(
@@ -639,17 +642,44 @@ export class TrusteeService {
       );
 
       if (existingPlatformChargeIndex !== -1) {
-        console.log(existingPlatformChargeIndex,'exist');
-         // Update range_charge for existing platform_charge
-         console.log(mdr.platform_charges[existingPlatformChargeIndex].range_charge);
-         console.log(range_charge);
-         
-         
-         mdr.platform_charges[existingPlatformChargeIndex].range_charge = [...mdr.platform_charges[existingPlatformChargeIndex].range_charge, ...range_charge];
-         await mdr.save()
+        // console.log(mdr.platform_charges[existingPlatformChargeIndex].range_charge);
+        console.log(mdr._id);
+
+        range_charge.forEach(async (item) => {
+          console.log(item, 'items');
+          await this.requestMDRModel.findOneAndUpdate(
+            {
+              _id: mdr._id,
+              platform_charges: { $elemMatch: { platform_type, payment_mode } },
+            },
+            {
+              // $set: { 'platform_charges.$.range_charge': range_charge }, use this if relace whole arrray instead of pushing 
+              $push: {
+                'platform_charges.$.range_charge': {
+                  upto: item.upto,
+                  charge_type: item.charge_type,
+                  charge: item.charge,
+                },
+              },
+            },
+            { returnDocument: 'after' },
+          );
+        });
+
+        console.log(
+          'Updated MDR after range_charge modification:',
+          mdr.platform_charges[existingPlatformChargeIndex].range_charge,
+        );
+        try {
+          await mdr.save();
+          console.log('MDR saved successfully');
+        } catch (error) {
+          console.error('Error saving MDR:', error);
+          throw error; // Propagate the error for further investigation
+        }
       } else {
         // Add new platform_charge
-        
+
         mdr.platform_charges.push({
           platform_type,
           payment_mode,
@@ -707,6 +737,11 @@ export class TrusteeService {
     mdr.status = mdr_status.REJECTED;
     mdr.comment = comment;
     await mdr.save();
+  }
+
+  async getTrusteeMdr(trustee_id:string){
+    const trusteeId=new Types.ObjectId(trustee_id)
+    return await this.requestMDRModel.find({trustee_id:trusteeId})
   }
 
   async toogleDisable(mode: string, school_id: string) {

@@ -1171,7 +1171,7 @@ enum charge_type {
 
 @InputType()
 class RangeInput {
-  @Field({ nullable: true })
+  @Field(() => Number, { nullable: true })
   upto: number;
 
   @Field(() => String)
