@@ -10,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Trustee } from '../schema/trustee.schema';
-import { TrusteeSchool, rangeCharge } from '../schema/school.schema';
+import {
+  PlatformCharge,
+  TrusteeSchool,
+  rangeCharge,
+} from '../schema/school.schema';
 import axios from 'axios';
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
@@ -653,7 +657,7 @@ export class TrusteeService {
               platform_charges: { $elemMatch: { platform_type, payment_mode } },
             },
             {
-              // $set: { 'platform_charges.$.range_charge': range_charge }, use this if relace whole arrray instead of pushing 
+              // $set: { 'platform_charges.$.range_charge': range_charge }, use this if relace whole arrray instead of pushing
               $push: {
                 'platform_charges.$.range_charge': {
                   upto: item.upto,
@@ -709,6 +713,54 @@ export class TrusteeService {
     }
   }
 
+  async bulkEequestMDR(
+    trustee_id: ObjectId,
+    school_id: string[],
+    platform_chargers: PlatformCharge[],
+  ) {
+    let mdr = await this.requestMDRModel 
+      .findOne({ trustee_id })
+      .sort({ createdAt: -1 });
+
+    if (!mdr) {
+      mdr = await this.requestMDRModel.create({
+        trustee_id,
+        school_id,
+        platform_charges: platform_chargers,
+        status: mdr_status.INITIATED,
+      });
+
+      return 'New MDR created';
+    }
+    if (mdr.status === mdr_status.PROCESSING) {
+      throw new Error(
+        'Your MDR is under Processing, You cannot requst for update',
+      );
+    }
+    if (![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)) {
+      await this.requestMDRModel.findOneAndUpdate(
+        { _id: mdr._id },
+        {
+          $set: { platform_charges: platform_chargers },
+        },
+      );
+      mdr.school_id = school_id;
+      await mdr.save();
+
+      return 'MDR updated';
+    } else {
+      // If status is REJECTED, or APPROVED, create a new MDR
+      const newMDR = await this.requestMDRModel.create({
+        trustee_id,
+        school_id,
+        platform_chargers,
+        status: mdr_status.INITIATED,
+      });
+
+      return 'New MDR created (previous MDR status is not eligible for update)';
+    }
+  }
+
   async saveBaseMdr(
     trustee_id: ObjectId,
     school_id: string,
@@ -732,16 +784,32 @@ export class TrusteeService {
     );
   }
 
+  async saveBulkMdr(trustee_id: string, platform_charges: PlatformCharge[]) {
+    const trusteeId=new Types.ObjectId(trustee_id)
+    await this.baseMdrModel.findOneAndUpdate(
+      {
+        trustee_id:trusteeId,
+      },
+      {
+        platform_charges,
+      },
+      { upsert: true, new: true },
+    );
+
+    return 'mdr updated'
+  }
+
   async rejectMdr(id: string, comment: string) {
     const mdr = await this.requestMDRModel.findById(id);
     mdr.status = mdr_status.REJECTED;
     mdr.comment = comment;
     await mdr.save();
+    return 'status updated'
   }
 
-  async getTrusteeMdr(trustee_id:string){
-    const trusteeId=new Types.ObjectId(trustee_id)
-    return await this.requestMDRModel.find({trustee_id:trusteeId})
+  async getTrusteeMdr(trustee_id: string) {
+    const trusteeId = new Types.ObjectId(trustee_id);
+    return await this.requestMDRModel.find({ trustee_id: trusteeId });
   }
 
   async toogleDisable(mode: string, school_id: string) {

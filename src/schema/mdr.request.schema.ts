@@ -2,14 +2,11 @@ import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 import { PlatformCharge } from './school.schema';
-const enum charge_type {
-  FLAT = 'FLAT',
-  PERCENT = 'PERCENT',
-}
+
 
 export enum mdr_status{
     INITIATED='INITIATED',
-    PROCESSING='PROCESSING',
+    PROCESSING='UNDER REVIEW',
     APPROVED='APPROVED',
     REJECTED='REJECTED'
 }

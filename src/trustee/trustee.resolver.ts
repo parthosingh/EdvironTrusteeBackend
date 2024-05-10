@@ -949,6 +949,29 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async bulkRequestMDR(
+    @Args('school_id', { type: () => [String] }) school_id: string[],
+    @Args('platform_charge',{type:()=>[PlatformChargesInput]}) platform_charge:PlatformChargesInput[],
+    @Context() context,
+  ) {
+    const trustee_id = context.req.trustee;
+    const role = context.req.role;
+    if (role !== 'owner' && role !== 'admin') {
+      throw new UnauthorizedException(
+        'You are not Authorized to perform this action',
+      );
+    }
+    await this.trusteeService.bulkEequestMDR(
+      trustee_id,
+      school_id,
+      platform_charge
+    );
+    
+    return 'mdr updated'
+  }
+
+  @UseGuards(TrusteeGuard)
   @Mutation(()=>String)
   async tooglePaymentMode(
     @Args('mode') mode:string,
@@ -961,6 +984,9 @@ export class TrusteeResolver {
     return await this.trusteeService.toogleDisable(mode,school_id)
     
   }
+
+  // @UseGuards(TrusteeGuard)
+  // @Query(()=>)
 }
 
 @ObjectType()
@@ -1179,4 +1205,17 @@ class RangeInput {
 
   @Field(() => Number)
   charge: number;
+}
+
+@InputType()
+class PlatformChargesInput{
+  @Field(()=>String)
+  platform_type:string
+
+  @Field(()=>String)
+  payment_mode:string
+
+  @Field(()=>[RangeInput])
+  range_charge:RangeInput[]
+
 }
