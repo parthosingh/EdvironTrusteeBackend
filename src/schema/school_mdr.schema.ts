@@ -16,4 +16,4 @@ export class SchoolMdr {
   school_id: ObjectId;
 }
 
-export const BaseMdrSchema = SchemaFactory.createForClass(SchoolMdr);
+export const SchoolMdrSchema = SchemaFactory.createForClass(SchoolMdr);
