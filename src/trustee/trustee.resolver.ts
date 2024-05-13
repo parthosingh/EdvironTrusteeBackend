@@ -975,6 +975,8 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
+  
+  @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async tooglePaymentMode(
     @Args('mode') mode: string,
@@ -1029,8 +1031,11 @@ export class TrusteeResolver {
     }
   }
 
-  // @UseGuards(TrusteeGuard)
-  // @Query(()=>)
+  @UseGuards(TrusteeGuard)
+  @Query(()=>School)
+  async getSingleSchool(@Args('school_id') school_id:string){
+    return await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+  }
 }
 
 @ObjectType()
