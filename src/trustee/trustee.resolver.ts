@@ -16,7 +16,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
-import { PlatformCharge, TrusteeSchool, rangeCharge } from '../schema/school.schema';
+import {
+  PlatformCharge,
+  TrusteeSchool,
+  rangeCharge,
+} from '../schema/school.schema';
 import { TrusteeGuard } from './trustee.guard';
 import { ErpService } from '../erp/erp.service';
 import mongoose, { Types } from 'mongoose';
@@ -975,6 +979,7 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
+  @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async tooglePaymentMode(
     @Args('mode') mode: string,
@@ -1102,6 +1107,12 @@ export class TrusteeResolver {
   }
   // @UseGuards(TrusteeGuard)
   // @Query(()=>)
+  @Query(() => School)
+  async getSingleSchool(@Args('school_id') school_id: string) {
+    return await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+  }
 }
 
 @ObjectType()
@@ -1323,14 +1334,13 @@ class RangeInput {
 }
 
 @InputType()
-class PlatformChargesInput{
-  @Field(()=>String)
-  platform_type:string
+class PlatformChargesInput {
+  @Field(() => String)
+  platform_type: string;
 
-  @Field(()=>String)
-  payment_mode:string
+  @Field(() => String)
+  payment_mode: string;
 
-  @Field(()=>[RangeInput])
-  range_charge:RangeInput[]
-
+  @Field(() => [RangeInput])
+  range_charge: RangeInput[];
 }
