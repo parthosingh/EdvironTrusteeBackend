@@ -16,6 +16,7 @@ import {
 } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
+import { platform } from 'os';
 
 @Injectable()
 export class PlatformChargeService {
@@ -117,19 +118,24 @@ export class PlatformChargeService {
   }
 
   async deletePlatformCharge(
-    trusteeSchoolId: String,
+    trusteeSchoolId: string,
     platform_type: String,
     payment_mode: String,
   ) {
     try {
+      let school_id = new mongoose.Types.ObjectId(trusteeSchoolId);
       const trusteeSchool = await this.trusteeSchoolModel.findOne({
-        _id: trusteeSchoolId,
+        school_id,
       });
       if (!trusteeSchool)
         throw new NotFoundException('Trustee school not found');
 
       let isFound = 0;
-      trusteeSchool.platform_charges.forEach((platformCharge) => {
+
+      const schoolMdr = await this.schoolMdrModel.findOne({ school_id });
+      if (schoolMdr && !schoolMdr.mdr2)
+        throw new NotFoundException('MDR not present');
+      schoolMdr?.mdr2?.forEach((platformCharge) => {
         if (
           platformCharge.platform_type === platform_type &&
           platformCharge.payment_mode === payment_mode
@@ -140,11 +146,11 @@ export class PlatformChargeService {
 
       if (!isFound) throw new NotFoundException('MDR not present');
 
-      const res = await this.trusteeSchoolModel.findOneAndUpdate(
-        { _id: trusteeSchoolId },
+      const res = await this.schoolMdrModel.findOneAndUpdate(
+        { school_id },
         {
           $pull: {
-            platform_charges: {
+            mdr2: {
               platform_type: platform_type,
               payment_mode: payment_mode,
             },
@@ -298,92 +304,102 @@ export class PlatformChargeService {
   }
 
   async addSchoolMdr(
-    trusteeSchoolId: string,
+    trusteeSchoolIds: string[],
     platform_type: String,
     payment_mode: String,
     range_charge: rangeCharge[],
   ) {
     try {
-      let school_id = new mongoose.Types.ObjectId(trusteeSchoolId);
+      let platform_charges = {
+        platform_type: platform_type,
+        payment_mode: payment_mode,
+        range_charge: range_charge,
+      };
 
-      const trusteeSchool = await this.trusteeSchoolModel.findOne({
-        school_id,
-      });
+      trusteeSchoolIds.map(async (schoolId) => {
+        let school_id = new mongoose.Types.ObjectId(schoolId);
 
-      if (!trusteeSchool)
-        throw new NotFoundException('Trustee school not found');
-      if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
-        throw new BadRequestException('KYC not approved');
+        const trusteeSchool = await this.trusteeSchoolModel.findOne({
+          school_id,
+        });
 
-      const schoolMdr = await this.schoolMdrModel.findOne({
-        school_id,
-      });
-      schoolMdr.mdr2.forEach((platformCharge) => {
-        if (
-          platformCharge.platform_type.toLowerCase() ===
-            platform_type.toLowerCase() &&
-          platformCharge.payment_mode.toLowerCase() ===
-            payment_mode.toLowerCase()
-        ) {
-          throw new BadRequestException('MDR already present');
+        if (!trusteeSchool)
+          throw new NotFoundException('Trustee school not found');
+        // if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
+        //   throw new BadRequestException('KYC not approved');
+
+        // const schoolMdr = await this.schoolMdrModel.findOne({
+        //   school_id,
+        // });
+
+        // if (schoolMdr && schoolMdr?.mdr2)
+        //   schoolMdr?.mdr2?.forEach((platformCharge) => {
+        //     if (
+        //       platformCharge.platform_type.toLowerCase() ===
+        //         platform_type.toLowerCase() &&
+        //       platformCharge.payment_mode.toLowerCase() ===
+        //         payment_mode.toLowerCase()
+        //     ) {
+        //       throw new BadRequestException('MDR already present');
+        //     }
+        //   });
+
+        const res = await this.schoolMdrModel.findOneAndUpdate(
+          { school_id },
+          {
+            $push: {
+              mdr2: {
+                platform_type,
+                payment_mode,
+                range_charge,
+              },
+            },
+          },
+          { returnDocument: 'after', upsert: true },
+        );
+
+        const OthersFields = [
+          { platform_type: 'UPI', payment_mode: 'Others' },
+          { platform_type: 'DebitCard', payment_mode: 'Others' },
+          { platform_type: 'NetBanking', payment_mode: 'Others' },
+          { platform_type: 'CreditCard', payment_mode: 'Others' },
+          { platform_type: 'Wallet', payment_mode: 'Others' },
+          { platform_type: 'PayLater', payment_mode: 'Others' },
+          { platform_type: 'C ', payment_mode: 'Others' },
+        ];
+
+        let AllOtherFieldPresent = 1;
+
+        OthersFields.forEach((OthersField) => {
+          let found = 0;
+          res.mdr2.forEach((PlatformCharge) => {
+            if (
+              PlatformCharge.platform_type.toLowerCase() ===
+                OthersField.platform_type.toLowerCase() &&
+              PlatformCharge.payment_mode.toLowerCase() ===
+                OthersField.payment_mode.toLowerCase()
+            ) {
+              found = 1;
+            }
+          });
+
+          AllOtherFieldPresent = AllOtherFieldPresent & found;
+        });
+
+        if (AllOtherFieldPresent && !trusteeSchool.pg_key) {
+          let pgKey = await this.mainBackendService.generateKey();
+          await this.trusteeSchoolModel.findOneAndUpdate(
+            {
+              school_id,
+            },
+            {
+              $set: { pg_key: pgKey },
+            },
+          );
         }
       });
 
-      const res = await this.schoolMdrModel.findOneAndUpdate(
-        { school_id },
-        {
-          $push: {
-            mdr2: {
-              platform_type,
-              payment_mode,
-              range_charge,
-            },
-          },
-        },
-        { returnDocument: 'after' },
-      );
-
-      const OthersFields = [
-        { platform_type: 'UPI', payment_mode: 'Others' },
-        { platform_type: 'DebitCard', payment_mode: 'Others' },
-        { platform_type: 'NetBanking', payment_mode: 'Others' },
-        { platform_type: 'CreditCard', payment_mode: 'Others' },
-        { platform_type: 'Wallet', payment_mode: 'Others' },
-        { platform_type: 'PayLater', payment_mode: 'Others' },
-        { platform_type: 'C ', payment_mode: 'Others' },
-      ];
-
-      let AllOtherFieldPresent = 1;
-
-      OthersFields.forEach((OthersField) => {
-        let found = 0;
-        res.mdr2.forEach((PlatformCharge) => {
-          if (
-            PlatformCharge.platform_type.toLowerCase() ===
-              OthersField.platform_type.toLowerCase() &&
-            PlatformCharge.payment_mode.toLowerCase() ===
-              OthersField.payment_mode.toLowerCase()
-          ) {
-            found = 1;
-          }
-        });
-
-        AllOtherFieldPresent = AllOtherFieldPresent & found;
-      });
-
-      if (AllOtherFieldPresent && !trusteeSchool.pg_key) {
-        let pgKey = await this.mainBackendService.generateKey();
-        await this.trusteeSchoolModel.findOneAndUpdate(
-          {
-            school_id,
-          },
-          {
-            $set: { pg_key: pgKey },
-          },
-        );
-      }
-
-      return { platform_charges: res.mdr2 };
+      return { platform_charges: platform_charges };
     } catch (err) {
       if (err.response?.statusCode === 400) {
         throw new BadRequestException(err.message);
@@ -394,51 +410,40 @@ export class PlatformChargeService {
     }
   }
   //call this after request approval ,as default value is already given
-  async updateSchoolMdr(
-    trusteeSchoolId: string,
-    platform_type: String,
-    payment_mode: String,
-    range_charge: rangeCharge[],
+  async createUpdateSchoolMdr(
+    trusteeSchoolIds: string[],
+    mdr2: PlatformCharge[],
+    // platform_type: String,
+    // payment_mode: String,
+    // range_charge: rangeCharge[],
   ) {
     try {
-      let school_id = new mongoose.Types.ObjectId(trusteeSchoolId);
-      const trusteeSchool = await this.trusteeSchoolModel.findOne({
-        school_id,
-      });
-
-      if (!trusteeSchool)
-        throw new NotFoundException('Trustee school not found');
-      if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
-        throw new BadRequestException('KYC not approved');
-
-      const schoolMdr = await this.schoolMdrModel.findOne({
-        school_id,
-      });
-
-      let isFound = 0;
-      schoolMdr.mdr2.forEach((platformCharge) => {
-        if (
-          platformCharge.platform_type === platform_type &&
-          platformCharge.payment_mode === payment_mode
-        ) {
-          isFound = 1;
-        }
-      });
-
-      if (!isFound) throw new NotFoundException('MDR not found');
-
-      const res = await this.schoolMdrModel.findOneAndUpdate(
-        {
+      trusteeSchoolIds.map(async (schoolId) => {
+        let school_id = new mongoose.Types.ObjectId(schoolId);
+        const trusteeSchool = await this.trusteeSchoolModel.findOne({
           school_id,
-          mdr2: { $elemMatch: { platform_type, payment_mode } },
-        },
-        {
-          $set: { 'mdr2.$.range_charge': range_charge },
-        },
-        { returnDocument: 'after' },
-      );
+        });
 
-      return { platform_charges: res.mdr2 };
+        if (!trusteeSchool)
+          throw new NotFoundException(
+            `Trustee school with schoolId: ${schoolId} not found`,
+          );
+        // if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
+        //   throw new BadRequestException('KYC not approved');
+
+        const res = await this.schoolMdrModel.findOneAndUpdate(
+          {
+            school_id,
+          },
+          {
+            mdr2: mdr2,
+          },
+          { returnDocument: 'after', upsert: true },
+        );
+      });
+      return {
+        platform_charges: mdr2,
+      };
     } catch (err) {
       if (err.response?.statusCode === 400) {
         throw new BadRequestException(err.message);

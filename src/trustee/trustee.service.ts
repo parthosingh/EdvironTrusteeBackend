@@ -815,6 +815,11 @@ export class TrusteeService {
     return await this.requestMDRModel.find({ trustee_id: trusteeId });
   }
 
+  async getTrusteeBaseMdr(trustee_id: string) {
+    const trusteeId = new Types.ObjectId(trustee_id);
+    return await this.baseMdrModel.findOne({ trustee_id: trusteeId });
+  }
+
   async toogleDisable(mode: string, school_id: string) {
     const school = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),

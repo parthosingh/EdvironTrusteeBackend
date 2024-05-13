@@ -1029,6 +1029,77 @@ export class TrusteeResolver {
     }
   }
 
+  @UseGuards(TrusteeGuard)
+  @Query(() => [SchoolMdr])
+  async getMDRInfo(@Context() context) {
+    try {
+      //     const trustee_id = context.req.trustee;
+
+      //     const trustee = await this.trusteeModel.findById(trustee_id);
+      //     const trusteeBaseRates =
+      //       await this.trusteeService.getTrusteeBaseMdr(trustee_id);
+
+      //     const schools = await this.trusteeSchoolModel.find({
+      //       trustee_id: trustee_id,
+      //     });
+      //     let schoolMdrs = [];
+
+      //     if (schools) {
+      //       const school_ids = schools.map((school) => school.school_id);
+      //       school_ids.map(async (school) => {
+      //         schoolMdrs.push(
+      //           await this.trusteeService.getSchoolMdr(school.toString()),
+      //         );
+      //       });
+      //     }
+      //     let commission = [];
+      //     schoolMdrs.map((schoolMdr) => {
+      //       if(schoolMdr.mdr2.length>0)
+      //  for(let i=0;i<schoolMdr.mdr2.length;i++)
+      //   {
+      //     if (schoolMdr.mdr2[i].platform_type == trusteeBaseRates.platform_charges[i].platform_type && schoolMdr.mdr2[i].payment_mode == trusteeBaseRates.platform_charges[i].payment_mode) {
+      //       commission.pla
+      //     }
+
+      //   }
+
+      //     })
+      //     let school_to_mdrs = [];
+      //     schoolMdrs.map((schoolMdr) =>
+      //       school_to_mdrs.push({
+      //         school_id: schoolMdr.school_id,
+      //         platform_charges: schoolMdr.mdr2,
+      //         base_rates: trusteeBaseRates,
+      //         commission:
+      //       }),
+      //     );
+      //     return schoolMdrs;
+      const school_to_mdrs = [
+        {
+          school_id: '',
+          platform_charges: [
+            {
+              platform_type: '',
+              payment_mode: '',
+              range_charge: [
+                {
+                  upto: 0,
+                  charge_type: '',
+                  charge: 0,
+                  total_mdr: 0,
+                  commission: 0,
+                  base_mdr: 0,
+                },
+              ],
+            },
+          ],
+        },
+      ];
+      return school_to_mdrs;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
   // @UseGuards(TrusteeGuard)
   // @Query(()=>)
 }

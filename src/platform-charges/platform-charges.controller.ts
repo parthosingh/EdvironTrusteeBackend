@@ -104,7 +104,7 @@ export class PlatformChargesController {
       );
 
       const payload = {
-        platform_charges: val.platform_charges,
+        platform_charges: val.mdr2,
       };
 
       const res = this.jwtService.sign(payload, {
@@ -293,51 +293,51 @@ export class PlatformChargesController {
     }
   }
 
-  @Post('add-school-mdr')
-  async addSchoolMdr(
-    @Body()
-    token: {
-      token: string;
-    },
-  ) {
-    try {
-      const body = this.jwtService.verify(token.token, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
-      const { trusteeSchoolId, platform_type, payment_mode, range_charge } =
-        body;
+  // @Post('add-school-mdr')
+  // async addSchoolMdr(
+  //   @Body()
+  //   token: {
+  //     token: string;
+  //   },
+  // ) {
+  //   try {
+  //     const body = this.jwtService.verify(token.token, {
+  //       secret: process.env.JWT_SECRET_FOR_INTRANET,
+  //     });
+  //     const { trusteeSchoolIds, platform_type, payment_mode, range_charge } =
+  //       body;
 
-      if (!trusteeSchoolId)
-        throw new BadRequestException('Trustee school ID Required');
-      if (!platform_type)
-        throw new BadRequestException('Platform type Required');
-      if (!payment_mode) throw new BadRequestException('Payment mode Required');
-      if (!range_charge) throw new BadRequestException('Charges Required');
+  //     if (!trusteeSchoolIds)
+  //       throw new BadRequestException('Trustee school ID Required');
+  //     if (!platform_type)
+  //       throw new BadRequestException('Platform type Required');
+  //     if (!payment_mode) throw new BadRequestException('Payment mode Required');
+  //     if (!range_charge) throw new BadRequestException('Charges Required');
 
-      const val = await this.platformChargeService.addSchoolMdr(
-        trusteeSchoolId,
-        platform_type,
-        payment_mode,
-        range_charge,
-      );
+  //     const val = await this.platformChargeService.addSchoolMdr(
+  //       trusteeSchoolIds,
+  //       platform_type,
+  //       payment_mode,
+  //       range_charge,
+  //     );
 
-      const payload = {
-        platform_charges: val.platform_charges,
-      };
+  //     const payload = {
+  //       platform_charges: val.platform_charges,
+  //     };
 
-      const res = this.jwtService.sign(payload, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
-      return res;
-    } catch (err) {
-      if (err.response?.statusCode === 400) {
-        throw new BadRequestException(err.message);
-      } else if (err.response?.statusCode === 404) {
-        throw new NotFoundException(err.message);
-      }
-      throw new Error(err.message);
-    }
-  }
+  //     const res = this.jwtService.sign(payload, {
+  //       secret: process.env.JWT_SECRET_FOR_INTRANET,
+  //     });
+  //     return res;
+  //   } catch (err) {
+  //     if (err.response?.statusCode === 400) {
+  //       throw new BadRequestException(err.message);
+  //     } else if (err.response?.statusCode === 404) {
+  //       throw new NotFoundException(err.message);
+  //     }
+  //     throw new Error(err.message);
+  //   }
+  // }
 
   @Post('delete-school-mdr')
   async deleteSchoolMdr(
@@ -367,7 +367,7 @@ export class PlatformChargesController {
       );
 
       const payload = {
-        platform_charges: val.platform_charges,
+        platform_charges: val.mdr2,
       };
 
       const res = this.jwtService.sign(payload, {
@@ -384,53 +384,55 @@ export class PlatformChargesController {
     }
   }
 
-  @Post('update-school-mdr')
-  async updateSchoolMdr(
-    @Body()
-    token: {
-      token: string;
-    },
-  ) {
-    try {
-      const body = this.jwtService.verify(token.token, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
-      const { trusteeSchoolId, platform_type, payment_mode, range_charge } =
-        body;
+  // @Post('update-school-mdr')
+  // async updateSchoolMdr(
+  //   @Body()
+  //   token: {
+  //     token: string;
+  //   },
+  // ) {
+  //   try {
+  //     const body = this.jwtService.verify(token.token, {
+  //       secret: process.env.JWT_SECRET_FOR_INTRANET,
+  //     });
+  //     const { trusteeSchoolIds, platform_type, payment_mode, range_charge } =
+  //       body;
 
-      if (!trusteeSchoolId)
-        throw new BadRequestException('Trustee school ID Required');
-      if (!platform_type)
-        throw new BadRequestException('Platform type Required');
-      if (!payment_mode) throw new BadRequestException('Payment mode Required');
-      if (!range_charge) throw new BadRequestException('Charges Required');
+  //     if (!trusteeSchoolIds)
+  //       throw new BadRequestException('Trustee school ID Required');
+  //     if (!platform_type)
+  //       throw new BadRequestException('Platform type Required');
+  //     if (!payment_mode) throw new BadRequestException('Payment mode Required');
+  //     if (!range_charge) throw new BadRequestException('Charges Required');
 
-      const val = await this.platformChargeService.updateSchoolMdr(
-        trusteeSchoolId,
-        platform_type,
-        payment_mode,
-        range_charge,
-      );
+  //     const val = await this.platformChargeService.updateSchoolMdr(
+  //       trusteeSchoolIds,
+  //       platform_type,
+  //       payment_mode,
+  //       range_charge,
+  //     );
 
-      const payload = {
-        platform_charges: val.platform_charges,
-      };
+  //     const payload = {
+  //       platform_charges: val.platform_charges,
+  //     };
 
-      const res = this.jwtService.sign(payload, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
-      return res;
-    } catch (err) {
-      if (err.response?.statusCode === 400) {
-        throw new BadRequestException(err.message);
-      } else if (err.response?.statusCode === 404) {
-        throw new NotFoundException(err.message);
-      }
-      throw new Error(err.message);
-    }
-  }
+  //     const res = this.jwtService.sign(payload, {
+  //       secret: process.env.JWT_SECRET_FOR_INTRANET,
+  //     });
+  //     return res;
+  //   } catch (err) {
+  //     if (err.response?.statusCode === 400) {
+  //       throw new BadRequestException(err.message);
+  //     } else if (err.response?.statusCode === 404) {
+  //       throw new NotFoundException(err.message);
+  //     }
+  //     throw new Error(err.message);
+  //   }
+  // }
 
-  @Post('bulk-add-school-mdr')
+  //create/update/delete
+  //pass schoolIds and updated mdrs for schools
+  @Post('add-school-mdr')
   async bulkAddSchoolMdr(
     @Body()
     token: {
@@ -441,29 +443,32 @@ export class PlatformChargesController {
       const body = this.jwtService.verify(token.token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
-      const { trusteeSchoolId, platform_charges } = body;
+      const { trusteeSchoolIds, platform_charges } = body;
 
-      if (!trusteeSchoolId)
+      if (!trusteeSchoolIds)
         throw new BadRequestException('Trustee school ID Required');
       if (!platform_charges)
         throw new BadRequestException('platform charges Required');
 
+      let mdr2 = [];
       const data = [];
       for (let i = 0; i < platform_charges.length; i++) {
-        try {
-          await this.platformChargeService.addSchoolMdr(
-            trusteeSchoolId,
-            platform_charges[i].platform_type,
-            platform_charges[i].payment_mode,
-            platform_charges[i].range_charge,
-          );
-
-          data.push({ error: null });
-        } catch (err) {
-          data.push({ error: err.message });
-        }
+        // await this.platformChargeService.updateSchoolMdr(
+        //   trusteeSchoolIds,
+        //   platform_charges[i].platform_type,
+        //   platform_charges[i].payment_mode,
+        //   platform_charges[i].range_charge,
+        // );
+        mdr2.push({
+          platform_type: platform_charges[i].platform_type,
+          payment_mode: platform_charges[i].payment_mode,
+          range_charge: platform_charges[i].range_charge,
+        });
       }
-
+      await this.platformChargeService.createUpdateSchoolMdr(
+        trusteeSchoolIds,
+        mdr2,
+      );
       const payload = {
         data: data,
       };
@@ -472,6 +477,37 @@ export class PlatformChargesController {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
       return res;
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
+
+  @Get('final-school-mdr')
+  async finalSchoolMdr(
+    @Body()
+    body,
+  ) {
+    try {
+      const { trusteeSchoolId, platform_type, payment_mode, amount } = body;
+
+      if (!trusteeSchoolId)
+        throw new BadRequestException('Trustee school ID Required');
+      if (!platform_type)
+        throw new BadRequestException('Platform type Required');
+      if (!payment_mode) throw new BadRequestException('Payment mode Required');
+      if (!amount) throw new BadRequestException('Amount Required');
+
+      return await this.platformChargeService.finalMdr(
+        trusteeSchoolId,
+        platform_type,
+        payment_mode,
+        amount,
+      );
     } catch (err) {
       if (err.response?.statusCode === 400) {
         throw new BadRequestException(err.message);
