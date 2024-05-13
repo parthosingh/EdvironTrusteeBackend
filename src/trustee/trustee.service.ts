@@ -741,6 +741,7 @@ export class TrusteeService {
       );
     }
     if (![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)) {
+      let schoolArr=[]
       await this.requestMDRModel.findOneAndUpdate(
         { _id: mdr._id },
         {
@@ -828,10 +829,10 @@ export class TrusteeService {
     const checkIndex = disabled_modes.indexOf(mode);
     const isModeDisabled = checkIndex !== -1;
     if (isModeDisabled) {
-      status = 'disabled';
+      status = 'enabled';
       disabled_modes.splice(checkIndex, 1);
     } else {
-      status = 'enabled';
+      status = 'disabled';
       disabled_modes.push(mode);
     }
 
