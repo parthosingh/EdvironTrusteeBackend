@@ -1038,47 +1038,74 @@ export class TrusteeResolver {
   @Query(() => [SchoolMdr])
   async getMDRInfo(@Context() context) {
     try {
-      //     const trustee_id = context.req.trustee;
+      //NEW LOGIC
+      // const trustee_id = context.req.trustee;
+      // console.log(trustee_id);
 
-      //     const trustee = await this.trusteeModel.findById(trustee_id);
-      //     const trusteeBaseRates =
-      //       await this.trusteeService.getTrusteeBaseMdr(trustee_id);
+      // const trustee = await this.trusteeModel.findById(trustee_id);
+      // const trusteeBaseRates =
+      //   await this.trusteeService.getTrusteeBaseMdr(trustee_id);
 
-      //     const schools = await this.trusteeSchoolModel.find({
-      //       trustee_id: trustee_id,
-      //     });
-      //     let schoolMdrs = [];
+      // const schools = await this.trusteeSchoolModel.find({
+      //   trustee_id: trustee_id,
+      // });
+      // let schoolMdrs = [];
 
-      //     if (schools) {
-      //       const school_ids = schools.map((school) => school.school_id);
-      //       school_ids.map(async (school) => {
-      //         schoolMdrs.push(
-      //           await this.trusteeService.getSchoolMdr(school.toString()),
+      // if (schools) {
+      //   const school_ids = schools.map((school) => school.school_id);
+      //   school_ids.map(async (school) => {
+      //     const res = await this.trusteeService.getSchoolMdr(school.toString());
+      //     if (res) schoolMdrs.push(res);
+      //   });
+      // }
+
+      // const aggregateCharges = (charge1, charge2) => {
+      //   console.log(charge1, charge2);
+      //   let aggregateCharges = {};
+      //   charge1.mdr2.forEach((charge) => {
+      //     const key = `${charge.platform_type}_${charge.payment_mode}`;
+      //     if (!aggregateCharges[key]) {
+      //       aggregateCharges[key] = charge.range_charge.map(
+      //         ({ upto, charge_type, charge }) => ({
+      //           upto,
+      //           charge_type,
+      //           charge,
+      //         }),
+      //       );
+      //     }
+      //   });
+      //   charge2.mdr2.forEach((charge) => {
+      //     const key = `${charge.platform_type}_${charge.payment_mode}`;
+      //     if (!aggregateCharges[key]) {
+      //       aggregateCharges[key] = charge.range_charge.map(
+      //         ({ upto, charge_type, charge }) => ({
+      //           upto,
+      //           charge_type,
+      //           charge,
+      //         }),
+      //       );
+      //     } else {
+      //       charge.range_charge.forEach(({ upto, charge }) => {
+      //         const existingCharge = aggregateCharges[key].find(
+      //           (c) => c.upto === upto,
       //         );
+      //         if (existingCharge) {
+      //           existingCharge.commission -= charge;
+      //           //existingCharge.charge -= charge;
+      //         }
       //       });
       //     }
-      //     let commission = [];
-      //     schoolMdrs.map((schoolMdr) => {
-      //       if(schoolMdr.mdr2.length>0)
-      //  for(let i=0;i<schoolMdr.mdr2.length;i++)
-      //   {
-      //     if (schoolMdr.mdr2[i].platform_type == trusteeBaseRates.platform_charges[i].platform_type && schoolMdr.mdr2[i].payment_mode == trusteeBaseRates.platform_charges[i].payment_mode) {
-      //       commission.pla
-      //     }
+      //   });
+      //   return aggregateCharges;
+      // };
+      // let info = [];
+      // console.log(schoolMdrs);
+      // schoolMdrs.map((schoolMdr) => {
+      //   info.push(aggregateCharges(schoolMdr.mdr2, trusteeBaseRates));
+      // });
 
-      //   }
+      // return info;
 
-      //     })
-      //     let school_to_mdrs = [];
-      //     schoolMdrs.map((schoolMdr) =>
-      //       school_to_mdrs.push({
-      //         school_id: schoolMdr.school_id,
-      //         platform_charges: schoolMdr.mdr2,
-      //         base_rates: trusteeBaseRates,
-      //         commission:
-      //       }),
-      //     );
-      //     return schoolMdrs;
       const school_to_mdrs = [
         {
           school_id: '',

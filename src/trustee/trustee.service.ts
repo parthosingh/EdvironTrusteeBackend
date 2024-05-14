@@ -852,13 +852,15 @@ export class TrusteeService {
 
   async getSchoolMdr(school_id: string) {
     try {
+      let schoolId = new mongoose.Types.ObjectId(school_id);
       const school = await this.trusteeSchoolModel.findOne({
-        school_id: new mongoose.Types.ObjectId(school_id),
+        school_id: schoolId,
       });
-      if (!school) throw new NotFoundException('School not found');
+      //if (!school) throw new NotFoundException('School not found');
+      if (!school) return;
 
       const schoolMdr = await this.schoolMdrModel.findOne({
-        school_id,
+        school_id: schoolId,
       });
       return schoolMdr;
     } catch (err) {
