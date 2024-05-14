@@ -608,12 +608,11 @@ export class TrusteeService {
     return false;
   }
 
-
-
   async createMdrRequest(
     trustee_id: ObjectId,
     school_id: string[],
     platform_chargers: PlatformCharge[],
+    comment:string
   ) {
     //find latest request of trustee
     let mdr = await this.requestMDRModel
@@ -630,6 +629,7 @@ export class TrusteeService {
         school_id,
         platform_charges: platform_chargers,
         status: mdr_status.INITIATED,
+        comment
       });
 
       return 'New MDR created';
@@ -656,6 +656,7 @@ export class TrusteeService {
         school_id: filteredSchoolId,
         platform_charges: platform_chargers,
         status: mdr_status.INITIATED,
+        comment
       });
 
       return `New MDR request created, cannot rise request for some ${count} because request already present for those school`;
@@ -665,43 +666,19 @@ export class TrusteeService {
   async updateMdrRequest(
     request_id: string,
     platform_chargers: PlatformCharge[],
+    comment:string
   ) {
-    const mdr=await this.requestMDRModel.findById(request_id)
-    if(mdr.status !== mdr_status.INITIATED){
-      throw new ConflictException('You cannot edir request after review')
+    const mdr = await this.requestMDRModel.findById(request_id);
+    if (mdr.status !== mdr_status.INITIATED) {
+      throw new ConflictException('You cannot edir request after review');
     }
     await this.requestMDRModel.findByIdAndUpdate(
-      { request_id},
+      { request_id },
       {
-        $set: { platform_charges: platform_chargers },
+        $set: { platform_charges: platform_chargers,comment: comment },
       },
-    ); 
-    return `MDR Request Updated`
-  }
-
-
-
-  async saveBaseMdr(
-    trustee_id: ObjectId,
-    school_id: string,
-    platform_type: String,
-    payment_mode: String,
-    range_charge: rangeCharge[],
-  ) {
-    const res = await this.baseMdrModel.findOneAndUpdate(
-      { trustee_id: trustee_id },
-      {
-        status: mdr_status.PROCESSING,
-        $push: {
-          platform_charges: {
-            platform_type,
-            payment_mode,
-            range_charge,
-          },
-        },
-      },
-      { upsert: true, new: true },
     );
+    return `MDR Request Updated`;
   }
 
   async saveBulkMdr(trustee_id: string, platform_charges: PlatformCharge[]) {
@@ -727,7 +704,7 @@ export class TrusteeService {
     return 'status updated';
   }
 
-  async getTrusteeMdr(trustee_id: string) {
+  async getTrusteeMdrRequest(trustee_id: string) {
     const trusteeId = new Types.ObjectId(trustee_id);
     return await this.requestMDRModel.find({ trustee_id: trusteeId });
   }
@@ -735,6 +712,7 @@ export class TrusteeService {
   async getTrusteeBaseMdr(trustee_id: string) {
     const trusteeId = new Types.ObjectId(trustee_id);
     return await this.baseMdrModel.findOne({ trustee_id: trusteeId });
+    
   }
 
   async toogleDisable(mode: string, school_id: string) {
@@ -768,15 +746,13 @@ export class TrusteeService {
 
   async getSchoolMdr(school_id: string) {
     try {
-      let schoolId = new mongoose.Types.ObjectId(school_id);
       const school = await this.trusteeSchoolModel.findOne({
-        school_id: schoolId,
+        school_id: new mongoose.Types.ObjectId(school_id),
       });
-      //if (!school) throw new NotFoundException('School not found');
-      if (!school) return;
+      if (!school) throw new NotFoundException('School not found');
 
       const schoolMdr = await this.schoolMdrModel.findOne({
-        school_id: schoolId,
+        school_id,
       });
       return schoolMdr;
     } catch (err) {

@@ -929,14 +929,13 @@ export class TrusteeResolver {
     }
   }
 
-
-
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async createMdrRequest(
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
     platform_charge: PlatformChargesInput[],
+    comment:string,
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
@@ -950,15 +949,22 @@ export class TrusteeResolver {
       trustee_id,
       school_id,
       platform_charge,
+      comment
     );
-
   }
 
- @UseGuards(TrusteeGuard)
- @Mutation(()=>String)
- async updateMdrRequest(request_id: string,
-  platform_chargers: PlatformCharge[],){
-    return await this.trusteeService.updateMdrRequest(request_id,platform_chargers)
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async updateMdrRequest(
+    request_id: string,
+    platform_chargers: PlatformCharge[],
+    comment:string
+  ) {
+    return await this.trusteeService.updateMdrRequest(
+      request_id,
+      platform_chargers,
+      comment
+    );
   }
 
   @UseGuards(TrusteeGuard)
@@ -987,7 +993,7 @@ export class TrusteeResolver {
   async getTrusteeBaseRates(@Context() context) {
     const trustee_id = context.req.trustee;
     const trusteeBaseRates =
-      await this.trusteeService.getTrusteeMdr(trustee_id);
+      await this.trusteeService.getTrusteeBaseMdr(trustee_id);
     return trusteeBaseRates;
   }
 
@@ -1115,8 +1121,8 @@ export class TrusteeResolver {
       throw new Error(error.message);
     }
   }
-  // @UseGuards(TrusteeGuard)
-  // @Query(()=>)
+
+  @UseGuards(TrusteeGuard)
   @Query(() => School)
   async getSingleSchool(@Args('school_id') school_id: string) {
     return await this.trusteeSchoolModel.findOne({

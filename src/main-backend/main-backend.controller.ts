@@ -263,7 +263,19 @@ export class MainBackendController {
 
   @Get('getTrusteeMDRRequest')
   async getTrusteeMDRRequest(@Query('trustee_id') trustee_id: string) {
-    return await this.trusteeService.getTrusteeMdr(trustee_id);
+    return await this.trusteeService.getTrusteeMdrRequest(trustee_id);
+  }
+
+  @Get('get-base-mdr')
+  async trusteeBaseMdr(@Body() token:string){
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    const mdr= await this.trusteeService.getTrusteeBaseMdr(data.trusteeId)
+    const mdrToken=this.jwtService.sign(mdr, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    return mdrToken
   }
 
   @Post('reject-mdt')
