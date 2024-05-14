@@ -935,7 +935,7 @@ export class TrusteeResolver {
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
     platform_charge: PlatformChargesInput[],
-    comment: string,
+    description: string,
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
@@ -949,7 +949,7 @@ export class TrusteeResolver {
       trustee_id,
       school_id,
       platform_charge,
-      comment,
+      description,
     );
   }
 
@@ -958,12 +958,12 @@ export class TrusteeResolver {
   async updateMdrRequest(
     request_id: string,
     platform_chargers: PlatformCharge[],
-    comment: string,
+    description: string,
   ) {
     return await this.trusteeService.updateMdrRequest(
       request_id,
       platform_chargers,
-      comment,
+      description,
     );
   }
 

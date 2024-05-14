@@ -612,7 +612,7 @@ export class TrusteeService {
     trustee_id: ObjectId,
     school_id: string[],
     platform_chargers: PlatformCharge[],
-    comment:string
+    comment: string,
   ) {
     //find latest request of trustee
     let mdr = await this.requestMDRModel
@@ -629,7 +629,7 @@ export class TrusteeService {
         school_id,
         platform_charges: platform_chargers,
         status: mdr_status.INITIATED,
-        comment
+        comment,
       });
 
       return 'New MDR created';
@@ -656,7 +656,7 @@ export class TrusteeService {
         school_id: filteredSchoolId,
         platform_charges: platform_chargers,
         status: mdr_status.INITIATED,
-        comment
+        comment,
       });
 
       return `New MDR request created, cannot rise request for some ${count} because request already present for those school`;
@@ -666,7 +666,7 @@ export class TrusteeService {
   async updateMdrRequest(
     request_id: string,
     platform_chargers: PlatformCharge[],
-    comment:string
+    comment: string,
   ) {
     const mdr = await this.requestMDRModel.findById(request_id);
     if (mdr.status !== mdr_status.INITIATED) {
@@ -675,7 +675,7 @@ export class TrusteeService {
     await this.requestMDRModel.findByIdAndUpdate(
       { request_id },
       {
-        $set: { platform_charges: platform_chargers,comment: comment },
+        $set: { platform_charges: platform_chargers, comment: comment },
       },
     );
     return `MDR Request Updated`;
@@ -712,7 +712,6 @@ export class TrusteeService {
   async getTrusteeBaseMdr(trustee_id: string) {
     const trusteeId = new Types.ObjectId(trustee_id);
     return await this.baseMdrModel.findOne({ trustee_id: trusteeId });
-    
   }
 
   async toogleDisable(mode: string, school_id: string) {
@@ -750,11 +749,11 @@ export class TrusteeService {
         school_id: new mongoose.Types.ObjectId(school_id),
       });
       if (!school) throw new NotFoundException('School not found');
-      const schoolId=new Types.ObjectId(school_id)
+      const schoolId = new Types.ObjectId(school_id);
       console.log(schoolId);
-      
+
       const schoolMdr = await this.schoolMdrModel.findOne({
-        school_id:schoolId,
+        school_id: schoolId,
       });
       return schoolMdr;
     } catch (err) {
@@ -766,5 +765,48 @@ export class TrusteeService {
       throw new Error(err.message);
     }
   }
-  async 
+
+  async getTransactionCommision(school_id) {
+    let transactionReport = [];
+
+    if (!school_id) return transactionReport;
+
+    let token = this.jwtService.sign(
+      { school_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+
+    let config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report?limit=50000`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: { school_id: school_id, token },
+    };
+
+    const response = await axios.request(config);
+
+    if (
+      response.data.length == 0 &&
+      response.data == 'No orders found for clientId'
+    ) {
+      console.log('No transactions for merchant');
+
+      return transactionReport;
+    }
+
+    transactionReport = [...response.data.transactions];
+
+    transactionReport.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA;
+    });
+
+    return transactionReport;
+  }
+ 
 }
