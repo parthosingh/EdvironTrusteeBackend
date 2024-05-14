@@ -1121,87 +1121,22 @@ export class TrusteeResolver {
       throw new Error(error.message);
     }
   }
+  
+  //get school info with base rates and final rates
   @UseGuards(TrusteeGuard)
-  @Query(() => [mergeMdrResponse])
+  @Query(() => SchoolMdrInfo)
   async getSchoolMdrInfo(
     @Args('school_id') school_id: string,
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
-    const baseMdr = await this.trusteeService.getTrusteeBaseMdr(
-      trustee_id.toString(),
-    );
-    const schoolMdr = await this.trusteeService.getSchoolMdr(school_id);
-    
-    const info=await this.mapMdrData(baseMdr,schoolMdr)
-    console.log(info[0]);
-    console.log(info);
-    
-    console.log(info[0].range_charge);
-    
-
-    return info;
-  }
-
-  async mapMdrData(baseMdr:any, schoolMdr:any) {
-    const mappedData = [];
-  
-    // Iterate over each platform type in baseMdr
-    for (const basePlatform of baseMdr.platform_charges) {
-      const schoolPlatform = schoolMdr.mdr2.find(
-        (schoolPlatform) => schoolPlatform.platform_type === basePlatform.platform_type
-      );
-   
-      if (schoolPlatform) {
-        // Create a new mapped object combining data from baseMdr and schoolMdr
-        const mappedObject = {
-          platform_type: basePlatform.platform_type,
-          payment_mode: basePlatform.payment_mode, 
-          range_charge: []
-        };
-  
-        // Iterate over each range charge in the baseMdr platform
-        basePlatform.range_charge.forEach((baseCharge) => {
-          const schoolCharge = schoolPlatform.range_charge.find(
-            (schoolCharge) => schoolCharge.upto === baseCharge.upto
-          );
-  
-          if (schoolCharge) {
-            // Create a combined charge object
-            const commission = schoolCharge.charge - baseCharge.charge;
-            const combinedCharge = {
-              upto: baseCharge.upto,
-              charge_type: baseCharge.charge_type,
-              base_charge: baseCharge.charge,
-              school_mdr: schoolCharge.charge,
-              commission: commission
-            };
-  
-            // Push the combined charge object to range_charge array in mappedObject
-            mappedObject.range_charge.push(combinedCharge);
-          }
-        });
-  
-        // Push the mappedObject to the final mappedData array
-        mappedData.push(mappedObject);
-      }
-    }
-  
-    return mappedData;
-  }
-
-
-
-
-  @UseGuards(TrusteeGuard)
-  @Query(() => School)
-  async getSingleSchool(@Args('school_id') school_id: string) {
-    return await this.trusteeSchoolModel.findOne({
+    const school = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });
-  }
-
-  
+    const mdrInfo=await this.trusteeService.getSchoolMdrInfo(school_id,trustee_id)
+    school.platform_charges=mdrInfo
+    return school
+  } 
 }
 
 @ObjectType()
@@ -1346,6 +1281,30 @@ class School {
 }
 
 @ObjectType()
+class SchoolMdrInfo {
+  @Field()
+  school_name: string;
+
+  @Field()
+  school_id: string;
+
+  @Field(() => String, { nullable: true })
+  pg_key: string;
+
+  @Field(() => String, { nullable: true })
+  email: string;
+
+  @Field(() => String, { nullable: true })
+  merchantStatus: string;
+
+  @Field(() => [String], { nullable: true })
+  disabled_modes: [string];
+
+  @Field(() => [mergeMdrResponse], { nullable: true })
+  platform_charges: [mergeMdrResponse];
+}
+
+@ObjectType()
 class getSchool {
   @Field(() => [School])
   schools: [School];
@@ -1435,30 +1394,30 @@ class PlatformChargesInput {
 }
 
 @ObjectType()
-class commisonRange{
+class commisonRange {
   @Field(() => Number, { nullable: true })
   upto: number;
 
-  @Field(() => String,{ nullable: true })
+  @Field(() => String, { nullable: true })
   charge_type: charge_type;
 
-  @Field(() => Number,{ nullable: true })
+  @Field(() => Number, { nullable: true })
   base_charge: number;
 
-  @Field(() => Number,{ nullable: true })
+  @Field(() => Number, { nullable: true })
   commission: number;
 
-  @Field(() => Number,{ nullable: true })
+  @Field(() => Number, { nullable: true })
   school_mdr: number;
 }
 
 @ObjectType()
-class mergeMdrResponse{
+class mergeMdrResponse {
   @Field({ nullable: true })
-  platform_type: string
+  platform_type: string;
   @Field({ nullable: true })
-  payment_mode: string
+  payment_mode: string;
 
-  @Field(() => [commisonRange],{ nullable: true })
+  @Field(() => [commisonRange], { nullable: true })
   range_charge: commisonRange[];
 }

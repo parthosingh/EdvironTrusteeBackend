@@ -809,4 +809,70 @@ export class TrusteeService {
     return transactionReport;
   }
  
+  async getSchoolMdrInfo(
+     school_id: string,
+    trustee_id:ObjectId,
+  ) {
+    const baseMdr = await this.getTrusteeBaseMdr(
+      trustee_id.toString(),
+    );
+    const schoolMdr = await this.getSchoolMdr(school_id);
+    
+    const info=await this.mapMdrData(baseMdr,schoolMdr)
+    console.log(info[0]);
+    console.log(info);
+    
+    console.log(info[0].range_charge);
+    
+
+    return info;
+  }
+
+  async mapMdrData(baseMdr:any, schoolMdr:any) {
+    const mappedData = [];
+  
+    // Iterate over each platform type in baseMdr
+    for (const basePlatform of baseMdr.platform_charges) {
+      const schoolPlatform = schoolMdr.mdr2.find(
+        (schoolPlatform) => schoolPlatform.platform_type === basePlatform.platform_type
+      );
+   
+      if (schoolPlatform) {
+        // Create a new mapped object combining data from baseMdr and schoolMdr
+        const mappedObject = {
+          platform_type: basePlatform.platform_type,
+          payment_mode: basePlatform.payment_mode, 
+          range_charge: []
+        };
+  
+        // Iterate over each range charge in the baseMdr platform
+        basePlatform.range_charge.forEach((baseCharge) => {
+          const schoolCharge = schoolPlatform.range_charge.find(
+            (schoolCharge) => schoolCharge.upto === baseCharge.upto
+          );
+  
+          if (schoolCharge) {
+            // Create a combined charge object
+            const commission = schoolCharge.charge - baseCharge.charge;
+            const combinedCharge = {
+              upto: baseCharge.upto,
+              charge_type: baseCharge.charge_type,
+              base_charge: baseCharge.charge,
+              school_mdr: schoolCharge.charge,
+              commission: commission
+            };
+  
+            // Push the combined charge object to range_charge array in mappedObject
+            mappedObject.range_charge.push(combinedCharge);
+          }
+        });
+  
+        // Push the mappedObject to the final mappedData array
+        mappedData.push(mappedObject);
+      }
+    }
+  
+    return mappedData;
+  }
+
 }
