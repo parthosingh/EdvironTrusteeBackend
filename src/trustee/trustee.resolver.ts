@@ -929,34 +929,11 @@ export class TrusteeResolver {
     }
   }
 
-  @UseGuards(TrusteeGuard)
-  @Mutation(() => String)
-  async requestMDR(
-    @Args('platform_type') platform_type: string,
-    @Args('payment_mode') payment_mode: string,
-    @Args('school_id', { type: () => [String] }) school_id: string[],
-    @Args('range_mode', { type: () => [RangeInput] }) range_mode: RangeInput[],
-    @Context() context,
-  ) {
-    const trustee_id = context.req.trustee;
-    const role = context.req.role;
-    if (role !== 'owner' && role !== 'admin') {
-      throw new UnauthorizedException(
-        'You are not Authorized to perform this action',
-      );
-    }
-    return await this.trusteeService.requestMDR(
-      trustee_id,
-      school_id,
-      platform_type,
-      payment_mode,
-      range_mode,
-    );
-  }
+
 
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
-  async bulkRequestMDR(
+  async createMdrRequest(
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
     platform_charge: PlatformChargesInput[],
@@ -969,13 +946,19 @@ export class TrusteeResolver {
         'You are not Authorized to perform this action',
       );
     }
-    await this.trusteeService.bulkEequestMDR(
+    return await this.trusteeService.createMdrRequest(
       trustee_id,
       school_id,
       platform_charge,
     );
 
-    return 'mdr updated';
+  }
+
+ @UseGuards(TrusteeGuard)
+ @Mutation(()=>String)
+ async updateMdrRequest(request_id: string,
+  platform_chargers: PlatformCharge[],){
+    return await this.trusteeService.updateMdrRequest(request_id,platform_chargers)
   }
 
   @UseGuards(TrusteeGuard)

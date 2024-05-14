@@ -608,124 +608,23 @@ export class TrusteeService {
     return false;
   }
 
-  async requestMDR(
-    trustee_id: ObjectId,
-    school_id: string[],
-    platform_type: string,
-    payment_mode: string,
-    range_charge: rangeCharge[],
-  ) {
-    let mdr = await this.requestMDRModel
-      .findOne({ trustee_id })
-      .sort({ createdAt: -1 });
 
-    if (!mdr) {
-      mdr = await this.requestMDRModel.create({
-        trustee_id,
-        school_id,
-        platform_charges: [
-          {
-            platform_type,
-            payment_mode,
-            range_charge,
-          },
-        ],
-        status: mdr_status.INITIATED,
-      });
 
-      return 'New MDR created';
-    }
-    if (mdr.status === mdr_status.PROCESSING) {
-      throw new Error(
-        'Your MDR is under Processing, You cannot requst for update',
-      );
-    }
-    if (![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)) {
-      // If status is not PROCESSING, REJECTED, or APPROVED, update the existing MDR
-      const existingPlatformChargeIndex = mdr.platform_charges.findIndex(
-        (pc) =>
-          pc.platform_type.toLowerCase() === platform_type.toLowerCase() &&
-          pc.payment_mode.toLowerCase() === payment_mode.toLowerCase(),
-      );
-
-      if (existingPlatformChargeIndex !== -1) {
-        // console.log(mdr.platform_charges[existingPlatformChargeIndex].range_charge);
-        console.log(mdr._id);
-
-        range_charge.forEach(async (item) => {
-          console.log(item, 'items');
-          await this.requestMDRModel.findOneAndUpdate(
-            {
-              _id: mdr._id,
-              platform_charges: { $elemMatch: { platform_type, payment_mode } },
-            },
-            {
-              // $set: { 'platform_charges.$.range_charge': range_charge }, use this if relace whole arrray instead of pushing
-              $push: {
-                'platform_charges.$.range_charge': {
-                  upto: item.upto,
-                  charge_type: item.charge_type,
-                  charge: item.charge,
-                },
-              },
-            },
-            { returnDocument: 'after' },
-          );
-        });
-
-        console.log(
-          'Updated MDR after range_charge modification:',
-          mdr.platform_charges[existingPlatformChargeIndex].range_charge,
-        );
-        try {
-          await mdr.save();
-          console.log('MDR saved successfully');
-        } catch (error) {
-          console.error('Error saving MDR:', error);
-          throw error; // Propagate the error for further investigation
-        }
-      } else {
-        // Add new platform_charge
-
-        mdr.platform_charges.push({
-          platform_type,
-          payment_mode,
-          range_charge,
-        });
-      }
-      mdr.school_id = school_id;
-      await mdr.save();
-
-      return 'MDR updated';
-    } else {
-      // If status is PROCESSING, REJECTED, or APPROVED, create a new MDR
-      const newMDR = await this.requestMDRModel.create({
-        trustee_id,
-        school_id,
-        platform_charges: [
-          {
-            platform_type,
-            payment_mode,
-            range_charge,
-          },
-        ],
-        status: mdr_status.INITIATED,
-      });
-
-      return 'New MDR created (previous MDR status is not eligible for update)';
-    }
-  }
-
-  async bulkEequestMDR(
+  async createMdrRequest(
     trustee_id: ObjectId,
     school_id: string[],
     platform_chargers: PlatformCharge[],
   ) {
+    //find latest request of trustee
     let mdr = await this.requestMDRModel
       .findOne({ trustee_id })
       .sort({ createdAt: -1 });
+    if (
+      !mdr &&
+      ![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)
+    ) {
+      console.log('not found old');
 
-    if (!mdr) {
       mdr = await this.requestMDRModel.create({
         trustee_id,
         school_id,
@@ -735,35 +634,52 @@ export class TrusteeService {
 
       return 'New MDR created';
     }
-    if (mdr.status === mdr_status.PROCESSING) {
-      throw new Error(
-        'Your MDR is under Processing, You cannot requst for update',
-      );
-    }
-    if (![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)) {
-      let schoolArr=[]
-      await this.requestMDRModel.findOneAndUpdate(
-        { _id: mdr._id },
-        {
-          $set: { platform_charges: platform_chargers },
-        },
-      );
-      mdr.school_id = school_id;
-      await mdr.save();
+    // case : if request is alredy present then trustee can rise a new request for other school
+    const existingSchoolIds = mdr.school_id;
+    let commonSchoolIds = existingSchoolIds.filter((id) =>
+      school_id.includes(id),
+    );
+    console.log(commonSchoolIds);
 
-      return 'MDR updated';
-    } else {
-      // If status is REJECTED, or APPROVED, create a new MDR
-      const newMDR = await this.requestMDRModel.create({
+    let count = 0;
+    if (commonSchoolIds.length > 0) {
+      const filteredSchoolId = school_id.filter(
+        (id) => !commonSchoolIds.includes(id),
+      );
+      console.log(filteredSchoolId, 'filter');
+
+      if (filteredSchoolId.length === 0) {
+        throw new Error('You Already Rise request for these schools');
+      }
+      await this.requestMDRModel.create({
         trustee_id,
-        school_id,
-        platform_chargers,
+        school_id: filteredSchoolId,
+        platform_charges: platform_chargers,
         status: mdr_status.INITIATED,
       });
 
-      return 'New MDR created (previous MDR status is not eligible for update)';
+      return `New MDR request created, cannot rise request for some ${count} because request already present for those school`;
     }
   }
+
+  async updateMdrRequest(
+    request_id: string,
+    platform_chargers: PlatformCharge[],
+  ) {
+    const mdr=await this.requestMDRModel.findById(request_id)
+    if(mdr.status !== mdr_status.INITIATED){
+      throw new ConflictException('You cannot edir request after review')
+    }
+    await this.requestMDRModel.findByIdAndUpdate(
+      { request_id},
+      {
+        $set: { platform_charges: platform_chargers },
+      },
+    ); 
+    return `MDR Request Updated`
+  }
+
+
 
   async saveBaseMdr(
     trustee_id: ObjectId,
