@@ -935,7 +935,7 @@ export class TrusteeResolver {
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
     platform_charge: PlatformChargesInput[],
-    comment:string,
+    comment: string,
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
@@ -949,7 +949,7 @@ export class TrusteeResolver {
       trustee_id,
       school_id,
       platform_charge,
-      comment
+      comment,
     );
   }
 
@@ -958,12 +958,12 @@ export class TrusteeResolver {
   async updateMdrRequest(
     request_id: string,
     platform_chargers: PlatformCharge[],
-    comment:string
+    comment: string,
   ) {
     return await this.trusteeService.updateMdrRequest(
       request_id,
       platform_chargers,
-      comment
+      comment,
     );
   }
 
@@ -1027,100 +1027,171 @@ export class TrusteeResolver {
   @Query(() => [SchoolMdr])
   async getMDRInfo(@Context() context) {
     try {
-      //NEW LOGIC
-      // const trustee_id = context.req.trustee;
-      // console.log(trustee_id);
+      // NEW LOGIC
+      const trustee_id = context.req.trustee;
+      console.log(trustee_id);
 
-      // const trustee = await this.trusteeModel.findById(trustee_id);
-      // const trusteeBaseRates =
-      //   await this.trusteeService.getTrusteeBaseMdr(trustee_id);
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      const trusteeBaseRates =
+        await this.trusteeService.getTrusteeBaseMdr(trustee_id);
 
-      // const schools = await this.trusteeSchoolModel.find({
-      //   trustee_id: trustee_id,
-      // });
-      // let schoolMdrs = [];
+      const schools = await this.trusteeSchoolModel.find({
+        trustee_id: trustee_id,
+      });
+      let schoolMdrs = [];
 
-      // if (schools) {
-      //   const school_ids = schools.map((school) => school.school_id);
-      //   school_ids.map(async (school) => {
-      //     const res = await this.trusteeService.getSchoolMdr(school.toString());
-      //     if (res) schoolMdrs.push(res);
-      //   });
-      // }
+      if (schools) {
+        const school_ids = schools.map((school) => school.school_id);
+        school_ids.map(async (school) => {
+          const res = await this.trusteeService.getSchoolMdr(school.toString());
+          if (res) schoolMdrs.push(res);
+        });
+      }
 
-      // const aggregateCharges = (charge1, charge2) => {
-      //   console.log(charge1, charge2);
-      //   let aggregateCharges = {};
-      //   charge1.mdr2.forEach((charge) => {
-      //     const key = `${charge.platform_type}_${charge.payment_mode}`;
-      //     if (!aggregateCharges[key]) {
-      //       aggregateCharges[key] = charge.range_charge.map(
-      //         ({ upto, charge_type, charge }) => ({
-      //           upto,
-      //           charge_type,
-      //           charge,
-      //         }),
-      //       );
-      //     }
-      //   });
-      //   charge2.mdr2.forEach((charge) => {
-      //     const key = `${charge.platform_type}_${charge.payment_mode}`;
-      //     if (!aggregateCharges[key]) {
-      //       aggregateCharges[key] = charge.range_charge.map(
-      //         ({ upto, charge_type, charge }) => ({
-      //           upto,
-      //           charge_type,
-      //           charge,
-      //         }),
-      //       );
-      //     } else {
-      //       charge.range_charge.forEach(({ upto, charge }) => {
-      //         const existingCharge = aggregateCharges[key].find(
-      //           (c) => c.upto === upto,
-      //         );
-      //         if (existingCharge) {
-      //           existingCharge.commission -= charge;
-      //           //existingCharge.charge -= charge;
-      //         }
-      //       });
-      //     }
-      //   });
-      //   return aggregateCharges;
-      // };
-      // let info = [];
-      // console.log(schoolMdrs);
-      // schoolMdrs.map((schoolMdr) => {
-      //   info.push(aggregateCharges(schoolMdr.mdr2, trusteeBaseRates));
-      // });
+      const aggregateCharges = (charge1, charge2) => {
+        console.log(charge1, charge2);
+        let aggregateCharges = {};
+        charge1.mdr2.forEach((charge) => {
+          const key = `${charge.platform_type}_${charge.payment_mode}`;
+          if (!aggregateCharges[key]) {
+            aggregateCharges[key] = charge.range_charge.map(
+              ({ upto, charge_type, charge }) => ({
+                upto,
+                charge_type,
+                charge,
+              }),
+            );
+          }
+        });
+        charge2.mdr2.forEach((charge) => {
+          const key = `${charge.platform_type}_${charge.payment_mode}`;
+          if (!aggregateCharges[key]) {
+            aggregateCharges[key] = charge.range_charge.map(
+              ({ upto, charge_type, charge }) => ({
+                upto,
+                charge_type,
+                charge,
+              }),
+            );
+          } else {
+            charge.range_charge.forEach(({ upto, charge }) => {
+              const existingCharge = aggregateCharges[key].find(
+                (c) => c.upto === upto,
+              );
+              if (existingCharge) {
+                existingCharge.commission -= charge;
+                //existingCharge.charge -= charge;
+              }
+            });
+          }
+        });
+        return aggregateCharges;
+      };
+      let info = [];
+      console.log(schoolMdrs);
+      schoolMdrs.map((schoolMdr) => {
+        info.push(aggregateCharges(schoolMdr.mdr2, trusteeBaseRates));
+      });
 
-      // return info;
+      return info;
 
-      const school_to_mdrs = [
-        {
-          school_id: '',
-          platform_charges: [
-            {
-              platform_type: '',
-              payment_mode: '',
-              range_charge: [
-                {
-                  upto: 0,
-                  charge_type: '',
-                  charge: 0,
-                  total_mdr: 0,
-                  commission: 0,
-                  base_mdr: 0,
-                },
-              ],
-            },
-          ],
-        },
-      ];
-      return school_to_mdrs;
+      // const school_to_mdrs = [
+      //   {
+      //     school_id: '',
+      //     platform_charges: [
+      //       {
+      //         platform_type: '',
+      //         payment_mode: '',
+      //         range_charge: [
+      //           {
+      //             upto: 0,
+      //             charge_type: '',
+      //             charge: 0,
+      //             total_mdr: 0,
+      //             commission: 0,
+      //             base_mdr: 0,
+      //           },
+      //         ],
+      //       },
+      //     ],
+      //   },
+      // ];
+      // return school_to_mdrs;
     } catch (error) {
       throw new Error(error.message);
     }
   }
+  @UseGuards(TrusteeGuard)
+  @Query(() => [mergeMdrResponse])
+  async getSchoolMdrInfo(
+    @Args('school_id') school_id: string,
+    @Context() context,
+  ) {
+    const trustee_id = context.req.trustee;
+    const baseMdr = await this.trusteeService.getTrusteeBaseMdr(
+      trustee_id.toString(),
+    );
+    const schoolMdr = await this.trusteeService.getSchoolMdr(school_id);
+    
+    const info=await this.mapMdrData(baseMdr,schoolMdr)
+    console.log(info[0]);
+    console.log(info);
+    
+    console.log(info[0].range_charge);
+    
+
+    return info;
+  }
+
+  async mapMdrData(baseMdr:any, schoolMdr:any) {
+    const mappedData = [];
+  
+    // Iterate over each platform type in baseMdr
+    for (const basePlatform of baseMdr.platform_charges) {
+      const schoolPlatform = schoolMdr.mdr2.find(
+        (schoolPlatform) => schoolPlatform.platform_type === basePlatform.platform_type
+      );
+   
+      if (schoolPlatform) {
+        // Create a new mapped object combining data from baseMdr and schoolMdr
+        const mappedObject = {
+          platform_type: basePlatform.platform_type,
+          payment_mode: basePlatform.payment_mode, 
+          range_charge: []
+        };
+  
+        // Iterate over each range charge in the baseMdr platform
+        basePlatform.range_charge.forEach((baseCharge) => {
+          const schoolCharge = schoolPlatform.range_charge.find(
+            (schoolCharge) => schoolCharge.upto === baseCharge.upto
+          );
+  
+          if (schoolCharge) {
+            // Create a combined charge object
+            const commission = schoolCharge.charge - baseCharge.charge;
+            const combinedCharge = {
+              upto: baseCharge.upto,
+              charge_type: baseCharge.charge_type,
+              base_charge: baseCharge.charge,
+              school_mdr: schoolCharge.charge,
+              commission: commission
+            };
+  
+            // Push the combined charge object to range_charge array in mappedObject
+            mappedObject.range_charge.push(combinedCharge);
+          }
+        });
+  
+        // Push the mappedObject to the final mappedData array
+        mappedData.push(mappedObject);
+      }
+    }
+  
+    return mappedData;
+  }
+
+
+
 
   @UseGuards(TrusteeGuard)
   @Query(() => School)
@@ -1129,6 +1200,8 @@ export class TrusteeResolver {
       school_id: new Types.ObjectId(school_id),
     });
   }
+
+  
 }
 
 @ObjectType()
@@ -1359,4 +1432,33 @@ class PlatformChargesInput {
 
   @Field(() => [RangeInput])
   range_charge: RangeInput[];
+}
+
+@ObjectType()
+class commisonRange{
+  @Field(() => Number, { nullable: true })
+  upto: number;
+
+  @Field(() => String,{ nullable: true })
+  charge_type: charge_type;
+
+  @Field(() => Number,{ nullable: true })
+  base_charge: number;
+
+  @Field(() => Number,{ nullable: true })
+  commission: number;
+
+  @Field(() => Number,{ nullable: true })
+  school_mdr: number;
+}
+
+@ObjectType()
+class mergeMdrResponse{
+  @Field({ nullable: true })
+  platform_type: string
+  @Field({ nullable: true })
+  payment_mode: string
+
+  @Field(() => [commisonRange],{ nullable: true })
+  range_charge: commisonRange[];
 }

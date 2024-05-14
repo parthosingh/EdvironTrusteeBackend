@@ -750,9 +750,11 @@ export class TrusteeService {
         school_id: new mongoose.Types.ObjectId(school_id),
       });
       if (!school) throw new NotFoundException('School not found');
-
+      const schoolId=new Types.ObjectId(school_id)
+      console.log(schoolId);
+      
       const schoolMdr = await this.schoolMdrModel.findOne({
-        school_id,
+        school_id:schoolId,
       });
       return schoolMdr;
     } catch (err) {
@@ -764,4 +766,5 @@ export class TrusteeService {
       throw new Error(err.message);
     }
   }
+  async 
 }
