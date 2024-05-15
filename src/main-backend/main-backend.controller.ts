@@ -278,7 +278,7 @@ export class MainBackendController {
     return mdrToken
   }
 
-  @Post('reject-mdt')
+  @Post('reject-mdr')
   async rejectMdr(@Body() body: { id: string; comment: string }) {
     await this.trusteeService.rejectMdr(body.id, body.comment);
     return `MDR status Update`;
