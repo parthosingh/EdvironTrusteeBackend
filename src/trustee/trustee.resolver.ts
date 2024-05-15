@@ -1302,6 +1302,9 @@ class SchoolMdrInfo {
 
   @Field(() => [mergeMdrResponse], { nullable: true })
   platform_charges: [mergeMdrResponse];
+
+  @Field(() => String, { nullable: true })
+  updatedAt:string
 }
 
 @ObjectType()
@@ -1402,13 +1405,13 @@ class commisonRange {
   charge_type: charge_type;
 
   @Field(() => Number, { nullable: true })
-  charge: number;
+  base_carge: number;
 
   @Field(() => Number, { nullable: true })
   commission: number;
 
   @Field(() => Number, { nullable: true })
-  school_mdr: number;
+  charge: number;
 }
 
 @ObjectType()

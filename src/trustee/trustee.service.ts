@@ -817,10 +817,13 @@ export class TrusteeService {
     const baseMdr = await this.getTrusteeBaseMdr(
       trustee_id.toString(),
     );
-    const schoolMdr = await this.getSchoolMdr(school_id);
+    const schoolMdr:any = await this.getSchoolMdr(school_id);
+   
+    const info:any=await this.mapMdrData(baseMdr,schoolMdr)    
+    if (schoolMdr.updatedAt) {
+      info.updatedAt = schoolMdr.updatedAt;
+    }
     
-    const info=await this.mapMdrData(baseMdr,schoolMdr)    
-
     return info;
   }
 
@@ -853,8 +856,8 @@ export class TrusteeService {
             const combinedCharge = {
               upto: baseCharge.upto,
               charge_type: baseCharge.charge_type,
-              charge: baseCharge.charge,
-              school_mdr: schoolCharge.charge,
+              base_carge: baseCharge.charge,
+              charge: schoolCharge.charge,
               commission: commission
             };
   
