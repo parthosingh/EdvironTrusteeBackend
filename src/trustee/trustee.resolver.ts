@@ -935,7 +935,7 @@ export class TrusteeResolver {
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
     platform_charge: PlatformChargesInput[],
-    description: string,
+    // description: string,
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
@@ -945,11 +945,13 @@ export class TrusteeResolver {
         'You are not Authorized to perform this action',
       );
     }
+   
+    
     return await this.trusteeService.createMdrRequest(
       trustee_id,
       school_id,
       platform_charge,
-      description,
+      'description',
     );
   }
 

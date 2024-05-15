@@ -618,6 +618,8 @@ export class TrusteeService {
     let mdr = await this.requestMDRModel
       .findOne({ trustee_id })
       .sort({ createdAt: -1 });
+      
+      
     if (
       !mdr &&
       ![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)
@@ -639,7 +641,6 @@ export class TrusteeService {
     let commonSchoolIds = existingSchoolIds.filter((id) =>
       school_id.includes(id),
     );
-    console.log(commonSchoolIds);
 
     let count = 0;
     if (commonSchoolIds.length > 0) {
@@ -660,6 +661,16 @@ export class TrusteeService {
       });
 
       return `New MDR request created, cannot rise request for some ${count} because request already present for those school`;
+    }else{
+      mdr = await this.requestMDRModel.create({
+        trustee_id,
+        school_id,
+        platform_charges: platform_chargers,
+        status: mdr_status.INITIATED,
+        comment,
+      });
+
+      return 'New MDR created';
     }
   }
 
