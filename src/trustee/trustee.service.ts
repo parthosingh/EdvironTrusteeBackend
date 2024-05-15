@@ -831,11 +831,14 @@ export class TrusteeService {
     const schoolMdr:any = await this.getSchoolMdr(school_id);
    
     const info:any=await this.mapMdrData(baseMdr,schoolMdr)    
-    if (schoolMdr?.updatedAt) {
-      info.updatedAt = schoolMdr.updatedAt;
+    let updated_at=null
+    if (schoolMdr) {
+     
+       updated_at = schoolMdr?.updatedAt;
     }
+   
     
-    return info;
+    return {info,updated_at};
   }
 
   async mapMdrData(baseMdr:any, schoolMdr:any) {

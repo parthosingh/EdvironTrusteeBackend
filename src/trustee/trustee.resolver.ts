@@ -1132,11 +1132,14 @@ export class TrusteeResolver {
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
-    const school = await this.trusteeSchoolModel.findOne({
+    let school:SchoolMdrInfo = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });
     const mdrInfo=await this.trusteeService.getSchoolMdrInfo(school_id,trustee_id)
-    school.platform_charges=mdrInfo
+    school.platform_charges=mdrInfo.info
+    const date=new Date(mdrInfo.updated_at)
+    school.requestUpdatedAt=date
+    
     return school
   } 
 }
@@ -1305,8 +1308,8 @@ class SchoolMdrInfo {
   @Field(() => [mergeMdrResponse], { nullable: true })
   platform_charges: [mergeMdrResponse];
 
-  @Field(() => String, { nullable: true })
-  updatedAt:string
+  @Field(() => Date, { nullable: true })
+  requestUpdatedAt:Date
 }
 
 @ObjectType()
