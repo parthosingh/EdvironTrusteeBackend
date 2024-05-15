@@ -688,6 +688,7 @@ export class TrusteeService {
         trustee_id: trusteeId,
       },
       {
+        trustee_id: trusteeId,
         platform_charges,
       },
       { upsert: true, new: true },
@@ -818,12 +819,7 @@ export class TrusteeService {
     );
     const schoolMdr = await this.getSchoolMdr(school_id);
     
-    const info=await this.mapMdrData(baseMdr,schoolMdr)
-    console.log(info[0]);
-    console.log(info);
-    
-    console.log(info[0].range_charge);
-    
+    const info=await this.mapMdrData(baseMdr,schoolMdr)    
 
     return info;
   }
@@ -833,7 +829,7 @@ export class TrusteeService {
   
     // Iterate over each platform type in baseMdr
     for (const basePlatform of baseMdr.platform_charges) {
-      const schoolPlatform = schoolMdr.mdr2.find(
+      const schoolPlatform = schoolMdr?.mdr2.find(
         (schoolPlatform) => schoolPlatform.platform_type === basePlatform.platform_type
       );
    
@@ -857,7 +853,7 @@ export class TrusteeService {
             const combinedCharge = {
               upto: baseCharge.upto,
               charge_type: baseCharge.charge_type,
-              base_charge: baseCharge.charge,
+              charge: baseCharge.charge,
               school_mdr: schoolCharge.charge,
               commission: commission
             };

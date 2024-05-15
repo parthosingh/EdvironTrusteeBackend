@@ -1402,7 +1402,7 @@ class commisonRange {
   charge_type: charge_type;
 
   @Field(() => Number, { nullable: true })
-  base_charge: number;
+  charge: number;
 
   @Field(() => Number, { nullable: true })
   commission: number;
