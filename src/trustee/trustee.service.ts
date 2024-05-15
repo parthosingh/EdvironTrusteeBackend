@@ -757,11 +757,11 @@ export class TrusteeService {
 
   async getSchoolMdr(school_id: string) {
     try {
+      const schoolId = new Types.ObjectId(school_id);
       const school = await this.trusteeSchoolModel.findOne({
-        school_id: new mongoose.Types.ObjectId(school_id),
+        school_id: schoolId,
       });
       if (!school) throw new NotFoundException('School not found');
-      const schoolId = new Types.ObjectId(school_id);
       console.log(schoolId);
 
       const schoolMdr = await this.schoolMdrModel.findOne({
@@ -831,7 +831,7 @@ export class TrusteeService {
     const schoolMdr:any = await this.getSchoolMdr(school_id);
    
     const info:any=await this.mapMdrData(baseMdr,schoolMdr)    
-    if (schoolMdr.updatedAt) {
+    if (schoolMdr?.updatedAt) {
       info.updatedAt = schoolMdr.updatedAt;
     }
     
