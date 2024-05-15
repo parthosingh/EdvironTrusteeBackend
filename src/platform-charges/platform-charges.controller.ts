@@ -16,6 +16,7 @@ import mongoose from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Trustee } from '../schema/trustee.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
+import { RequestMDR } from 'src/schema/mdr.request.schema';
 
 @Controller('platform-charges')
 export class PlatformChargesController {
@@ -28,6 +29,8 @@ export class PlatformChargesController {
     private readonly trusteeSchool: mongoose.Model<TrusteeSchool>,
     @InjectModel(SchoolMdr.name)
     private readonly schoolMdr: mongoose.Model<SchoolMdr>,
+    @InjectModel(RequestMDR.name)
+    private mdrRequestModel: mongoose.Model<RequestMDR>,
   ) {}
 
   @Post('add-platform-charges')
@@ -293,52 +296,6 @@ export class PlatformChargesController {
     }
   }
 
-  // @Post('add-school-mdr')
-  // async addSchoolMdr(
-  //   @Body()
-  //   token: {
-  //     token: string;
-  //   },
-  // ) {
-  //   try {
-  //     const body = this.jwtService.verify(token.token, {
-  //       secret: process.env.JWT_SECRET_FOR_INTRANET,
-  //     });
-  //     const { trusteeSchoolIds, platform_type, payment_mode, range_charge } =
-  //       body;
-
-  //     if (!trusteeSchoolIds)
-  //       throw new BadRequestException('Trustee school ID Required');
-  //     if (!platform_type)
-  //       throw new BadRequestException('Platform type Required');
-  //     if (!payment_mode) throw new BadRequestException('Payment mode Required');
-  //     if (!range_charge) throw new BadRequestException('Charges Required');
-
-  //     const val = await this.platformChargeService.addSchoolMdr(
-  //       trusteeSchoolIds,
-  //       platform_type,
-  //       payment_mode,
-  //       range_charge,
-  //     );
-
-  //     const payload = {
-  //       platform_charges: val.platform_charges,
-  //     };
-
-  //     const res = this.jwtService.sign(payload, {
-  //       secret: process.env.JWT_SECRET_FOR_INTRANET,
-  //     });
-  //     return res;
-  //   } catch (err) {
-  //     if (err.response?.statusCode === 400) {
-  //       throw new BadRequestException(err.message);
-  //     } else if (err.response?.statusCode === 404) {
-  //       throw new NotFoundException(err.message);
-  //     }
-  //     throw new Error(err.message);
-  //   }
-  // }
-
   @Post('delete-school-mdr')
   async deleteSchoolMdr(
     @Body()
@@ -384,54 +341,8 @@ export class PlatformChargesController {
     }
   }
 
-  // @Post('update-school-mdr')
-  // async updateSchoolMdr(
-  //   @Body()
-  //   token: {
-  //     token: string;
-  //   },
-  // ) {
-  //   try {
-  //     const body = this.jwtService.verify(token.token, {
-  //       secret: process.env.JWT_SECRET_FOR_INTRANET,
-  //     });
-  //     const { trusteeSchoolIds, platform_type, payment_mode, range_charge } =
-  //       body;
-
-  //     if (!trusteeSchoolIds)
-  //       throw new BadRequestException('Trustee school ID Required');
-  //     if (!platform_type)
-  //       throw new BadRequestException('Platform type Required');
-  //     if (!payment_mode) throw new BadRequestException('Payment mode Required');
-  //     if (!range_charge) throw new BadRequestException('Charges Required');
-
-  //     const val = await this.platformChargeService.updateSchoolMdr(
-  //       trusteeSchoolIds,
-  //       platform_type,
-  //       payment_mode,
-  //       range_charge,
-  //     );
-
-  //     const payload = {
-  //       platform_charges: val.platform_charges,
-  //     };
-
-  //     const res = this.jwtService.sign(payload, {
-  //       secret: process.env.JWT_SECRET_FOR_INTRANET,
-  //     });
-  //     return res;
-  //   } catch (err) {
-  //     if (err.response?.statusCode === 400) {
-  //       throw new BadRequestException(err.message);
-  //     } else if (err.response?.statusCode === 404) {
-  //       throw new NotFoundException(err.message);
-  //     }
-  //     throw new Error(err.message);
-  //   }
-  // }
-
-  //create/update/delete
-  //pass schoolIds and updated mdrs for schools
+  //for creating/updating/deleting total mdr(mdr2) of school
+  //call this after request approval
   @Post('add-school-mdr')
   async bulkAddSchoolMdr(
     @Body()
@@ -443,26 +354,24 @@ export class PlatformChargesController {
       const body = this.jwtService.verify(token.token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
-      const { trusteeSchoolIds, platform_charges } = body;
+      const { trusteeSchoolIds, trustee_id, mdr_request_id } = body;
 
       if (!trusteeSchoolIds)
         throw new BadRequestException('Trustee school ID Required');
-      if (!platform_charges)
-        throw new BadRequestException('platform charges Required');
+      if (!mdr_request_id)
+        throw new BadRequestException('MDR Request Required');
+
+      let mdr_id = new mongoose.Types.ObjectId(mdr_request_id);
+      const mdrRequest = await this.mdrRequestModel.findOne({ _id: mdr_id });
+      await this.platformChargeService.acceptMDRRequest(mdrRequest);
 
       let mdr2 = [];
       const data = [];
-      for (let i = 0; i < platform_charges.length; i++) {
-        // await this.platformChargeService.updateSchoolMdr(
-        //   trusteeSchoolIds,
-        //   platform_charges[i].platform_type,
-        //   platform_charges[i].payment_mode,
-        //   platform_charges[i].range_charge,
-        // );
+      for (let i = 0; i < mdrRequest.platform_charges.length; i++) {
         mdr2.push({
-          platform_type: platform_charges[i].platform_type,
-          payment_mode: platform_charges[i].payment_mode,
-          range_charge: platform_charges[i].range_charge,
+          platform_type: mdrRequest.platform_charges[i].platform_type,
+          payment_mode: mdrRequest.platform_charges[i].payment_mode,
+          range_charge: mdrRequest.platform_charges[i].range_charge,
         });
       }
       await this.platformChargeService.createUpdateSchoolMdr(
@@ -487,6 +396,7 @@ export class PlatformChargesController {
     }
   }
 
+  //function for getting total mdr and commission of a school
   @Get('final-school-mdr')
   async finalSchoolMdr(
     @Body()

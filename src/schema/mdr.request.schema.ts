@@ -40,6 +40,9 @@ export class RequestMDR{
   @Field(()=>String)
   description :string
 
+  _id: ObjectId;
+
+
 }
 
 export const RequestMDRSchema = SchemaFactory.createForClass(RequestMDR);

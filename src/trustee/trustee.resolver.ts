@@ -1023,6 +1023,7 @@ export class TrusteeResolver {
     }
   }
 
+  //old function
   @UseGuards(TrusteeGuard)
   @Query(() => [SchoolMdr])
   async getMDRInfo(@Context() context) {
@@ -1121,7 +1122,7 @@ export class TrusteeResolver {
       throw new Error(error.message);
     }
   }
-  
+
   //get school info with base rates and final rates
   @UseGuards(TrusteeGuard)
   @Query(() => SchoolMdrInfo)
@@ -1133,10 +1134,13 @@ export class TrusteeResolver {
     const school = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });
-    const mdrInfo=await this.trusteeService.getSchoolMdrInfo(school_id,trustee_id)
-    school.platform_charges=mdrInfo
-    return school
-  } 
+    const mdrInfo = await this.trusteeService.getSchoolMdrInfo(
+      school_id,
+      trustee_id,
+    );
+    school.platform_charges = mdrInfo;
+    return school;
+  }
 }
 
 @ObjectType()
