@@ -618,6 +618,8 @@ export class TrusteeService {
     let mdr = await this.requestMDRModel
       .findOne({ trustee_id })
       .sort({ createdAt: -1 });
+      
+      
     if (
       !mdr &&
       ![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)
@@ -639,7 +641,6 @@ export class TrusteeService {
     let commonSchoolIds = existingSchoolIds.filter((id) =>
       school_id.includes(id),
     );
-    console.log(commonSchoolIds);
 
     let count = 0;
     if (commonSchoolIds.length > 0) {
@@ -660,6 +661,16 @@ export class TrusteeService {
       });
 
       return `New MDR request created, cannot rise request for some ${count} because request already present for those school`;
+    }else{
+      mdr = await this.requestMDRModel.create({
+        trustee_id,
+        school_id,
+        platform_charges: platform_chargers,
+        status: mdr_status.INITIATED,
+        comment,
+      });
+
+      return 'New MDR created';
     }
   }
 
@@ -688,6 +699,7 @@ export class TrusteeService {
         trustee_id: trusteeId,
       },
       {
+        trustee_id: trusteeId,
         platform_charges,
       },
       { upsert: true, new: true },
@@ -745,11 +757,11 @@ export class TrusteeService {
 
   async getSchoolMdr(school_id: string) {
     try {
+      const schoolId = new Types.ObjectId(school_id);
       const school = await this.trusteeSchoolModel.findOne({
-        school_id: new mongoose.Types.ObjectId(school_id),
+        school_id: schoolId,
       });
       if (!school) throw new NotFoundException('School not found');
-      const schoolId = new Types.ObjectId(school_id);
       console.log(schoolId);
 
       const schoolMdr = await this.schoolMdrModel.findOne({
@@ -816,16 +828,17 @@ export class TrusteeService {
     const baseMdr = await this.getTrusteeBaseMdr(
       trustee_id.toString(),
     );
-    const schoolMdr = await this.getSchoolMdr(school_id);
+    const schoolMdr:any = await this.getSchoolMdr(school_id);
+   
+    const info:any=await this.mapMdrData(baseMdr,schoolMdr)    
+    let updated_at=null
+    if (schoolMdr) {
+     
+       updated_at = schoolMdr?.updatedAt;
+    }
+   
     
-    const info=await this.mapMdrData(baseMdr,schoolMdr)
-    console.log(info[0]);
-    console.log(info);
-    
-    console.log(info[0].range_charge);
-    
-
-    return info;
+    return {info,updated_at};
   }
 
   async mapMdrData(baseMdr:any, schoolMdr:any) {
@@ -833,7 +846,7 @@ export class TrusteeService {
   
     // Iterate over each platform type in baseMdr
     for (const basePlatform of baseMdr.platform_charges) {
-      const schoolPlatform = schoolMdr.mdr2.find(
+      const schoolPlatform = schoolMdr?.mdr2.find(
         (schoolPlatform) => schoolPlatform.platform_type === basePlatform.platform_type
       );
    
@@ -858,7 +871,7 @@ export class TrusteeService {
               upto: baseCharge.upto,
               charge_type: baseCharge.charge_type,
               base_charge: baseCharge.charge,
-              school_mdr: schoolCharge.charge,
+              charge: schoolCharge.charge,
               commission: commission
             };
   

@@ -935,7 +935,7 @@ export class TrusteeResolver {
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
     platform_charge: PlatformChargesInput[],
-    description: string,
+    // description: string,
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
@@ -945,11 +945,12 @@ export class TrusteeResolver {
         'You are not Authorized to perform this action',
       );
     }
+
     return await this.trusteeService.createMdrRequest(
       trustee_id,
       school_id,
       platform_charge,
-      description,
+      'description',
     );
   }
 
@@ -1023,106 +1024,6 @@ export class TrusteeResolver {
     }
   }
 
-  //old function
-  @UseGuards(TrusteeGuard)
-  @Query(() => [SchoolMdr])
-  async getMDRInfo(@Context() context) {
-    try {
-      // NEW LOGIC
-      const trustee_id = context.req.trustee;
-      console.log(trustee_id);
-
-      const trustee = await this.trusteeModel.findById(trustee_id);
-      const trusteeBaseRates =
-        await this.trusteeService.getTrusteeBaseMdr(trustee_id);
-
-      const schools = await this.trusteeSchoolModel.find({
-        trustee_id: trustee_id,
-      });
-      let schoolMdrs = [];
-
-      if (schools) {
-        const school_ids = schools.map((school) => school.school_id);
-        school_ids.map(async (school) => {
-          const res = await this.trusteeService.getSchoolMdr(school.toString());
-          if (res) schoolMdrs.push(res);
-        });
-      }
-
-      const aggregateCharges = (charge1, charge2) => {
-        console.log(charge1, charge2);
-        let aggregateCharges = {};
-        charge1.mdr2.forEach((charge) => {
-          const key = `${charge.platform_type}_${charge.payment_mode}`;
-          if (!aggregateCharges[key]) {
-            aggregateCharges[key] = charge.range_charge.map(
-              ({ upto, charge_type, charge }) => ({
-                upto,
-                charge_type,
-                charge,
-              }),
-            );
-          }
-        });
-        charge2.mdr2.forEach((charge) => {
-          const key = `${charge.platform_type}_${charge.payment_mode}`;
-          if (!aggregateCharges[key]) {
-            aggregateCharges[key] = charge.range_charge.map(
-              ({ upto, charge_type, charge }) => ({
-                upto,
-                charge_type,
-                charge,
-              }),
-            );
-          } else {
-            charge.range_charge.forEach(({ upto, charge }) => {
-              const existingCharge = aggregateCharges[key].find(
-                (c) => c.upto === upto,
-              );
-              if (existingCharge) {
-                existingCharge.commission -= charge;
-                //existingCharge.charge -= charge;
-              }
-            });
-          }
-        });
-        return aggregateCharges;
-      };
-      let info = [];
-      console.log(schoolMdrs);
-      schoolMdrs.map((schoolMdr) => {
-        info.push(aggregateCharges(schoolMdr.mdr2, trusteeBaseRates));
-      });
-
-      return info;
-
-      // const school_to_mdrs = [
-      //   {
-      //     school_id: '',
-      //     platform_charges: [
-      //       {
-      //         platform_type: '',
-      //         payment_mode: '',
-      //         range_charge: [
-      //           {
-      //             upto: 0,
-      //             charge_type: '',
-      //             charge: 0,
-      //             total_mdr: 0,
-      //             commission: 0,
-      //             base_mdr: 0,
-      //           },
-      //         ],
-      //       },
-      //     ],
-      //   },
-      // ];
-      // return school_to_mdrs;
-    } catch (error) {
-      throw new Error(error.message);
-    }
-  }
-
   //get school info with base rates and final rates
   @UseGuards(TrusteeGuard)
   @Query(() => SchoolMdrInfo)
@@ -1131,14 +1032,17 @@ export class TrusteeResolver {
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
-    const school = await this.trusteeSchoolModel.findOne({
+    let school: SchoolMdrInfo = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });
     const mdrInfo = await this.trusteeService.getSchoolMdrInfo(
       school_id,
       trustee_id,
     );
-    school.platform_charges = mdrInfo;
+    school.platform_charges = mdrInfo.info;
+    const date = new Date(mdrInfo.updated_at);
+    school.requestUpdatedAt = date;
+
     return school;
   }
 }
@@ -1306,6 +1210,9 @@ class SchoolMdrInfo {
 
   @Field(() => [mergeMdrResponse], { nullable: true })
   platform_charges: [mergeMdrResponse];
+
+  @Field(() => Date, { nullable: true })
+  requestUpdatedAt: Date;
 }
 
 @ObjectType()
@@ -1412,7 +1319,7 @@ class commisonRange {
   commission: number;
 
   @Field(() => Number, { nullable: true })
-  school_mdr: number;
+  charge: number;
 }
 
 @ObjectType()
