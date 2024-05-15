@@ -325,7 +325,7 @@ export class PlatformChargeService {
             `Trustee school with schoolId: ${schoolId} not found`,
           );
 
-        //can only be added if kyc is approved
+        // can only be added if kyc is approved
         if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
           throw new BadRequestException('KYC not approved');
 
@@ -338,6 +338,42 @@ export class PlatformChargeService {
           },
           { returnDocument: 'after', upsert: true },
         );
+
+        const OthersFields = [
+          { platform_type: 'UPI', payment_mode: 'Others' },
+          { platform_type: 'DebitCard', payment_mode: 'Others' },
+          { platform_type: 'NetBanking', payment_mode: 'Others' },
+          { platform_type: 'CreditCard', payment_mode: 'Others' },
+          { platform_type: 'Wallet', payment_mode: 'Others' },
+          { platform_type: 'PayLater', payment_mode: 'Others' },
+          { platform_type: 'CardLess EMI', payment_mode: 'Others' },
+          //any other payment mode
+        ];
+
+        let AllOtherFieldPresent = 1;
+
+        OthersFields.forEach((OthersField) => {
+          let found = 0;
+          res.mdr2.forEach((PlatformCharge) => {
+            if (
+              PlatformCharge.platform_type.toLowerCase() ===
+                OthersField.platform_type.toLowerCase() &&
+              PlatformCharge.payment_mode.toLowerCase() ===
+                OthersField.payment_mode.toLowerCase()
+            ) {
+              found = 1;
+            }
+          });
+
+          AllOtherFieldPresent = AllOtherFieldPresent & found;
+        });
+
+        if (AllOtherFieldPresent && !trusteeSchool.pg_key) {
+          let pgKey = await this.mainBackendService.generateKey();
+          await this.trusteeSchoolModel.findByIdAndUpdate(trusteeSchool._id, {
+            $set: { pg_key: pgKey },
+          });
+        }
       });
       return {
         platform_charges: mdr2,
