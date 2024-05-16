@@ -622,7 +622,7 @@ export class TrusteeService {
       
     if (
       !mdr &&
-      ![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr.status)
+      ![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr?.status)
     ) {
       console.log('not found old');
 
@@ -650,17 +650,10 @@ export class TrusteeService {
       console.log(filteredSchoolId, 'filter');
 
       if (filteredSchoolId.length === 0) {
-        throw new Error('You Already Rise request for these schools');
+        throw new Error('You already rise request for these schools');
       }
-      await this.requestMDRModel.create({
-        trustee_id,
-        school_id: filteredSchoolId,
-        platform_charges: platform_chargers,
-        status: mdr_status.INITIATED,
-        comment,
-      });
 
-      return `New MDR request created, cannot rise request for some ${count} because request already present for those school`;
+      return "Request already exists for some selected Schools";
     }else{
       mdr = await this.requestMDRModel.create({
         trustee_id,
@@ -670,7 +663,7 @@ export class TrusteeService {
         comment,
       });
 
-      return 'New MDR created';
+      return {message:'New MDR request created'};
     }
   }
 

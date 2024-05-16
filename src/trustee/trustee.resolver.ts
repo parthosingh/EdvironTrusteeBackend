@@ -935,7 +935,7 @@ export class TrusteeResolver {
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
     platform_charge: PlatformChargesInput[],
-    // description: string,
+    @Args('description', {nullable:true}) description: string,
     @Context() context,
   ) {
     const trustee_id = context.req.trustee;
@@ -950,7 +950,7 @@ export class TrusteeResolver {
       trustee_id,
       school_id,
       platform_charge,
-      'description',
+      description,
     );
   }
 
@@ -1045,6 +1045,12 @@ export class TrusteeResolver {
 
     return school;
   }
+
+    // @UseGuards(TrusteeGuard)
+    @Query(()=>[RequestMDR])
+    async getTrusteeMDRRequest(@Args('trustee_id') trustee_id: string) {
+      return await this.trusteeService.getTrusteeMdrRequest(trustee_id);
+    }
 }
 
 @ObjectType()

@@ -37,7 +37,7 @@ export class RequestMDR{
   comment:string
 
   @Prop()
-  @Field(()=>String)
+  @Field(()=>String, {nullable:true})
   description :string
 
   _id: ObjectId;
