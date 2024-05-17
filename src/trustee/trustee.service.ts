@@ -121,6 +121,7 @@ export class TrusteeService {
       });
 
       const trustee = await this.trusteeModel.findById(decodedPayload.id);
+      const baseMdr = await this.baseMdrModel.findOne({trustee_id:trustee._id})
       if (trustee) {
         const userTrustee = {
           id: trustee._id,
@@ -131,6 +132,7 @@ export class TrusteeService {
           role: 'owner' || null,
           trustee_id: trustee._id,
           brand_name: trustee.brand_name || null,
+          base_mdr:baseMdr
         };
         return userTrustee;
       }

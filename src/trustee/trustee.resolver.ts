@@ -182,6 +182,7 @@ export class TrusteeResolver {
         phone_number: userTrustee.phone_number,
         trustee_id: userTrustee.trustee_id,
         brand_name: userTrustee.brand_name,
+        base_mdr: userTrustee.base_mdr
       };
       return user;
     } catch (error) {
@@ -1156,6 +1157,8 @@ class TrusteeUser {
   trustee_id: string;
   @Field({ nullable: true })
   brand_name: string;
+  @Field({ nullable: true })
+  base_mdr: BaseMdr;
 }
 
 @ObjectType()
