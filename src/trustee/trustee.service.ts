@@ -618,8 +618,7 @@ export class TrusteeService {
     let mdr = await this.requestMDRModel
       .findOne({ trustee_id })
       .sort({ createdAt: -1 });
-      
-      
+
     if (
       !mdr &&
       ![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr?.status)
@@ -642,19 +641,11 @@ export class TrusteeService {
       school_id.includes(id),
     );
 
-    let count = 0;
     if (commonSchoolIds.length > 0) {
-      const filteredSchoolId = school_id.filter(
-        (id) => !commonSchoolIds.includes(id),
-      );
-      console.log(filteredSchoolId, 'filter');
+      console.log(commonSchoolIds, 'filter');
 
-      if (filteredSchoolId.length === 0) {
-        throw new Error('You already rise request for these schools');
-      }
-
-      return "Request already exists for some selected Schools";
-    }else{
+      throw new Error('You already rise request for these schools');
+    } else {
       mdr = await this.requestMDRModel.create({
         trustee_id,
         school_id,
@@ -663,7 +654,7 @@ export class TrusteeService {
         comment,
       });
 
-      return {message:'New MDR request created'};
+      return 'New MDR request created';
     }
   }
 
@@ -813,50 +804,44 @@ export class TrusteeService {
 
     return transactionReport;
   }
- 
-  async getSchoolMdrInfo(
-     school_id: string,
-    trustee_id:ObjectId,
-  ) {
-    const baseMdr = await this.getTrusteeBaseMdr(
-      trustee_id.toString(),
-    );
-    const schoolMdr:any = await this.getSchoolMdr(school_id);
-   
-    const info:any=await this.mapMdrData(baseMdr,schoolMdr)    
-    let updated_at=null
+
+  async getSchoolMdrInfo(school_id: string, trustee_id: ObjectId) {
+    const baseMdr = await this.getTrusteeBaseMdr(trustee_id.toString());
+    const schoolMdr: any = await this.getSchoolMdr(school_id);
+
+    const info: any = await this.mapMdrData(baseMdr, schoolMdr);
+    let updated_at = null;
     if (schoolMdr) {
-     
-       updated_at = schoolMdr?.updatedAt;
+      updated_at = schoolMdr?.updatedAt;
     }
-   
-    
-    return {info,updated_at};
+
+    return { info, updated_at };
   }
 
-  async mapMdrData(baseMdr:any, schoolMdr:any) {
+  async mapMdrData(baseMdr: any, schoolMdr: any) {
     const mappedData = [];
-  
+
     // Iterate over each platform type in baseMdr
     for (const basePlatform of baseMdr.platform_charges) {
       const schoolPlatform = schoolMdr?.mdr2.find(
-        (schoolPlatform) => schoolPlatform.platform_type === basePlatform.platform_type
+        (schoolPlatform) =>
+          schoolPlatform.platform_type === basePlatform.platform_type,
       );
-   
+
       if (schoolPlatform) {
         // Create a new mapped object combining data from baseMdr and schoolMdr
         const mappedObject = {
           platform_type: basePlatform.platform_type,
-          payment_mode: basePlatform.payment_mode, 
-          range_charge: []
+          payment_mode: basePlatform.payment_mode,
+          range_charge: [],
         };
-  
+
         // Iterate over each range charge in the baseMdr platform
         basePlatform.range_charge.forEach((baseCharge) => {
           const schoolCharge = schoolPlatform.range_charge.find(
-            (schoolCharge) => schoolCharge.upto === baseCharge.upto
+            (schoolCharge) => schoolCharge.upto === baseCharge.upto,
           );
-  
+
           if (schoolCharge) {
             // Create a combined charge object
             const commission = schoolCharge.charge - baseCharge.charge;
@@ -865,20 +850,19 @@ export class TrusteeService {
               charge_type: baseCharge.charge_type,
               base_charge: baseCharge.charge,
               charge: schoolCharge.charge,
-              commission: commission
+              commission: commission,
             };
-  
+
             // Push the combined charge object to range_charge array in mappedObject
             mappedObject.range_charge.push(combinedCharge);
           }
         });
-  
+
         // Push the mappedObject to the final mappedData array
         mappedData.push(mappedObject);
       }
     }
-  
+
     return mappedData;
   }
-
 }
