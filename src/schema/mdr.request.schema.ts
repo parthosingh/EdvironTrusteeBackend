@@ -33,7 +33,7 @@ export class RequestMDR{
   status:mdr_status
 
   @Prop()
-  @Field(()=>String)
+  @Field(()=>String,  {nullable:true})
   comment:string
 
   @Prop()
@@ -41,6 +41,12 @@ export class RequestMDR{
   description :string
 
   _id: ObjectId;
+
+  @Field(() => Date)
+  createdAt: Date;
+
+  @Field(() => Date)
+  updatedAt: Date;
 
 
 }

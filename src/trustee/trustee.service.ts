@@ -612,7 +612,7 @@ export class TrusteeService {
     trustee_id: ObjectId,
     school_id: string[],
     platform_chargers: PlatformCharge[],
-    comment: string,
+    description: string,
   ) {
     //find latest request of trustee
     let mdr = await this.requestMDRModel
@@ -630,7 +630,7 @@ export class TrusteeService {
         school_id,
         platform_charges: platform_chargers,
         status: mdr_status.INITIATED,
-        comment,
+        description,
       });
 
       return 'New MDR created';
@@ -651,7 +651,7 @@ export class TrusteeService {
         school_id,
         platform_charges: platform_chargers,
         status: mdr_status.INITIATED,
-        comment,
+        description,
       });
 
       return 'New MDR request created';
