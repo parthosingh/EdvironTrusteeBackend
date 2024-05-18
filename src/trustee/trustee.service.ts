@@ -121,7 +121,9 @@ export class TrusteeService {
       });
 
       const trustee = await this.trusteeModel.findById(decodedPayload.id);
-      const baseMdr = await this.baseMdrModel.findOne({trustee_id:trustee._id})
+      const baseMdr = await this.baseMdrModel.findOne({
+        trustee_id: trustee._id,
+      });
       if (trustee) {
         const userTrustee = {
           id: trustee._id,
@@ -132,7 +134,7 @@ export class TrusteeService {
           role: 'owner' || null,
           trustee_id: trustee._id,
           brand_name: trustee.brand_name || null,
-          base_mdr:baseMdr
+          base_mdr: baseMdr,
         };
         return userTrustee;
       }
@@ -704,7 +706,18 @@ export class TrusteeService {
 
   async getTrusteeMdrRequest(trustee_id: string) {
     const trusteeId = new Types.ObjectId(trustee_id);
-    return await this.requestMDRModel.find({ trustee_id: trusteeId });
+    const baseMdr = await this.baseMdrModel.findOne({ trustee_id: trusteeId });
+    const mdrReqs = await this.requestMDRModel.find({ trustee_id: trusteeId });
+    // return await this.requestMDRModel.find({ trustee_id: trusteeId });
+
+    const mappedData = await Promise.all(
+      mdrReqs.map(async (mdrReq) => {
+        return await this.mapMdrReqData(baseMdr, mdrReq);
+      }),
+    );
+    console.log(mappedData);
+
+    return mappedData;
   }
 
   async getTrusteeBaseMdr(trustee_id: string) {
@@ -857,6 +870,64 @@ export class TrusteeService {
 
             // Push the combined charge object to range_charge array in mappedObject
             mappedObject.range_charge.push(combinedCharge);
+          }
+        });
+
+        // Push the mappedObject to the final mappedData array
+        mappedData.push(mappedObject);
+      }
+    }
+
+    return mappedData;
+  }
+
+  async mapMdrReqData(baseMdr: any, reqMdr: any) {
+    const mappedData = [];
+
+    // Iterate over each platform type in baseMdr
+    for (const basePlatform of baseMdr.platform_charges) {
+      const schoolMdrReq = reqMdr?.platform_charges.find(
+        (schoolMdrReq) =>
+          schoolMdrReq.platform_type === basePlatform.platform_type,
+      );
+
+      if (schoolMdrReq) {
+        // Create a new mapped object combining data from baseMdr and reqMdr
+        const mappedObject = {
+          platform_charges: {
+            platform_type: basePlatform.platform_type,
+            payment_mode: basePlatform.payment_mode,
+            range_charge: [],
+          },
+          school_id:[],
+          trustee_id:reqMdr.trustee_id,
+          status: reqMdr.status,
+          comment: reqMdr?.comment,
+          description: reqMdr?.description,
+          createdAt: reqMdr.createdAt,
+          updatedAt: reqMdr.updatedAt
+        };
+
+        // Iterate over each range charge in the baseMdr platform
+        basePlatform.range_charge.forEach((baseCharge) => {
+          const schoolCharge = schoolMdrReq.range_charge.find(
+            (schoolCharge) => schoolCharge.upto === baseCharge.upto,
+          );
+
+          if (schoolCharge) {
+            // Create a combined charge object
+            const commission = schoolCharge.charge - baseCharge.charge;
+            const combinedCharge = {
+              upto: baseCharge.upto,
+              charge_type: baseCharge.charge_type,
+              base_charge: baseCharge.charge,
+              charge: schoolCharge.charge,
+              commission: commission,
+            };
+
+            // Push the combined charge object to platform_charges array in mappedObject
+            mappedObject.platform_charges.range_charge.push(combinedCharge);
+            mappedObject.school_id.push(...reqMdr.school_id)
           }
         });
 
