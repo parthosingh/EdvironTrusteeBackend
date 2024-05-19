@@ -267,15 +267,15 @@ export class MainBackendController {
   }
 
   @Get('get-base-mdr')
-  async trusteeBaseMdr(@Body() token:string){
+  async trusteeBaseMdr(@Body() token: string) {
     const data = this.jwtService.verify(token, {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
-    const mdr= await this.trusteeService.getTrusteeBaseMdr(data.trusteeId)
-    const mdrToken=this.jwtService.sign(mdr, {
+    const mdr = await this.trusteeService.getTrusteeBaseMdr(data.trusteeId);
+    const mdrToken = this.jwtService.sign(mdr, {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
-    return mdrToken
+    return mdrToken;
   }
 
   @Post('reject-mdr')
@@ -285,7 +285,10 @@ export class MainBackendController {
   }
 
   @Post('save-base-mdr')
-  async savebaseMdr(@Body() body:any){
-    return await this.trusteeService.saveBulkMdr(body.trustee_id,body.base_mdr)
+  async savebaseMdr(@Body() body: any) {
+    return await this.trusteeService.saveBulkMdr(
+      body.trustee_id,
+      body.base_mdr,
+    );
   }
 }

@@ -21,8 +21,10 @@ import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
     ]),
-    MongooseModule.forFeature([{ name: RequestMDR.name, schema: RequestMDRSchema }]),
-    MongooseModule.forFeature([{ name:  BaseMdr.name, schema: BaseMdrSchema }]),
+    MongooseModule.forFeature([
+      { name: RequestMDR.name, schema: RequestMDRSchema },
+    ]),
+    MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
     MongooseModule.forFeature([
       { name: SchoolMdr.name, schema: SchoolMdrSchema },
     ]),

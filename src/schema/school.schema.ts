@@ -23,10 +23,9 @@ export class rangeCharge {
 export class PlatformCharge {
   @Field(() => String)
   platform_type: string;
-  
+
   @Field(() => String)
   payment_mode: string;
-
 
   @Field(() => [rangeCharge], { defaultValue: [] })
   range_charge: rangeCharge[];

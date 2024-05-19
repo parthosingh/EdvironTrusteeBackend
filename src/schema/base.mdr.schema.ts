@@ -1,14 +1,14 @@
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
-import { PlatformCharge,rangeCharge } from './school.schema';
+import { PlatformCharge, rangeCharge } from './school.schema';
 
 @ObjectType()
-@Schema({timestamps:true})
-export class BaseMdr{
+@Schema({ timestamps: true })
+export class BaseMdr {
   @Prop()
   @Field(() => [PlatformCharge], { defaultValue: [] })
-  platform_charges: PlatformCharge[];  
+  platform_charges: PlatformCharge[];
 
   @Prop({ type: Types.ObjectId })
   @Field(() => ID)
@@ -19,8 +19,8 @@ export class BaseMdr{
   trustee_id: ObjectId;
 
   @Prop()
-  @Field(()=>String)
-  comment:string
+  @Field(() => String)
+  comment: string;
 }
 
 export const BaseMdrSchema = SchemaFactory.createForClass(BaseMdr);

@@ -3,22 +3,19 @@ import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 import { PlatformCharge } from './school.schema';
 
-
-export enum mdr_status{
-    INITIATED='INITIATED',
-    PROCESSING='UNDER REVIEW',
-    APPROVED='APPROVED',
-    REJECTED='REJECTED'
+export enum mdr_status {
+  INITIATED = 'INITIATED',
+  PROCESSING = 'UNDER REVIEW',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
 }
 
-
-
 @ObjectType()
-@Schema({timestamps:true})
-export class RequestMDR{
+@Schema({ timestamps: true })
+export class RequestMDR {
   @Prop()
   @Field(() => [PlatformCharge], { defaultValue: [] })
-  platform_charges: PlatformCharge[];  
+  platform_charges: PlatformCharge[];
 
   @Prop()
   @Field(() => [String])
@@ -29,16 +26,16 @@ export class RequestMDR{
   trustee_id: ObjectId;
 
   @Prop()
-  @Field(()=>String,{defaultValue:mdr_status.INITIATED})
-  status:mdr_status
+  @Field(() => String, { defaultValue: mdr_status.INITIATED })
+  status: mdr_status;
 
   @Prop()
-  @Field(()=>String,  {nullable:true})
-  comment:string
+  @Field(() => String, { nullable: true })
+  comment: string;
 
   @Prop()
-  @Field(()=>String, {nullable:true})
-  description :string
+  @Field(() => String, { nullable: true })
+  description: string;
 
   _id: ObjectId;
 
@@ -47,8 +44,6 @@ export class RequestMDR{
 
   @Field(() => Date)
   updatedAt: Date;
-
-
 }
 
 export const RequestMDRSchema = SchemaFactory.createForClass(RequestMDR);

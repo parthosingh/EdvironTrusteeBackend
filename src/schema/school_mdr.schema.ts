@@ -3,7 +3,6 @@ import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 import { PlatformCharge, charge_type, rangeCharge } from './school.schema';
 
-
 @ObjectType()
 @Schema({ timestamps: true })
 export class SchoolMdr {
