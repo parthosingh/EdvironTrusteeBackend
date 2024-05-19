@@ -710,12 +710,13 @@ export class TrusteeService {
     const mdrReqs = await this.requestMDRModel.find({ trustee_id: trusteeId });
     // return await this.requestMDRModel.find({ trustee_id: trusteeId });
 
-    const mappedData = await Promise.all(
-      mdrReqs.map(async (mdrReq) => {
-        return await this.mapMdrReqData(baseMdr, mdrReq);
-      }),
-    );
-    console.log(mappedData);
+    const mappedData = (
+      await Promise.all(
+        mdrReqs.map(async (mdrReq) => {
+          return await this.mapMdrReqData(baseMdr, mdrReq);
+        }),
+      )
+    ).flat();
 
     return mappedData;
   }
@@ -835,7 +836,6 @@ export class TrusteeService {
 
   async mapMdrData(baseMdr: any, schoolMdr: any) {
     const mappedData = [];
-
     // Iterate over each platform type in baseMdr
     for (const basePlatform of baseMdr.platform_charges) {
       const schoolPlatform = schoolMdr?.mdr2.find(
@@ -882,7 +882,17 @@ export class TrusteeService {
   }
 
   async mapMdrReqData(baseMdr: any, reqMdr: any) {
-    const mappedData = [];
+    const mappedData = {
+      platform_charges: [],
+      school_id: [],
+      trustee_id: reqMdr.trustee_id,
+      status: reqMdr.status,
+      comment: reqMdr?.comment,
+      description: reqMdr?.description,
+      createdAt: reqMdr.createdAt,
+      updatedAt: reqMdr.updatedAt,
+      _id: reqMdr._id,
+    };
 
     // Iterate over each platform type in baseMdr
     for (const basePlatform of baseMdr.platform_charges) {
@@ -892,20 +902,10 @@ export class TrusteeService {
       );
 
       if (schoolMdrReq) {
-        // Create a new mapped object combining data from baseMdr and reqMdr
-        const mappedObject = {
-          platform_charges: {
-            platform_type: basePlatform.platform_type,
-            payment_mode: basePlatform.payment_mode,
-            range_charge: [],
-          },
-          school_id:[],
-          trustee_id:reqMdr.trustee_id,
-          status: reqMdr.status,
-          comment: reqMdr?.comment,
-          description: reqMdr?.description,
-          createdAt: reqMdr.createdAt,
-          updatedAt: reqMdr.updatedAt
+        const platformCharge = {
+          platform_type: basePlatform.platform_type,
+          payment_mode: basePlatform.payment_mode,
+          range_charge: [],
         };
 
         // Iterate over each range charge in the baseMdr platform
@@ -925,14 +925,16 @@ export class TrusteeService {
               commission: commission,
             };
 
-            // Push the combined charge object to platform_charges array in mappedObject
-            mappedObject.platform_charges.range_charge.push(combinedCharge);
-            mappedObject.school_id.push(...reqMdr.school_id)
+            // Push the combined charge object to the range_charge array in platformCharge
+            platformCharge.range_charge.push(combinedCharge);
           }
         });
 
-        // Push the mappedObject to the final mappedData array
-        mappedData.push(mappedObject);
+        // Push the platformCharge object to platform_charges array in mappedData
+        mappedData.platform_charges.push(platformCharge);
+
+        // Aggregate school_ids
+        mappedData.school_id.push(...reqMdr.school_id);
       }
     }
 
