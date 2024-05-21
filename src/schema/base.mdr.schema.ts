@@ -10,16 +10,16 @@ export class BaseMdr {
   @Field(() => [PlatformCharge], { defaultValue: [] })
   platform_charges: PlatformCharge[];
 
-  @Prop({ type: Types.ObjectId })
-  @Field(() => ID)
-  school_id: ObjectId;
+  // @Prop({ type: Types.ObjectId })
+  // @Field(() => ID)
+  // school_id: ObjectId;
 
   @Prop({ type: Types.ObjectId })
   @Field(() => ID)
   trustee_id: ObjectId;
 
   @Prop()
-  @Field(() => String)
+  @Field(() => String,{nullable:true})
   comment: string;
 }
 

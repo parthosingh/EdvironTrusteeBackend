@@ -1049,7 +1049,8 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Query(() => [TrusteeMDRResponse])
-  async getTrusteeMDRRequest(@Args('trustee_id') trustee_id: string) {
+  async getTrusteeMDRRequest(@Context() context,) {
+    const trustee_id = context.req.trustee;
     return await this.trusteeService.getTrusteeMdrRequest(trustee_id);
   }
 }

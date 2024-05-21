@@ -707,7 +707,10 @@ export class TrusteeService {
   async getTrusteeMdrRequest(trustee_id: string) {
     const trusteeId = new Types.ObjectId(trustee_id);
     const baseMdr = await this.baseMdrModel.findOne({ trustee_id: trusteeId });
+    if(!baseMdr) throw new NotFoundException("Base MDR not set for Trustee");
     const mdrReqs = await this.requestMDRModel.find({ trustee_id: trusteeId });
+    console.log(mdrReqs.length);
+    
     // return await this.requestMDRModel.find({ trustee_id: trusteeId });
 
     const mappedData = (
@@ -933,10 +936,12 @@ export class TrusteeService {
         // Push the platformCharge object to platform_charges array in mappedData
         mappedData.platform_charges.push(platformCharge);
 
-        // Aggregate school_ids
-        mappedData.school_id.push(...reqMdr.school_id);
+       
       }
     }
+
+     // Aggregate school_ids
+     mappedData.school_id.push(...reqMdr.school_id);
 
     return mappedData;
   }
