@@ -557,6 +557,8 @@ export class TrusteeResolver {
       password_hash: password,
     }).save();
 
+    await this.trusteeService.sendMemberCredentialsMail(email, password);
+
     return `Member created Successfully`;
   }
   @UseGuards(TrusteeGuard)

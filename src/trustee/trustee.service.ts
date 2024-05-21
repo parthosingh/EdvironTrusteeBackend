@@ -342,6 +342,39 @@ export class TrusteeService {
     }
   }
 
+  async sendMemberCredentialsMail(email, password) {
+    try {
+      const __dirname = path.resolve();
+      const filePath = path.join(
+        __dirname,
+        'src/trustee/member-credentials-template.html',
+      );
+      const source = fs.readFileSync(filePath, 'utf-8').toString();
+      const template = handlebars.compile(source);
+
+      const replacements = {
+        email: email,
+        password: password,
+      };
+
+      const htmlToSend = template(replacements);
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Login Credentials',
+        html: htmlToSend,
+      };
+
+      await this.sendMails(email, mailOptions);
+      return true;
+    } catch (error) {
+      console.log(error);
+
+      throw new BadRequestException(error.message);
+    }
+  }
+
   async resetPassword(email, password) {
     try {
       const trustee = await this.trusteeModel.findOne({ email_id: email });
