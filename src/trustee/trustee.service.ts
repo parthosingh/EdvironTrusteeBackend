@@ -355,6 +355,7 @@ export class TrusteeService {
       const replacements = {
         email: email,
         password: password,
+        url:"https://partner.edviron.com/login"
       };
 
       const htmlToSend = template(replacements);
