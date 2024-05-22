@@ -619,6 +619,30 @@ export class TrusteeService {
     description: string,
   ) {
     try {
+      // Ensure there are no duplicate school IDs in the school_id array
+      const uniqueSchoolIds = new Set(school_id);
+      if (uniqueSchoolIds.size !== school_id.length) {
+        throw new Error('Duplicate school IDs found in school_id array');
+      }
+
+      const trusteeSchools = await this.trusteeSchoolModel.find(
+        { trustee_id },
+        { _id: 1 },
+      );
+
+      const trusteeSchoolIds = trusteeSchools.map((school) =>
+        school._id.toString(),
+      );
+
+      // Ensure all school IDs in school_id array are associated with the trustee
+      const invalidSchools = school_id.filter(
+        (id) => !trusteeSchoolIds.includes(id),
+      );
+      if (invalidSchools.length > 0) {
+        // throw new NotFoundException('School not found');
+        throw new Error(`Invalid school IDs: ${invalidSchools.join(', ')}`);
+      }
+
       //find latest request of trustee
       let mdr = await this.requestMDRModel
         .findOne({ trustee_id })
@@ -633,7 +657,7 @@ export class TrusteeService {
         if (result !== null) commonSchoolIds.push(result);
       }
       if (commonSchoolIds.length > 0) {
-        throw new Error('You already rise request for these schools');
+        throw new Error('Request already raised for some selected schools');
       }
 
       const baseMdr = await this.baseMdrModel.findOne({
@@ -993,7 +1017,7 @@ export class TrusteeService {
         const upperBound = getUpperBound(range);
         if (seenUptoValues.has(upperBound)) {
           throw new ConflictException(
-            `Duplicate 'upto' value (${upperBound}) found in new ranges for key: ${key}`,
+            `Duplicate 'upto' value (${upperBound}) found in new ranges for : ${key}`,
           );
         }
         seenUptoValues.add(upperBound);
@@ -1006,7 +1030,7 @@ export class TrusteeService {
 
       // If no corresponding new ranges are found, throws error
       if (!newRanges) {
-        throw new NotFoundException(`No new ranges found for key: ${key}`);
+        throw new NotFoundException(`No new ranges found for : ${key}`);
       }
 
       // Check if every 'upto' value in base ranges is covered by the new ranges
@@ -1018,7 +1042,7 @@ export class TrusteeService {
           throw new ConflictException(
             `Upto value ${getUpperBound(
               baseRange,
-            )} in base range not covered by new ranges for key: ${key}`,
+            )} in base range not covered by new ranges for : ${key}`,
           );
         }
       }
