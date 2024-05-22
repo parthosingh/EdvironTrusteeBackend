@@ -961,11 +961,14 @@ export class TrusteeResolver {
     request_id: string,
     platform_chargers: PlatformCharge[],
     description: string,
+    @Context() context,
   ) {
+    const trustee_id = context.req.trustee;
     return await this.trusteeService.updateMdrRequest(
       request_id,
       platform_chargers,
       description,
+      trustee_id,
     );
   }
 
@@ -1049,7 +1052,7 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Query(() => [TrusteeMDRResponse])
-  async getTrusteeMDRRequest(@Context() context,) {
+  async getTrusteeMDRRequest(@Context() context) {
     const trustee_id = context.req.trustee;
     return await this.trusteeService.getTrusteeMdrRequest(trustee_id);
   }

@@ -19,7 +19,7 @@ export class BaseMdr {
   trustee_id: ObjectId;
 
   @Prop()
-  @Field(() => String,{nullable:true})
+  @Field(() => String, { nullable: true })
   comment: string;
 }
 

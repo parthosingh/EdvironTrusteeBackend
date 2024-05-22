@@ -618,38 +618,55 @@ export class TrusteeService {
     platform_chargers: PlatformCharge[],
     description: string,
   ) {
-    //find latest request of trustee
-    let mdr = await this.requestMDRModel
-      .findOne({ trustee_id })
-      .sort({ createdAt: -1 });
+    try {
+      //find latest request of trustee
+      let mdr = await this.requestMDRModel
+        .findOne({ trustee_id })
+        .sort({ createdAt: -1 });
 
-    if (
-      !mdr &&
-      ![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr?.status)
-    ) {
-      console.log('not found old');
+      // case : if request is alredy present then trustee can rise a new request for other school
+      const commonSchoolIds = [];
+      for (const id of school_id) {
+        const result = await this.requestMDRModel.findOne({
+          school_id: { $in: [id] },
+        });
+        if (result !== null) commonSchoolIds.push(result);
+      }
+      if (commonSchoolIds.length > 0) {
+        throw new Error('You already rise request for these schools');
+      }
 
-      mdr = await this.requestMDRModel.create({
-        trustee_id,
-        school_id,
-        platform_charges: platform_chargers,
-        status: mdr_status.INITIATED,
-        description,
+      const baseMdr = await this.baseMdrModel.findOne({
+        trustee_id: trustee_id,
       });
+      if (!baseMdr)
+        throw new NotFoundException('Base rate not set for trustee');
 
-      return 'New MDR created';
-    }
-    // case : if request is alredy present then trustee can rise a new request for other school
-    const existingSchoolIds = mdr.school_id;
-    let commonSchoolIds = existingSchoolIds.filter((id) =>
-      school_id.includes(id),
-    );
+      const base_platform_charges = baseMdr?.platform_charges;
 
-    if (commonSchoolIds.length > 0) {
-      console.log(commonSchoolIds, 'filter');
+      // case: if range is not correct as per base rates
+      const verify = this.verifyRanges(
+        base_platform_charges,
+        platform_chargers,
+      );
 
-      throw new Error('You already rise request for these schools');
-    } else {
+      if (
+        !mdr &&
+        ![mdr_status.REJECTED, mdr_status.APPROVED].includes(mdr?.status)
+      ) {
+        console.log('not found old');
+
+        mdr = await this.requestMDRModel.create({
+          trustee_id,
+          school_id,
+          platform_charges: platform_chargers,
+          status: mdr_status.INITIATED,
+          description,
+        });
+
+        return 'New MDR created';
+      }
+
       mdr = await this.requestMDRModel.create({
         trustee_id,
         school_id,
@@ -659,6 +676,9 @@ export class TrusteeService {
       });
 
       return 'New MDR request created';
+    } catch (error) {
+      if (error?.response) throw new Error(error?.response.message);
+      throw new Error(error.message);
     }
   }
 
@@ -666,18 +686,30 @@ export class TrusteeService {
     request_id: string,
     platform_chargers: PlatformCharge[],
     comment: string,
+    trustee_id: ObjectId,
   ) {
-    const mdr = await this.requestMDRModel.findById(request_id);
-    if (mdr.status !== mdr_status.INITIATED) {
-      throw new ConflictException('You cannot edir request after review');
+    try {
+      const mdr = await this.requestMDRModel.findById(request_id);
+      if (mdr.status !== mdr_status.INITIATED) {
+        throw new ConflictException('You cannot edit request after review');
+      }
+
+      const baseMdr = await this.baseMdrModel.findOne({
+        trustee_id: trustee_id,
+      });
+      this.verifyRanges(baseMdr.platform_charges, platform_chargers);
+
+      await this.requestMDRModel.findByIdAndUpdate(
+        { request_id },
+        {
+          $set: { platform_charges: platform_chargers, comment: comment },
+        },
+      );
+      return `MDR Request Updated`;
+    } catch (error) {
+      if (error?.response) throw new Error(error?.response.message);
+      throw new Error(error.message);
     }
-    await this.requestMDRModel.findByIdAndUpdate(
-      { request_id },
-      {
-        $set: { platform_charges: platform_chargers, comment: comment },
-      },
-    );
-    return `MDR Request Updated`;
   }
 
   async saveBulkMdr(trustee_id: string, platform_charges: PlatformCharge[]) {
@@ -707,10 +739,10 @@ export class TrusteeService {
   async getTrusteeMdrRequest(trustee_id: string) {
     const trusteeId = new Types.ObjectId(trustee_id);
     const baseMdr = await this.baseMdrModel.findOne({ trustee_id: trusteeId });
-    if(!baseMdr) throw new NotFoundException("Base MDR not set for Trustee");
+    if (!baseMdr) throw new NotFoundException('Base MDR not set for Trustee');
     const mdrReqs = await this.requestMDRModel.find({ trustee_id: trusteeId });
     console.log(mdrReqs.length);
-    
+
     // return await this.requestMDRModel.find({ trustee_id: trusteeId });
 
     const mappedData = (
@@ -935,14 +967,76 @@ export class TrusteeService {
 
         // Push the platformCharge object to platform_charges array in mappedData
         mappedData.platform_charges.push(platformCharge);
-
-       
       }
     }
 
-     // Aggregate school_ids
-     mappedData.school_id.push(...reqMdr.school_id);
+    // Aggregate school_ids
+    mappedData.school_id.push(...reqMdr.school_id);
 
     return mappedData;
+  }
+
+  verifyRanges(
+    basePlatformCharges: PlatformCharge[],
+    newPlatformCharges: PlatformCharge[],
+  ): boolean {
+    const getUpperBound = (range: rangeCharge): number =>
+      range.upto === null ? Infinity : range.upto;
+
+    const newMap: { [key: string]: rangeCharge[] } = {};
+    for (const newPlatformCharge of newPlatformCharges) {
+      const key = `${newPlatformCharge.platform_type}-${newPlatformCharge.payment_mode}`;
+      newMap[key] = newPlatformCharge.range_charge;
+      // Track 'upto' values to check for duplicates
+      const seenUptoValues: Set<number> = new Set();
+      for (const range of newPlatformCharge.range_charge) {
+        const upperBound = getUpperBound(range);
+        if (seenUptoValues.has(upperBound)) {
+          throw new ConflictException(
+            `Duplicate 'upto' value (${upperBound}) found in new ranges for key: ${key}`,
+          );
+        }
+        seenUptoValues.add(upperBound);
+      }
+    }
+
+    for (const basePlatformCharge of basePlatformCharges) {
+      const key = `${basePlatformCharge.platform_type}-${basePlatformCharge.payment_mode}`;
+      const newRanges = newMap[key];
+
+      // If no corresponding new ranges are found, throws error
+      if (!newRanges) {
+        throw new NotFoundException(`No new ranges found for key: ${key}`);
+      }
+
+      // Check if every 'upto' value in base ranges is covered by the new ranges
+      const newUptoValues = new Set(
+        newRanges.map((range) => getUpperBound(range)),
+      );
+      for (const baseRange of basePlatformCharge.range_charge) {
+        if (!newUptoValues.has(getUpperBound(baseRange))) {
+          throw new ConflictException(
+            `Upto value ${getUpperBound(
+              baseRange,
+            )} in base range not covered by new ranges for key: ${key}`,
+          );
+        }
+      }
+
+      // Check for overlaps within the new ranges themselves
+      // const sortedNewRanges = newRanges.sort((a, b) => (getUpperBound(a) - getUpperBound(b)));
+      // for (let i = 1; i < sortedNewRanges.length; i++) {
+      //   const prevRange = sortedNewRanges[i - 1];
+      //   const currRange = sortedNewRanges[i];
+      //   const prevUpper = getUpperBound(prevRange);
+      //   const currLower = currRange.upto === null ? Infinity : currRange.upto;
+
+      //   if (prevUpper > currLower) {
+      //     throw new ConflictException(`Overlap found: ${prevUpper} (previous upper) > ${currLower} (current lower) for key: ${key}`);
+      //   }
+      // }
+    }
+
+    return true;
   }
 }
