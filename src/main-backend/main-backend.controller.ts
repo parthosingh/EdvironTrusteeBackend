@@ -261,34 +261,52 @@ export class MainBackendController {
     }
   }
 
-  @Get('getTrusteeMDRRequest')
-  async getTrusteeMDRRequest(@Query('trustee_id') trustee_id: string) {
-    return await this.trusteeService.getTrusteeMdrRequest(trustee_id);
+  @Get('get-trustee-mdr-request')
+  async getTrusteeMDRRequest(@Query('token') token: string) {
+    
+   try {
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    console.log(data);
+
+    return await this.trusteeService.getTrusteeMdrRequest(data.trusteeId);
+   } catch (error) {
+    throw error
+   }
   }
 
   @Get('get-base-mdr')
-  async trusteeBaseMdr(@Body() token: string) {
+  async trusteeBaseMdr(@Query('token') token: string) {
     const data = this.jwtService.verify(token, {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
     const mdr = await this.trusteeService.getTrusteeBaseMdr(data.trusteeId);
-    const mdrToken = this.jwtService.sign(mdr, {
+    
+    const mdrToken = this.jwtService.sign({mdr}, {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
     return mdrToken;
   }
 
   @Post('reject-mdr')
-  async rejectMdr(@Body() body: { id: string; comment: string }) {
-    await this.trusteeService.rejectMdr(body.id, body.comment);
+  async rejectMdr(@Body('data') token: string) {
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    await this.trusteeService.rejectMdr(data.id, data.comment);
     return `MDR status Update`;
   }
 
   @Post('save-base-mdr')
-  async savebaseMdr(@Body() body: any) {
+  async savebaseMdr(@Body('data') token: string) {
+    
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
     return await this.trusteeService.saveBulkMdr(
-      body.trustee_id,
-      body.base_mdr,
+      data.base_mdr.trustee_id,
+      data.base_mdr.platform_charges,
     );
   }
 }

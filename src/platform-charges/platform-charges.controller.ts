@@ -354,8 +354,11 @@ export class PlatformChargesController {
       const body = this.jwtService.verify(token.token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
-      const { trusteeSchoolIds, trustee_id, mdr_request_id } = body;
+      const { mdr_request_id } = body;
+      const mdrReq = await this.mdrRequestModel.findById(mdr_request_id);
+      if (!mdrReq) throw new NotFoundException('MDR Request not found');
 
+      const trusteeSchoolIds = mdrReq?.school_id;
       if (!trusteeSchoolIds)
         throw new BadRequestException('Trustee school ID Required');
       if (!mdr_request_id)
