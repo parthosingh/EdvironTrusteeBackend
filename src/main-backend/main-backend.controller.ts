@@ -17,6 +17,8 @@ import mongoose, { Types } from 'mongoose';
 import { TrusteeService } from '../trustee/trustee.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { RequestMDR } from 'src/schema/mdr.request.schema';
+import { SchoolMdrInfo } from 'src/trustee/trustee.resolver';
+import { TrusteeSchool } from 'src/schema/school.schema';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -28,6 +30,8 @@ export class MainBackendController {
     private readonly trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(RequestMDR.name)
     private requestMDRModel: mongoose.Model<RequestMDR>,
+    @InjectModel(TrusteeSchool.name)
+    private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
   ) {}
 
   @Post('create-trustee')
@@ -308,5 +312,26 @@ export class MainBackendController {
       data.base_mdr.trustee_id,
       data.base_mdr.platform_charges,
     );
+  }
+
+  @Get('get-school-mdr')
+  async schoolMdr(@Query('token') token: string) {
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+
+    let school: SchoolMdrInfo = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(data?.schoolId),
+    });
+
+    const mdr = await this.trusteeService.getSchoolMdrInfo(data.schoolId,data.trusteeId);
+    school.platform_charges = mdr.info;
+    const date = new Date(mdr.updated_at);
+    school.requestUpdatedAt = date;
+    
+    const mdrToken = this.jwtService.sign({school}, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    return mdrToken;
   }
 }

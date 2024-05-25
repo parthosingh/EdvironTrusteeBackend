@@ -1202,7 +1202,7 @@ class School {
 }
 
 @ObjectType()
-class SchoolMdrInfo {
+export class SchoolMdrInfo {
   @Field()
   school_name: string;
 
