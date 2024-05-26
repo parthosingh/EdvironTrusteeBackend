@@ -627,11 +627,11 @@ export class TrusteeService {
 
       const trusteeSchools = await this.trusteeSchoolModel.find(
         { trustee_id },
-        { _id: 1 },
+        { school_id: 1 },
       );
 
       const trusteeSchoolIds = trusteeSchools.map((school) =>
-        school._id.toString(),
+        school.school_id.toString(),
       );
 
       // Ensure all school IDs in school_id array are associated with the trustee
