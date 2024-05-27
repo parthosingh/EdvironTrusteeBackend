@@ -433,18 +433,21 @@ export class PlatformChargesController {
 
   @Post('save-school-mdr')
   async saveSchoolMdr(@Body('data') token: string) {
-    
-    const data = this.jwtService.verify(token, {
-      secret: process.env.JWT_SECRET_FOR_INTRANET,
-    });
-    const response = await this.platformChargeService.createUpdateSchoolMdr(
-      data.school_id,
-      data.mdr2,
-    );
-    const mdrToken = this.jwtService.sign(response, {
-      secret: process.env.JWT_SECRET_FOR_INTRANET,
-    });
+    try {
+      const data = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      const response = await this.platformChargeService.createUpdateSchoolMdr(
+        data.school_id,
+        data.mdr2,
+      );
+      const mdrToken = this.jwtService.sign(response, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
-    return mdrToken
+      return mdrToken;
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 }

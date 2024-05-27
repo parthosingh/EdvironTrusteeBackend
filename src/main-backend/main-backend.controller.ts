@@ -267,17 +267,14 @@ export class MainBackendController {
 
   @Get('get-trustee-mdr-request')
   async getTrusteeMDRRequest(@Query('token') token: string) {
-    
-   try {
-    const data = this.jwtService.verify(token, {
-      secret: process.env.JWT_SECRET_FOR_INTRANET,
-    });
-    console.log(data);
-
-    return await this.trusteeService.getTrusteeMdrRequest(data.trusteeId);
-   } catch (error) {
-    throw error
-   }
+    try {
+      const data = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      return await this.trusteeService.getTrusteeMdrRequest(data.trusteeId);
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Get('get-base-mdr')
@@ -286,10 +283,13 @@ export class MainBackendController {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
     const mdr = await this.trusteeService.getTrusteeBaseMdr(data.trusteeId);
-    
-    const mdrToken = this.jwtService.sign({mdr}, {
-      secret: process.env.JWT_SECRET_FOR_INTRANET,
-    });
+
+    const mdrToken = this.jwtService.sign(
+      { mdr },
+      {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      },
+    );
     return mdrToken;
   }
 
@@ -304,7 +304,6 @@ export class MainBackendController {
 
   @Post('save-base-mdr')
   async savebaseMdr(@Body('data') token: string) {
-    
     const data = this.jwtService.verify(token, {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
@@ -324,14 +323,20 @@ export class MainBackendController {
       school_id: new Types.ObjectId(data?.schoolId),
     });
 
-    const mdr = await this.trusteeService.getSchoolMdrInfo(data.schoolId,data.trusteeId);
+    const mdr = await this.trusteeService.getSchoolMdrInfo(
+      data.schoolId,
+      data.trusteeId,
+    );
     school.platform_charges = mdr.info;
     const date = new Date(mdr.updated_at);
     school.requestUpdatedAt = date;
-    
-    const mdrToken = this.jwtService.sign({school}, {
-      secret: process.env.JWT_SECRET_FOR_INTRANET,
-    });
+
+    const mdrToken = this.jwtService.sign(
+      { school },
+      {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      },
+    );
     return mdrToken;
   }
 }

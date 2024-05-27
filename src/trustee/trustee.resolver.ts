@@ -939,20 +939,24 @@ export class TrusteeResolver {
     @Args('description', { nullable: true }) description: string,
     @Context() context,
   ) {
-    const trustee_id = context.req.trustee;
-    const role = context.req.role;
-    if (role !== 'owner' && role !== 'admin') {
-      throw new UnauthorizedException(
-        'You are not Authorized to perform this action',
-      );
-    }
+    try {
+      const trustee_id = context.req.trustee;
+      const role = context.req.role;
+      if (role !== 'owner' && role !== 'admin') {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
 
-    return await this.trusteeService.createMdrRequest(
-      trustee_id,
-      school_id,
-      platform_charge,
-      description,
-    );
+      return await this.trusteeService.createMdrRequest(
+        trustee_id,
+        school_id,
+        platform_charge,
+        description,
+      );
+    } catch (error) {
+      throw error;
+    }
   }
 
   @UseGuards(TrusteeGuard)

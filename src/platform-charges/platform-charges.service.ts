@@ -326,8 +326,11 @@ export class PlatformChargeService {
           );
 
         // can only be added if kyc is approved
-        if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
+        if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED') {
+          console.log(trusteeSchool._id);
+
           throw new BadRequestException('KYC not approved');
+        }
 
         const res = await this.schoolMdrModel.findOneAndUpdate(
           {
