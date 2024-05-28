@@ -179,6 +179,7 @@ export class ErpController {
       receipt?: string;
       sendPaymentLink?: boolean;
       additional_data?: {};
+      req_webhook_urls?: [string];
     },
     @Req() req,
   ) {
@@ -195,6 +196,7 @@ export class ErpController {
         student_name,
         student_phone_no,
         receipt,
+        req_webhook_urls,
       } = body;
       if (!school_id) {
         throw new BadRequestException('School id is required');
@@ -245,7 +247,7 @@ export class ErpController {
       const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
       const trustee = await this.trusteeModel.findById(trusteeObjId);
       let webHookUrl = null;
-      if (trustee.webhook_urls.length) {
+      if (trustee.webhook_urls.length || req_webhook_urls.length) {
         webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
       }
 
@@ -283,6 +285,7 @@ export class ErpController {
         disabled_modes: school.disabled_modes,
         platform_charges: school.platform_charges,
         additional_data: additionalInfo || {},
+        req_webhook_urls: req_webhook_urls || null,
       });
       let config = {
         method: 'post',
@@ -722,6 +725,7 @@ export class ErpController {
       const collect_id = decrypted.collect_id;
       const amount = decrypted.amount;
       const status = decrypted.status;
+      const req_webhook_urls = decrypted.req_webhook_urls;
       const trustee = await this.trusteeModel.findById(trustee_id);
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
@@ -730,7 +734,14 @@ export class ErpController {
       const pg_key = school.pg_key;
       // const trusteeId = school.trustee_id;
       // const trustee = await this.trusteeModel.findById(trusteeId);
-      const webHookUrls = trustee.webhook_urls;
+      const trusteeWebHookUrls = trustee.webhook_urls;
+
+      let webHooksUrls: string[] = req_webhook_urls ? [...req_webhook_urls] : [];
+      if (trusteeWebHookUrls.length) {
+        const urls = trusteeWebHookUrls.map(webhook => webhook.url);
+        webHooksUrls.unshift(...urls);
+      }
+      
       if (!trustee) {
         console.log('trustee not found while sending webhook');
         throw new NotFoundException('Trustee not found');
@@ -741,7 +752,7 @@ export class ErpController {
         );
       }
 
-      if (webHookUrls.length) {
+      if (webHooksUrls.length) {
         const token = this.jwtService.sign(
           {
             collect_id,
@@ -766,17 +777,17 @@ export class ErpController {
           },
           data: webHookData,
         };
-        const requests = webHookUrls.map((webhook) => {
-          let url = webhook.url;
+        const requests = webHooksUrls.map((webhook) => {
+          let url = webhook;
           return axios.request({ ...config, url });
         });
         const responses = await Promise.allSettled(requests);
 
         responses.forEach((response, i) => {
           if (response.status === 'fulfilled') {
-            console.log(`webhook sent to ${webHookUrls[i].url} `);
+            console.log(`webhook sent to ${webHooksUrls[i]} `);
           } else {
-            console.log(`webhook failed to ${webHookUrls[i].url} `);
+            console.log(`webhook failed to ${webHooksUrls[i]} `);
           }
         });
       } else {
