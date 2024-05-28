@@ -736,12 +736,14 @@ export class ErpController {
       // const trustee = await this.trusteeModel.findById(trusteeId);
       const trusteeWebHookUrls = trustee.webhook_urls;
 
-      let webHooksUrls: string[] = req_webhook_urls ? [...req_webhook_urls] : [];
+      let webHooksUrls: string[] = req_webhook_urls
+        ? [...req_webhook_urls]
+        : [];
       if (trusteeWebHookUrls.length) {
-        const urls = trusteeWebHookUrls.map(webhook => webhook.url);
+        const urls = trusteeWebHookUrls.map((webhook) => webhook.url);
         webHooksUrls.unshift(...urls);
       }
-      
+
       if (!trustee) {
         console.log('trustee not found while sending webhook');
         throw new NotFoundException('Trustee not found');
