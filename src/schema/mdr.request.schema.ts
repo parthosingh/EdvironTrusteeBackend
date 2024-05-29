@@ -8,6 +8,7 @@ export enum mdr_status {
   PROCESSING = 'UNDER REVIEW',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+  CANCELLED = 'CANCELLED',
 }
 
 @ObjectType()

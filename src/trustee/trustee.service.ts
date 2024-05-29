@@ -707,13 +707,16 @@ export class TrusteeService {
   }
 
   async updateMdrRequest(
-    request_id: string,
+    request_id: ObjectId,
     platform_chargers: PlatformCharge[],
     comment: string,
     trustee_id: ObjectId,
   ) {
     try {
       const mdr = await this.requestMDRModel.findById(request_id);
+      if (mdr.status == mdr_status.CANCELLED) {
+        throw new ConflictException('You cannot edit request after cancelling');
+      }
       if (mdr.status !== mdr_status.INITIATED) {
         throw new ConflictException('You cannot edit request after review');
       }
@@ -723,8 +726,8 @@ export class TrusteeService {
       });
       this.verifyRanges(baseMdr.platform_charges, platform_chargers);
 
-      await this.requestMDRModel.findByIdAndUpdate(
-        { request_id },
+      await this.requestMDRModel.findOneAndUpdate(
+        { _id: request_id },
         {
           $set: { platform_charges: platform_chargers, comment: comment },
         },
@@ -1073,5 +1076,15 @@ export class TrusteeService {
     }
 
     return true;
+  }
+
+  async cancelMdrRequest(trustee: ObjectId, req_id: ObjectId) {
+    const mdrReq = await this.requestMDRModel.findById(req_id);
+    if (mdrReq.trustee_id! == trustee)
+      throw new NotFoundException('Request not found for trustee');
+    const updated = await this.requestMDRModel.findByIdAndUpdate(req_id, {
+      status: mdr_status.CANCELLED,
+    });
+    return 'MDR Request cancelled';
   }
 }

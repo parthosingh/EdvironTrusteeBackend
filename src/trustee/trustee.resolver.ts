@@ -962,15 +962,16 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async updateMdrRequest(
-    request_id: string,
-    platform_chargers: PlatformCharge[],
-    description: string,
+    @Args('req_id', { type: () => ID }) req_id: ObjectId,
+    @Args('platform_charge', { type: () => [PlatformChargesInput] })
+    platform_charge: PlatformChargesInput[],
+    @Args('description') description: string,
     @Context() context,
-  ) {
+  ): Promise<String> {
     const trustee_id = context.req.trustee;
     return await this.trusteeService.updateMdrRequest(
-      request_id,
-      platform_chargers,
+      req_id,
+      platform_charge,
       description,
       trustee_id,
     );
@@ -1059,6 +1060,20 @@ export class TrusteeResolver {
   async getTrusteeMDRRequest(@Context() context) {
     const trustee_id = context.req.trustee;
     return await this.trusteeService.getTrusteeMdrRequest(trustee_id);
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async cancelRequest(
+    @Args('req_id', { type: () => ID }) req_id: ObjectId,
+    @Context() context,
+  ): Promise<string> {
+    const trustee = context.req.trustee;
+    const mdrRequest = await this.trusteeService.cancelMdrRequest(
+      trustee,
+      req_id,
+    );
+    return mdrRequest;
   }
 }
 
