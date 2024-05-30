@@ -19,6 +19,8 @@ import * as fs from 'fs';
 import * as handlebars from 'handlebars';
 import { Cron } from '@nestjs/schedule';
 import { SettlementReport } from '../schema/settlement.schema';
+import { SchoolMdr } from 'src/schema/school_mdr.schema';
+import { BaseMdr } from 'src/schema/base.mdr.schema';
 
 @Injectable()
 export class ErpService {
@@ -30,6 +32,10 @@ export class ErpService {
     private jwtService: JwtService,
     @InjectModel(SettlementReport.name)
     private settlementReportModel: mongoose.Model<SettlementReport>,
+    @InjectModel(SchoolMdr.name)
+    private schoolMdrModel: mongoose.Model<SchoolMdr>,
+    @InjectModel(BaseMdr.name)
+    private baseMdrModel: mongoose.Model<BaseMdr>,
   ) {}
 
   async createApiKey(trusteeId: string): Promise<string> {
@@ -206,6 +212,15 @@ export class ErpService {
         school_name: school.updatedSchool.updates.name,
         trustee_id: trustee,
         email: email,
+      });
+
+      const base_charge = await this.baseMdrModel.findOne({
+        trustee_id: trustee,
+      });
+
+      const mdr = await this.schoolMdrModel.create({
+        school_id: trusteeSchool.school_id,
+        mdr2: base_charge.platform_charges,
       });
 
       return school;

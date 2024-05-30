@@ -7,6 +7,9 @@ import { SchoolSchema } from '../schema/school.schema';
 import { TrusteeSchema } from '../schema/trustee.schema';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { TrusteeMemberSchema } from '../schema/partner.member.schema';
+import { SchoolMdr, SchoolMdrSchema } from '../schema/school_mdr.schema';
+import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
+import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
@@ -16,6 +19,13 @@ import { TrusteeMemberSchema } from '../schema/partner.member.schema';
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: SchoolMdr.name, schema: SchoolMdrSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: RequestMDR.name, schema: RequestMDRSchema },
+    ]),
+    MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_INTRANET,

@@ -16,6 +16,9 @@ import { Trustee } from '../schema/trustee.schema';
 import mongoose, { Types } from 'mongoose';
 import { TrusteeService } from '../trustee/trustee.service';
 import { InjectModel } from '@nestjs/mongoose';
+import { RequestMDR } from 'src/schema/mdr.request.schema';
+import { SchoolMdrInfo } from 'src/trustee/trustee.resolver';
+import { TrusteeSchool } from 'src/schema/school.schema';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -25,6 +28,10 @@ export class MainBackendController {
     private readonly trusteeService: TrusteeService,
     @InjectModel(Trustee.name)
     private readonly trusteeModel: mongoose.Model<Trustee>,
+    @InjectModel(RequestMDR.name)
+    private requestMDRModel: mongoose.Model<RequestMDR>,
+    @InjectModel(TrusteeSchool.name)
+    private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
   ) {}
 
   @Post('create-trustee')
@@ -256,5 +263,80 @@ export class MainBackendController {
     } catch (err) {
       throw new Error(err);
     }
+  }
+
+  @Get('get-trustee-mdr-request')
+  async getTrusteeMDRRequest(@Query('token') token: string) {
+    try {
+      const data = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      return await this.trusteeService.getTrusteeMdrRequest(data.trusteeId);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Get('get-base-mdr')
+  async trusteeBaseMdr(@Query('token') token: string) {
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    const mdr = await this.trusteeService.getTrusteeBaseMdr(data.trusteeId);
+
+    const mdrToken = this.jwtService.sign(
+      { mdr },
+      {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      },
+    );
+    return mdrToken;
+  }
+
+  @Post('reject-mdr')
+  async rejectMdr(@Body('data') token: string) {
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    await this.trusteeService.rejectMdr(data.id, data.comment);
+    return `MDR status Update`;
+  }
+
+  @Post('save-base-mdr')
+  async savebaseMdr(@Body('data') token: string) {
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+    return await this.trusteeService.saveBulkMdr(
+      data.base_mdr.trustee_id,
+      data.base_mdr.platform_charges,
+    );
+  }
+
+  @Get('get-school-mdr')
+  async schoolMdr(@Query('token') token: string) {
+    const data = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+
+    let school: SchoolMdrInfo = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(data?.schoolId),
+    });
+
+    const mdr = await this.trusteeService.getSchoolMdrInfo(
+      data.schoolId,
+      data.trusteeId,
+    );
+    school.platform_charges = mdr.info;
+    const date = new Date(mdr.updated_at);
+    school.requestUpdatedAt = date;
+
+    const mdrToken = this.jwtService.sign(
+      { school },
+      {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      },
+    );
+    return mdrToken;
   }
 }

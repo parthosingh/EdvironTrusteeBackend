@@ -6,6 +6,7 @@ import {
   Int,
   Context,
   InputType,
+  ID,
 } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
 import {
@@ -16,10 +17,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
-import { TrusteeSchool } from '../schema/school.schema';
+import {
+  PlatformCharge,
+  TrusteeSchool,
+  rangeCharge,
+} from '../schema/school.schema';
 import { TrusteeGuard } from './trustee.guard';
 import { ErpService } from '../erp/erp.service';
-import mongoose, { Types } from 'mongoose';
+import mongoose, { ObjectId, Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { SettlementReport } from '../schema/settlement.schema';
@@ -27,6 +32,8 @@ import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
+import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { SchoolMdr } from 'src/schema/school_mdr.schema';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -175,6 +182,7 @@ export class TrusteeResolver {
         phone_number: userTrustee.phone_number,
         trustee_id: userTrustee.trustee_id,
         brand_name: userTrustee.brand_name,
+        base_mdr: userTrustee.base_mdr,
       };
       return user;
     } catch (error) {
@@ -923,6 +931,152 @@ export class TrusteeResolver {
       return false;
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async createMdrRequest(
+    @Args('school_id', { type: () => [String] }) school_id: string[],
+    @Args('platform_charge', { type: () => [PlatformChargesInput] })
+    platform_charge: PlatformChargesInput[],
+    @Args('description', { nullable: true }) description: string,
+    @Context() context,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const role = context.req.role;
+      if (role !== 'owner' && role !== 'admin') {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
+
+      return await this.trusteeService.createMdrRequest(
+        trustee_id,
+        school_id,
+        platform_charge,
+        description,
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async updateMdrRequest(
+    @Args('req_id', { type: () => ID }) req_id: ObjectId,
+    @Args('platform_charge', { type: () => [PlatformChargesInput] })
+    platform_charge: PlatformChargesInput[],
+    @Args('description') description: string,
+    @Context() context,
+  ): Promise<String> {
+    const trustee_id = context.req.trustee;
+    return await this.trusteeService.updateMdrRequest(
+      req_id,
+      platform_charge,
+      description,
+      trustee_id,
+    );
+  }
+
+  @UseGuards(TrusteeGuard)
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async tooglePaymentMode(
+    @Args('mode') mode: string,
+    @Args('school_id') school_id: string,
+  ) {
+    const validModes = [
+      'wallet',
+      'cardless',
+      'netbanking',
+      'pay_later',
+      'upi',
+      'card',
+    ];
+    if (!validModes.includes(mode)) {
+      throw new Error(`Invalid payment mode: ${mode}.`);
+    }
+    return await this.trusteeService.toogleDisable(mode, school_id);
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => BaseMdr)
+  async getTrusteeBaseRates(@Context() context) {
+    const trustee_id = context.req.trustee;
+    const trusteeBaseRates =
+      await this.trusteeService.getTrusteeBaseMdr(trustee_id);
+    return trusteeBaseRates;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [SchoolMdr])
+  async getSchoolMdr(@Context() context) {
+    try {
+      const trustee_id = context.req.trustee;
+
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      const schools = await this.trusteeSchoolModel.find({
+        trustee_id: trustee_id,
+      });
+      let schoolMdrs = [];
+
+      if (schools) {
+        const school_ids = schools.map((school) => school.school_id);
+        school_ids.map(async (school) => {
+          schoolMdrs.push(
+            await this.trusteeService.getSchoolMdr(school.toString()),
+          );
+        });
+      }
+      return schoolMdrs;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  //get school info with base rates and final rates
+  @UseGuards(TrusteeGuard)
+  @Query(() => SchoolMdrInfo)
+  async getSchoolMdrInfo(
+    @Args('school_id') school_id: string,
+    @Context() context,
+  ) {
+    const trustee_id = context.req.trustee;
+    let school: SchoolMdrInfo = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    const mdrInfo = await this.trusteeService.getSchoolMdrInfo(
+      school_id,
+      trustee_id,
+    );
+    school.platform_charges = mdrInfo.info;
+    const date = new Date(mdrInfo.updated_at);
+    school.requestUpdatedAt = date;
+
+    return school;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [TrusteeMDRResponse])
+  async getTrusteeMDRRequest(@Context() context) {
+    const trustee_id = context.req.trustee;
+    return await this.trusteeService.getTrusteeMdrRequest(trustee_id);
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async cancelRequest(
+    @Args('req_id', { type: () => ID }) req_id: ObjectId,
+    @Context() context,
+  ): Promise<string> {
+    const trustee = context.req.trustee;
+    const mdrRequest = await this.trusteeService.cancelMdrRequest(
+      trustee,
+      req_id,
+    );
+    return mdrRequest;
+  }
 }
 
 @ObjectType()
@@ -1028,6 +1182,8 @@ class TrusteeUser {
   trustee_id: string;
   @Field({ nullable: true })
   brand_name: string;
+  @Field({ nullable: true })
+  base_mdr: BaseMdr;
 }
 
 @ObjectType()
@@ -1058,6 +1214,39 @@ class School {
 
   @Field(() => String, { nullable: true })
   merchantStatus: string;
+
+  @Field(() => [String], { nullable: true })
+  disabled_modes: [string];
+
+  @Field(() => [PlatformCharge], { nullable: true })
+  platform_charges: [PlatformCharge];
+}
+
+@ObjectType()
+export class SchoolMdrInfo {
+  @Field()
+  school_name: string;
+
+  @Field()
+  school_id: string;
+
+  @Field(() => String, { nullable: true })
+  pg_key: string;
+
+  @Field(() => String, { nullable: true })
+  email: string;
+
+  @Field(() => String, { nullable: true })
+  merchantStatus: string;
+
+  @Field(() => [String], { nullable: true })
+  disabled_modes: [string];
+
+  @Field(() => [mergeMdrResponse], { nullable: true })
+  platform_charges: [mergeMdrResponse];
+
+  @Field(() => Date, { nullable: true })
+  requestUpdatedAt: Date;
 }
 
 @ObjectType()
@@ -1118,4 +1307,95 @@ export class SchoolInputBulk {
 class TokenResponse {
   @Field()
   token: string;
+}
+
+enum charge_type {
+  FLAT = 'FLAT',
+  PERCENT = 'PERCENT',
+}
+
+@InputType()
+class RangeInput {
+  @Field(() => Number, { nullable: true })
+  upto: number;
+
+  @Field(() => String)
+  charge_type: charge_type;
+
+  @Field(() => Number)
+  charge: number;
+}
+
+@InputType()
+class PlatformChargesInput {
+  @Field(() => String)
+  platform_type: string;
+
+  @Field(() => String)
+  payment_mode: string;
+
+  @Field(() => [RangeInput])
+  range_charge: RangeInput[];
+}
+
+@ObjectType()
+class commisonRange {
+  @Field(() => Number, { nullable: true })
+  upto: number;
+
+  @Field(() => String, { nullable: true })
+  charge_type: charge_type;
+
+  @Field(() => Number, { nullable: true })
+  base_charge: number;
+
+  @Field(() => Number, { nullable: true })
+  commission: number;
+
+  @Field(() => Number, { nullable: true })
+  charge: number;
+}
+
+@ObjectType()
+class mergeMdrResponse {
+  @Field({ nullable: true })
+  platform_type: string;
+  @Field({ nullable: true })
+  payment_mode: string;
+
+  @Field(() => [commisonRange], { nullable: true })
+  range_charge: commisonRange[];
+}
+
+@ObjectType()
+class TrusteeMDRResponse {
+  @Field(() => ID)
+  _id: ObjectId;
+  // @Field({ nullable: true })
+  // trustee_id:string
+  // @Field({ nullable: true })
+  // createdAt:string
+  @Field(() => [mergeMdrResponse], { nullable: true })
+  platform_charges: mergeMdrResponse[];
+
+  @Field(() => [String], { nullable: true })
+  school_id: [string];
+
+  @Field(() => ID)
+  trustee_id: ObjectId;
+
+  @Field({ nullable: true })
+  status: string;
+
+  @Field({ nullable: true })
+  comment: string;
+
+  @Field({ nullable: true })
+  description: string;
+
+  @Field({ nullable: true })
+  updatedAt: string;
+
+  @Field({ nullable: true })
+  createdAt: string;
 }

@@ -6,6 +6,8 @@ import { TrusteeSchema } from '../schema/trustee.schema';
 import { SchoolSchema } from '../schema/school.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { SettlementSchema } from '../schema/settlement.schema';
+import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
+import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 
 @Module({
   imports: [
@@ -21,6 +23,10 @@ import { SettlementSchema } from '../schema/settlement.schema';
     }),
     MongooseModule.forFeature([
       { name: 'SettlementReport', schema: SettlementSchema },
+    ]),
+    MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
+    MongooseModule.forFeature([
+      { name: SchoolMdr.name, schema: SchoolMdrSchema },
     ]),
   ],
   providers: [ErpService],

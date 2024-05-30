@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Post,
   Query,
@@ -11,9 +12,11 @@ import {
 import { PlatformChargeService } from './platform-charges.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { TrusteeSchool } from '../schema/school.schema';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Trustee } from '../schema/trustee.schema';
+import { SchoolMdr } from 'src/schema/school_mdr.schema';
+import { RequestMDR } from 'src/schema/mdr.request.schema';
 
 @Controller('platform-charges')
 export class PlatformChargesController {
@@ -24,6 +27,10 @@ export class PlatformChargesController {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(TrusteeSchool.name)
     private readonly trusteeSchool: mongoose.Model<TrusteeSchool>,
+    @InjectModel(SchoolMdr.name)
+    private readonly schoolMdr: mongoose.Model<SchoolMdr>,
+    @InjectModel(RequestMDR.name)
+    private mdrRequestModel: mongoose.Model<RequestMDR>,
   ) {}
 
   @Post('add-platform-charges')
@@ -100,7 +107,7 @@ export class PlatformChargesController {
       );
 
       const payload = {
-        platform_charges: val.platform_charges,
+        platform_charges: val.mdr2,
       };
 
       const res = this.jwtService.sign(payload, {
@@ -286,6 +293,169 @@ export class PlatformChargesController {
         throw new NotFoundException(err.message);
       }
       throw new Error(err.message);
+    }
+  }
+
+  @Post('delete-school-mdr')
+  async deleteSchoolMdr(
+    @Body()
+    token: {
+      token: string;
+    },
+  ) {
+    try {
+      const body = this.jwtService.verify(token.token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      const { trusteeSchoolId, platform_type, payment_mode } = body;
+
+      if (!trusteeSchoolId)
+        throw new BadRequestException('Trustee school ID Required');
+      if (!platform_type)
+        throw new BadRequestException('Platform type Required');
+      if (!payment_mode) throw new BadRequestException('Payment mode Required');
+      if (payment_mode === 'Others')
+        throw new BadRequestException('Cannot delete Other MDR');
+
+      const val = await this.platformChargeService.deletePlatformCharge(
+        trusteeSchoolId,
+        platform_type,
+        payment_mode,
+      );
+
+      const payload = {
+        platform_charges: val.mdr2,
+      };
+
+      const res = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      return res;
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
+
+  //for creating/updating/deleting total mdr(mdr2) of school
+  //call this after request approval
+  @Post('add-school-mdr')
+  async bulkAddSchoolMdr(
+    @Body()
+    token: {
+      token: string;
+    },
+  ) {
+    try {
+      const body = this.jwtService.verify(token.token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      const { mdr_request_id } = body;
+      const mdrReq = await this.mdrRequestModel.findById(mdr_request_id);
+      if (!mdrReq) throw new NotFoundException('MDR Request not found');
+
+      const trusteeSchoolIds = mdrReq?.school_id;
+      if (!trusteeSchoolIds)
+        throw new BadRequestException('Trustee school ID Required');
+      if (!mdr_request_id)
+        throw new BadRequestException('MDR Request Required');
+
+      let mdr_id = new mongoose.Types.ObjectId(mdr_request_id);
+      const mdrRequest = await this.mdrRequestModel.findOne({ _id: mdr_id });
+      await this.platformChargeService.acceptMDRRequest(mdrRequest);
+
+      let mdr2 = [];
+      const data = [];
+      for (let i = 0; i < mdrRequest.platform_charges.length; i++) {
+        mdr2.push({
+          platform_type: mdrRequest.platform_charges[i].platform_type,
+          payment_mode: mdrRequest.platform_charges[i].payment_mode,
+          range_charge: mdrRequest.platform_charges[i].range_charge,
+        });
+      }
+      trusteeSchoolIds.map(async (id) => {
+        await this.trusteeSchool.findOneAndUpdate(
+          { school_id: new Types.ObjectId(id) },
+          {
+            $set: { platform_charges: mdrRequest.platform_charges },
+          },
+        );
+      });
+      await this.platformChargeService.createUpdateSchoolMdr(
+        trusteeSchoolIds,
+        mdr2,
+      );
+      const payload = {
+        data: data,
+      };
+
+      const res = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      return res;
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
+
+  //function for getting total mdr and commission of a school
+  @Get('final-school-mdr')
+  async finalSchoolMdr(
+    @Body()
+    body,
+  ) {
+    try {
+      const { trusteeSchoolId, platform_type, payment_mode, amount } = body;
+
+      if (!trusteeSchoolId)
+        throw new BadRequestException('Trustee school ID Required');
+      if (!platform_type)
+        throw new BadRequestException('Platform type Required');
+      if (!payment_mode) throw new BadRequestException('Payment mode Required');
+      if (!amount) throw new BadRequestException('Amount Required');
+
+      return await this.platformChargeService.finalMdr(
+        trusteeSchoolId,
+        platform_type,
+        payment_mode,
+        amount,
+      );
+    } catch (err) {
+      if (err.response?.statusCode === 400) {
+        throw new BadRequestException(err.message);
+      } else if (err.response?.statusCode === 404) {
+        throw new NotFoundException(err.message);
+      }
+      throw new Error(err.message);
+    }
+  }
+
+  @Post('save-school-mdr')
+  async saveSchoolMdr(@Body('data') token: string) {
+    try {
+      const data = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      const response = await this.platformChargeService.createUpdateSchoolMdr(
+        data.school_id,
+        data.mdr2,
+      );
+      const mdrToken = this.jwtService.sign(response, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+
+      return mdrToken;
+    } catch (error) {
+      throw new Error(error.message);
     }
   }
 }
