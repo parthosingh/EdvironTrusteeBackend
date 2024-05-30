@@ -939,6 +939,8 @@ export class TrusteeResolver {
     @Args('description', { nullable: true }) description: string,
     @Context() context,
   ) {
+    console.log(description);
+    
     try {
       const trustee_id = context.req.trustee;
       const role = context.req.role;

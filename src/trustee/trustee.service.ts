@@ -653,8 +653,8 @@ export class TrusteeService {
       for (const id of school_id) {
         const result = await this.requestMDRModel.findOne({
           school_id: { $in: [id] },
-        });
-        if (result !== null) commonSchoolIds.push(result);
+        }).sort({ createdAt: -1 });
+        if (result !== null && result.status === mdr_status.INITIATED || result.status === mdr_status.PROCESSING ) commonSchoolIds.push(result);
       }
       if (commonSchoolIds.length > 0) {
         throw new Error('Request already raised for some selected schools');
@@ -701,6 +701,8 @@ export class TrusteeService {
 
       return 'New MDR request created';
     } catch (error) {
+      console.log(error);
+      
       if (error?.response) throw new Error(error?.response.message);
       throw new Error(error.message);
     }
