@@ -12,7 +12,7 @@ import {
 import { PlatformChargeService } from './platform-charges.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { TrusteeSchool } from '../schema/school.schema';
-import mongoose,{Types} from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Trustee } from '../schema/trustee.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
@@ -367,22 +367,24 @@ export class PlatformChargesController {
       let mdr_id = new mongoose.Types.ObjectId(mdr_request_id);
       const mdrRequest = await this.mdrRequestModel.findOne({ _id: mdr_id });
       await this.platformChargeService.acceptMDRRequest(mdrRequest);
- 
+
       let mdr2 = [];
       const data = [];
       for (let i = 0; i < mdrRequest.platform_charges.length; i++) {
-
         mdr2.push({
           platform_type: mdrRequest.platform_charges[i].platform_type,
           payment_mode: mdrRequest.platform_charges[i].payment_mode,
           range_charge: mdrRequest.platform_charges[i].range_charge,
         });
       }
-      trusteeSchoolIds.map(async(id)=>{
-        await this.trusteeSchool.findOneAndUpdate({ school_id:new Types.ObjectId(id)},{
-          $set: { platform_charges: mdrRequest.platform_charges },
-        })
-      })
+      trusteeSchoolIds.map(async (id) => {
+        await this.trusteeSchool.findOneAndUpdate(
+          { school_id: new Types.ObjectId(id) },
+          {
+            $set: { platform_charges: mdrRequest.platform_charges },
+          },
+        );
+      });
       await this.platformChargeService.createUpdateSchoolMdr(
         trusteeSchoolIds,
         mdr2,

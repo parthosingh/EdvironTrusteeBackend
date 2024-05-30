@@ -651,10 +651,16 @@ export class TrusteeService {
       // case : if request is alredy present then trustee can rise a new request for other school
       const commonSchoolIds = [];
       for (const id of school_id) {
-        const result = await this.requestMDRModel.findOne({
-          school_id: { $in: [id] },
-        }).sort({ createdAt: -1 });
-        if (result !== null && result.status === mdr_status.INITIATED || result.status === mdr_status.PROCESSING ) commonSchoolIds.push(result);
+        const result = await this.requestMDRModel
+          .findOne({
+            school_id: { $in: [id] },
+          })
+          .sort({ createdAt: -1 });
+        if (
+          (result !== null && result.status === mdr_status.INITIATED) ||
+          result.status === mdr_status.PROCESSING
+        )
+          commonSchoolIds.push(result);
       }
       if (commonSchoolIds.length > 0) {
         throw new Error('Request already raised for some selected schools');
@@ -702,7 +708,7 @@ export class TrusteeService {
       return 'New MDR request created';
     } catch (error) {
       console.log(error);
-      
+
       if (error?.response) throw new Error(error?.response.message);
       throw new Error(error.message);
     }
