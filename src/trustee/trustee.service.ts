@@ -811,7 +811,7 @@ export class TrusteeService {
       },
       {
         trustee_id: trusteeId,
-        existingCharges,
+        platform_charges: existingCharges,
       },
       { upsert: true, new: true },
     );
