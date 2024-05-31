@@ -1050,7 +1050,7 @@ export class TrusteeResolver {
       school = await this.trusteeSchoolModel.findOne({
         school_id: school_id,
       });
-      if(!school) throw new NotFoundException('School not found')
+      if (!school) throw new NotFoundException('School not found');
     }
     const mdrInfo = await this.trusteeService.getSchoolMdrInfo(
       school_id,
