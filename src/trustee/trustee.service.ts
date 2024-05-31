@@ -695,8 +695,9 @@ export class TrusteeService {
           })
           .sort({ createdAt: -1 });
         if (
-          (result !== null && result.status === mdr_status.INITIATED) ||
-          result.status === mdr_status.PROCESSING
+          result !== null &&
+          (result.status === mdr_status.INITIATED ||
+            result.status === mdr_status.PROCESSING )
         )
           commonSchoolIds.push(result);
       }
