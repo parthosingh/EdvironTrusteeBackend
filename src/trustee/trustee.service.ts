@@ -782,24 +782,29 @@ export class TrusteeService {
   }
 
   async saveBulkMdr(trustee_id: string, platform_charges: PlatformCharge[]) {
+    console.log('update req received', { trustee_id, platform_charges });
     const trusteeId = new Types.ObjectId(trustee_id);
-    let existingCharges =
+    let existingCharges = (
       (await this.baseMdrModel.findOneAndUpdate({
         trustee_id: trusteeId,
-      }) as BaseMdr).platform_charges;
+      })) as BaseMdr
+    )?.platform_charges;
     if (!existingCharges) existingCharges = [];
+    console.log({ fromdb: existingCharges });
     existingCharges = existingCharges.filter((charge) => {
-      platform_charges.forEach((newCharge) => {
+      for (var newCharge of platform_charges) {
         if (
           charge.platform_type === newCharge.platform_type &&
           charge.payment_mode === newCharge.payment_mode
         ) {
           return false;
         }
-      });
+      }
       return true;
     });
+    console.log({ filtered: existingCharges });
     existingCharges.push(...platform_charges);
+    console.log("final charges", existingCharges);
     await this.baseMdrModel.findOneAndUpdate(
       {
         trustee_id: trusteeId,
