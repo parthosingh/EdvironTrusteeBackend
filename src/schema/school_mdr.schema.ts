@@ -13,6 +13,9 @@ export class SchoolMdr {
   @Prop({ type: Types.ObjectId, ref: 'School' })
   @Field(() => ID)
   school_id: ObjectId;
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const SchoolMdrSchema = SchemaFactory.createForClass(SchoolMdr);

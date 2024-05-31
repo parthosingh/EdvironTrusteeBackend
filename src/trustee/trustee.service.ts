@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import mongoose, { ObjectId, Types } from 'mongoose';
+import mongoose, { HydratedDocument, ObjectId, Types } from 'mongoose';
 import {
   ConflictException,
   Injectable,
@@ -910,7 +910,7 @@ export class TrusteeService {
         if (!school) throw new NotFoundException('School not found');
       }
       console.log(schoolId);
-      return {school_id: school.school_id, mdr2: school.platform_charges};
+      return {school_id: school.school_id, mdr2: school.platform_charges, updatedAt: school.updatedAt};
 
       let schoolMdr = await this.schoolMdrModel.findOne({
         school_id: schoolId,

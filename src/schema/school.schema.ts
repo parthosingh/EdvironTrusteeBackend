@@ -93,6 +93,9 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => String)
   email: string;
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(TrusteeSchool);
