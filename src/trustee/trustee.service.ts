@@ -800,7 +800,7 @@ export class TrusteeService {
     for (const school of trusteeSchools) {
       const schoolMdr = await this.schoolMdrModel.findOneAndUpdate(
         { school_id: school.school_id },
-        { mdr2: platform_charges, school_id: school._id },
+        { mdr2: platform_charges, school_id: school.school_id },
         { new: true, upsert: true },
       );
     }
