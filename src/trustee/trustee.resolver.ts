@@ -1046,6 +1046,12 @@ export class TrusteeResolver {
     let school: SchoolMdrInfo = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });
+    if (!school) {
+      school = await this.trusteeSchoolModel.findOne({
+        school_id: school_id,
+      });
+      if(!school) throw new NotFoundException('School not found')
+    }
     const mdrInfo = await this.trusteeService.getSchoolMdrInfo(
       school_id,
       trustee_id,
