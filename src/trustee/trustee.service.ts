@@ -783,10 +783,10 @@ export class TrusteeService {
 
   async saveBulkMdr(trustee_id: string, platform_charges: PlatformCharge[]) {
     const trusteeId = new Types.ObjectId(trustee_id);
-    let existingCharges: PlatformCharge[] =
-      await this.baseMdrModel.findOneAndUpdate({
+    let existingCharges =
+      (await this.baseMdrModel.findOneAndUpdate({
         trustee_id: trusteeId,
-      });
+      }) as BaseMdr).platform_charges;
     if (!existingCharges) existingCharges = [];
     existingCharges = existingCharges.filter((charge) => {
       platform_charges.forEach((newCharge) => {
