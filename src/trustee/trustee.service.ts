@@ -119,12 +119,12 @@ export class TrusteeService {
       const decodedPayload = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
       });
-
       const trustee = await this.trusteeModel.findById(decodedPayload.id);
-      const baseMdr = await this.baseMdrModel.findOne({
-        trustee_id: trustee._id,
-      });
+
       if (trustee) {
+        const baseMdr = await this.baseMdrModel.findOne({
+          trustee_id: trustee._id,
+        });
         const userTrustee = {
           id: trustee._id,
           name: trustee.name,
@@ -141,6 +141,9 @@ export class TrusteeService {
       const member = await this.trusteeMemberModel.findById(decodedPayload.id);
       if (member) {
         const trustee = await this.trusteeModel.findById(member.trustee_id);
+        const baseMdr = await this.baseMdrModel.findOne({
+          trustee_id: trustee._id,
+        });
         const userTrustee = {
           id: member._id,
           name: member.name,
@@ -150,6 +153,7 @@ export class TrusteeService {
           phone_number: member.phone_number,
           trustee_id: member.trustee_id || null,
           brand_name: trustee.brand_name || null,
+          base_mdr: baseMdr,
         };
         return userTrustee;
       }
