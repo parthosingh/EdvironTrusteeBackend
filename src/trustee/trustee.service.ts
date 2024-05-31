@@ -785,7 +785,7 @@ export class TrusteeService {
     console.log('update req received', { trustee_id, platform_charges });
     const trusteeId = new Types.ObjectId(trustee_id);
     let existingCharges = (
-      (await this.baseMdrModel.findOneAndUpdate({
+      (await this.baseMdrModel.findOne({
         trustee_id: trusteeId,
       })) as BaseMdr
     )?.platform_charges;
