@@ -992,7 +992,7 @@ export class TrusteeService {
     for (const basePlatform of baseMdr.platform_charges) {
       const schoolPlatform = schoolMdr?.mdr2.find(
         (schoolPlatform) =>
-          schoolPlatform.platform_type === basePlatform.platform_type,
+          schoolPlatform.platform_type === basePlatform.platform_type && schoolPlatform.payment_mode === basePlatform.payment_mode,
       );
 
       if (schoolPlatform) {
