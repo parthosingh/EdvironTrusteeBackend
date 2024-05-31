@@ -804,7 +804,7 @@ export class TrusteeService {
     });
     console.log({ filtered: existingCharges });
     existingCharges.push(...platform_charges);
-    console.log("final charges", existingCharges);
+    console.log('final charges', existingCharges);
     await this.baseMdrModel.findOneAndUpdate(
       {
         trustee_id: trusteeId,
@@ -895,15 +895,25 @@ export class TrusteeService {
   async getSchoolMdr(school_id: string) {
     try {
       const schoolId = new Types.ObjectId(school_id);
-      const school = await this.trusteeSchoolModel.findOne({
+      let school = await this.trusteeSchoolModel.findOne({
         school_id: schoolId,
       });
-      if (!school) throw new NotFoundException('School not found');
+      if (!school) {
+        school = await this.trusteeSchoolModel.findOne({
+          school_id: school_id,
+        });
+        if (!school) throw new NotFoundException('School not found');
+      }
       console.log(schoolId);
 
-      const schoolMdr = await this.schoolMdrModel.findOne({
+      let schoolMdr = await this.schoolMdrModel.findOne({
         school_id: schoolId,
       });
+      if (!schoolMdr) {
+        schoolMdr = await this.schoolMdrModel.findOne({
+          school_id: school_id,
+        });
+      }
       return schoolMdr;
     } catch (err) {
       if (err.response?.statusCode === 400) {
