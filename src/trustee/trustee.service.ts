@@ -897,7 +897,7 @@ export class TrusteeService {
     return `${mode} ${status}`;
   }
 
-  async getSchoolMdr(school_id: string) {
+  async getSchoolMdr(school_id: string): Promise<SchoolMdr> {
     try {
       const schoolId = new Types.ObjectId(school_id);
       let school = await this.trusteeSchoolModel.findOne({
@@ -910,6 +910,7 @@ export class TrusteeService {
         if (!school) throw new NotFoundException('School not found');
       }
       console.log(schoolId);
+      return {school_id: school.school_id, mdr2: school.platform_charges};
 
       let schoolMdr = await this.schoolMdrModel.findOne({
         school_id: schoolId,
