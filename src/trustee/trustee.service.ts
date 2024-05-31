@@ -1050,7 +1050,7 @@ export class TrusteeService {
     for (const basePlatform of baseMdr.platform_charges) {
       const schoolMdrReq = reqMdr?.platform_charges.find(
         (schoolMdrReq) =>
-          schoolMdrReq.platform_type === basePlatform.platform_type,
+          schoolMdrReq.platform_type === basePlatform.platform_type && schoolMdrReq.payment_mode === basePlatform.payment_mode,
       );
 
       if (schoolMdrReq) {
