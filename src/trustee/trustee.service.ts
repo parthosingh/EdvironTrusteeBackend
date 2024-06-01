@@ -697,7 +697,7 @@ export class TrusteeService {
         if (
           result !== null &&
           (result.status === mdr_status.INITIATED ||
-            result.status === mdr_status.PROCESSING )
+            result.status === mdr_status.PROCESSING)
         )
           commonSchoolIds.push(result);
       }
@@ -910,7 +910,11 @@ export class TrusteeService {
         if (!school) throw new NotFoundException('School not found');
       }
       console.log(schoolId);
-      return {school_id: school.school_id, mdr2: school.platform_charges, updatedAt: school.updatedAt};
+      return {
+        school_id: school.school_id,
+        mdr2: school.platform_charges,
+        updatedAt: school.updatedAt,
+      };
 
       let schoolMdr = await this.schoolMdrModel.findOne({
         school_id: schoolId,
@@ -993,7 +997,8 @@ export class TrusteeService {
     for (const basePlatform of baseMdr.platform_charges) {
       const schoolPlatform = schoolMdr?.mdr2.find(
         (schoolPlatform) =>
-          schoolPlatform.platform_type === basePlatform.platform_type && schoolPlatform.payment_mode === basePlatform.payment_mode,
+          schoolPlatform.platform_type === basePlatform.platform_type &&
+          schoolPlatform.payment_mode === basePlatform.payment_mode,
       );
 
       if (schoolPlatform) {
@@ -1051,7 +1056,8 @@ export class TrusteeService {
     for (const basePlatform of baseMdr.platform_charges) {
       const schoolMdrReq = reqMdr?.platform_charges.find(
         (schoolMdrReq) =>
-          schoolMdrReq.platform_type === basePlatform.platform_type && schoolMdrReq.payment_mode === basePlatform.payment_mode,
+          schoolMdrReq.platform_type === basePlatform.platform_type &&
+          schoolMdrReq.payment_mode === basePlatform.payment_mode,
       );
 
       if (schoolMdrReq) {
