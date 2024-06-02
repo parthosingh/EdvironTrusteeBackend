@@ -452,7 +452,7 @@ export class ErpController {
           process.env.PAYMENTS_SERVICE_ENDPOINT
         }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
           {
-            transactionId: order_id,
+            transactionId: order_id,trusteeId:trustee_id
           },
           { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
         )}`,
