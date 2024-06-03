@@ -15,6 +15,7 @@ import {
   BadRequestException,
   UseGuards,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
 import {
@@ -934,6 +935,84 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
+  async generatePaymentLink(
+    @Args('school_id') school_id: string,
+    @Args('amount') amount: string,
+    @Args('callback_url') callback_url: string,
+    @Args('sign') sign: string,
+    @Context() context,
+  ) {
+    try {
+      if (!school_id) throw new BadRequestException('School id required');
+      if (!amount) throw new BadRequestException('Amount required');
+      if (!callback_url) throw new BadRequestException('Callback url required');
+
+      const trustee_id = context.req.trustee;
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!trustee) throw new NotFoundException('Invalid trustee');
+      if (!school) throw new NotFoundException('Invalid school');
+      if (school.trustee_id.toString() !== trustee._id.toString())
+        throw new UnauthorizedException('Unauthorized user');
+
+      const verify_val = this.jwtService.verify(sign, {
+        secret: school.pg_key,
+      });
+
+      if (
+        verify_val.school_id !== school_id ||
+        verify_val.callback_url !== callback_url ||
+        verify_val.amount !== amount
+      ) {
+        throw new ForbiddenException('Request forged');
+      }
+
+      const payload = {
+        school_id,
+        amount,
+        callback_url,
+      };
+      const sign_val = this.jwtService.sign(payload, { secret: school.pg_key });
+
+      const apiKeyPayload = {
+        trusteeId: trustee._id,
+        IndexOfApiKey: trustee.IndexOfApiKey,
+      };
+      const apiKey = this.jwtService.sign(apiKeyPayload, {
+        secret: process.env.JWT_SECRET_FOR_API_KEY,
+      });
+
+      const response = await axios.post(
+        `${process.env.URL}/erp/create-collect-request`,
+        {
+          amount,
+          school_id: school_id,
+          callback_url,
+          sign: sign_val,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      return response.data.collect_request_url;
+    } catch (err) {
+      if (err.response.data?.statusCode === 400)
+        throw new BadRequestException(err.response.data?.message);
+      else if (err.response.data?.statusCode === 404)
+        throw new NotFoundException(err.response.data?.message);
+      else if (err.response.data?.statusCode === 401)
+        throw new UnauthorizedException(err.response.data?.message);
+      else if (err.response.data?.statusCode === 403)
+        throw new ForbiddenException(err.response.data?.message);
+      throw new Error(err);
+    }
   async createMdrRequest(
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
