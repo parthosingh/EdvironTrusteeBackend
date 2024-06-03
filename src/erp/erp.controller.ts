@@ -179,6 +179,8 @@ export class ErpController {
       receipt?: string;
       sendPaymentLink?: boolean;
       additional_data?: {};
+      custom_order_id?: string;
+      req_webhook_urls?: [string];
     },
     @Req() req,
   ) {
@@ -195,6 +197,8 @@ export class ErpController {
         student_name,
         student_phone_no,
         receipt,
+        custom_order_id,
+        req_webhook_urls,
       } = body;
       if (!school_id) {
         throw new BadRequestException('School id is required');
@@ -245,7 +249,7 @@ export class ErpController {
       const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
       const trustee = await this.trusteeModel.findById(trusteeObjId);
       let webHookUrl = null;
-      if (trustee.webhook_urls.length) {
+      if (trustee.webhook_urls.length || req_webhook_urls?.length) {
         webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
       }
 
@@ -283,6 +287,8 @@ export class ErpController {
         disabled_modes: school.disabled_modes,
         platform_charges: school.platform_charges,
         additional_data: additionalInfo || {},
+        custom_order_id: custom_order_id || null,
+        req_webhook_urls: req_webhook_urls || null,
       });
       let config = {
         method: 'post',
@@ -320,6 +326,7 @@ export class ErpController {
           {
             collect_request_id: paymentsServiceResp.request._id,
             collect_request_url: paymentsServiceResp.url,
+            custom_order_id: paymentsServiceResp.request?.custom_order_id,
           },
           { noTimestamp: true, secret: school.pg_key },
         ),
@@ -382,6 +389,70 @@ export class ErpController {
         }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
           {
             transactionId: collect_request_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
+        headers: {
+          accept: 'application/json',
+        },
+      };
+
+      const { data: paymentsServiceResp } = await axios.request(config);
+      return paymentsServiceResp;
+    } catch (error) {
+      if (error.name === 'JsonWebTokenError')
+        throw new BadRequestException('Invalid sign');
+      console.log('error in collect request status check', error);
+      throw error;
+    }
+  }
+
+  @Get('collect-request-status/:order_id')
+  @UseGuards(ErpGuard)
+  async getCollectRequest(@Req() req) {
+    try {
+      const trustee_id = req.userTrustee.id;
+      const { order_id } = req.params;
+      const { school_id, sign } = req.query;
+      if (!order_id) {
+        throw new BadRequestException('Order id is required');
+      }
+      if (!school_id) {
+        throw new BadRequestException('School id is required');
+      }
+      if (!sign) {
+        throw new BadRequestException('sign is required');
+      }
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+
+      if (school.trustee_id.toString() !== trustee_id.toString()) {
+        throw new UnauthorizedException('Unauthorized');
+      }
+
+      if (!school.client_id || !school.client_secret || !school.pg_key) {
+        throw new BadRequestException(
+          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        );
+      }
+
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      if (decoded.custom_order_id != order_id) {
+        throw new ForbiddenException('request forged');
+      }
+
+      const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: order_id,trusteeId:trustee_id
           },
           { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
         )}`,
@@ -722,6 +793,7 @@ export class ErpController {
       const collect_id = decrypted.collect_id;
       const amount = decrypted.amount;
       const status = decrypted.status;
+      const req_webhook_urls = decrypted.req_webhook_urls;
       const trustee = await this.trusteeModel.findById(trustee_id);
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
@@ -730,7 +802,16 @@ export class ErpController {
       const pg_key = school.pg_key;
       // const trusteeId = school.trustee_id;
       // const trustee = await this.trusteeModel.findById(trusteeId);
-      const webHookUrls = trustee.webhook_urls;
+      const trusteeWebHookUrls = trustee.webhook_urls;
+
+      let webHooksUrls: string[] = req_webhook_urls
+        ? [...req_webhook_urls]
+        : [];
+      if (trusteeWebHookUrls.length) {
+        const urls = trusteeWebHookUrls.map((webhook) => webhook.url);
+        webHooksUrls.unshift(...urls);
+      }
+
       if (!trustee) {
         console.log('trustee not found while sending webhook');
         throw new NotFoundException('Trustee not found');
@@ -741,7 +822,7 @@ export class ErpController {
         );
       }
 
-      if (webHookUrls.length) {
+      if (webHooksUrls.length) {
         const token = this.jwtService.sign(
           {
             collect_id,
@@ -766,17 +847,17 @@ export class ErpController {
           },
           data: webHookData,
         };
-        const requests = webHookUrls.map((webhook) => {
-          let url = webhook.url;
+        const requests = webHooksUrls.map((webhook) => {
+          let url = webhook;
           return axios.request({ ...config, url });
         });
         const responses = await Promise.allSettled(requests);
 
         responses.forEach((response, i) => {
           if (response.status === 'fulfilled') {
-            console.log(`webhook sent to ${webHookUrls[i].url} `);
+            console.log(`webhook sent to ${webHooksUrls[i]} `);
           } else {
-            console.log(`webhook failed to ${webHookUrls[i].url} `);
+            console.log(`webhook failed to ${webHooksUrls[i]} `);
           }
         });
       } else {

@@ -14,6 +14,9 @@ import { MainBackendService } from '../main-backend/main-backend.service';
 import { SettlementSchema } from '../schema/settlement.schema';
 import { TrusteeMemberSchema } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
+import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
+import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
+import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 config();
 
 @Module({
@@ -24,6 +27,13 @@ config();
     ]),
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: RequestMDR.name, schema: RequestMDRSchema },
+    ]),
+    MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
+    MongooseModule.forFeature([
+      { name: SchoolMdr.name, schema: SchoolMdrSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({
