@@ -359,7 +359,7 @@ export class ErpService {
               parameters: [
                 {
                   type: 'text',
-                  text: body.paymentURL,
+                  text: body.paymentURL.split('/')[4].substring(8),
                 },
               ],
             },
