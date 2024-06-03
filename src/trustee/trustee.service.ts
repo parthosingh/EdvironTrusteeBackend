@@ -825,9 +825,9 @@ export class TrusteeService {
       trustee_id: trusteeId,
     });
     for (const school of trusteeSchools) {
-      const schoolMdr = await this.schoolMdrModel.findOneAndUpdate(
+      const schoolMdr = await this.trusteeSchoolModel.findOneAndUpdate(
         { school_id: school.school_id },
-        { mdr2: existingCharges, school_id: school.school_id },
+        { platform_charges: existingCharges, school_id: school.school_id },
         { new: true, upsert: true },
       );
     }
