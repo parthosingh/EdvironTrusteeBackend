@@ -1013,6 +1013,7 @@ export class TrusteeResolver {
         throw new ForbiddenException(err.response.data?.message);
       throw new Error(err);
     }
+  }
   async createMdrRequest(
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
