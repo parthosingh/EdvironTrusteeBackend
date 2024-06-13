@@ -398,7 +398,12 @@ export class ErpController {
       };
 
       const { data: paymentsServiceResp } = await axios.request(config);
-      return paymentsServiceResp;
+      const responseWithoutSign = {...paymentsServiceResp, sign: undefined};
+      const responseWithSign = {...paymentsServiceResp, sign: this.jwtService.sign(
+        responseWithoutSign,
+        { noTimestamp: true, secret: school.pg_key },
+      )};
+      return responseWithSign;
     } catch (error) {
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
