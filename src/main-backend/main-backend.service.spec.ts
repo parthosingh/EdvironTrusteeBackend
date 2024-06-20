@@ -6,13 +6,8 @@ import mongoose from 'mongoose';
 import { getModelToken } from '@nestjs/mongoose';
 import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
-import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { FullKycStatus, MerchantStatus, MinKycStatus, SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import exp from 'constants';
 jest.mock('@nestjs/jwt');
 
@@ -301,9 +296,9 @@ describe('MainBackendService', () => {
         client_id: 'client_id',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail@9edviron.com',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC',
+        merchantStatus: MerchantStatus.NOT_INITIATED,
+        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
+        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
       };
 
       const {
@@ -360,9 +355,9 @@ describe('MainBackendService', () => {
         merchantId: 'merchantId',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail00@edviron.com',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC',
+        merchantStatus: MerchantStatus.NOT_INITIATED,
+        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
+        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
       };
 
       jest.spyOn(service, 'generateKey').mockResolvedValue('newGeneratedKey');
@@ -380,9 +375,9 @@ describe('MainBackendService', () => {
         client_id: 'client_id',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail@9edviron.com',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC',
+        merchantStatus: MerchantStatus.NOT_INITIATED,
+        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
+        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
       };
 
       const trusteeId = new Types.ObjectId(info.trustee_id);
@@ -409,9 +404,9 @@ describe('MainBackendService', () => {
         client_id: 'client_id',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail@9edviron.com',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC',
+        merchantStatus: MerchantStatus.NOT_INITIATED,
+        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
+        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
       };
 
       const trusteeId = new Types.ObjectId(info.trustee_id);

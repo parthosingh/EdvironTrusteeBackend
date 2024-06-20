@@ -8,6 +8,11 @@ import { ErpModule } from './erp/erp.module';
 import { MainBackendModule } from './main-backend/main-backend.module';
 import { PlatformChargesModule } from './platform-charges/platform-charges.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { MerchantModule } from './merchant/merchant.module';
+import { GraphQLModule } from '@nestjs/graphql';
+import { ApolloDriver } from '@nestjs/apollo';
+import { TrusteeResolver } from './trustee/trustee.resolver';
+import { MerchantResolver } from './merchant/merchant.resolver';
 config();
 
 @Module({
@@ -17,7 +22,16 @@ config();
     ErpModule,
     MainBackendModule,
     PlatformChargesModule,
+    MerchantModule,
     ScheduleModule.forRoot(),
+    GraphQLModule.forRoot({
+      driver: ApolloDriver,
+      autoSchemaFile: true, // Generates schema.gql file
+      // playground: true, // Enable GraphQL playground in development
+      installSubscriptionHandlers: true, // Enable subscriptions if needed
+      resolvers: [TrusteeResolver, MerchantResolver], // Your resolvers here
+      playground: process.env.NODE_ENV === 'dev',
+    }),
   ],
 
   controllers: [AppController],

@@ -9,10 +9,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Mongoose, Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import {
-  PlatformCharge,
-  TrusteeSchool,
-  charge_type,
-  rangeCharge,
+    MinKycStatus,
+    PlatformCharge,
+    TrusteeSchool,
+    charge_type,
+    rangeCharge,
 } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
@@ -36,21 +37,19 @@ export class PlatformChargeService {
     private baseMdrModel: mongoose.Model<BaseMdr>,
   ) {}
 
-  async AddPlatformCharge(
-    trusteeSchoolId: String,
-    platform_type: String,
-    payment_mode: String,
-    range_charge: rangeCharge[],
-  ) {
-    try {
-      const trusteeSchool = await this.trusteeSchoolModel.findOne({
-        _id: trusteeSchoolId,
-      });
-
-      if (!trusteeSchool)
-        throw new NotFoundException('Trustee school not found');
-      if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
-        throw new BadRequestException('KYC not approved');
+    async AddPlatformCharge(
+        trusteeSchoolId: String,
+        platform_type: String,
+        payment_mode: String,
+        range_charge: rangeCharge[],
+    ) {
+        try {
+            const trusteeSchool = await this.trusteeSchoolModel.findOne({
+                _id: trusteeSchoolId,
+            });
+            
+            if (!trusteeSchool) throw new NotFoundException('Trustee school not found');
+            if (trusteeSchool.pgMinKYC !== MinKycStatus.MIN_KYC_APPROVED) throw new BadRequestException('KYC not approved');
 
       trusteeSchool.platform_charges.forEach((platformCharge) => {
         if (
@@ -270,10 +269,8 @@ export class PlatformChargeService {
         _id: trusteeSchoolId,
       });
 
-      if (!trusteeSchool)
-        throw new NotFoundException('Trustee school not found');
-      if (trusteeSchool.pgMinKYC !== 'MIN_KYC_APPROVED')
-        throw new BadRequestException('KYC not approved');
+            if (!trusteeSchool) throw new NotFoundException('Trustee school not found');
+            if (trusteeSchool.pgMinKYC !== MinKycStatus.MIN_KYC_APPROVED) throw new BadRequestException('KYC not approved');
 
       let isFound = 0;
       trusteeSchool.platform_charges.forEach((platformCharge) => {

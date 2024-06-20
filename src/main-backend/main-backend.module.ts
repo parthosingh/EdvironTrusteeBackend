@@ -8,6 +8,7 @@ import { SchoolSchema } from '../schema/school.schema';
 import { TrusteeService } from '../trustee/trustee.service';
 import { TrusteeMemberSchema } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
+import { TransactionInfoSchema } from '../schema/transaction.info.schema';
 import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
 import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
@@ -22,6 +23,7 @@ import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
       { name: 'TrusteeSchool', schema: SchoolSchema },
     ]),
     MongooseModule.forFeature([
+      { name: 'TransactionInfo', schema: TransactionInfoSchema },
       { name: RequestMDR.name, schema: RequestMDRSchema },
     ]),
     MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),

@@ -124,9 +124,11 @@ export class MainBackendController {
         merchantEmail: data.merchantEmail,
         merchantStatus: data.merchantStatus,
         pgMinKYC: data.pgMinKYC,
-        pgFullKYC: data.pgFullKYC,
-      };
-      const school = await this.mainBackendService.updateSchoolInfo(info);
+        pgFullKYC: data.pgFullKYC
+      }
+
+
+      const school = await this.mainBackendService.updateSchoolInfo(info)
       const response = {
         school_id: school.updatedSchool.school_id,
         school_name: school.updatedSchool.school_name,
@@ -265,6 +267,29 @@ export class MainBackendController {
     }
   }
 
+  @Post('update-merchant-status')
+  async updateMerchantStatus(@Body() body: { token: string }) {
+    try {
+      const data: JwtPayload = await this.jwtService.verify(
+        body.token,
+        { secret: process.env.JWT_SECRET_FOR_INTRANET },
+      )
+
+      const info = {
+        trustee_id: data.trustee_id,
+        school_id: data.school_id,
+        merchantStatus: data.merchantStatus
+      }
+
+      const result = await this.mainBackendService.updateMerchantStatus(info);
+      return result
+    } catch (error) {
+      console.log(error)
+      if (error.message)
+        throw new Error(error?.message)
+      else throw new Error(error?.response?.message)
+    }
+  }
   @Get('get-trustee-mdr-request')
   async getTrusteeMDRRequest(@Query('token') token: string) {
     try {

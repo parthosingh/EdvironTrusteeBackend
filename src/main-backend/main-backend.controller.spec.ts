@@ -4,7 +4,7 @@ import { MainBackendService } from './main-backend.service';
 import { JwtService } from '@nestjs/jwt';
 import { getModelToken } from '@nestjs/mongoose';
 import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
-import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
+import { FullKycStatus, MerchantStatus, MinKycStatus, SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import { JwtPayload } from 'jsonwebtoken';
 import mongoose, { Connection, connect, Model, Types } from 'mongoose';
 import {
@@ -241,10 +241,10 @@ describe('MainBackendController', () => {
         client_id: 'client_id',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail@edviron.com',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC',
-      };
+        merchantStatus: MerchantStatus.NOT_INITIATED,
+        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
+        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
+      }
 
       const updatedSchool = await trusteeSchoolModel.findOneAndUpdate(
         { school_id: school.school_id },
@@ -285,10 +285,10 @@ describe('MainBackendController', () => {
         client_secret: 'client_secret',
         merchantId: 'merchantId',
         merchantName: 'merchantName',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC',
-      };
+        merchantStatus: MerchantStatus.NOT_INITIATED,
+        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
+        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
+      }
       MockJwtService.verify.mockReturnValueOnce(mockdata);
       await expect(
         async () => await controller.updateSchool({ token: mockToken }),

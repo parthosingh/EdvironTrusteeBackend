@@ -1,33 +1,36 @@
 import { Module } from '@nestjs/common';
+// import { MerchantResolver } from './merchant.resolver';
 import { MongooseModule } from '@nestjs/mongoose';
-import { TrusteeService } from './trustee.service';
-import { TrusteeSchema } from '../schema/trustee.schema';
+import { SchoolSchema } from 'src/schema/school.schema';
 import { JwtModule } from '@nestjs/jwt';
-import { TrusteeResolver } from './trustee.resolver';
 import { GraphQLModule } from '@nestjs/graphql';
-import { SchoolSchema } from '../schema/school.schema';
 import { ApolloDriver } from '@nestjs/apollo';
-import { TrusteeGuard } from './trustee.guard';
-import { config } from 'dotenv';
-import { ErpService } from '../erp/erp.service';
-import { MainBackendService } from '../main-backend/main-backend.service';
-import { SettlementSchema } from '../schema/settlement.schema';
-import { TrusteeMemberSchema } from '../schema/partner.member.schema';
-import { EmailService } from '../email/email.service';
+import { SettlementSchema } from 'src/schema/settlement.schema';
+// import { MerchantService } from './merchant.service';
+import { TrusteeService } from 'src/trustee/trustee.service';
+import { TrusteeSchema } from 'src/schema/trustee.schema';
+import { MerchantGuard } from './merchant.guard';
+import { MerchantResolver } from './merchant.resolver';
+import { MerchantService } from './merchant.service';
+import { MerchantMemberSchema } from 'src/schema/merchant.member.schema';
+import { EmailService } from 'src/email/email.service';
+import { TrusteeMemberSchema } from 'src/schema/partner.member.schema';
 import { TransactionInfoSchema } from 'src/schema/transaction.info.schema';
 import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
-import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
-config();
+import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
-    MongooseModule.forFeature([
-      { name: 'TrusteeMember', schema: TrusteeMemberSchema },
-    ]),
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
+    ]),
+    MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
+    MongooseModule.forFeature([
+      { name: 'MerchantMember', schema: MerchantMemberSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: 'TrusteeMember', schema: TrusteeMemberSchema },
     ]),
     MongooseModule.forFeature([
       { name: 'TransactionInfo', schema: TransactionInfoSchema },
@@ -44,10 +47,10 @@ config();
     }),
     // GraphQLModule.forRoot({
     //   driver: ApolloDriver,
-    //   autoSchemaFile: true, // Generates schema.gql file
+    //   autoSchemaFile: true,
     //   // playground: true, // Enable GraphQL playground in development
     //   installSubscriptionHandlers: true, // Enable subscriptions if needed
-    //   resolvers: [TrusteeResolver], // Your resolvers here
+    //   // resolvers: [MerchantResolver], // Your resolvers here
     //   playground: process.env.NODE_ENV === 'dev',
     // }),
     MongooseModule.forFeature([
@@ -56,12 +59,11 @@ config();
   ],
   controllers: [],
   providers: [
-    ErpService,
     TrusteeService,
-    TrusteeResolver,
-    TrusteeGuard,
-    MainBackendService,
+    MerchantGuard,
+    MerchantResolver,
+    MerchantService,
     EmailService,
   ],
 })
-export class TrusteeModule {}
+export class MerchantModule {}

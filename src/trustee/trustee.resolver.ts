@@ -31,7 +31,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { SettlementReport } from '../schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
-import { Trustee } from '../schema/trustee.schema';
+import { Trustee, WebhookUrlType } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
@@ -297,8 +297,15 @@ export class TrusteeResolver {
       };
 
       const response = await axios.request(config);
-
-      transactionReport = response.data.transactions.map((item: any) => {
+          
+      transactionReport = response.data.transactions.map(async (item: any) => {
+        let remark = null;
+        const info = await await this.trusteeService.getRemarks(
+          item.collect_id,
+        );
+        if (info) {
+          remark = info.remarks;
+        }
         return {
           ...item,
           merchant_name:
@@ -306,7 +313,7 @@ export class TrusteeResolver {
           student_id:
             JSON.parse(item?.additional_data).student_details?.student_id || '',
 
-          student_name:
+          students_name:
             JSON.parse(item?.additional_data).student_details?.student_name ||
             '',
 
@@ -324,6 +331,7 @@ export class TrusteeResolver {
           school_id: item.merchant_id,
           school_name:
             merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          remarks: remark,
         };
       });
 
@@ -415,6 +423,7 @@ export class TrusteeResolver {
       school_id: school.adminInfo.school_id,
       school_name: school.updatedSchool.updates.name,
     };
+
     return response;
   }
 
@@ -935,6 +944,27 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
+  async initiateRefund(
+    @Args('client_id') client_id: string,
+    @Args('order_id') order_id: string,
+    @Args('refund_amount') refund_amount: number,
+  ) {
+    const data = {
+      client_id,
+      order_id,
+      refund_amount,
+    };
+    try {
+      const response = await axios.post(
+        `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/initiate-refund`,
+        data,
+      );
+      return `refund Created`;
+    } catch (error) {
+      console.error('Error:', error.response.data);
+    }
+  }
+
   async generatePaymentLink(
     @Args('school_id') school_id: string,
     @Args('amount') amount: string,
@@ -1042,6 +1072,53 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
+  @Query(() => [RefundResponse])
+  async trsuteeRefund(@Context() context) {
+    let userId = context.req.trustee;
+    return await this.trusteeService.trusteeRefunds(userId.toString());
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [RefundResponse])
+  async merchantsRefunds(@Args('school_id') school_id: string) {
+    return await this.trusteeService.merchantsRefunds(school_id);
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [RefundResponse])
+  async orderRefunds(@Args('order_id') order_id: string) {
+    return await this.trusteeService.orderRefunds(order_id);
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [SettlementReport])
+  async transactionUtr(
+    @Args('date') date: string,
+    @Args('school_id') school_id: string,
+  ) {
+    const schoolId = new Types.ObjectId(school_id);
+
+    try {
+      const inputDate = new Date(date);
+      const year = inputDate.getFullYear();
+      const month = inputDate.getMonth();
+      const day = inputDate.getDate();
+      const startDate = new Date(year, month, day);
+      const endDate = new Date(year, month, day + 1);
+
+      const settlement = await this.settlementReportModel.find({
+        schoolId,
+        settlementDate: {
+          $gte: startDate, // Greater than or equal to start of the specified date
+          $lt: endDate, // Less than the start of the next day
+        },
+      });
+      return settlement;
+    } catch (error) {
+      console.error('Error fetching settlement data:', error);
+      throw new Error('Failed to fetch settlement data');
+    }
+  }
   @Mutation(() => String)
   async updateMdrRequest(
     @Args('req_id', { type: () => ID }) req_id: ObjectId,
@@ -1163,6 +1240,144 @@ export class TrusteeResolver {
     );
     return mdrRequest;
   }
+
+  @Mutation(() => String)
+  @UseGuards(TrusteeGuard)
+  async createWebhooks(
+    @Context() context: any,
+    @Args('webhookUrl', { type: () => String }) webhookUrl: string,
+  ) {
+    try {
+      const role = context.req.role;
+      if (role !== 'owner') {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
+      const trustee = await this.trusteeModel.findById(
+        new Types.ObjectId(context.req.trustee),
+      );
+      if (!trustee) {
+        throw new NotFoundException('Trustee not found');
+      }
+
+      return await this.trusteeService.createWebhooks(trustee, webhookUrl);
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  @Mutation(() => String)
+  @UseGuards(TrusteeGuard)
+  async deleteWebhook(
+    @Context() context: any,
+    @Args('webHook_id', { type: () => Number }) webhook_id: number,
+  ) {
+    try {
+      const role = context.req.role;
+      if (role !== 'owner') {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
+      const trustee = await this.trusteeModel.findById(
+        new Types.ObjectId(context.req.trustee),
+      );
+
+      if (!trustee) {
+        throw new NotFoundException('Trustee not found');
+      }
+
+      return await this.trusteeService.deleteWebhook(trustee, webhook_id);
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  @Query(() => [WebhookUrlType])
+  @UseGuards(TrusteeGuard)
+  async getWebhooks(@Context() context: any) {
+    try {
+      const trustee = await this.trusteeModel.findById(
+        new Types.ObjectId(context.req.trustee),
+      );
+
+      if (!trustee) {
+        throw new NotFoundException('Trustee not found');
+      }
+
+      return trustee.webhook_urls;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(TrusteeGuard)
+  async sendTestWebhook(
+    @Context() context,
+    @Args('webhookUrl', { type: () => String }) webhookUrl: string,
+  ): Promise<boolean> {
+    try {
+      const role = context.req.role;
+      if (role !== 'owner') {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
+      const urlRegex = /^https:\/\/([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+
+      if (!urlRegex.test(webhookUrl)) {
+        throw new BadRequestException('Please provide valid webhook url');
+      }
+      const res = await this.trusteeService.testWebhook(webhookUrl);
+      console.log(res, 'res');
+      if (!res) return false;
+      return true;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async addRemarks(
+    @Args('collect_id') collect_id: string,
+    @Args('remark') remark: string,
+    @Context() context,
+  ) {
+    const trustee_id = context.req.trustee;
+    await await this.trusteeService.createRemark(
+      collect_id,
+      remark,
+      trustee_id,
+    );
+    return `Remark Added Successfully`;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => GetRemarkResponse)
+  async getRemarks(@Args('collect_id') collect_id: string) {
+    return await this.trusteeService.getRemarks(collect_id);
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async deleteRemark(@Args('collect_id') collect_id: string) {
+    return await this.trusteeService.deleteRemark(collect_id);
+  }
+}
+
+@ObjectType()
+class GetRemarkResponse {
+  @Field()
+  collect_id: string;
+
+  @Field()
+  trustee_id: string;
+
+  @Field()
+  remarks: string;
 }
 
 @ObjectType()
@@ -1207,18 +1422,18 @@ class MemberesResponse {
 
 // Define a type for the AuthResponse
 @ObjectType()
-class AuthResponse {
+export class AuthResponse {
   @Field(() => String)
   token: string;
 }
 
 @ObjectType()
-class resetPassResponse {
+export class resetPassResponse {
   @Field()
   msg: string;
 }
 @ObjectType()
-class verifyRes {
+export class verifyRes {
   @Field()
   active: boolean;
 }
@@ -1365,6 +1580,22 @@ class TransactionReport {
   school_id: string;
   @Field({ nullable: true })
   status: string;
+  @Field({ nullable: true })
+  student_id: string;
+  @Field({ nullable: true })
+  student_name: string;
+  @Field({ nullable: true })
+  student_email: string;
+  @Field({ nullable: true })
+  student_phone: string;
+  @Field({ nullable: true })
+  student_receipt: string;
+  @Field({ nullable: true })
+  bank_reference: string;
+  @Field({ nullable: true })
+  remarks: string;
+  @Field({ nullable: true })
+  details: string;
 }
 
 @ObjectType()
@@ -1393,6 +1624,48 @@ export class SchoolInputBulk {
 class TokenResponse {
   @Field()
   token: string;
+}
+
+@ObjectType()
+class RefundResponse {
+  @Field({ nullable: true })
+  order_id: string;
+  @Field({ nullable: true })
+  refund_amount: number;
+  @Field({ nullable: true })
+  refund_status: string;
+  @Field({ nullable: true })
+  refund_id: string;
+  @Field({ nullable: true })
+  bank_reference: string;
+  @Field({ nullable: true })
+  created_at: string;
+  @Field({ nullable: true })
+  order_amount: number;
+  @Field({ nullable: true })
+  payment_mode: string;
+  @Field({ nullable: true })
+  pg_refund_id: string;
+  @Field({ nullable: true })
+  processed_at: string;
+  @Field({ nullable: true })
+  refund_arn: string;
+  @Field({ nullable: true })
+  refund_currency: string;
+  @Field({ nullable: true })
+  refund_note: string;
+  @Field({ nullable: true })
+  refund_speed: string;
+  @Field({ nullable: true })
+  refund_type: string;
+  @Field({ nullable: true })
+  school_id: string;
+  @Field({ nullable: true })
+  service_charge: string;
+  @Field({ nullable: true })
+  service_tax: string;
+  @Field({ nullable: true })
+  trustee_id: string;
 }
 
 enum charge_type {

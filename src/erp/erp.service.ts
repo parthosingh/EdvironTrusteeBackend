@@ -206,22 +206,26 @@ export class ErpService {
       });
 
       const schoolId = new Types.ObjectId(school.adminInfo.school_id);
+      console.log(schoolId);
 
       const trusteeSchool = await this.trusteeSchoolModel.create({
         school_id: schoolId,
         school_name: school.updatedSchool.updates.name,
         trustee_id: trustee,
         email: email,
+        phone_number,
+        super_admin_name: name,
       });
 
       const base_charge = await this.baseMdrModel.findOne({
         trustee_id: trustee,
       });
-
-      const mdr = await this.schoolMdrModel.create({
-        school_id: trusteeSchool.school_id,
-        mdr2: base_charge.platform_charges,
-      });
+      if (base_charge) {
+        const mdr = await this.schoolMdrModel.create({
+          school_id: trusteeSchool.school_id,
+          mdr2: base_charge.platform_charges,
+        });
+      }
 
       return school;
     } catch (error) {

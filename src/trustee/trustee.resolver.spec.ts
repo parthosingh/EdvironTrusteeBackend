@@ -3,7 +3,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Connection, connect, Model, Schema, Types, model } from 'mongoose';
 import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
 import { getModelToken } from '@nestjs/mongoose';
-import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
+import { FullKycStatus, MerchantStatus, MinKycStatus, SchoolSchema, TrusteeSchool } from '../schema/school.schema';
 import { TrusteeService } from './trustee.service';
 import { ErpService } from '../erp/erp.service';
 import { TrusteeResolver } from './trustee.resolver';
@@ -63,9 +63,11 @@ describe('TrusteeResolver', () => {
       merchantId: 'merchantId',
       merchantName: 'merchantName',
       merchantEmail: 'merchantemail@edviron.com',
-      merchantStatus: 'merchantStatus',
-      pgMinKYC: 'pgMinKYC',
-      pgFullKYC: 'pgFullKYC',
+      merchantStatus: MerchantStatus.NOT_INITIATED,
+      pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
+      pgFullKYC: FullKycStatus.FULL_KYC_PENDING
+
+
     },
   ];
 
@@ -597,9 +599,9 @@ describe('TrusteeResolver', () => {
         merchantId: 'merchantId',
         merchantName: 'merchantName',
         merchantEmail: 'merchantemail@edviron.com',
-        merchantStatus: 'merchantStatus',
-        pgMinKYC: 'pgMinKYC',
-        pgFullKYC: 'pgFullKYC',
+        merchantStatus: MerchantStatus.NOT_INITIATED,
+        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
+        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
       };
 
       jest.spyOn(trusteeSchoolModel, 'findOne').mockResolvedValueOnce({

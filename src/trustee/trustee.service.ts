@@ -23,6 +23,7 @@ import * as fs from 'fs';
 import * as handlebars from 'handlebars';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
+import { TransactionInfo } from '../schema/transaction.info.schema';
 import { RequestMDR, mdr_status } from 'src/schema/mdr.request.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
@@ -47,6 +48,8 @@ export class TrusteeService {
     private jwtService: JwtService,
     @InjectModel(TrusteeMember.name)
     private trusteeMemberModel: mongoose.Model<TrusteeMember>,
+    @InjectModel(TransactionInfo.name)
+    private transactionInfoModel: mongoose.Model<TransactionInfo>,
     @InjectModel(RequestMDR.name)
     private requestMDRModel: mongoose.Model<RequestMDR>,
     @InjectModel(BaseMdr.name)
@@ -650,6 +653,59 @@ export class TrusteeService {
     return false;
   }
 
+  async trusteeRefunds(trustee_id: string) {
+    const response = await axios.get(
+      `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/partner-refunds?trustee_id=${trustee_id}`,
+    );
+    return response.data;
+  }
+
+  async merchantsRefunds(school_id: string) {
+    const response = await axios.get(
+      `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/merchant-refunds?school_id=${school_id}`,
+    );
+    return response.data;
+  }
+
+  async orderRefunds(order_id: string) {
+    const response = await axios.get(
+      `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/order-refunds?order_id=${order_id}`,
+    );
+    return response.data;
+  }
+  async createRemark(collect_id: string, remark: string, trustee_id: ObjectId) {
+    const collectIdObj = new Types.ObjectId(collect_id);
+    const updatedDocument = await this.transactionInfoModel.findOneAndUpdate(
+      { collect_id: collectIdObj },
+      { remarks: remark, trustee_id },
+      { upsert: true, new: true },
+    );
+    console.log(updatedDocument);
+
+    return updatedDocument;
+  }
+
+  async getRemarks(collect_id: string) {
+    const collectIdObj = new Types.ObjectId(collect_id);
+    return await this.transactionInfoModel.findOne({
+      collect_id: collectIdObj,
+    });
+  }
+
+  async deleteRemark(collect_id: string) {
+    const collectIdObj = new Types.ObjectId(collect_id);
+    const checkRemark = await this.transactionInfoModel.findOne({
+      collect_id: collectIdObj,
+    });
+    if (!checkRemark) {
+      throw new NotFoundException('remark not found');
+    }
+    await this.transactionInfoModel.findOneAndDelete({
+      collect_id: collectIdObj,
+    });
+    return `Remark deleted Successfully`;
+  }
+
   async createMdrRequest(
     trustee_id: ObjectId,
     school_id: string[],
@@ -1172,5 +1228,102 @@ export class TrusteeService {
       status: mdr_status.CANCELLED,
     });
     return 'MDR Request cancelled';
+  }
+
+  async createWebhooks(trustee, webhookUrl) {
+    try {
+      const urlRegex = /^https:\/\/([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+
+      if (!urlRegex.test(webhookUrl)) {
+        throw new BadRequestException(
+          'Please provide a valid https webhook url',
+        );
+      }
+
+      if (webhookUrl.endsWith('/')) {
+        webhookUrl = webhookUrl.slice(0, -1);
+      }
+
+      const oldWebhooks = trustee.webhook_urls;
+      const oldWebhookUrls = oldWebhooks.map((webhook) => webhook.url);
+      const oldWebhookIds = oldWebhooks
+        .map((webhook) => webhook.id)
+        .sort((a, b) => b - a);
+      if (oldWebhookUrls.includes(webhookUrl)) {
+        throw new BadRequestException(` ${webhookUrl} already exists`);
+      }
+
+      const newWebhook = {
+        id: oldWebhookUrls.length ? oldWebhookIds[0] + 1 : 1,
+        url: webhookUrl,
+      };
+
+      const updatedWebhooks = await this.trusteeModel.findByIdAndUpdate(
+        trustee._id,
+        {
+          $push: {
+            webhook_urls: newWebhook,
+          },
+        },
+        {
+          new: true,
+        },
+      );
+
+      if (!updatedWebhooks) {
+        throw new Error('Error updating webhook urls');
+      }
+
+      return `Webhook created successfully`;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async testWebhook(webhookUrl): Promise<boolean> {
+    const dummyData = {
+      collect_id: '66099e5f11a775b1834564f9',
+      amount: 10,
+      status: 'SUCCESS',
+      jwt: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2xsZWN0X2lkIjoiNjYwOTllNWYxMWE3NzViMTgzNDU2NGY5IiwiYW1vdW50IjoxMCwic3RhdHVzIjoiU1VDQ0VTUyJ9.QCUkDrDU7_Jy4JDa_Ch5WbJT6b5TfeOJJSJLLo63vB0',
+    };
+    try {
+      const response = await axios.post(webhookUrl, {
+        data: dummyData,
+      });
+      return true;
+    } catch (error) {
+      console.log(error.code);
+      if (error.code == 'ERR_BAD_REQUEST') return false;
+    }
+  }
+
+  async deleteWebhook(trustee, webhook_id) {
+    {
+      try {
+        const webHooks = trustee.webhook_urls;
+        const webHookIds = webHooks.map((webhook) => webhook.id);
+
+        if (!webHookIds.includes(webhook_id)) {
+          throw new BadRequestException('Webhook not found');
+        }
+
+        const updatedWebhooks = await this.trusteeModel.findByIdAndUpdate(
+          trustee._id,
+          {
+            $pull: {
+              webhook_urls: { id: webhook_id },
+            },
+          },
+          {
+            new: true,
+          },
+        );
+
+        return `Webhook deleted successfully`;
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    }
   }
 }
