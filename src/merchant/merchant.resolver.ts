@@ -151,7 +151,6 @@ export class MerchantResolver {
       let merchant = await this.trusteeSchoolModel.findById(
         context.req.merchant,
       );
-      console.log(merchant);
 
       let school_id = merchant?.school_id;
 
@@ -204,18 +203,19 @@ export class MerchantResolver {
           if (transaction.additional_data) {
             additionalData = JSON.parse(transaction.additional_data);
           }
+
           transaction.student_id =
-            additionalData?.student_details.student_id || '';
+            additionalData?.student_details?.student_id || '';
           transaction.student_name =
-            additionalData?.student_details.student_name || '';
+            additionalData?.student_details?.student_name || '';
           transaction.student_email =
-            additionalData?.student_details.student_email || '';
+            additionalData?.student_details?.student_email || '';
           transaction.student_phone =
-            additionalData?.student_details.student_phone_no || '';
-          transaction.receipt = additionalData?.student_details.receipt || '';
+            additionalData?.student_details?.student_phone_no || '';
+          transaction.receipt = additionalData?.student_details?.receipt || '';
           transaction.additional_data = additionalData?.additional_fields || '';
           transaction.school_id = school_id || '';
-          transaction.school_name = merchant.school_name || '';
+          transaction.school_name = merchant?.school_name || '';
 
           return transaction;
         },
