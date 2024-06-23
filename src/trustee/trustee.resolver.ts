@@ -965,6 +965,8 @@ export class TrusteeResolver {
     }
   }
 
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
   async generatePaymentLink(
     @Args('school_id') school_id: string,
     @Args('amount') amount: string,
@@ -1044,6 +1046,9 @@ export class TrusteeResolver {
       throw new Error(err);
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
   async createMdrRequest(
     @Args('school_id', { type: () => [String] }) school_id: string[],
     @Args('platform_charge', { type: () => [PlatformChargesInput] })
@@ -1119,6 +1124,7 @@ export class TrusteeResolver {
       throw new Error('Failed to fetch settlement data');
     }
   }
+  @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async updateMdrRequest(
     @Args('req_id', { type: () => ID }) req_id: ObjectId,
@@ -1136,7 +1142,6 @@ export class TrusteeResolver {
     );
   }
 
-  @UseGuards(TrusteeGuard)
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async tooglePaymentMode(
