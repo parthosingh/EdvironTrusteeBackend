@@ -480,7 +480,7 @@ export class TrusteeResolver {
         await Promise.all(
           newSchools.map(async (school) => {
             const newTrusteeSchool = await new this.trusteeSchoolModel({
-              school_id: school.school_id,
+              school_id: new Types.ObjectId(school.school_id),
               school_name: school.school_name,
               email: school.school_email,
               trustee_id: trustee._id,
