@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-types */
+
 import {
   BadRequestException,
   ConflictException,
@@ -134,7 +136,11 @@ export class MerchantResolver {
   @Query(() => [SettlementReport])
   @UseGuards(MerchantGuard)
   async getMerchantSettlementReports(@Context() context) {
-    let merchant = await this.trusteeSchoolModel.findById(context.req.merchant);
+
+    const merchant = await this.trusteeSchoolModel.findById(
+      context.req.merchant,
+    );
+
     if (!merchant) throw new NotFoundException('User not found');
     let settlementReports = [];
 
@@ -148,11 +154,13 @@ export class MerchantResolver {
   @UseGuards(MerchantGuard)
   async getMerchantTransactionReport(@Context() context) {
     try {
-      let merchant = await this.trusteeSchoolModel.findById(
+
+      const merchant = await this.trusteeSchoolModel.findById(
         context.req.merchant,
       );
 
-      let school_id = merchant?.school_id;
+      const school_id = merchant?.school_id;
+
 
       let transactionReport = [];
 
@@ -162,12 +170,15 @@ export class MerchantResolver {
 
       console.log(`Getting report for ${merchant.merchantName}(${school_id})`);
 
-      let token = this.jwtService.sign(
+
+      const token = this.jwtService.sign(
+
         { school_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
 
-      let config = {
+
+      const config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report?limit=50000`,
@@ -217,6 +228,7 @@ export class MerchantResolver {
           transaction.school_id = school_id || '';
           transaction.school_name = merchant?.school_name || '';
 
+
           return transaction;
         },
       );
@@ -236,6 +248,7 @@ export class MerchantResolver {
   @UseGuards(MerchantGuard)
   @Query(() => [MerchantMemberesResponse])
   async getAllMerchantMembers(@Context() context) {
+
     let merchant = await this.trusteeSchoolModel.findById(context.req.merchant);
 
     const allMembers = await this.merchantMemberModel
@@ -468,7 +481,9 @@ export class MerchantResolver {
     @Args('otp') otp: string,
     @Context() context,
   ) {
+
     let id = context.req.merchant;
+
     const role = context.req.role;
     if (role !== 'owner') {
       throw new UnauthorizedException(
@@ -512,7 +527,9 @@ export class MerchantResolver {
     @Args('otp') otp: string,
     @Context() context,
   ) {
+
     let id = context.req.merchant;
+
     const role = context.req.role;
     if (role !== 'owner') {
       throw new UnauthorizedException(
@@ -567,13 +584,15 @@ export class MerchantResolver {
   @Mutation(() => String)
   async initiateRefund(
     @Args('order_id') order_id: string,
-    @Args('refund_amount') refund_amount: Number,
+
+    @Args('refund_amount') refund_amount: number,
     @Args('refund_note') refund_note: string,
     @Context() context,
   ) {
     let merchant = await this.trusteeSchoolModel.findById(context.req.merchant);
     if (!merchant) throw new NotFoundException('Merchant not found');
     let client_id = merchant.client_id;
+
     const data = {
       client_id,
       order_id,
@@ -595,6 +614,7 @@ export class MerchantResolver {
   @UseGuards(MerchantGuard)
   @Query(() => [MerchantRefundResponse])
   async merchantRefunds(@Context() context) {
+
     let merchant = await this.trusteeSchoolModel.findById(context.req.merchant);
     if (!merchant) throw new NotFoundException('Merchant not found');
     let school_id = merchant.school_id.toString();
@@ -644,7 +664,9 @@ export class MerchantResolver {
     @Args('remark') remark: string,
     @Context() context,
   ) {
+
     let merchant = await this.trusteeSchoolModel.findById(context.req.merchant);
+
     if (!merchant) throw new NotFoundException('Merchant not found');
     const newRemark = await this.trusteeService.createRemark(
       collect_id,
@@ -659,6 +681,7 @@ export class MerchantResolver {
   async deleteMerchantRemark(@Args('collect_id') collect_id: string) {
     return await this.trusteeService.deleteRemark(collect_id);
   }
+
 }
 
 @ObjectType()

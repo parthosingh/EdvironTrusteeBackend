@@ -1326,4 +1326,12 @@ export class TrusteeService {
       }
     }
   }
+
+  async generateToken(id:Types.ObjectId) {
+    const payload = { id };
+    return this.jwtService.sign(payload, {
+      secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
+    });
+  }
+
 }

@@ -35,7 +35,7 @@ import { Trustee, WebhookUrlType } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
-
+import { MerchantMember } from 'src/schema/merchant.member.schema';
 @Resolver('Trustee')
 export class TrusteeResolver {
   constructor(
@@ -51,6 +51,9 @@ export class TrusteeResolver {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(TrusteeMember.name)
     private trusteeMemberModel: mongoose.Model<TrusteeMember>,
+    @InjectModel(MerchantMember.name)
+    private merchantMemberModel:mongoose.Model<MerchantMember>
+    
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -965,6 +968,7 @@ export class TrusteeResolver {
     }
   }
 
+
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async generatePaymentLink(
@@ -1124,6 +1128,7 @@ export class TrusteeResolver {
       throw new Error('Failed to fetch settlement data');
     }
   }
+
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async updateMdrRequest(
@@ -1371,6 +1376,31 @@ export class TrusteeResolver {
   async deleteRemark(@Args('collect_id') collect_id: string) {
     return await this.trusteeService.deleteRemark(collect_id);
   }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async generateMerchantLoginToken(
+    @Args('email') email: string,
+  ): Promise<string> {
+    try {
+      const merchant = await this.trusteeSchoolModel.findOne({
+        email,
+      });
+
+      if (merchant) {
+        return this.trusteeService.generateToken(merchant._id);
+      }
+      const member = await this.merchantMemberModel.findOne({ email });
+      if (member) {
+        return this.trusteeService.generateToken(member._id);
+      }
+      throw new NotFoundException('Email not found');
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+
 }
 
 @ObjectType()

@@ -18,10 +18,12 @@ import { TransactionInfoSchema } from 'src/schema/transaction.info.schema';
 import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
 import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
+import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
 config();
 
 @Module({
   imports: [
+    MongooseModule.forFeature([{ name: MerchantMember.name, schema: MerchantMemberSchema }]),
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
     MongooseModule.forFeature([
       { name: 'TrusteeMember', schema: TrusteeMemberSchema },
