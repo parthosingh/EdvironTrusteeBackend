@@ -194,8 +194,6 @@ export class ErpController {
     },
     @Req() req,
   ) {
-  
-    
     try {
       const trustee_id = req.userTrustee.id;
       const {
@@ -238,8 +236,7 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('School not found');
       }
-      
-      
+
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
@@ -302,7 +299,7 @@ export class ErpController {
         additional_data: additionalInfo || {},
         custom_order_id: custom_order_id || null,
         req_webhook_urls: req_webhook_urls || null,
-        school_name:school.school_name || null
+        school_name: school.school_name || null,
       });
       let config = {
         method: 'post',
@@ -982,7 +979,6 @@ export class ErpController {
       collect_id,
     } = body;
     try {
-      
       const decrypted = this.jwtService.verify(token, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
       });
@@ -996,7 +992,7 @@ export class ErpController {
         decrypted.collect_id != collect_id
       ) {
         throw new ForbiddenException('request forged');
-      } 
+      }
 
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
@@ -1015,7 +1011,7 @@ export class ErpController {
       if (!baseMdr) {
         throw new ConflictException('Trustee has no Base MDR set ');
       }
-      
+
       const school_platform_charges = school.platform_charges; //MDR 2 charges
       const trustee_platform_charges = baseMdr.platform_charges; //Trustee base rate charges
       let paymentMode = payment_mode;
@@ -1026,7 +1022,7 @@ export class ErpController {
       ) {
         paymentMode = payment_mode.split(' ')[0];
       }
-      
+
       const school_commission = await this.erpService.calculateCommissions(
         school_platform_charges,
         paymentMode,
@@ -1043,7 +1039,7 @@ export class ErpController {
       const erpCommission = school_commission - trustee_base; // ERP/Trustee commission(MDR2-Trustee Base rate)
       // const edvCommission = trustee_base - cashfree_commission; // Edviron Earnings (Trustee base rate - cashfree Commission)
       const erpCommissionWithGST = erpCommission + erpCommission * 0.18;
-      
+
       await new this.commissionModel({
         school_id,
         trustee_id,
@@ -1053,7 +1049,6 @@ export class ErpController {
         collect_id: new Types.ObjectId(collect_id),
       }).save(); // ERP Commission
 
-
       return {
         status: 'successful',
         msg: 'Commission and Earnings are Updated Successfully',
@@ -1061,5 +1056,22 @@ export class ErpController {
     } catch (err) {
       throw new Error(err.message);
     }
+  }
+
+  @Get('school-info')
+  async getSchoolInfo(@Body() body: { school_id: string; token: string }) {
+    const { school_id, token } = body;
+    const decrypted = this.jwtService.verify(token, {
+      secret: process.env.PAYMENTS_SERVICE_SECRET,
+    });
+    if (decrypted.school_id !== school_id) {
+      throw new UnauthorizedException('token forged');
+    }
+
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+
+    return { school_name: school.school_name };
   }
 }
