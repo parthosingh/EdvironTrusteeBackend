@@ -35,6 +35,7 @@ import { Trustee, WebhookUrlType } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
+import { Commission } from 'src/schema/commission.schema';
 import { MerchantMember } from 'src/schema/merchant.member.schema';
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -51,9 +52,11 @@ export class TrusteeResolver {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(TrusteeMember.name)
     private trusteeMemberModel: mongoose.Model<TrusteeMember>,
+    @InjectModel(Commission.name)
+    private commissionModel: mongoose.Model<Commission>,
     @InjectModel(MerchantMember.name)
     private merchantMemberModel:mongoose.Model<MerchantMember>
-    
+
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -309,6 +312,11 @@ export class TrusteeResolver {
         if (info) {
           remark = info.remarks;
         }
+        let commissionAmount=0
+        const commission=await this.commissionModel.findOne({collect_id:new Types.ObjectId(item.collect_id)})
+        if(commission){
+          commissionAmount=commission.commission_amount
+        }
         return {
           ...item,
           merchant_name:
@@ -335,6 +343,7 @@ export class TrusteeResolver {
           school_name:
             merchant_ids_to_merchant_map[item.merchant_id].school_name,
           remarks: remark,
+          commission:commissionAmount
         };
       });
 
@@ -1378,6 +1387,12 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
+  @Query(()=>Commission)
+  async getCommission( @Context() context,){
+    const trustee_id = context.req.trustee;
+    return await this.commissionModel.find({trustee_id})
+  }
+  
   @Mutation(() => String)
   async generateMerchantLoginToken(
     @Args('email') email: string,
@@ -1631,6 +1646,8 @@ class TransactionReport {
   remarks: string;
   @Field({ nullable: true })
   details: string;
+  @Field({ nullable: true })
+  commission: number;
 }
 
 @ObjectType()

@@ -627,4 +627,41 @@ export class ErpService {
         });
     });
   }
+
+  async calculateCommissions(commission, payment_mode, platform_type, amount) {
+    let commissionEntry = commission.find(
+      (c) =>
+        c.payment_mode.toLowerCase() === payment_mode.toLowerCase() &&
+        c.platform_type.toLowerCase() === platform_type.toLowerCase(),
+    );
+``
+    if (!commissionEntry) {
+      commissionEntry = commission.find(
+        (c) =>
+          c.payment_mode.toLowerCase() === 'others' &&
+          c.platform_type.toLowerCase() === platform_type.toLowerCase(),
+      );
+    } // handel if payment_mode is not present in platform charges treat it as Others
+
+    if (!commissionEntry) {
+      throw new NotFoundException(
+        `Commission entry not found for payment mode: ${payment_mode} and platform type: ${platform_type}`,
+      );
+    }
+
+    const { range_charge } = commissionEntry;
+    let commissionAmount = 0;
+
+    for (const range of range_charge) {
+      if (range.upto === null || amount <= range.upto) {
+        if (range.charge_type === 'FLAT') {
+          commissionAmount = range.charge;
+        } else if (range.charge_type === 'PERCENT') {
+          commissionAmount = (range.charge / 100) * amount;
+        }
+        break;
+      }
+    }
+    return commissionAmount;
+  }
 }

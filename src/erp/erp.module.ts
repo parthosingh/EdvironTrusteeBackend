@@ -8,12 +8,23 @@ import { JwtModule } from '@nestjs/jwt';
 import { SettlementSchema } from '../schema/settlement.schema';
 import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
+import { Commission, CommissionSchema } from 'src/schema/commission.schema';
+import { Earnings, EarningsSchema } from 'src/schema/earnings.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Commission.name, schema: CommissionSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Earnings.name, schema: EarningsSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: BaseMdr.name, schema: BaseMdrSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({

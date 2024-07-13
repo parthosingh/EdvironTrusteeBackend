@@ -25,6 +25,10 @@ import {
   SettlementSchema,
 } from '../schema/settlement.schema';
 import { Trustee } from 'src/schema/trustee.schema';
+import { Commission } from 'src/schema/commission.schema';
+import { Earnings } from 'src/schema/earnings.schema';
+import { BaseMdr } from 'src/schema/base.mdr.schema';
+// import cf_commision from 'src/utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
 
 @Controller('erp')
 export class ErpController {
@@ -37,6 +41,12 @@ export class ErpController {
     private settlementModel: mongoose.Model<SettlementReport>,
     @InjectModel(Trustee.name)
     private trusteeModel: mongoose.Model<Trustee>,
+    @InjectModel(Commission.name)
+    private commissionModel: mongoose.Model<Commission>,
+    @InjectModel(Earnings.name)
+    private earningsModel: mongoose.Model<Earnings>,
+    @InjectModel(BaseMdr.name)
+    private baseMdrModel: mongoose.Model<BaseMdr>,
   ) {}
 
   @Get('payment-link')
@@ -402,11 +412,14 @@ export class ErpController {
       };
 
       const { data: paymentsServiceResp } = await axios.request(config);
-      const responseWithoutSign = {...paymentsServiceResp, sign: undefined};
-      const responseWithSign = {...paymentsServiceResp, sign: this.jwtService.sign(
-        responseWithoutSign,
-        { noTimestamp: true, secret: school.pg_key },
-      )};
+      const responseWithoutSign = { ...paymentsServiceResp, sign: undefined };
+      const responseWithSign = {
+        ...paymentsServiceResp,
+        sign: this.jwtService.sign(responseWithoutSign, {
+          noTimestamp: true,
+          secret: school.pg_key,
+        }),
+      };
       return responseWithSign;
     } catch (error) {
       if (error.name === 'JsonWebTokenError')
@@ -461,7 +474,8 @@ export class ErpController {
           process.env.PAYMENTS_SERVICE_ENDPOINT
         }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
           {
-            transactionId: order_id,trusteeId:trustee_id
+            transactionId: order_id,
+            trusteeId: trustee_id,
           },
           { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
         )}`,
@@ -788,6 +802,7 @@ export class ErpController {
       throw new Error(error.message);
     }
   }
+
   @Post('webhook')
   async webhook(@Body() body, @Res() res) {
     try {
@@ -880,6 +895,171 @@ export class ErpController {
     } catch (error) {
       console.log('error in sending-webhook', error);
       throw error;
+    }
+  }
+
+  @Post('update-commission') //add collect req id/transaction id in schema
+  async updateCommission(
+    @Body()
+    body: {
+      token: string;
+      school_id: string;
+      trustee_id: string;
+      commission_amount: number;
+      payment_mode: string;
+      earnings_amount: number;
+      transaction_id: string;
+    },
+  ) {
+    const decrypted = this.jwtService.verify(body.token, {
+      secret: process.env.PAYMENTS_SERVICE_SECRET,
+    });
+    const {
+      school_id,
+      trustee_id,
+      commission_amount,
+      payment_mode,
+      earnings_amount,
+      transaction_id,
+    } = body;
+    try {
+      if (
+        decrypted.school_id != school_id ||
+        decrypted.trustee_id != trustee_id ||
+        decrypted.commission_amount != commission_amount ||
+        decrypted.payment_mode != payment_mode ||
+        decrypted.earnings_amount != earnings_amount
+      ) {
+        throw new ForbiddenException('request forged');
+      }
+
+      await new this.commissionModel({
+        school_id: new Types.ObjectId(school_id),
+        trustee_id: new Types.ObjectId(trustee_id),
+        commission_amount,
+        payment_mode,
+        collect_id: new Types.ObjectId(transaction_id),
+      }).save(); // ERP Commission
+
+      await new this.earningsModel({
+        school_id: new Types.ObjectId(school_id),
+        trustee_id: new Types.ObjectId(trustee_id),
+        payment_mode,
+        earnings_amount,
+        collect_id: new Types.ObjectId(transaction_id),
+      }).save(); //edviron Earnings
+
+      return {
+        status: 'successful',
+        msg: 'Commission and Earnings are Updated Successfully',
+      };
+    } catch (err) {
+      throw new Error(err.message);
+    }
+  }
+
+  @Post('add-commission')
+  async addCommission(
+    @Body()
+    body: {
+      token: string;
+      school_id: string;
+      trustee_id: string;
+      order_amount: number;
+      transaction_amount: number;
+      payment_mode: string;
+      platform_type: string;
+      collect_id: string;
+    },
+  ) {
+    const {
+      payment_mode,
+      platform_type,
+      order_amount,
+      token,
+      school_id,
+      trustee_id,
+      collect_id,
+    } = body;
+    try {
+      
+      const decrypted = this.jwtService.verify(token, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+
+      if (
+        decrypted.school_id != school_id ||
+        decrypted.trustee_id != trustee_id ||
+        decrypted.order_amount != order_amount ||
+        decrypted.payment_mode != payment_mode ||
+        decrypted.platform_type != platform_type ||
+        decrypted.collect_id != collect_id
+      ) {
+        throw new ForbiddenException('request forged');
+      } 
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new NotFoundException(`School not found for ${school_id}`);
+      }
+      const trustee = await this.trusteeModel.findById(trustee_id);
+
+      if (!trustee) {
+        throw new NotFoundException(`Trustee not found for ${trustee_id}`);
+      }
+      const baseMdr = await this.baseMdrModel.findOne({
+        trustee_id: trustee._id,
+      });
+      if (!baseMdr) {
+        throw new ConflictException('Trustee has no Base MDR set ');
+      }
+      
+      const school_platform_charges = school.platform_charges; //MDR 2 charges
+      const trustee_platform_charges = baseMdr.platform_charges; //Trustee base rate charges
+      let paymentMode = payment_mode;
+      if (
+        platform_type === 'CreditCard' ||
+        platform_type === 'DebitCard' ||
+        platform_type === 'CORPORATE CARDS'
+      ) {
+        paymentMode = payment_mode.split(' ')[0];
+      }
+      
+      const school_commission = await this.erpService.calculateCommissions(
+        school_platform_charges,
+        paymentMode,
+        platform_type,
+        order_amount,
+      ); //MDR2 amount
+      const trustee_base = await this.erpService.calculateCommissions(
+        trustee_platform_charges,
+        paymentMode,
+        platform_type,
+        order_amount,
+      ); // trustee base rate amount
+
+      const erpCommission = school_commission - trustee_base; // ERP/Trustee commission(MDR2-Trustee Base rate)
+      // const edvCommission = trustee_base - cashfree_commission; // Edviron Earnings (Trustee base rate - cashfree Commission)
+      const erpCommissionWithGST = erpCommission + erpCommission * 0.18;
+      
+      await new this.commissionModel({
+        school_id,
+        trustee_id,
+        commission_amount: erpCommissionWithGST,
+        payment_mode,
+        platform_type,
+        collect_id: new Types.ObjectId(collect_id),
+      }).save(); // ERP Commission
+
+
+      return {
+        status: 'successful',
+        msg: 'Commission and Earnings are Updated Successfully',
+      };
+    } catch (err) {
+      throw new Error(err.message);
     }
   }
 }

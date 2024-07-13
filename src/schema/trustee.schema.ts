@@ -43,6 +43,10 @@ export class Trustee extends Document {
   @Prop()
   apiKey: string;
 
+  @Prop({})
+  @Field(() => String)
+  vendor_id: string;
+
   @Field(() => String, { nullable: true, defaultValue: null })
   @Prop()
   onboarder_id: string;
