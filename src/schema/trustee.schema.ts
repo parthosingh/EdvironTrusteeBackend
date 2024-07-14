@@ -58,6 +58,10 @@ export class Trustee extends Document {
   @Field(() => [WebhookUrlType], { nullable: true })
   @Prop({ required: false })
   webhook_urls: WebhookUrlType[];
+
+  @Field()
+  @Prop({ required: true })
+  logo: string;
 }
 
 export const TrusteeSchema = SchemaFactory.createForClass(Trustee);

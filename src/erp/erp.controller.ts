@@ -1074,4 +1074,30 @@ export class ErpController {
 
     return { school_name: school.school_name };
   }
+
+  @Get('trustee-logo')
+  async getTrusteeLogo(
+    @Body() body: { token: string },
+    @Query('trustee_id') trustee_id: string,
+  ) {
+    try {
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      const decrypted = await this.jwtService.verify(body.token, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      if (decrypted.trustee_id !== trustee_id) {
+        throw new UnauthorizedException('Unauthorized User');
+      }
+      if (!trustee) {
+        throw new NotFoundException('trustee not found');
+      }
+      if (trustee.logo) {
+        return { status: 'success', logo: trustee.logo };
+      }
+
+      return { status: 'failed' };
+    } catch (e) {
+      throw new Error(e.message);
+    }
+  }
 }
