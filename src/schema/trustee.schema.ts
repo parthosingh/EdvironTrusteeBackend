@@ -60,7 +60,7 @@ export class Trustee extends Document {
   webhook_urls: WebhookUrlType[];
 
   @Field()
-  @Prop({ required: true })
+  @Prop()
   logo: string;
 }
 
