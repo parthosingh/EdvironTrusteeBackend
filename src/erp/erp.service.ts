@@ -21,6 +21,7 @@ import { Cron } from '@nestjs/schedule';
 import { SettlementReport } from '../schema/settlement.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { CashfreeService } from '../cashfree/cashfree.service';
 
 @Injectable()
 export class ErpService {
@@ -36,6 +37,7 @@ export class ErpService {
     private schoolMdrModel: mongoose.Model<SchoolMdr>,
     @InjectModel(BaseMdr.name)
     private baseMdrModel: mongoose.Model<BaseMdr>,
+    private readonly cashfreeService: CashfreeService,
   ) {}
 
   async createApiKey(trusteeId: string): Promise<string> {
@@ -506,92 +508,111 @@ export class ErpService {
   }
 
   @Cron('0 1 * * *')
-  async sendSettlements() {
-    console.log('running cron');
+  async sendSettlements(settlementDate?: Date) {
+    if (!settlementDate) {
+      settlementDate = new Date();
+    }
+    console.log('running cron', settlementDate);
     const merchants = await this.trusteeSchoolModel.find({});
-    merchants.forEach((merchant) => {
-      if (!merchant.client_id) return;
-      console.log(
-        `getting report for ${merchant.merchantName}(${merchant.client_id})`,
-      );
-      const start = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
-      end.setHours(23, 59, 59, 999);
+    merchants
+      .filter((m) => m.client_id)
+      .map(async (merchant) => {
+        if (!merchant.client_id) return;
+        console.log(
+          `getting report for ${merchant.school_name}(${merchant.client_id})`,
+        );
+        const start = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
+        end.setHours(23, 59, 59, 999);
 
-      const axios = require('axios');
-      const data = JSON.stringify({
-        pagination: {
-          limit: 1000,
-        },
-        filters: {
-          start_date: start.toISOString(),
-          end_date: end.toISOString(),
-        },
-      });
+        const axios = require('axios');
+        const data = JSON.stringify({
+          pagination: {
+            limit: 1000,
+          },
+          filters: {
+            start_date: start.toISOString(),
+            end_date: end.toISOString(),
+          },
+        });
 
-      const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: 'https://api.cashfree.com/pg/settlements',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          'x-api-version': '2023-08-01',
-          'x-partner-apikey': process.env.CASHFREE_API_KEY,
-          'x-partner-merchantid': merchant.client_id,
-        },
-        data: data,
-      };
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: 'https://api.cashfree.com/pg/settlements',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            'x-api-version': '2023-08-01',
+            'x-partner-apikey': process.env.CASHFREE_API_KEY,
+            'x-partner-merchantid': merchant.client_id,
+          },
+          data: data,
+        };
 
-      axios
-        .request(config)
-        .then(async (response) => {
-          console.log('response', response.data.data[0]);
-          if (response.data.data.length === 0) return;
+        const promise = () =>
+          new Promise(async (resolve, reject) => {
+            console.log('promise called');
+            try {
+              const response = await axios.request(config);
 
-          const settlementReport = new this.settlementReportModel({
-            settlementAmount: response.data.data[0].payment_amount.toFixed(2),
-            adjustment: (0.0).toString(),
-            netSettlementAmount:
-              response.data.data[0].payment_amount.toFixed(2),
-            clientId: merchant.client_id,
-            fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-            tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-            status: 'Settled',
-            utrNumber: response.data.data[0].settlement_utr,
-            settlementDate: new Date(
-              new Date().getTime() - 86400000 * 1,
-            ).toDateString(),
-            trustee: merchant.trustee_id,
-            schoolId: merchant.school_id,
-          });
-          await settlementReport.save();
+              console.log('response', response.data.data[0]);
+              if (response.data.data.length === 0) return;
+              const existingSettlement =
+                await this.settlementReportModel.findOne({
+                  utrNumber: response.data.data[0].settlement_utr,
+                });
+              if (!existingSettlement) {
+                const settlementReport = new this.settlementReportModel({
+                  settlementAmount:
+                    response.data.data[0].payment_amount.toFixed(2),
+                  adjustment: (0.0).toString(),
+                  netSettlementAmount:
+                    response.data.data[0].payment_amount.toFixed(2),
+                  clientId: merchant.client_id,
+                  fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+                  tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+                  status: 'Settled',
+                  utrNumber: response.data.data[0].settlement_utr,
+                  settlementDate: new Date(
+                    settlementDate.getTime() - 86400000 * 1,
+                  ).toDateString(),
+                  trustee: merchant.trustee_id,
+                  schoolId: merchant.school_id,
+                });
+                console.log(`saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`);
+                await settlementReport.save();
+              } else {
+                console.log('Settlement already exists', existingSettlement);
+              }
 
-          const transporter = nodemailer.createTransport({
-            pool: true,
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
-            auth: {
-              type: 'OAuth2',
-              user: process.env.EMAIL_USER,
-              clientId: process.env.OAUTH_CLIENT_ID,
-              clientSecret: process.env.OAUTH_CLIENT_SECRET,
-              refreshToken: process.env.OAUTH_REFRESH_TOKEN,
-            },
-          });
+              const transporter = nodemailer.createTransport({
+                pool: true,
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true,
+                auth: {
+                  type: 'OAuth2',
+                  user: process.env.EMAIL_USER,
+                  clientId: process.env.OAUTH_CLIENT_ID,
+                  clientSecret: process.env.OAUTH_CLIENT_SECRET,
+                  refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+                },
+              });
 
-          const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: 'tarun.k@edviron.com',
-            subject:
-              'Settlement Report Dt.' +
-              new Date(new Date().getTime() - 86400000 * 1).toDateString(),
-            attachments: [
-              {
-                filename: `setllement_report_${merchant.school_name}.csv`,
-                content: `
+              const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: 'tarun.k@edviron.com',
+                subject:
+                  'Settlement Report Dt.' +
+                  new Date(
+                    settlementDate.getTime() - 86400000 * 1,
+                  ).toDateString(),
+                attachments: [
+                  {
+                    filename: `setllement_report_${merchant.school_name}.csv`,
+                    content: `
                 S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
                 1, ${response.data.data[0].payment_amount.toFixed(
                   2,
@@ -602,15 +623,15 @@ export class ErpService {
                 )}, ${new Date(
                   start.getTime() - 24 * 60 * 60 * 1000,
                 )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
-                  new Date().getTime() - 86400000 * 1,
+                  settlementDate.getTime() - 86400000 * 1,
                 ).toDateString()}`,
-              },
-            ],
-            html: `
+                  },
+                ],
+                html: `
             Dear School, <br/><br/>
             
             Attached is the settlement report for transactions processed on ${new Date(
-              new Date().getTime() - 86400000 * 2,
+              settlementDate.getTime() - 86400000 * 2,
             ).toDateString()}. <br/><br/>
             
             If you have any questions or require further clarification, feel free to reach out. <br/><br/>
@@ -618,14 +639,19 @@ export class ErpService {
             Regards,<br/>
             Edviron Team 
             `,
-          };
-          const info = await transporter.sendMail(mailOptions);
-          console.log(info);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    });
+              };
+              const info = await transporter.sendMail(mailOptions);
+              console.log(info);
+              resolve({});
+            } catch (error) {
+              console.log(`error getting settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`, error.message);
+            }
+            // .catch((error) => {
+            //   console.log(error.message);
+            // });
+          });
+        this.cashfreeService.enqueue(promise);
+      });
   }
 
   async calculateCommissions(commission, payment_mode, platform_type, amount) {
@@ -634,7 +660,7 @@ export class ErpService {
         c.payment_mode.toLowerCase() === payment_mode.toLowerCase() &&
         c.platform_type.toLowerCase() === platform_type.toLowerCase(),
     );
-``
+    ``;
     if (!commissionEntry) {
       commissionEntry = commission.find(
         (c) =>

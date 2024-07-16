@@ -20,11 +20,14 @@ import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 import { Commission, CommissionSchema } from 'src/schema/commission.schema';
 import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
+import { CashfreeService } from '../cashfree/cashfree.service';
+import { CashfreeModule } from '../cashfree/cashfree.module';
 
 config();
 
 @Module({
   imports: [
+    CashfreeModule,
     MongooseModule.forFeature([{ name: MerchantMember.name, schema: MerchantMemberSchema }]),
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
     MongooseModule.forFeature([

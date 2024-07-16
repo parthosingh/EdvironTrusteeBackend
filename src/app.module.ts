@@ -13,6 +13,8 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver } from '@nestjs/apollo';
 import { TrusteeResolver } from './trustee/trustee.resolver';
 import { MerchantResolver } from './merchant/merchant.resolver';
+import { CashfreeService } from './cashfree/cashfree.service';
+import { CashfreeModule } from './cashfree/cashfree.module';
 config();
 
 @Module({
@@ -32,9 +34,10 @@ config();
       resolvers: [TrusteeResolver, MerchantResolver], // Your resolvers here
       playground: process.env.NODE_ENV === 'dev',
     }),
+    CashfreeModule,
   ],
 
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, CashfreeService],
 })
 export class AppModule {}

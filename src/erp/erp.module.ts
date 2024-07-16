@@ -10,9 +10,12 @@ import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 import { Commission, CommissionSchema } from 'src/schema/commission.schema';
 import { Earnings, EarningsSchema } from 'src/schema/earnings.schema';
+import { CashfreeModule } from '../cashfree/cashfree.module';
+import { CashfreeService } from '../cashfree/cashfree.service';
 
 @Module({
   imports: [
+    CashfreeModule,
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
@@ -40,7 +43,7 @@ import { Earnings, EarningsSchema } from 'src/schema/earnings.schema';
       { name: SchoolMdr.name, schema: SchoolMdrSchema },
     ]),
   ],
-  providers: [ErpService],
+  providers: [ErpService, CashfreeService],
   controllers: [ErpController],
 })
 export class ErpModule {}
