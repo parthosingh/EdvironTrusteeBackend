@@ -144,6 +144,10 @@ export class TrusteeSchool {
 
   @Prop({})
   @Field(() => String)
+  easebuzz_id: string;
+
+  @Prop({})
+  @Field(() => String)
   super_admin_name: string;
   createdAt?: Date;
   updatedAt?: Date;

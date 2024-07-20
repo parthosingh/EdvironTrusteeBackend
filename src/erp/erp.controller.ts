@@ -300,6 +300,7 @@ export class ErpController {
         custom_order_id: custom_order_id || null,
         req_webhook_urls: req_webhook_urls || null,
         school_name: school.school_name || null,
+        easebuzz_sub_merchant_id:school.easebuzz_id || null,
       });
       let config = {
         method: 'post',
