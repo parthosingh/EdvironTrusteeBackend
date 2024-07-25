@@ -1571,6 +1571,9 @@ class School {
 
   @Field(() => [PlatformCharge], { nullable: true })
   platform_charges: [PlatformCharge];
+
+  @Field(() => Date, { nullable: true })
+  updatedAt: Date;
 }
 
 @ObjectType()
