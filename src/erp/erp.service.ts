@@ -223,10 +223,12 @@ export class ErpService {
         trustee_id: trustee,
       });
       if (base_charge) {
-        const mdr = await this.schoolMdrModel.create({
-          school_id: trusteeSchool.school_id,
-          mdr2: base_charge.platform_charges,
-        });
+        // const mdr = await this.schoolMdrModel.create({
+        //   school_id: trusteeSchool.school_id,
+        //   mdr2: base_charge.platform_charges,
+        // });
+        trusteeSchool.platform_charges=base_charge.platform_charges
+        await trusteeSchool.save()
       }
 
       return school;
