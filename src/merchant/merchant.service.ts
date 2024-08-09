@@ -159,6 +159,8 @@ export class MerchantService {
           user: merchant.super_admin_name,
           apiKey: trustee.apiKey,
           merchant: merchant._id,
+          trustee_id:trustee._id,
+          trustee_logo:trustee.logo || null
         };
         return userMerchant;
       }
@@ -183,6 +185,8 @@ export class MerchantService {
           user: member.name,
           apiKey: trustee.apiKey,
           merchant: merchant._id,
+          trustee_id:trustee._id,
+          trustee_logo:trustee.logo || null
         };
         return userMerchant;
       }

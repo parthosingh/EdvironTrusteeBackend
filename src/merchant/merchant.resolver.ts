@@ -85,6 +85,8 @@ export class MerchantResolver {
     try {
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userMerchant = await this.merchantService.validateMerchant(token);
+      console.log(userMerchant,'merchant');
+      
       // Map the trustee data to the User type
       const user: MerchantUser = {
         _id: userMerchant.id,
@@ -94,6 +96,8 @@ export class MerchantResolver {
         role: userMerchant.role,
         phone_number: userMerchant.phone_number,
         user: userMerchant.user,
+        trustee_id:userMerchant.trustee_id,
+        trustee_logo:userMerchant.trustee_logo
       };
       return user;
     } catch (error) {
@@ -738,6 +742,10 @@ class MerchantUser {
   phone_number: string;
   @Field({ nullable: true })
   user: string;
+  @Field({ nullable: true })
+  trustee_id?: string;
+  @Field({ nullable: true })
+  trustee_logo?: string;
 }
 
 @ObjectType()
