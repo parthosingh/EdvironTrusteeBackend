@@ -22,7 +22,7 @@ import { SettlementReport } from '../schema/settlement.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { CashfreeService } from '../cashfree/cashfree.service';
-
+import * as crypto from 'crypto';
 @Injectable()
 export class ErpService {
   constructor(
@@ -509,6 +509,129 @@ export class ErpService {
     }
   }
 
+  async easebuzzSettlements(settlementDate?: Date) {
+    if (!settlementDate) {
+      settlementDate = new Date();
+    }
+    console.log(settlementDate, 'ss');
+
+    const date = new Date(settlementDate.getTime());
+    date.setHours(23, 59, 59, 999);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    const formattedDateString = `${day}-${month}-${year}`; //eazebuzz accepts date in DD-MM-YYYY formal seprated with - like '19-07-2024'
+    console.log(formattedDateString, 'formant date');
+
+    console.log('running cron for Easebuzz', settlementDate);
+    //merchant_key|merchant_email|payout_date|salt
+    const merchants = await this.trusteeSchoolModel.find({});
+    const hashBody = `${process.env.EASEBUZZ_KEY}|${process.env.EASEBUZZ_MERCHANT_EMAIL}|${formattedDateString}|${process.env.EASEBUZZ_SALT}`;
+    const hash = await this.calculateSHA512Hash(hashBody);
+    console.log(hash);
+
+    merchants
+      .filter((m) => m.easebuzz_id)
+      .map(async (merchant) => {
+        if (!merchant.easebuzz_id) return;
+        console.log(
+          `Getting easebuzz settlement Report for  ${merchant.school_name}(${merchant.easebuzz_id}`,
+        );
+
+        const start = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
+        end.setHours(23, 59, 59, 999);
+
+        const axios = require('axios');
+        const qs = require('qs');
+
+        const data = qs.stringify({
+          merchant_email: process.env.EASEBUZZ_MERCHANT_EMAIL,
+          merchant_key: process.env.EASEBUZZ_KEY,
+          hash: hash,
+          payout_date: formattedDateString,
+          submerchant_id: merchant.easebuzz_id,
+        });
+
+        //easebuzz prod url https://dashboard.easebuzz.in
+        const config = {
+          method: 'POST',
+          url: `${process.env.EASEBUZZ_ENDPOINT_PROD_DB}/payout/v1/retrieve`,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Accept: 'application/json',
+          },
+          data: data,
+        };
+        try {
+          const response = await axios.request(config);
+          console.log(response.data.payouts_history_data, 'data');
+          if (response.data || response.data.payouts_history_data.length === 0)
+            return;
+          const existingSettlement = await this.settlementReportModel.findOne({
+            utrNumber:
+              response.data.payouts_history_data[0].bank_transaction_id,
+          });
+          if (!existingSettlement) {
+            const settlementReport = new this.settlementReportModel({
+              settlementAmount:
+                response.data.payouts_history_data[0].total_amount,
+              adjustment: (0.0).toString(),
+              netSettlementAmount:
+                response.data.payouts_history_data[0].payout_amount,
+              easebuzz_id: merchant.easebuzz_id,
+              fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+              tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+              status: 'Settled',
+              utrNumber:
+                response.data.payouts_history_data[0].bank_transaction_id,
+              settlementDate: new Date(
+                response.data.payouts_history_data[0].payout_actual_date,
+              ),
+              trustee: merchant.trustee_id,
+              schoolId: merchant.school_id,
+            });
+            const info = {
+              settlementAmount:
+                response.data.payouts_history_data[0].total_amount,
+              adjustment: (0.0).toString(),
+              netSettlementAmount:
+                response.data.payouts_history_data[0].payout_amount,
+              easebuzz_id: merchant.easebuzz_id,
+              fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+              tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+              status: 'Settled',
+              utrNumber:
+                response.data.payouts_history_data[0].bank_transaction_id,
+              settlementDate: new Date(
+                response.data.payouts_history_data[0].payout_actual_date,
+              ),
+              trustee: merchant.trustee_id,
+              schoolId: merchant.school_id,
+            };
+            console.log(info, 'info');
+            //add mail option 
+            console.log(
+              `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
+            );
+            await settlementReport.save();
+          } else {
+            console.log('Settlement already exists', existingSettlement);
+          }
+        } catch (e) {
+          console.log(e.message);
+        }
+      });
+  }
+
+  async calculateSHA512Hash(data: any) {
+    const hash = crypto.createHash('sha512');
+    hash.update(data);
+    return hash.digest('hex');
+  }
+
   @Cron('0 1 * * *')
   async sendSettlements(settlementDate?: Date) {
     if (!settlementDate) {
@@ -654,6 +777,15 @@ export class ErpService {
           });
         this.cashfreeService.enqueue(promise);
       });
+
+      try{
+        await this.easebuzzSettlements()
+        console.log(`easebuzz settlement saved`);
+        
+      }catch(e){  
+        console.log('error in eazebuzz settlement');
+        
+      }
   }
 
   async calculateCommissions(commission, payment_mode, platform_type, amount) {
