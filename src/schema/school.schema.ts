@@ -148,6 +148,18 @@ export class TrusteeSchool {
 
   @Prop({})
   @Field(() => String)
+  ccavenue_merchant_id: string;
+
+  @Prop({})
+  @Field(() => String)
+  ccavenue_access_code: string;
+
+  @Prop({})
+  @Field(() => String)
+  ccavenue_working_key: string;
+
+  @Prop({})
+  @Field(() => String)
   super_admin_name: string;
   createdAt?: Date;
   updatedAt?: Date;

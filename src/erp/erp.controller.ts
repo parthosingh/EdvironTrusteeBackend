@@ -194,6 +194,8 @@ export class ErpController {
     },
     @Req() req,
   ) {
+    console.log('collec');
+
     try {
       const trustee_id = req.userTrustee.id;
       const {
@@ -245,6 +247,7 @@ export class ErpController {
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
       }
+      console.log(school, 'schoool;');
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
 
@@ -300,7 +303,10 @@ export class ErpController {
         custom_order_id: custom_order_id || null,
         req_webhook_urls: req_webhook_urls || null,
         school_name: school.school_name || null,
-        easebuzz_sub_merchant_id:school.easebuzz_id || null,
+        easebuzz_sub_merchant_id: school.easebuzz_id || null,
+        ccavenue_access_code: school.ccavenue_access_code || null,
+        ccavenue_merchant_id: school.ccavenue_merchant_id || null,
+        ccavenue_working_key: school.ccavenue_working_key || null,
       });
       let config = {
         method: 'post',
