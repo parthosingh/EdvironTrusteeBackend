@@ -55,8 +55,7 @@ export class TrusteeResolver {
     @InjectModel(Commission.name)
     private commissionModel: mongoose.Model<Commission>,
     @InjectModel(MerchantMember.name)
-    private merchantMemberModel:mongoose.Model<MerchantMember>
-
+    private merchantMemberModel: mongoose.Model<MerchantMember>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -303,7 +302,7 @@ export class TrusteeResolver {
       };
 
       const response = await axios.request(config);
-          
+
       transactionReport = response.data.transactions.map(async (item: any) => {
         let remark = null;
         const info = await await this.trusteeService.getRemarks(
@@ -312,12 +311,14 @@ export class TrusteeResolver {
         if (info) {
           remark = info.remarks;
         }
-        let commissionAmount=0
-        const commission=await this.commissionModel.findOne({collect_id:new Types.ObjectId(item.collect_id)})
-        if(commission){
-          commissionAmount=commission.commission_amount
+        let commissionAmount = 0;
+        const commission = await this.commissionModel.findOne({
+          collect_id: new Types.ObjectId(item.collect_id),
+        });
+        if (commission) {
+          commissionAmount = commission.commission_amount;
         }
-                
+
         return {
           ...item,
           merchant_name:
@@ -344,8 +345,8 @@ export class TrusteeResolver {
           school_name:
             merchant_ids_to_merchant_map[item.merchant_id].school_name,
           remarks: remark,
-          commission:commissionAmount,
-          custom_order_id:item?.custom_order_id || null
+          commission: commissionAmount,
+          custom_order_id: item?.custom_order_id || null,
         };
       });
 
@@ -979,7 +980,6 @@ export class TrusteeResolver {
     }
   }
 
-
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async generatePaymentLink(
@@ -1136,6 +1136,8 @@ export class TrusteeResolver {
         },
       };
       const response = await axios.request(config);
+
+      
       if (response.data) {
         const settlementData = {
           settlement_date: response.data.transfer_time,
@@ -1144,10 +1146,15 @@ export class TrusteeResolver {
         };
         return settlementData;
       }
-      
     } catch (error) {
-      console.error('Error fetching settlement data:', error);
-      throw new Error('Failed to fetch settlement data');
+      console.log(error.response.data);      
+      return {
+        settlement_date: 'NA',
+        utr_number: 'NA',
+        status: 'NS',
+      };
+
+      // throw new Error('Failed to fetch settlement data');
     }
   }
 
@@ -1400,12 +1407,12 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(()=>Commission)
-  async getCommission( @Context() context,){
+  @Query(() => Commission)
+  async getCommission(@Context() context) {
     const trustee_id = context.req.trustee;
-    return await this.commissionModel.find({trustee_id})
+    return await this.commissionModel.find({ trustee_id });
   }
-  
+
   @Mutation(() => String)
   async generateMerchantLoginToken(
     @Args('email') email: string,
@@ -1427,8 +1434,6 @@ export class TrusteeResolver {
       throw new Error(error.message);
     }
   }
-
-
 }
 
 @ObjectType()

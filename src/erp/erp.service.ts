@@ -576,65 +576,46 @@ export class ErpService {
             console.log('no data');
             return;
           }
-          
-          
-          
-          const easebuzzDate=new Date(response.data?.payouts_history_data[0]?.payout_actual_date)
-          const existingSettlement = await this.settlementReportModel.findOne({
-            utrNumber:
-              response.data.payouts_history_data[0].bank_transaction_id,
-          });
-          if (!existingSettlement) {
+          response.data.payouts_history_data.map(async(data:any)=>{
+              console.log('saving....',data);
+              const easebuzzDate=new Date(data.payout_actual_date)
+              const existingSettlement = await this.settlementReportModel.findOne({
+                utrNumber:data.bank_transaction_id,
+              });
+
+              if (!existingSettlement) {
             
-            const settlementReport = new this.settlementReportModel({
-              settlementAmount:
-                response.data.payouts_history_data[0].payout_amount,
-              adjustment: (0.0).toString(),
-              netSettlementAmount:
-                response.data.payouts_history_data[0].payout_amount,
-              easebuzz_id: merchant.easebuzz_id,
-              fromDate: new Date(easebuzzDate.getTime() - 24 * 60 * 60 * 1000),
-              tillDate: new Date(easebuzzDate.getTime() - 24 * 60 * 60 * 1000),
-              status: 'Settled',
-              utrNumber:
-                response.data.payouts_history_data[0].bank_transaction_id,
-              settlementDate: new Date(
-                response.data.payouts_history_data[0].payout_actual_date,
-              ),
-              trustee: merchant.trustee_id,
-              schoolId: merchant.school_id,
-              clientId: merchant.client_id
-            });
-            const info = {
-              settlementAmount:
-                response.data.payouts_history_data[0].total_amount,
-              adjustment: (0.0).toString(),
-              netSettlementAmount:
-                response.data.payouts_history_data[0].payout_amount,
-              easebuzz_id: merchant.easebuzz_id,
-              fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-              tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-              status: 'Settled',
-              utrNumber:
-                response.data.payouts_history_data[0].bank_transaction_id,
-              settlementDate: new Date(
-                response.data.payouts_history_data[0].payout_actual_date,
-              ),
-              trustee: merchant.trustee_id,
-              schoolId: merchant.school_id,
-            };
-            console.log(info, 'info');
-            //add mail option 
-            console.log(
-              `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
-            );
-            await settlementReport.save();
-          } else {
-            console.log('Settlement already exists', existingSettlement);
-          }
+                const settlementReport = new this.settlementReportModel({
+                  settlementAmount:
+                    data.payout_amount,
+                  adjustment: (0.0).toString(),
+                  netSettlementAmount:
+                    data.payout_amount,
+                  easebuzz_id: merchant.easebuzz_id,
+                  fromDate: new Date(easebuzzDate.getTime() - 24 * 60 * 60 * 1000),
+                  tillDate: new Date(easebuzzDate.getTime() - 24 * 60 * 60 * 1000),
+                  status: 'Settled',
+                  utrNumber:
+                    data.bank_transaction_id,
+                  settlementDate: new Date(
+                    data.payout_actual_date,
+                  ),
+                  trustee: merchant.trustee_id,
+                  schoolId: merchant.school_id,
+                  clientId: merchant.client_id
+                });               
+                //add mail option 
+                console.log(
+                  `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
+                );
+                await settlementReport.save();
+              } else {
+                console.log('Settlement already exists', existingSettlement.utrNumber);
+              }
+              
+          })          
         } catch (e) {
           console.log(e);
-          
           console.log(e.message);
         }
       });
