@@ -294,7 +294,7 @@ export class TrusteeResolver {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=50000`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=5000`,
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
@@ -317,6 +317,7 @@ export class TrusteeResolver {
         if(commission){
           commissionAmount=commission.commission_amount
         }
+                
         return {
           ...item,
           merchant_name:
@@ -343,7 +344,8 @@ export class TrusteeResolver {
           school_name:
             merchant_ids_to_merchant_map[item.merchant_id].school_name,
           remarks: remark,
-          commission:commissionAmount
+          commission:commissionAmount,
+          custom_order_id:item?.custom_order_id || null
         };
       });
 
@@ -355,7 +357,7 @@ export class TrusteeResolver {
 
       return transactionReport;
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       throw error;
     }
   }
@@ -1651,6 +1653,8 @@ class TransactionReport {
   details: string;
   @Field({ nullable: true })
   commission: number;
+  @Field({ nullable: true })
+  custom_order_id?: string;
 }
 
 @ObjectType()
