@@ -540,6 +540,10 @@ export class ErpService {
         );
 
         const start = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
+        console.log(start,'start');
+        console.log(new Date(start.getTime() - 24 * 60 * 60 * 1000),'start new');
+        
+        
         start.setHours(0, 0, 0, 0);
         const end = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
         end.setHours(23, 59, 59, 999);
@@ -570,28 +574,27 @@ export class ErpService {
           console.log(response.data.payouts_history_data, 'data');
           if (response.data.payouts_history_data.length === 0){
             console.log('no data');
-            
             return;
           }
           
           
-          console.log(response.data.payouts_history_data,'settlement');
           
+          const easebuzzDate=new Date(response.data?.payouts_history_data[0]?.payout_actual_date)
           const existingSettlement = await this.settlementReportModel.findOne({
             utrNumber:
               response.data.payouts_history_data[0].bank_transaction_id,
           });
           if (!existingSettlement) {
-            console.log('data present........................');
+            
             const settlementReport = new this.settlementReportModel({
               settlementAmount:
-                response.data.payouts_history_data[0].total_amount,
+                response.data.payouts_history_data[0].payout_amount,
               adjustment: (0.0).toString(),
               netSettlementAmount:
                 response.data.payouts_history_data[0].payout_amount,
               easebuzz_id: merchant.easebuzz_id,
-              fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-              tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+              fromDate: new Date(easebuzzDate.getTime() - 24 * 60 * 60 * 1000),
+              tillDate: new Date(easebuzzDate.getTime() - 24 * 60 * 60 * 1000),
               status: 'Settled',
               utrNumber:
                 response.data.payouts_history_data[0].bank_transaction_id,
@@ -643,7 +646,7 @@ export class ErpService {
     return hash.digest('hex');
   }
 
-  // @Cron('0 1 * * *')
+  @Cron('0 1 * * *')
   async sendSettlements(settlementDate?: Date) {
     if (!settlementDate) {
       settlementDate = new Date();
@@ -693,8 +696,7 @@ export class ErpService {
             console.log('promise called');
             try {
               const response = await axios.request(config);
-
-              console.log('response', response.data.data[0]);
+            
               if (response.data.data.length === 0) return;
               const existingSettlement =
                 await this.settlementReportModel.findOne({
@@ -708,8 +710,8 @@ export class ErpService {
                   netSettlementAmount:
                     response.data.data[0].payment_amount.toFixed(2),
                   clientId: merchant.client_id,
-                  fromDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-                  tillDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+                  fromDate: new Date(response?.data?.data[0]?.payment_from) || start,
+                  tillDate: new Date(response?.data?.data[0]?.payment_till) || start,
                   status: 'Settled',
                   utrNumber: response.data.data[0].settlement_utr,
                   settlementDate: new Date(
@@ -791,8 +793,8 @@ export class ErpService {
       });
 
       try{
-        await this.easebuzzSettlements()
-        console.log(`easebuzz settlement saved`);
+        // await this.easebuzzSettlements()
+        // console.log(`easebuzz settlement saved`);
         
       }catch(e){  
         console.log('error in eazebuzz settlement');

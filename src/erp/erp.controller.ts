@@ -1108,9 +1108,13 @@ export class ErpController {
     }
   }
 
-  @Get('/test-corn')
+  @Get('/test-cron')
   async checkSettlement(
-  ){ const data = await this.erpService.easebuzzSettlements()
+  ){ 
+    
+    const date=new Date('2024-08-16T11:10:07.695Z')
+    console.log(date);  
+    const data = await this.erpService.easebuzzSettlements(date)
 
   }
 }
