@@ -1107,4 +1107,10 @@ export class ErpController {
       throw new Error(e.message);
     }
   }
+
+  @Get('/test-corn')
+  async checkSettlement(
+  ){ const data = await this.erpService.easebuzzSettlements()
+
+  }
 }

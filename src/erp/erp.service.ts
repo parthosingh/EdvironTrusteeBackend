@@ -568,13 +568,21 @@ export class ErpService {
         try {
           const response = await axios.request(config);
           console.log(response.data.payouts_history_data, 'data');
-          if (response.data || response.data.payouts_history_data.length === 0)
+          if (response.data.payouts_history_data.length === 0){
+            console.log('no data');
+            
             return;
+          }
+          
+          
+          console.log(response.data.payouts_history_data,'settlement');
+          
           const existingSettlement = await this.settlementReportModel.findOne({
             utrNumber:
               response.data.payouts_history_data[0].bank_transaction_id,
           });
           if (!existingSettlement) {
+            console.log('data present........................');
             const settlementReport = new this.settlementReportModel({
               settlementAmount:
                 response.data.payouts_history_data[0].total_amount,
@@ -592,6 +600,7 @@ export class ErpService {
               ),
               trustee: merchant.trustee_id,
               schoolId: merchant.school_id,
+              clientId: merchant.client_id
             });
             const info = {
               settlementAmount:
@@ -621,6 +630,8 @@ export class ErpService {
             console.log('Settlement already exists', existingSettlement);
           }
         } catch (e) {
+          console.log(e);
+          
           console.log(e.message);
         }
       });
@@ -632,11 +643,12 @@ export class ErpService {
     return hash.digest('hex');
   }
 
-  @Cron('0 1 * * *')
+  // @Cron('0 1 * * *')
   async sendSettlements(settlementDate?: Date) {
     if (!settlementDate) {
       settlementDate = new Date();
     }
+    await this.easebuzzSettlements(settlementDate)
     console.log('running cron', settlementDate);
     const merchants = await this.trusteeSchoolModel.find({});
     merchants
