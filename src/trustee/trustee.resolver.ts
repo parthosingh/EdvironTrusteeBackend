@@ -1111,29 +1111,40 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(() => [SettlementReport])
+  @Query(() => SettlementUtr)
   async transactionUtr(
-    @Args('date') date: string,
     @Args('school_id') school_id: string,
+    @Args('order_id') order_id: string,
   ) {
     const schoolId = new Types.ObjectId(school_id);
-
+    const merchant = await this.trusteeSchoolModel.findOne({
+      school_id: schoolId,
+    });
+    if (!merchant) {
+      throw Error('invalid merchant id');
+    }
     try {
-      const inputDate = new Date(date);
-      const year = inputDate.getFullYear();
-      const month = inputDate.getMonth();
-      const day = inputDate.getDate();
-      const startDate = new Date(year, month, day);
-      const endDate = new Date(year, month, day + 1);
-
-      const settlement = await this.settlementReportModel.find({
-        schoolId,
-        settlementDate: {
-          $gte: startDate, // Greater than or equal to start of the specified date
-          $lt: endDate, // Less than the start of the next day
+      const config = {
+        method: 'GET',
+        url: `https://api.cashfree.com/pg/orders/${order_id}/settlements`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'x-api-version': '2023-08-01',
+          'x-partner-apikey': process.env.CASHFREE_API_KEY,
+          'x-partner-merchantid': merchant.client_id,
         },
-      });
-      return settlement;
+      };
+      const response = await axios.request(config);
+      if (response.data) {
+        const settlementData = {
+          settlement_date: response.data.transfer_time,
+          utr_number: response.data.transfer_utr,
+          status: 'Settled',
+        };
+        return settlementData;
+      }
+      
     } catch (error) {
       console.error('Error fetching settlement data:', error);
       throw new Error('Failed to fetch settlement data');
@@ -1816,4 +1827,14 @@ class TrusteeMDRResponse {
 
   @Field({ nullable: true })
   createdAt: string;
+}
+
+@ObjectType()
+class SettlementUtr {
+  @Field()
+  settlement_date: string;
+  @Field()
+  utr_number: string;
+  @Field()
+  status: string;
 }
