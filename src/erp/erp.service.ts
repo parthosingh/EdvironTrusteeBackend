@@ -572,7 +572,7 @@ export class ErpService {
         try {
           const response = await axios.request(config);
           console.log(response.data.payouts_history_data, 'data');
-          if (response.data.payouts_history_data.length === 0){
+          if (!response?.data?.payouts_history_data || response?.data?.payouts_history_data?.length === 0){
             console.log('no data');
             return;
           }
