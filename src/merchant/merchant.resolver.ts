@@ -85,8 +85,8 @@ export class MerchantResolver {
     try {
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userMerchant = await this.merchantService.validateMerchant(token);
-      console.log(userMerchant,'merchant');
-      
+      console.log(userMerchant, 'merchant');
+
       // Map the trustee data to the User type
       const user: MerchantUser = {
         _id: userMerchant.id,
@@ -96,8 +96,8 @@ export class MerchantResolver {
         role: userMerchant.role,
         phone_number: userMerchant.phone_number,
         user: userMerchant.user,
-        trustee_id:userMerchant.trustee_id,
-        trustee_logo:userMerchant.trustee_logo
+        trustee_id: userMerchant.trustee_id,
+        trustee_logo: userMerchant.trustee_logo,
       };
       return user;
     } catch (error) {
@@ -140,7 +140,6 @@ export class MerchantResolver {
   @Query(() => [SettlementReport])
   @UseGuards(MerchantGuard)
   async getMerchantSettlementReports(@Context() context) {
-
     const merchant = await this.trusteeSchoolModel.findById(
       context.req.merchant,
     );
@@ -158,13 +157,11 @@ export class MerchantResolver {
   @UseGuards(MerchantGuard)
   async getMerchantTransactionReport(@Context() context) {
     try {
-
       const merchant = await this.trusteeSchoolModel.findById(
         context.req.merchant,
       );
 
       const school_id = merchant?.school_id;
-
 
       let transactionReport = [];
 
@@ -174,13 +171,10 @@ export class MerchantResolver {
 
       console.log(`Getting report for ${merchant.merchantName}(${school_id})`);
 
-
       const token = this.jwtService.sign(
-
         { school_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
-
 
       const config = {
         method: 'get',
@@ -232,7 +226,6 @@ export class MerchantResolver {
           transaction.school_id = school_id || '';
           transaction.school_name = merchant?.school_name || '';
 
-
           return transaction;
         },
       );
@@ -252,7 +245,6 @@ export class MerchantResolver {
   @UseGuards(MerchantGuard)
   @Query(() => [MerchantMemberesResponse])
   async getAllMerchantMembers(@Context() context) {
-
     let merchant = await this.trusteeSchoolModel.findById(context.req.merchant);
 
     const allMembers = await this.merchantMemberModel
@@ -485,7 +477,6 @@ export class MerchantResolver {
     @Args('otp') otp: string,
     @Context() context,
   ) {
-
     let id = context.req.merchant;
 
     const role = context.req.role;
@@ -531,7 +522,6 @@ export class MerchantResolver {
     @Args('otp') otp: string,
     @Context() context,
   ) {
-
     let id = context.req.merchant;
 
     const role = context.req.role;
@@ -618,7 +608,6 @@ export class MerchantResolver {
   @UseGuards(MerchantGuard)
   @Query(() => [MerchantRefundResponse])
   async merchantRefunds(@Context() context) {
-
     let merchant = await this.trusteeSchoolModel.findById(context.req.merchant);
     if (!merchant) throw new NotFoundException('Merchant not found');
     let school_id = merchant.school_id.toString();
@@ -668,7 +657,6 @@ export class MerchantResolver {
     @Args('remark') remark: string,
     @Context() context,
   ) {
-
     let merchant = await this.trusteeSchoolModel.findById(context.req.merchant);
 
     if (!merchant) throw new NotFoundException('Merchant not found');
@@ -685,7 +673,6 @@ export class MerchantResolver {
   async deleteMerchantRemark(@Args('collect_id') collect_id: string) {
     return await this.trusteeService.deleteRemark(collect_id);
   }
-
 }
 
 @ObjectType()
@@ -724,6 +711,8 @@ class MerchantTransactionReport {
   remarks: string;
   @Field({ nullable: true })
   details: string;
+  @Field({ nullable: true })
+  custom_order_id: string;
 }
 
 @ObjectType()
