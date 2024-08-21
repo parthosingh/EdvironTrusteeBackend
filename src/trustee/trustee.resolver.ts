@@ -293,7 +293,7 @@ export class TrusteeResolver {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=5000`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=5`,
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
@@ -318,18 +318,17 @@ export class TrusteeResolver {
         if (commission) {
           commissionAmount = commission.commission_amount;
         }
-
+        console.log(JSON.parse(item?.additional_data).student_details?.student_name);
+        
         return {
           ...item,
           merchant_name:
             merchant_ids_to_merchant_map[item.merchant_id].school_name,
           student_id:
             JSON.parse(item?.additional_data).student_details?.student_id || '',
-
-          students_name:
+          student_name:
             JSON.parse(item?.additional_data).student_details?.student_name ||
             '',
-
           student_email:
             JSON.parse(item?.additional_data).student_details?.student_email ||
             '',
@@ -1140,7 +1139,7 @@ export class TrusteeResolver {
       
       if (response.data) {
         const settlementData = {
-          settlement_date: response?.data?.transfer_time || 'NA', 
+          settlement_date: response?.data?.transfer_time || null, 
           utr_number: response?.data?.transfer_utr || 'NA',
           status: 'Settled',
         };
@@ -1149,9 +1148,9 @@ export class TrusteeResolver {
     } catch (error) {
       console.log(error.response.data);      
       return {
-        settlement_date: 'NA',
+        settlement_date: null,
         utr_number: 'NA',
-        status: 'NS',
+        status: 'NA',
       };
 
       // throw new Error('Failed to fetch settlement data');
