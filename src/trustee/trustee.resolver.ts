@@ -1140,8 +1140,8 @@ export class TrusteeResolver {
       
       if (response.data) {
         const settlementData = {
-          settlement_date: response.data.transfer_time,
-          utr_number: response.data.transfer_utr,
+          settlement_date: response?.data?.transfer_time || 'NA', 
+          utr_number: response?.data?.transfer_utr || 'NA',
           status: 'Settled',
         };
         return settlementData;

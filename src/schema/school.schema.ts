@@ -159,6 +159,10 @@ export class TrusteeSchool {
   ccavenue_working_key: string;
 
   @Prop({})
+  @Field(() => Boolean,{defaultValue:false})
+  isCcavenue: boolean;
+
+  @Prop({})
   @Field(() => String)
   super_admin_name: string;
   createdAt?: Date;

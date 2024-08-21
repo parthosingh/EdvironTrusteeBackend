@@ -261,10 +261,10 @@ export class ErpController {
 
       const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
       const trustee = await this.trusteeModel.findById(trusteeObjId);
-      let webHookUrl = null;
-      if (trustee.webhook_urls.length || req_webhook_urls?.length) {
-        webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
-      }
+      let webHookUrl = req_webhook_urls?.length;
+      // if (trustee.webhook_urls.length || req_webhook_urls?.length) {
+      //   webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
+      // }
 
       const additionalInfo = {
         student_details: {
