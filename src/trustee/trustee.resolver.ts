@@ -1835,10 +1835,10 @@ class TrusteeMDRResponse {
 
 @ObjectType()
 class SettlementUtr {
-  @Field()
+  @Field({ nullable: true })
   settlement_date: string;
-  @Field()
+  @Field({ nullable: true })
   utr_number: string;
-  @Field()
+  @Field({ nullable: true })
   status: string;
 }
