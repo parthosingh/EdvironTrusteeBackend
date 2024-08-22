@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 export enum Access {
   ADMIN = 'admin',
   MANAGEMENT = 'management',
+  FINANCE_TEAM='finance_team'
 }
 
 @ObjectType()
