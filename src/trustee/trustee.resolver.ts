@@ -90,7 +90,7 @@ export class TrusteeResolver {
       let userId = context.req.trustee;
 
       const role = context.req.role;
-      if (role !== 'owner' && role !== 'admin') {
+      if (role !== 'owner' && role !== 'admin' && role !== 'finance_team') {
         throw new UnauthorizedException(
           'You are not Authorized to perform this action',
         );
@@ -419,7 +419,7 @@ export class TrusteeResolver {
     let id = context.req.trustee;
 
     const role = context.req.role;
-    if (role !== 'owner' && role !== 'admin') {
+    if (role !== 'owner' && role !== 'admin' && role !== 'finance_team') {
       throw new UnauthorizedException(
         'You are not Authorized to perform this action',
       );
@@ -456,7 +456,7 @@ export class TrusteeResolver {
       let result = '';
       const role = context.req.role;
 
-      if (role !== 'owner' && role !== 'admin') {
+      if (role !== 'owner' && role !== 'admin' && role !== 'finance_team') {
         throw new UnauthorizedException(
           'You are not Authorized to perform this action',
         );
@@ -517,7 +517,8 @@ export class TrusteeResolver {
     @Context() context,
   ) {
     const role = context.req.role;
-    if (role !== 'owner' && role !== 'admin') {
+    if (role !== 'owner' && role !== 'admin'  && role !== 'finance_team') {
+
       throw new UnauthorizedException(
         'You are not Authorized to perform this action',
       );
@@ -554,7 +555,7 @@ export class TrusteeResolver {
       throw new Error('One or more required fields are missing.');
     }
 
-    if (!['admin', 'management'].includes(access)) {
+    if (!['admin', 'management','finance_team'].includes(access)) {
       throw new Error('Invalid access level provided.');
     }
 
@@ -860,7 +861,7 @@ export class TrusteeResolver {
         'You are not Authorized to update this user',
       );
     }
-    if (!['admin', 'management'].includes(access)) {
+    if (!['admin', 'management','finance_team'].includes(access)) {
       throw new Error('Invalid access level provided.');
     }
 
