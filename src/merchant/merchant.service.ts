@@ -16,6 +16,8 @@ import { TrusteeService } from 'src/trustee/trustee.service';
 import { MerchantMember } from 'src/schema/merchant.member.schema';
 import { error } from 'console';
 import { Trustee } from 'src/schema/trustee.schema';
+import { refund_status, RefundRequest } from 'src/schema/refund.schema';
+import { Types } from 'mongoose';
 var loginOtps: any = {};
 var resetOtps: any = {}; //reset password
 var editOtps: any = {};
@@ -32,6 +34,8 @@ export class MerchantService {
     private merchantMemberModel: mongoose.Model<MerchantMember>,
     @InjectModel(Trustee.name)
     private trusteeModel: mongoose.Model<Trustee>,
+    @InjectModel(RefundRequest.name)
+    private refundRequestModel: mongoose.Model<RefundRequest>,
     private jwtService: JwtService,
     private trusteeService: TrusteeService,
   ) {}
@@ -430,4 +434,13 @@ export class MerchantService {
     );
     return true;
   }
+  
+  async getRefundRequest(order_id:string){
+    const refundRequests = await this.refundRequestModel.find({
+      order_id: new Types.ObjectId(order_id),
+      status:{$ne:refund_status.DELETED}
+    }).sort({createdAt:-1});  
+    return refundRequests;
+  }
+
 }

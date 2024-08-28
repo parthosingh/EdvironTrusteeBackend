@@ -19,6 +19,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { RequestMDR } from 'src/schema/mdr.request.schema';
 import { SchoolMdrInfo } from 'src/trustee/trustee.resolver';
 import { TrusteeSchool } from 'src/schema/school.schema';
+import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -32,6 +33,8 @@ export class MainBackendController {
     private requestMDRModel: mongoose.Model<RequestMDR>,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
+    @InjectModel(RefundRequest.name)
+    private refundRequestModel: mongoose.Model<RefundRequest>,
   ) {}
 
   @Post('create-trustee')
@@ -124,11 +127,10 @@ export class MainBackendController {
         merchantEmail: data.merchantEmail,
         merchantStatus: data.merchantStatus,
         pgMinKYC: data.pgMinKYC,
-        pgFullKYC: data.pgFullKYC
-      }
+        pgFullKYC: data.pgFullKYC,
+      };
 
-
-      const school = await this.mainBackendService.updateSchoolInfo(info)
+      const school = await this.mainBackendService.updateSchoolInfo(info);
       const response = {
         school_id: school.updatedSchool.school_id,
         school_name: school.updatedSchool.school_name,
@@ -270,24 +272,22 @@ export class MainBackendController {
   @Post('update-merchant-status')
   async updateMerchantStatus(@Body() body: { token: string }) {
     try {
-      const data: JwtPayload = await this.jwtService.verify(
-        body.token,
-        { secret: process.env.JWT_SECRET_FOR_INTRANET },
-      )
+      const data: JwtPayload = await this.jwtService.verify(body.token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
 
       const info = {
         trustee_id: data.trustee_id,
         school_id: data.school_id,
-        merchantStatus: data.merchantStatus
-      }
+        merchantStatus: data.merchantStatus,
+      };
 
       const result = await this.mainBackendService.updateMerchantStatus(info);
-      return result
+      return result;
     } catch (error) {
-      console.log(error)
-      if (error.message)
-        throw new Error(error?.message)
-      else throw new Error(error?.response?.message)
+      console.log(error);
+      if (error.message) throw new Error(error?.message);
+      else throw new Error(error?.response?.message);
     }
   }
   @Get('get-trustee-mdr-request')
@@ -363,5 +363,62 @@ export class MainBackendController {
       },
     );
     return mdrToken;
+  }
+
+  @Get('get-refund-request')
+  async getRefundRequest(
+    @Query('trustee_id') trustee_id: string,
+    @Query('school_id') school_id: string,
+    @Query('status') status: refund_status,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 30,
+  ) {
+    const query: any = {};
+    console.log(trustee_id);
+
+    if (trustee_id) {
+      query.trustee_id = new Types.ObjectId(trustee_id);
+    }
+    if (school_id) {
+      query.school_id = new Types.ObjectId(school_id);
+    }
+    if (status) {
+      query.status = status;
+    }
+    console.log(query, 'q');
+
+    const refundRequests = await this.refundRequestModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .exec();
+    console.log(refundRequests);
+
+    return refundRequests;
+  }
+  @Post('update-refund-request')
+  async updateRefundRequest(@Body() body: { token: string }) {
+    const decodedPayload = await this.jwtService.verify(body.token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+
+    const request = await this.refundRequestModel.findById(decodedPayload.refund_id);
+
+    if(request.status === refund_status.DELETED){
+      throw new BadRequestException('Refund request has been deleted by user');
+    }
+
+    if(request.status === refund_status.APPROVED){
+      throw new BadRequestException('Refund request is already approved');
+    }
+
+    if (!request) {
+      throw new NotFoundException('Refund request not found');
+    }
+    request.status = decodedPayload.status;
+    await request.save();
+
+    return `Request updated to ${decodedPayload.status}`;
   }
 }

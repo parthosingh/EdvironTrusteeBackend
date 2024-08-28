@@ -34,6 +34,7 @@ import { Access } from '../schema/merchant.member.schema';
 import { Trustee } from 'src/schema/trustee.schema';
 import { TransactionInfo } from 'src/schema/transaction.info.schema';
 import { TrusteeService } from 'src/trustee/trustee.service';
+import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 
 @Resolver('Merchant')
 export class MerchantResolver {
@@ -46,6 +47,8 @@ export class MerchantResolver {
     private merchantService: MerchantService,
     @InjectModel(MerchantMember.name)
     private merchantMemberModel: mongoose.Model<MerchantMember>,
+    @InjectModel(RefundRequest.name)
+    private refundRequestModel: mongoose.Model<RefundRequest>,
     private readonly trusteeService: TrusteeService,
   ) {}
 
@@ -623,30 +626,47 @@ export class MerchantResolver {
   @UseGuards(MerchantGuard)
   @Query(() => [SettlementReport])
   async merchantTransactionUtr(
-    @Args('date') date: string,
-    @Args('school_id') school_id: string,
+    @Args('order_id') order_id: string,
+    @Context() context: any,
   ) {
-    const schoolId = new Types.ObjectId(school_id);
-
+    const schoolId = context.req.merchant;
+    const merchant = await this.trusteeSchoolModel.findOne({
+      school_id: schoolId,
+    });
+    if (!merchant) {
+      throw Error('invalid merchant id');
+    }
     try {
-      const inputDate = new Date(date);
-      const year = inputDate.getFullYear();
-      const month = inputDate.getMonth();
-      const day = inputDate.getDate();
-      const startDate = new Date(year, month, day);
-      const endDate = new Date(year, month, day + 1);
-
-      const settlement = await this.settlementReportModel.find({
-        schoolId,
-        settlementDate: {
-          $gte: startDate, // Greater than or equal to start of the specified date
-          $lt: endDate, // Less than the start of the next day
+      const config = {
+        method: 'GET',
+        url: `https://api.cashfree.com/pg/orders/${order_id}/settlements`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'x-api-version': '2023-08-01',
+          'x-partner-apikey': process.env.CASHFREE_API_KEY,
+          'x-partner-merchantid': merchant.client_id,
         },
-      });
-      return settlement;
+      };
+      const response = await axios.request(config);
+
+      if (response.data) {
+        const settlementData = {
+          settlement_date: response?.data?.transfer_time || null,
+          utr_number: response?.data?.transfer_utr || 'NA',
+          status: 'Settled',
+        };
+        return settlementData;
+      }
     } catch (error) {
-      console.error('Error fetching settlement data:', error);
-      throw new Error('Failed to fetch settlement data');
+      console.log(error.response.data);
+      return {
+        settlement_date: null,
+        utr_number: 'NA',
+        status: 'NA',
+      };
+
+      // throw new Error('Failed to fetch settlement data');
     }
   }
 
@@ -673,6 +693,175 @@ export class MerchantResolver {
   async deleteMerchantRemark(@Args('collect_id') collect_id: string) {
     return await this.trusteeService.deleteRemark(collect_id);
   }
+
+  @UseGuards(MerchantGuard)
+  @Mutation(() => String)
+  async initiateRefundRequest(
+    @Args('order_id') order_id: string,
+    @Args('refund_amount') refund_amount: number,
+    @Args('order_amount') order_amount: number,
+    @Args('transaction_amount') transaction_amount: number,
+    @Context() context: any,
+  ) {
+    const school_id = context.req.merchant;
+    const school = await this.trusteeSchoolModel.findById(school_id);
+    const checkRefundRequest = await this.refundRequestModel
+      .findOne({
+        order_id: new Types.ObjectId(order_id),
+      })
+      .sort({ createdAt: -1 });
+
+    if (refund_amount > order_amount) {
+      throw new Error('Refund amount cannot be more than order amount');
+    }
+
+    if (checkRefundRequest?.status === refund_status.INITIATED) {
+      throw new Error('Refund request already initiated for this order');
+    }
+
+    // check amount
+    console.log(checkRefundRequest);
+
+    if (checkRefundRequest?.status === refund_status.APPROVED) {
+      const totalRefunds = await this.refundRequestModel.find({
+        order_id: new Types.ObjectId(order_id),
+        status: refund_status.APPROVED,
+      });
+      let totalRefundAmount = 0;
+      totalRefunds.map((refund: any) => {
+        totalRefundAmount += refund.refund_amount;
+      });
+      console.log(totalRefundAmount, 'amount refunded');
+      const refundableAmount =
+        checkRefundRequest.transaction_amount - totalRefundAmount;
+      console.log(refundableAmount, 'amount can be refunded');
+
+      if (refund_amount > refundableAmount) {
+        throw new Error(
+          'Refund amount cannot be more than remaining refundable amount ' +
+            refundableAmount +
+            'Rs',
+        );
+      }
+    }
+
+    const token = this.jwtService.sign(
+      { order_id },
+      { secret: process.env.JWT_SECRET_FOR_TRUSTEE },
+    );
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/gatewat-name?token=${token}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+
+    const res = await axios.request(config);
+    let gateway = res.data;
+    if (gateway === 'EDVIRON_PG') {
+      gateway = 'EDVIRON_CASHFREE';
+    }
+
+    await new this.refundRequestModel({
+      trustee_id: school.trustee_id,
+      school_id: school_id,
+      order_id: new Types.ObjectId(order_id),
+      status: refund_status.INITIATED,
+      refund_amount,
+      order_amount,
+      transaction_amount,
+      gateway: gateway || null,
+    }).save();
+
+    return `Refund Request Created`;
+  }
+  @UseGuards(MerchantGuard)
+  @Query(() => [RefundRequest])
+  async getRefundRequests(
+    @Args('page', { nullable: true }) pages: number = 1,
+    @Args('limit', { nullable: true }) limit: number = 10,
+    @Context() context: any,
+  ) {
+    const skip = (pages - 1) * limit;
+    const refundRequests = await this.refundRequestModel
+      .find({
+        school_id: context.req.merchant,
+      })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    return refundRequests;
+  }
+
+  @UseGuards(MerchantGuard)
+  @Query(() => [MerchantRefundRequestRes])
+  async getRefundRequestMerchant(@Args('order_id') order_id: string) {
+    const refundRequests =
+      await this.merchantService.getRefundRequest(order_id);
+    if (!refundRequests) {
+      return {
+        trustee_id: null,
+        school_id: null,
+        order_id: null,
+        status: null,
+      };
+    }
+    return refundRequests;
+  }
+
+  @UseGuards(MerchantGuard)
+  @Mutation(() => RefundRequest)
+  async deleteRefundRequest(@Args('refund_id') refund_id: string) {
+    const refundRequests = await this.refundRequestModel
+      .findById(refund_id)
+      .sort({ createdAt: -1 });
+    if (!refundRequests) {
+      throw new NotFoundException(`No Active Not Found`);
+    }
+    if (refundRequests.status === refund_status.APPROVED) {
+      throw new Error(`Refund request already approved for this order`);
+    }
+
+    refundRequests.status = refund_status.DELETED;
+    await refundRequests.save();
+    return refundRequests;
+  }
+}
+
+@ObjectType()
+class MerchantRefundRequestRes {
+  @Field({ nullable: true })
+  _id: string;
+
+  @Field({ nullable: true })
+  trustee_id: string;
+
+  @Field({ nullable: true })
+  createdAt: string;
+
+  @Field({ nullable: true })
+  updatedAt: string;
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  order_id: string;
+
+  @Field({ nullable: true })
+  status: refund_status;
+
+  @Field({ nullable: true })
+  refund_amount: number;
+
+  @Field({ nullable: true })
+  order_amount: number;
+
+  @Field({ nullable: true })
+  transaction_amount: number;
 }
 
 @ObjectType()

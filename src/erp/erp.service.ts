@@ -679,6 +679,8 @@ export class ErpService {
               const response = await axios.request(config);
             
               if (response.data.data.length === 0) return;
+              console.log(response.data.data);
+              
               const existingSettlement =
                 await this.settlementReportModel.findOne({
                   utrNumber: response.data.data[0].settlement_utr,

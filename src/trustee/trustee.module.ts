@@ -22,12 +22,15 @@ import { Commission, CommissionSchema } from 'src/schema/commission.schema';
 import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
 import { CashfreeService } from '../cashfree/cashfree.service';
 import { CashfreeModule } from '../cashfree/cashfree.module';
+import { MerchantService } from 'src/merchant/merchant.service';
+import { MerchantModule } from 'src/merchant/merchant.module';
 
 config();
 
 @Module({
   imports: [
     CashfreeModule,
+    MerchantModule,
     MongooseModule.forFeature([{ name: MerchantMember.name, schema: MerchantMemberSchema }]),
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
     MongooseModule.forFeature([

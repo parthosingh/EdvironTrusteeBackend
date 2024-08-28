@@ -37,12 +37,15 @@ import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
 import { Commission } from 'src/schema/commission.schema';
 import { MerchantMember } from 'src/schema/merchant.member.schema';
+import { MerchantService } from 'src/merchant/merchant.service';
+import { RefundRequest } from 'src/schema/refund.schema';
 @Resolver('Trustee')
 export class TrusteeResolver {
   constructor(
     private readonly trusteeService: TrusteeService,
     private readonly erpService: ErpService,
     private mainBackendService: MainBackendService,
+    private readonly merchnatService:MerchantService,
     private readonly jwtService: JwtService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
@@ -1413,6 +1416,7 @@ export class TrusteeResolver {
     return await this.commissionModel.find({ trustee_id });
   }
 
+  @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async generateMerchantLoginToken(
     @Args('email') email: string,
@@ -1433,6 +1437,22 @@ export class TrusteeResolver {
     } catch (error) {
       throw new Error(error.message);
     }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(()=> RefundRequest)
+  async getRefundRequest(@Args('order_id') order_id: string) {
+    const refundRequests= await this.merchnatService.getRefundRequest(order_id);
+
+    if(!refundRequests){
+      return{
+        trustee_id: null,
+        school_id: null,
+        order_id: null,
+        status: null,
+      }
+    }  
+    return refundRequests
   }
 }
 
