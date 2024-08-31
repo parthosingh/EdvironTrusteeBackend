@@ -716,6 +716,7 @@ export class ErpController {
         page,
         limit,
         transactions,
+        total_records:response.data.totalTransactions,
         total_pages,
       };
     } catch (error) {
@@ -799,7 +800,9 @@ export class ErpController {
         page,
         limit,
         transactions,
+        total_records:response.data.totalTransactions,
         total_pages,
+
       };
     } catch (error) {
       console.log(error);
