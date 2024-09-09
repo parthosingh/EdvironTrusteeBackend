@@ -194,7 +194,7 @@ export class ErpController {
     },
     @Req() req,
   ) {
-    console.log('collec');
+    
 
     try {
       const trustee_id = req.userTrustee.id;
@@ -236,7 +236,7 @@ export class ErpController {
         school_id: new Types.ObjectId(school_id),
       });
       if (!school) {
-        throw new NotFoundException('School not found');
+        throw new NotFoundException('Inalid Institute id');
       }
 
       if (school.trustee_id.toString() !== trustee_id.toString()) {
@@ -247,7 +247,7 @@ export class ErpController {
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
       }
-      console.log(school, 'schoool;');
+      
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
 
@@ -265,6 +265,17 @@ export class ErpController {
       // if (trustee.webhook_urls.length || req_webhook_urls?.length) {
       //   webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
       // }
+
+      let all_webhooks: string[] = [];
+      if (trustee.webhook_urls.length || req_webhook_urls?.length) {
+        const trusteeUrls = trustee.webhook_urls.map((item) => item.url);
+        all_webhooks = [...(req_webhook_urls || []), ...trusteeUrls];
+      }
+
+      if(trustee.webhook_urls.length===0){
+        all_webhooks = req_webhook_urls || [];
+      }
+
 
       const additionalInfo = {
         student_details: {
@@ -301,7 +312,7 @@ export class ErpController {
         platform_charges: school.platform_charges,
         additional_data: additionalInfo || {},
         custom_order_id: custom_order_id || null,
-        req_webhook_urls: req_webhook_urls || null,
+        req_webhook_urls: all_webhooks || null,
         school_name: school.school_name || null,
         easebuzz_sub_merchant_id: school.easebuzz_id || null,
         ccavenue_access_code: school.ccavenue_access_code || null,
@@ -352,6 +363,8 @@ export class ErpController {
     } catch (error) {
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
+      if(error?.response?.data?.message)
+        throw new ConflictException(error.response.data.message)
       console.log('error in create collect request', error);
       throw error;
     }
