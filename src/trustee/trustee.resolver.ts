@@ -1472,7 +1472,6 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async requestInvoice(
-    // @Args('school_id') school_id: string,
     @Args('invoice_no') invoice_no: string,
     @Args('invoice_date') invoice_date: string,
     @Args('hsn') hsn: string,
@@ -1481,7 +1480,6 @@ export class TrusteeResolver {
     @Args('amount_without_gst') amount_without_gst: number,
     @Args('tax') tax: number,
     @Args('duration') duration: string,
-    @Args('details') details: invoiceDetails,
     @Args('note') note: string,
     @Context() context: any,
   ) {
@@ -1489,6 +1487,7 @@ export class TrusteeResolver {
     if (!trustee) {
       throw new NotFoundException('Merchant Not Found');
     }
+
     // if (!trustee.bank_details) {
     //   throw new Error(`Bank details missing`);
     // }
@@ -1499,13 +1498,13 @@ export class TrusteeResolver {
     //   throw new Error(`Residential details missing`);
     // }
 
-    console.log(context.req.trustee);
+ 
 
     const invoice = await this.invoiceModel.findOne({
       invoice_no,
       trustee_id: context.req.trustee,
     });
-    console.log(invoice_no);
+   
 
     if (invoice) {
       throw new ConflictException(`Invoice number already present`);
@@ -1513,13 +1512,9 @@ export class TrusteeResolver {
 
     const parsedInvoiceDate = invoice_date;
 
-    // if (isNaN(parsedInvoiceDate.getTime())) {
-    //   throw new Error('Invalid date format for invoice_date');
-    // }
 
     const newInvoice = await new this.invoiceModel({
       trustee_id: context.req.trustee,
-      //school_id,
       invoice_details: {
         amount_without_gst,
         tax,
@@ -1553,7 +1548,11 @@ export class TrusteeResolver {
       sellerDetails: newInvoice.seller_details,
       buyerDetails: newInvoice.buyer_details,
       month: duration,
-      details,
+      details:{
+        amount_without_gst,
+        tax,
+        total: amount,
+      },
     };
 
     setImmediate(() => {
