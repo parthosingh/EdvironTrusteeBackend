@@ -5,11 +5,30 @@ import * as bcrypt from 'bcrypt';
 
 @ObjectType()
 export class WebhookUrlType {
+  @Prop() 
   @Field(() => Number)
   id: number;
 
+  @Prop() 
   @Field(() => String)
   url: string;
+}
+
+
+
+@ObjectType()
+export class bankDetails {
+  @Field(() => String, { nullable: true })
+  @Prop() 
+  account_holder_name: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop() 
+  account_number: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop() 
+  ifsc_code: string;
 }
 
 @ObjectType() // Define GraphQL object type
@@ -58,6 +77,18 @@ export class Trustee extends Document {
   @Field(() => [WebhookUrlType], { nullable: true })
   @Prop({ required: false })
   webhook_urls: WebhookUrlType[];
+
+  @Prop({})
+  @Field(() => String)
+  gstIn: string;
+
+  @Prop({})
+  @Field(() => String)
+  residence_state: string;
+
+  @Prop({})
+  @Field(() => bankDetails)
+  bank_details: bankDetails;
 
   @Field()
   @Prop()

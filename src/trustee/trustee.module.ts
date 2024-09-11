@@ -22,13 +22,21 @@ import { Commission, CommissionSchema } from 'src/schema/commission.schema';
 import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
 import { CashfreeService } from '../cashfree/cashfree.service';
 import { CashfreeModule } from '../cashfree/cashfree.module';
+import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
 import { MerchantService } from 'src/merchant/merchant.service';
 import { MerchantModule } from 'src/merchant/merchant.module';
 
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 config();
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'src/views'), // Adjust the path to your views directory
+      exclude: ['/api*'], // Exclude API routes if necessary
+    }),
     CashfreeModule,
     MerchantModule,
     MongooseModule.forFeature([{ name: MerchantMember.name, schema: MerchantMemberSchema }]),
@@ -49,6 +57,9 @@ config();
     ]),
     MongooseModule.forFeature([
       { name: Commission.name, schema: CommissionSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Invoice.name, schema: InvoiceSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({
@@ -75,6 +86,7 @@ config();
     TrusteeGuard,
     MainBackendService,
     EmailService,
+    AwsS3Service
   ],
 })
 export class TrusteeModule {}

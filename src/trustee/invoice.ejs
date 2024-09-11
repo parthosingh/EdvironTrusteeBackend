@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/public/css/main.css" />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+      integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+      crossorigin="anonymous"
+    />
+  </head>
+
+  <body>
+    <div class="border border-black w-full py-4">
+      <h5 class="font-semibold text-black text-xl text-center">Tax Invoice</h5>
+      <div class="grid grid-cols-3 gap-x-4 p-4">
+        <div>
+          <h3 class="text-base font-medium text-gray-600">Seller Details:</h3>
+          <div>
+            <ul class="space-y-1 my-2">
+              <li class="text-gray-400 text-sm font-medium">
+                THRIVEDGE EDUTECH PRIVATE LIMITED
+              </li>
+              <li class="text-gray-400 text-sm font-medium">
+                GSTIN: <span class="ml-1">04574A95BHF</span>
+              </li>
+              <li class="text-gray-400 text-sm font-medium">
+                Partner State: <span class="ml-1">Haryana</span>
+              </li>
+              <li class="text-gray-400 text-sm font-medium">Bank Details:</li>
+              <li class="text-gray-400 text-sm font-medium">
+                Account Holder Name:
+                <span class="ml-1">THRIVEDGE EDUTECH PRIVATE LIMITED</span>
+              </li>
+              <li class="text-gray-400 text-sm font-medium">
+                Account Number: <span class="ml-1">41614436183</span>
+              </li>
+              <li class="text-gray-400 text-sm font-medium">
+                IFSC: <span class="ml-1">SBIN0061808</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-base font-medium text-gray-600">Buyer Details:</h3>
+          <div>
+            <ul class="space-y-1 my-2">
+              <li class="text-gray-400 text-sm font-medium">
+                CASHFREE PAYMENTS INDIA PRIVATE LIMITED
+              </li>
+              <li class="text-gray-400 text-sm font-medium">
+                1st floor, No. 6/B, Essae Vaishnavi Summit, 7th Main, 80 Feet
+                Rd, Koramangala 3 Block, Bengaluru - 560034 Karnataka, India
+              </li>
+              <li class="text-gray-400 text-sm font-medium">
+                GSTIN: <span class="ml-1">29AAICP2912R1ZR</span>
+              </li>
+              <li class="text-gray-400 text-sm font-medium">
+                Place of Supply: <span class="ml-1">Karnataka</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-base font-medium text-gray-600">Invoice Details:</h3>
+          <div>
+            <ul class="space-y-2 my-2">
+              <li class="text-gray-400 text-sm font-medium">
+                Invoice Date:
+                <span class="ml-1"><%= invoiceData.invoiceDate %></span>
+              </li>
+              <li class="text-gray-400 flex gap-x-3 text-sm font-medium">
+                <span class="flex-none">Invoice No:</span>
+                <%= invoiceData.invoiceNumber %>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div
+        class="text-[18px] flex justify-between items-center text-[#1B163B] font-semibold ml-4"
+      >
+        Select Commissions
+      </div>
+      <div class="flex px-4 mt-2 flex-col relative">
+        <div
+          class="rounded-lg text-sm text-[#1B163B] print:bg-[#A9B2CF1A] bg-[#A9B2CF1A] grid grid-cols-4"
+        >
+          <h3 class="py-3 first:px-6 px-4 max-w-[15rem] text-left font-medium">
+            Commission Period
+          </h3>
+          <h3 class="py-3 first:px-6 px-4 max-w-[15rem] text-left font-medium">
+            HSN/SAC
+          </h3>
+          <h3 class="py-3 first:px-6 px-4 max-w-[15rem] text-left font-medium">
+            Commission Amount
+          </h3>
+          <h3 class="py-3 first:px-6 px-4 max-w-[15rem] text-left font-medium">
+            Tax
+          </h3>
+        </div>
+        <div
+          class="grid rounded-lg text-xs grid-cols-4 bg-[#FFFFFF] overflow-hidden w-full hover:-translate-y-[2px] hover:scale-[1.01] hover:shadow-[0_3px_10px_rgba(43,45,66,0.14)] transform transition-transform duration-200"
+        >
+          <span class="py-3 pl-4 pr-4 text-left"><%= invoiceData.month %></span>
+          <span class="py-3 pl-4 pr-4 text-left"><%= invoiceData.hsn %></span>
+          <span class="py-3 pl-4 pr-4 text-left"
+            ><%= invoiceData.details.AMOUNT_WITHOUT_GST %></span
+          >
+          <span class="py-3 pl-4 pr-4 text-left"
+            ><%= invoiceData.details.tax %></span
+          >
+        </div>
+      </div>
+
+      <div class="flex mt-4 justify-between px-8">
+        <p class="text-black text-sm">
+          Total Amount in Words: Rupees <%= invoiceData.amountInWords %>
+        </p>
+        <div class="w-40">
+          <ul class="space-y-1 my-2">
+            <li class="text-gray-400 text-xs font-medium">
+              Subtotal: ₹<%= invoiceData.details?.AMOUNT_WITHOUT_GST %>
+            </li>
+            <li class="text-gray-400 text-xs font-medium">
+              IGST@18%: ₹<%= invoiceData.details?.tax %>
+            </li>
+            <li class="text-black text-xs font-medium">
+              Total Amount: ₹<%= invoiceData.details?.total %>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="px-4 mt-4">
+        <p
+          class="bg-gray-100 p-4 h-28 border focus:outline-none rounded-md w-full"
+        >
+          <%= invoiceData.note %>
+        </p>
+      </div>
+    </div>
+
+    <script src="/public/js/example.js"></script>
+  </body>
+</html>

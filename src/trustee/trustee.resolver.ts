@@ -31,22 +31,46 @@ import { InjectModel } from '@nestjs/mongoose';
 import { SettlementReport } from '../schema/settlement.schema';
 import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
-import { Trustee, WebhookUrlType } from '../schema/trustee.schema';
+import { bankDetails, Trustee, WebhookUrlType } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
 import { Commission } from 'src/schema/commission.schema';
 import { MerchantMember } from 'src/schema/merchant.member.schema';
+
+import {
+  Invoice,
+  invoice_status,
+  InvoiceData,
+} from 'src/schema/invoice.schema';
+
+import * as path from 'path';
+import * as ejs from 'ejs';
+import puppeteer from 'puppeteer';
+import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+
+@InputType()
+export class invoiceDetails {
+  @Field({ nullable: true })
+  amount_without_gst: number;
+  @Field({ nullable: true })
+  tax: number;
+  @Field({ nullable: true })
+  total: number;
+}
+
 import { MerchantService } from 'src/merchant/merchant.service';
 import { RefundRequest } from 'src/schema/refund.schema';
+
 @Resolver('Trustee')
 export class TrusteeResolver {
   constructor(
     private readonly trusteeService: TrusteeService,
     private readonly erpService: ErpService,
     private mainBackendService: MainBackendService,
-    private readonly merchnatService:MerchantService,
+    private readonly merchnatService: MerchantService,
     private readonly jwtService: JwtService,
+    private readonly awsS3Service: AwsS3Service,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
@@ -59,6 +83,8 @@ export class TrusteeResolver {
     private commissionModel: mongoose.Model<Commission>,
     @InjectModel(MerchantMember.name)
     private merchantMemberModel: mongoose.Model<MerchantMember>,
+    @InjectModel(Invoice.name)
+    private invoiceModel: mongoose.Model<Invoice>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -181,6 +207,7 @@ export class TrusteeResolver {
     try {
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userTrustee = await this.trusteeService.validateTrustee(token);
+      const trustee = await this.trusteeModel.findById(userTrustee.id);
       // Map the trustee data to the User type
       const user: TrusteeUser = {
         _id: userTrustee.id,
@@ -192,6 +219,9 @@ export class TrusteeResolver {
         trustee_id: userTrustee.trustee_id,
         brand_name: userTrustee.brand_name,
         base_mdr: userTrustee.base_mdr,
+        gstIn: trustee.gstIn,
+        residence_state: trustee.residence_state,
+        bank_details: trustee.bank_details,
       };
       return user;
     } catch (error) {
@@ -321,8 +351,10 @@ export class TrusteeResolver {
         if (commission) {
           commissionAmount = commission.commission_amount;
         }
-        console.log(JSON.parse(item?.additional_data).student_details?.student_name);
-        
+        console.log(
+          JSON.parse(item?.additional_data).student_details?.student_name,
+        );
+
         return {
           ...item,
           merchant_name:
@@ -520,8 +552,7 @@ export class TrusteeResolver {
     @Context() context,
   ) {
     const role = context.req.role;
-    if (role !== 'owner' && role !== 'admin'  && role !== 'finance_team') {
-
+    if (role !== 'owner' && role !== 'admin' && role !== 'finance_team') {
       throw new UnauthorizedException(
         'You are not Authorized to perform this action',
       );
@@ -558,7 +589,7 @@ export class TrusteeResolver {
       throw new Error('One or more required fields are missing.');
     }
 
-    if (!['admin', 'management','finance_team'].includes(access)) {
+    if (!['admin', 'management', 'finance_team'].includes(access)) {
       throw new Error('Invalid access level provided.');
     }
 
@@ -864,7 +895,7 @@ export class TrusteeResolver {
         'You are not Authorized to update this user',
       );
     }
-    if (!['admin', 'management','finance_team'].includes(access)) {
+    if (!['admin', 'management', 'finance_team'].includes(access)) {
       throw new Error('Invalid access level provided.');
     }
 
@@ -1140,17 +1171,16 @@ export class TrusteeResolver {
       };
       const response = await axios.request(config);
 
-      
       if (response.data) {
         const settlementData = {
-          settlement_date: response?.data?.transfer_time || null, 
+          settlement_date: response?.data?.transfer_time || null,
           utr_number: response?.data?.transfer_utr || 'NA',
           status: 'Settled',
         };
         return settlementData;
       }
     } catch (error) {
-      console.log(error.response.data);      
+      console.log(error.response.data);
       return {
         settlement_date: null,
         utr_number: 'NA',
@@ -1440,20 +1470,173 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(()=> RefundRequest)
-  async getRefundRequest(@Args('order_id') order_id: string) {
-    const refundRequests= await this.merchnatService.getRefundRequest(order_id);
+  @Mutation(() => String)
+  async requestInvoice(
+    // @Args('school_id') school_id: string,
+    @Args('invoice_no') invoice_no: string,
+    @Args('invoice_date') invoice_date: string,
+    @Args('hsn') hsn: string,
+    @Args('amount_in_words') amount_in_words: string,
+    @Args('amount') amount: number,
+    @Args('amount') amount_without_gst: number,
+    @Args('amount') tax: number,
+    @Args('duration') duration: string,
+    @Args('details') details: invoiceDetails,
+    @Args('note') note: string,
+    @Context() context: any,
+  ) {
+    const trustee = await this.trusteeModel.findById(context.req.trustee);
+    if (!trustee) {
+      throw new NotFoundException('Merchant Not Found');
+    }
+    // if (!trustee.bank_details) {
+    //   throw new Error(`Bank details missing`);
+    // }
+    // if (!trustee.gstIn) {
+    //   throw new Error(`GST details missing`);
+    // }
+    // if (!trustee.residence_state) {
+    //   throw new Error(`Residential details missing`);
+    // }
 
-    if(!refundRequests){
-      return{
+    console.log(context.req.trustee);
+
+    const invoice = await this.invoiceModel.findOne({
+      invoice_no,
+      trustee_id: context.req.trustee,
+    });
+    console.log(invoice_no);
+
+    if (invoice) {
+      throw new ConflictException(`Invoice number already present`);
+    }
+
+    const parsedInvoiceDate = invoice_date;
+
+    // if (isNaN(parsedInvoiceDate.getTime())) {
+    //   throw new Error('Invalid date format for invoice_date');
+    // }
+
+    const newInvoice = await new this.invoiceModel({
+      trustee_id: context.req.trustee,
+      //school_id,
+      invoice_details: {
+        amount_without_gst,
+        tax,
+        total: amount,
+      },
+      seller_details: {
+        name: trustee.name,
+        gstIn: trustee.gstIn || 'NA',
+        residence_state: trustee.residence_state || 'NA',
+        account_holder_name: trustee.bank_details?.account_holder_name || 'NA',
+        account_number: trustee.bank_details?.account_number || 'NA',
+        ifsc_code: trustee.bank_details?.ifsc_code || 'NA',
+      },
+      buyer_details: {
+        name: `EDVIRON`,
+        gstIn: 'NA',
+        address: 'NA',
+        placeOfSupply: 'NA',
+      },
+      invoice_status: invoice_status.PENDING,
+      invoice_date: parsedInvoiceDate,
+      invoice_no,
+    }).save();
+
+    const invoiceData = {
+      invoiceDate: parsedInvoiceDate,
+      invoiceNumber: invoice_no,
+      hsn,
+      amountInWords: amount_in_words,
+      note,
+      sellerDetails: newInvoice.seller_details,
+      buyerDetails: newInvoice.buyer_details,
+      month: duration,
+      details,
+    };
+
+    setImmediate(() => {
+      this.generateInvoicePDF(newInvoice._id.toString(), invoiceData);
+    });
+    return `Invoice Request created`;
+  }
+
+  async generateInvoicePDF(invoiceId: string, invoiceData: any) {
+    try {
+      const Testurl = `http://localhost:4005/puppeteer/test`;
+      const url = `http://puppeteer-service-prod-env.eba-cjxkm69d.ap-south-1.elasticbeanstalk.com/puppeteer/test`;
+      const response = await axios.post(url, invoiceData, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const pdfUrl = response.data;
+
+      await this.invoiceModel.findByIdAndUpdate(invoiceId, {
+        invoice_url: pdfUrl,
+      });
+      console.log(`Invoice Saved`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => RefundRequest)
+  async getRefundRequest(@Args('order_id') order_id: string) {
+    const refundRequests =
+      await this.merchnatService.getRefundRequest(order_id);
+
+    if (!refundRequests) {
+      return {
         trustee_id: null,
         school_id: null,
         order_id: null,
         status: null,
-      }
-    }  
-    return refundRequests
+      };
+    }
+    return refundRequests;
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [InvoiceResponse])
+  async getInvoice(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+  ) {
+    const invoices = await this.invoiceModel
+      .find({ trustee_id: context.req.trustee })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      ;
+    return invoices;
+  }
+}
+
+@ObjectType()
+class InvoiceResponse {
+  @Field({ nullable: true })
+  _id: string;
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  invoice_details: InvoiceData;
+
+  @Field({ nullable: true })
+  invoice_status: string;
+
+  @Field({ nullable: true })
+  invoice_date: string;
+
+  @Field({ nullable: true })
+  invoice_no: string;
+
+  @Field({ nullable: true })
+  invoice_url: string;
 }
 
 @ObjectType()
@@ -1573,6 +1756,12 @@ class TrusteeUser {
   brand_name: string;
   @Field({ nullable: true })
   base_mdr: BaseMdr;
+  @Field({ nullable: true })
+  gstIn?: string;
+  @Field({ nullable: true })
+  residence_state?: string;
+  @Field({ nullable: true })
+  bank_details?: bankDetails;
 }
 
 @ObjectType()

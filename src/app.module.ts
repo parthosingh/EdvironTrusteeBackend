@@ -15,10 +15,17 @@ import { TrusteeResolver } from './trustee/trustee.resolver';
 import { MerchantResolver } from './merchant/merchant.resolver';
 import { CashfreeService } from './cashfree/cashfree.service';
 import { CashfreeModule } from './cashfree/cashfree.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { AwsS3Service } from './aws.s3/aws.s3.service';
 config();
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'src/views'), // Adjust the path to your views directory
+      exclude: ['/api*'], // Exclude API routes if necessary
+    }),
     MongooseModule.forRoot(process.env.DB),
     TrusteeModule,
     ErpModule,
@@ -38,6 +45,6 @@ config();
   ],
 
   controllers: [AppController],
-  providers: [AppService, CashfreeService],
+  providers: [AppService, CashfreeService, AwsS3Service],
 })
 export class AppModule {}
