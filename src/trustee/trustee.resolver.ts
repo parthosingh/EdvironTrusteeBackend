@@ -1486,6 +1486,7 @@ export class TrusteeResolver {
       trustee_id: trustee._id,
       invoice_no,
       duration,
+      invoice_status:invoice_status.PENDING
     }).save();
 
     const pdfUrl =await new Promise<string>(async (resolve, reject) => {
@@ -1674,6 +1675,10 @@ class InvoiceResponse {
 
   @Field({ nullable: true })
   invoice_url: string;
+
+  @Field({ nullable: true })
+  createdAt: string;
+
 }
 
 @ObjectType()
