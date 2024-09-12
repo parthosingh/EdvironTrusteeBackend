@@ -1471,6 +1471,48 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
+  async uploadInvoice(
+    @Args('base64') base64: string,
+    @Args('invoice_no') invoice_no: string,
+    @Args('duration') duration: string,
+    @Context() context: any,
+  ) {
+    const buffer = Buffer.from(base64.split(',')[1], 'base64');
+    const trustee = await this.trusteeModel.findById(context.req.trustee);
+    if (!trustee) {
+      throw new NotFoundException('Merchant Not Found');
+    }
+    const invoice = await new this.invoiceModel({
+      trustee_id: trustee._id,
+      invoice_no,
+      duration,
+    }).save();
+
+    const pdfUrl =await new Promise<string>(async (resolve, reject) => {
+      try {
+        // Upload the PDF buffer to AWS S3
+        const url = await this.awsS3Service.uploadToS3(
+          buffer,
+          `invoice_${invoice._id.toString()}.pdf`,
+          'application/pdf',
+          'edviron-backend-dev',
+        );
+
+        resolve(url);
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    if(pdfUrl){
+      invoice.invoice_url = pdfUrl;
+      await invoice.save();
+    }
+    return `Invoice Request created`;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
   async requestInvoice(
     @Args('invoice_no') invoice_no: string,
     @Args('invoice_date') invoice_date: string,
@@ -1498,20 +1540,16 @@ export class TrusteeResolver {
     //   throw new Error(`Residential details missing`);
     // }
 
- 
-
     const invoice = await this.invoiceModel.findOne({
       invoice_no,
       trustee_id: context.req.trustee,
     });
-   
 
     if (invoice) {
       throw new ConflictException(`Invoice number already present`);
     }
 
     const parsedInvoiceDate = invoice_date;
-
 
     const newInvoice = await new this.invoiceModel({
       trustee_id: context.req.trustee,
@@ -1529,10 +1567,11 @@ export class TrusteeResolver {
         ifsc_code: trustee.bank_details?.ifsc_code || 'NA',
       },
       buyer_details: {
-        name: `EDVIRON`,
-        gstIn: 'NA',
-        address: 'NA',
-        placeOfSupply: 'NA',
+        name: `THRIVEDGE EDUTECH PRIVATE LIMITED`,
+        gstIn: '06AAJCT8114C1ZJ',
+        address:
+          '4th & 5th Floor, DLF Phase-5,Sector-43, Golf Course Rd, Gurugram. DLF QE, Gurgaon, Dlf Qe, Haryana, India, 122002',
+        placeOfSupply: 'Delhi-NCR',
       },
       invoice_status: invoice_status.PENDING,
       invoice_date: parsedInvoiceDate,
@@ -1548,7 +1587,7 @@ export class TrusteeResolver {
       sellerDetails: newInvoice.seller_details,
       buyerDetails: newInvoice.buyer_details,
       month: duration,
-      details:{
+      details: {
         amount_without_gst,
         tax,
         total: amount,
@@ -1608,8 +1647,7 @@ export class TrusteeResolver {
       .find({ trustee_id: context.req.trustee })
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit)
-      ;
+      .limit(limit);
     return invoices;
   }
 }
