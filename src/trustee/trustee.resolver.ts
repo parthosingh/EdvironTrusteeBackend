@@ -1799,11 +1799,11 @@ class TrusteeUser {
   @Field({ nullable: true })
   base_mdr: BaseMdr;
   @Field({ nullable: true })
-  gstIn?: string;
+  gstIn: string;
   @Field({ nullable: true })
-  residence_state?: string;
+  residence_state: string;
   @Field({ nullable: true })
-  bank_details?: bankDetails;
+  bank_details: bankDetails;
 }
 
 @ObjectType()
