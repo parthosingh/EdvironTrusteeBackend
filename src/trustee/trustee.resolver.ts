@@ -205,9 +205,15 @@ export class TrusteeResolver {
   @Query(() => TrusteeUser)
   async getUserQuery(@Context() context): Promise<TrusteeUser> {
     try {
+      
+      
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userTrustee = await this.trusteeService.validateTrustee(token);
-      const trustee = await this.trusteeModel.findById(userTrustee.id);
+      
+      
+      const trustee = await this.trusteeModel.findById(userTrustee.trustee_id);
+     
+      
       // Map the trustee data to the User type
       const user: TrusteeUser = {
         _id: userTrustee.id,
@@ -232,6 +238,8 @@ export class TrusteeResolver {
       if (error instanceof ConflictException) {
         throw new ConflictException(customError);
       } else {
+        console.log(error);
+        
         throw new BadRequestException(customError);
       }
     }
