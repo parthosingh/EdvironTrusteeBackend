@@ -79,15 +79,15 @@ export class Trustee extends Document {
   webhook_urls: WebhookUrlType[];
 
   @Prop({})
-  @Field(() => String)
+  @Field(() => String,{ nullable: true })
   gstIn: string;
 
   @Prop({})
-  @Field(() => String)
+  @Field(() => String,{ nullable: true })
   residence_state: string;
 
   @Prop({})
-  @Field(() => bankDetails)
+  @Field(() => bankDetails,{ nullable: true })
   bank_details: bankDetails;
 
   @Field()
