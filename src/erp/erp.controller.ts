@@ -400,7 +400,6 @@ export class ErpController {
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-      
 
       if (
         decoded.collect_request_id != collect_request_id ||
@@ -824,18 +823,20 @@ export class ErpController {
   async getTransactionInfo(@Req() req: any) {
     try {
       const { sign, school_id, collect_request_id } = req.query;
-      if(!sign){
+      if (!sign) {
         throw new BadRequestException('Invalid signature');
       }
-      if(!school_id){
+      if (!school_id) {
         throw new BadRequestException('Invalid school_id');
       }
-      if(!collect_request_id){
+      if (!collect_request_id) {
         throw new BadRequestException('Invalid collect_request_id');
       }
 
-      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
-      if(!school){
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
         throw new BadRequestException('Invalid school_id');
       }
 
@@ -862,12 +863,11 @@ export class ErpController {
         data: { school_id, collect_request_id, token },
       };
       const response = await axios.request(config);
-      
 
       const transactions = response.data.map((item: any) => {
         return {
           ...item,
-          merchant_name:school.school_name,
+          merchant_name: school.school_name,
           student_id:
             JSON.parse(item?.additional_data).student_details?.student_id || '',
 
@@ -887,14 +887,19 @@ export class ErpController {
             JSON.parse(item?.additional_data).additional_fields || '',
           currency: 'INR',
           school_id: item.merchant_id,
-          school_name:school.school_name,
+          school_name: school.school_name,
         };
       });
-
-      return transactions
+      if (transactions.length > 0) {
+        return transactions[0];
+      }
+      return {};
     } catch (error) {
       console.log(error);
-      throw new Error(error.message);
+      if(error?.response?.data){
+        throw new BadRequestException(error?.response?.data?.message)
+      }
+      throw new BadRequestException(error.message);
     }
   }
 
