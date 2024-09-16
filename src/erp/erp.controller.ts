@@ -194,8 +194,6 @@ export class ErpController {
     },
     @Req() req,
   ) {
-    
-
     try {
       const trustee_id = req.userTrustee.id;
       const {
@@ -247,7 +245,6 @@ export class ErpController {
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
       }
-      
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
 
@@ -272,10 +269,9 @@ export class ErpController {
         all_webhooks = [...(req_webhook_urls || []), ...trusteeUrls];
       }
 
-      if(trustee.webhook_urls.length===0){
+      if (trustee.webhook_urls.length === 0) {
         all_webhooks = req_webhook_urls || [];
       }
-
 
       const additionalInfo = {
         student_details: {
@@ -363,8 +359,8 @@ export class ErpController {
     } catch (error) {
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
-      if(error?.response?.data?.message)
-        throw new ConflictException(error.response.data.message)
+      if (error?.response?.data?.message)
+        throw new ConflictException(error.response.data.message);
       console.log('error in create collect request', error);
       throw error;
     }
@@ -404,6 +400,7 @@ export class ErpController {
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      
 
       if (
         decoded.collect_request_id != collect_request_id ||
@@ -729,7 +726,7 @@ export class ErpController {
         page,
         limit,
         transactions,
-        total_records:response.data.totalTransactions,
+        total_records: response.data.totalTransactions,
         total_pages,
       };
     } catch (error) {
@@ -813,10 +810,88 @@ export class ErpController {
         page,
         limit,
         transactions,
-        total_records:response.data.totalTransactions,
+        total_records: response.data.totalTransactions,
         total_pages,
-
       };
+    } catch (error) {
+      console.log(error);
+      throw new Error(error.message);
+    }
+  }
+
+  @Get('transaction-info')
+  @UseGuards(ErpGuard)
+  async getTransactionInfo(@Req() req: any) {
+    try {
+      const { sign, school_id, collect_request_id } = req.query;
+      if(!sign){
+        throw new BadRequestException('Invalid signature');
+      }
+      if(!school_id){
+        throw new BadRequestException('Invalid school_id');
+      }
+      if(!collect_request_id){
+        throw new BadRequestException('Invalid collect_request_id');
+      }
+
+      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+      if(!school){
+        throw new BadRequestException('Invalid school_id');
+      }
+
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      if (
+        decoded.collect_request_id != collect_request_id ||
+        decoded.school_id != school_id
+      ) {
+        throw new ForbiddenException('request forged');
+      }
+
+      const token = this.jwtService.sign(
+        { school_id, collect_request_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transaction-info`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: { school_id, collect_request_id, token },
+      };
+      const response = await axios.request(config);
+      
+
+      const transactions = response.data.map((item: any) => {
+        return {
+          ...item,
+          merchant_name:school.school_name,
+          student_id:
+            JSON.parse(item?.additional_data).student_details?.student_id || '',
+
+          student_name:
+            JSON.parse(item?.additional_data).student_details?.student_name ||
+            '',
+
+          student_email:
+            JSON.parse(item?.additional_data).student_details?.student_email ||
+            '',
+          student_phone:
+            JSON.parse(item?.additional_data).student_details
+              ?.student_phone_no || '',
+          receipt:
+            JSON.parse(item?.additional_data).student_details?.receipt || '',
+          additional_data:
+            JSON.parse(item?.additional_data).additional_fields || '',
+          currency: 'INR',
+          school_id: item.merchant_id,
+          school_name:school.school_name,
+        };
+      });
+
+      return transactions
     } catch (error) {
       console.log(error);
       throw new Error(error.message);
@@ -1125,11 +1200,9 @@ export class ErpController {
   }
 
   @Get('/test-cron')
-  async checkSettlement(
-  ){   
-    const date=new Date('2024-08-13T11:10:07.695Z')
-    console.log(date);  
-    const data = await this.erpService.easebuzzSettlements(date)
-
+  async checkSettlement() {
+    const date = new Date('2024-08-13T11:10:07.695Z');
+    console.log(date);
+    const data = await this.erpService.easebuzzSettlements(date);
   }
 }
