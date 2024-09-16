@@ -8,6 +8,7 @@ import {
   NotFoundException,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MainBackendService } from './main-backend.service';
@@ -20,6 +21,8 @@ import { RequestMDR } from 'src/schema/mdr.request.schema';
 import { SchoolMdrInfo } from 'src/trustee/trustee.resolver';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
+import { Parser } from 'json2csv';
+import { Response } from 'express';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -403,13 +406,15 @@ export class MainBackendController {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
 
-    const request = await this.refundRequestModel.findById(decodedPayload.refund_id);
+    const request = await this.refundRequestModel.findById(
+      decodedPayload.refund_id,
+    );
 
-    if(request.status === refund_status.DELETED){
+    if (request.status === refund_status.DELETED) {
       throw new BadRequestException('Refund request has been deleted by user');
     }
 
-    if(request.status === refund_status.APPROVED){
+    if (request.status === refund_status.APPROVED) {
       throw new BadRequestException('Refund request is already approved');
     }
 
@@ -420,5 +425,68 @@ export class MainBackendController {
     await request.save();
 
     return `Request updated to ${decodedPayload.status}`;
+  }
+
+  @Get('download-mdr-report')
+  async downloadCsvs(
+    @Res() res: Response,
+    @Query('trustee_id') trustee_id: string,
+  ) {
+    // Fetch all schools linked to the trustee_id
+    const trusteeSchools = await this.trusteeSchoolModel.find({
+      trustee_id: new Types.ObjectId(trustee_id),
+    });
+    console.log(trusteeSchools);
+    
+    if (trusteeSchools.length === 0) {
+      throw new NotFoundException('No schools found for the trustee');
+    }
+
+    // Initialize ZIP archive to store multiple CSVs
+    const archiver = require('archiver');
+    const zip = archiver('zip');
+    zip.pipe(res);
+
+    for (const trusteeSchool of trusteeSchools) {
+      if (!trusteeSchool.pg_key) {
+        continue; // Skip schools without a PG Key
+      }
+
+      const data = trusteeSchool.platform_charges;
+      const csvData = [];
+
+      data.forEach((item) => {
+        item.range_charge.forEach((charge) => {
+          csvData.push({
+            'Platform Type': item.platform_type,
+            'Payment Mode': item.payment_mode,
+            Upto: charge.upto || 'infinity',
+            Charge: `${charge.charge}${
+              charge.charge_type === 'PERCENT' ? '%' : ''
+            }`,
+          });
+        });
+      });
+
+      // CSV fields and creation
+      const fields = ['Platform Type', 'Payment Mode', 'Upto', 'Charge'];
+      const json2csvParser = new Parser({ fields });
+      const csv = json2csvParser.parse(csvData);
+
+      // Append CSV to ZIP file
+      zip.append(csv, {
+        name: `${trusteeSchool.school_name}_platform_charges.csv`,
+      });
+    }
+
+    // Finalize the ZIP archive
+    zip.finalize();
+
+    // Set headers for ZIP file download
+    res.header('Content-Type', 'application/zip');
+    res.header(
+      'Content-Disposition',
+      `attachment; filename=trustee_${trustee_id}_platform_charges.zip`,
+    );
   }
 }
