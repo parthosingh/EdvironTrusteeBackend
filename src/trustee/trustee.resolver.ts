@@ -205,15 +205,11 @@ export class TrusteeResolver {
   @Query(() => TrusteeUser)
   async getUserQuery(@Context() context): Promise<TrusteeUser> {
     try {
-      
-      
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userTrustee = await this.trusteeService.validateTrustee(token);
-      
-      
+
       const trustee = await this.trusteeModel.findById(userTrustee.trustee_id);
-     
-      
+
       // Map the trustee data to the User type
       const user: TrusteeUser = {
         _id: userTrustee.id,
@@ -239,7 +235,7 @@ export class TrusteeResolver {
         throw new ConflictException(customError);
       } else {
         console.log(error);
-        
+
         throw new BadRequestException(customError);
       }
     }
@@ -1494,10 +1490,10 @@ export class TrusteeResolver {
       trustee_id: trustee._id,
       invoice_no,
       duration,
-      invoice_status:invoice_status.PENDING
+      invoice_status: invoice_status.PENDING,
     }).save();
 
-    const pdfUrl =await new Promise<string>(async (resolve, reject) => {
+    const pdfUrl = await new Promise<string>(async (resolve, reject) => {
       try {
         // Upload the PDF buffer to AWS S3
         const url = await this.awsS3Service.uploadToS3(
@@ -1513,7 +1509,7 @@ export class TrusteeResolver {
       }
     });
 
-    if(pdfUrl){
+    if (pdfUrl) {
       invoice.invoice_url = pdfUrl;
       await invoice.save();
     }
@@ -1548,6 +1544,8 @@ export class TrusteeResolver {
     // if (!trustee.residence_state) {
     //   throw new Error(`Residential details missing`);
     // }
+
+   
 
     const invoice = await this.invoiceModel.findOne({
       invoice_no,
@@ -1687,6 +1685,8 @@ class InvoiceResponse {
   @Field({ nullable: true })
   createdAt: string;
 
+  @Field({ nullable: true })
+  reason: string;
 }
 
 @ObjectType()

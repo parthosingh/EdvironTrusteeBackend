@@ -8,6 +8,7 @@ import {
   NotFoundException,
   Post,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -23,6 +24,8 @@ import { TrusteeSchool } from 'src/schema/school.schema';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { Parser } from 'json2csv';
 import { Response } from 'express';
+import axios from 'axios';
+import { Invoice, invoice_status } from 'src/schema/invoice.schema';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -38,6 +41,8 @@ export class MainBackendController {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(RefundRequest.name)
     private refundRequestModel: mongoose.Model<RefundRequest>,
+    @InjectModel(Invoice.name)
+    private readonly invoiceModel: mongoose.Model<Invoice>,
   ) {}
 
   @Post('create-trustee')
@@ -427,6 +432,103 @@ export class MainBackendController {
     return `Request updated to ${decodedPayload.status}`;
   }
 
+  @Get('/get-invoices')
+  async getInvoices(
+    @Query('trustee_id') trustee_id: string,
+    @Query('token') token: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const trustee = await this.trusteeModel.findById(trustee_id);
+    if (!trustee) {
+      throw new NotFoundException('Trustee not found');
+    }
+    const skip = (page - 1) * limit;
+    const invoices = await this.invoiceModel
+      .find({ trustee_id: trustee._id })
+      .skip(skip)
+      .limit(limit);
+
+    const totalInvoices = await this.invoiceModel.countDocuments({
+      trustee_id: trustee._id,
+    });
+
+    return {
+      invoices,
+      totalInvoices,
+      currentPage: page,
+      totalPages: Math.ceil(totalInvoices / limit),
+    };
+  }
+
+  @Post('/update-invoice-status')
+  async updateInvoice(
+    @Query('token') token: string,
+    @Query('invoice_id') invoice_id: string,
+    @Query('status') status: invoice_status,
+  ) {
+    // const decodedPayload = await this.jwtService.verify(token, {
+    //   secret: process.env.JWT_SECRET_FOR_INTRANET,
+    // });
+    // if (!decodedPayload) {
+    //   throw new BadRequestException('Invalid token');
+    // }
+
+    console.log(invoice_id);
+    
+
+    const invoice = await this.invoiceModel.findById(invoice_id);
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+    invoice.invoice_status = status;
+    await invoice.save();
+    return `Invoice status updated to ${status}`;
+  }
+
+  @Get('school-mdr-csv')
+  async downloadCsv(
+    @Res() res: Response,
+    @Query('school_id') school_id: string,
+  ) {
+    console.log(school_id);
+
+    const trusteeSchool = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    if (!trusteeSchool) {
+      throw new NotFoundException('Trustee School not found');
+    }
+    if (!trusteeSchool.pg_key) {
+      throw new BadRequestException('PG Key not found');
+    }
+
+    const data = trusteeSchool.platform_charges;
+
+    const csvData = [];
+    data.forEach((item) => {
+      item.range_charge.forEach((charge) => {
+        csvData.push({
+          'Platform Type': item.platform_type,
+          'Payment Mode': item.payment_mode,
+          Upto: charge.upto || 'infinity',
+          Charge: `${charge.charge}${
+            charge.charge_type === 'PERCENT' ? '%' : ''
+          }`,
+        });
+      });
+    });
+
+    const fields = ['Platform Type', 'Payment Mode', 'Upto', 'Charge'];
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(csvData);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment(`${trusteeSchool.school_name}_platform_charges.csv`);
+    return res.send(csv);
+  }
+
+
   @Get('download-mdr-report')
   async downloadCsvs(
     @Res() res: Response,
@@ -436,8 +538,7 @@ export class MainBackendController {
     const trusteeSchools = await this.trusteeSchoolModel.find({
       trustee_id: new Types.ObjectId(trustee_id),
     });
-    console.log(trusteeSchools);
-    
+
     if (trusteeSchools.length === 0) {
       throw new NotFoundException('No schools found for the trustee');
     }

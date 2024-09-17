@@ -13,6 +13,7 @@ import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
 import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
+import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
 
 @Module({
   imports: [
@@ -33,6 +34,9 @@ import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
     ]),
     MongooseModule.forFeature([
       { name: RefundRequest.name, schema: RefundRequestSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Invoice.name, schema: InvoiceSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({

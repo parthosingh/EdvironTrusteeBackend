@@ -111,6 +111,10 @@ export class Invoice {
 
   @Prop({})
   @Field(() => String)
+  reason: string;
+
+  @Prop({})
+  @Field(() => String)
   duration: string;
 
   @Prop({})
