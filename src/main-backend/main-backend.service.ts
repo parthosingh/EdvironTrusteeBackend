@@ -8,7 +8,13 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
-import { FullKycStatus, MerchantStatus, MinKycStatus, SchoolSchema, TrusteeSchool } from '../schema/school.schema';
+import {
+  FullKycStatus,
+  MerchantStatus,
+  MinKycStatus,
+  SchoolSchema,
+  TrusteeSchool,
+} from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
 
@@ -129,14 +135,14 @@ export class MainBackendService {
   }
 
   async updateSchoolInfo(info: {
-    school_id: string,
-    trustee_id: string,
-    client_id: string,
-    merchantName: string,
-    merchantEmail: string,
-    merchantStatus: MerchantStatus,
-    pgMinKYC: MinKycStatus,
-    pgFullKYC: FullKycStatus
+    school_id: string;
+    trustee_id: string;
+    client_id: string;
+    merchantName: string;
+    merchantEmail: string;
+    merchantStatus: MerchantStatus;
+    pgMinKYC: MinKycStatus;
+    pgFullKYC: FullKycStatus;
   }) {
     try {
       const {
@@ -161,9 +167,12 @@ export class MainBackendService {
         throw new NotFoundException(`School not found for Trustee`);
       }
 
-      let update = {}
+      let update = {};
 
-      if(info.pgMinKYC!==MinKycStatus.MIN_KYC_APPROVED && info.pgMinKYC!== MinKycStatus.MIN_KYC_REJECTED)  {
+      if (
+        info.pgMinKYC !== MinKycStatus.MIN_KYC_APPROVED &&
+        info.pgMinKYC !== MinKycStatus.MIN_KYC_REJECTED
+      ) {
         update = {
           $set: {
             // school_name: merchantName,
@@ -172,37 +181,36 @@ export class MainBackendService {
             merchantName,
             pgMinKYC,
             pgFullKYC,
-            trustee_id: trusteeId
+            trustee_id: trusteeId,
           },
         };
-      }else if(info.pgMinKYC==MinKycStatus.MIN_KYC_APPROVED){
+      } else if (info.pgMinKYC == MinKycStatus.MIN_KYC_APPROVED) {
         update = {
           $set: {
             // school_name: merchantName,
             client_id,
             merchantEmail,
             merchantName,
-            merchantStatus:MerchantStatus.KYC_APPROVED,
+            merchantStatus: MerchantStatus.KYC_APPROVED,
             pgFullKYC,
             pgMinKYC,
-            trustee_id: trusteeId
+            trustee_id: trusteeId,
           },
         };
-      } else if(info.pgMinKYC==MinKycStatus.MIN_KYC_REJECTED){
+      } else if (info.pgMinKYC == MinKycStatus.MIN_KYC_REJECTED) {
         update = {
           $set: {
             // school_name: merchantName,
             client_id,
             merchantEmail,
             merchantName,
-            merchantStatus:MerchantStatus.DOCUMENTS_REJECTED,
+            merchantStatus: MerchantStatus.DOCUMENTS_REJECTED,
             pgFullKYC,
             pgMinKYC,
-            trustee_id: trusteeId
+            trustee_id: trusteeId,
           },
         };
       }
-
 
       const options = {
         new: true,
@@ -289,26 +297,44 @@ export class MainBackendService {
     }
   }
 
-  async updateMerchantStatus(info){
+  async updateMerchantStatus(info) {
     try {
-      const {trustee_id, school_id,merchantStatus} = info;
+      const { trustee_id, school_id, merchantStatus } = info;
 
-      const trusteeId = new Types.ObjectId(trustee_id)
-      const schoolId = new Types.ObjectId(school_id)
-      
+      const trusteeId = new Types.ObjectId(trustee_id);
+      const schoolId = new Types.ObjectId(school_id);
 
-      const existingSchool = await this.trusteeSchoolModel.findOne({trustee_id:trusteeId , school_id:schoolId});
-      if(!existingSchool) throw new NotFoundException('School not found for Trustee');
-  
-      return await this.trusteeSchoolModel.findOneAndUpdate({school_id:schoolId},{
-        $set:{
-          merchantStatus
-        }
-      })
+      const existingSchool = await this.trusteeSchoolModel.findOne({
+        trustee_id: trusteeId,
+        school_id: schoolId,
+      });
+      if (!existingSchool)
+        throw new NotFoundException('School not found for Trustee');
+
+      return await this.trusteeSchoolModel.findOneAndUpdate(
+        { school_id: schoolId },
+        {
+          $set: {
+            merchantStatus,
+          },
+        },
+      );
     } catch (error) {
       throw error;
     }
-   
   }
-
+  async getSchool(school_id: string) {
+    try {
+      const schoolId = new Types.ObjectId(school_id);
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: schoolId,
+      });
+      if (!school) {
+        throw new NotFoundException(`School not found`);
+      }
+      return school;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 }

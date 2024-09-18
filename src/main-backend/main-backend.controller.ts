@@ -590,4 +590,23 @@ export class MainBackendController {
       `attachment; filename=trustee_${trustee_id}_platform_charges.zip`,
     );
   }
+
+  @Get('get-school')
+  async getSchool(@Query('token') token: string) {
+    try {
+      const decodedPayload = await this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      const school = await this.mainBackendService.getSchool(
+        decodedPayload.school_id,
+      );
+      if (school) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.log(e.message);
+      return false;
+    }
+  }
 }
