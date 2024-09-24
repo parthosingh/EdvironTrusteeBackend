@@ -240,7 +240,7 @@ export class ErpController {
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
-      if (!school.client_id || !school.client_secret || !school.pg_key) {
+      if ( !school.pg_key) {
         throw new BadRequestException(
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
@@ -299,8 +299,8 @@ export class ErpController {
           },
           { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
         ),
-        clientId: school.client_id,
-        clientSecret: school.client_secret,
+        clientId: school.client_id || null,
+        clientSecret: school.client_secret || null,
         school_id: school_id,
         trustee_id: trustee_id,
         webHook: webHookUrl || null,
@@ -1209,5 +1209,21 @@ export class ErpController {
     const date = new Date('2024-08-13T11:10:07.695Z');
     console.log(date);
     const data = await this.erpService.easebuzzSettlements(date);
+  }
+  @Get('/test-callback')
+  async test(@Req() req:any){
+    console.log(req.query);
+    console.log(req.body);
+    console.log(req.params);
+    console.log(req.headers);
+    console.log(req.ip);
+    console.log(req.hostname);
+    console.log(req.protocol);
+    console.log(req.secure);
+    console.log(req.connection.remoteAddress);
+    console.log(req.originalUrl);
+    console.log(req.baseUrl);
+    console.log(req.path);
+    console.log(req.method);
   }
 }

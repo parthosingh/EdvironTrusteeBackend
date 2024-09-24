@@ -330,7 +330,7 @@ export class TrusteeResolver {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=5000`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=5`,
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
@@ -339,7 +339,7 @@ export class TrusteeResolver {
       };
 
       const response = await axios.request(config);
-
+   
       transactionReport = response.data.transactions.map(async (item: any) => {
         let remark = null;
         const info = await await this.trusteeService.getRemarks(
@@ -355,10 +355,6 @@ export class TrusteeResolver {
         if (commission) {
           commissionAmount = commission.commission_amount;
         }
-        console.log(
-          JSON.parse(item?.additional_data).student_details?.student_name,
-        );
-
         return {
           ...item,
           merchant_name:
@@ -393,6 +389,8 @@ export class TrusteeResolver {
         const dateB = new Date(b.createdAt).getTime();
         return dateB - dateA;
       });
+    
+      
 
       return transactionReport;
     } catch (error) {
