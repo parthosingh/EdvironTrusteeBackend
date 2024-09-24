@@ -247,7 +247,8 @@ export class ErpController {
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-
+      console.log(decoded);
+      
       if (
         decoded.amount != amount ||
         decoded.callback_url != callback_url ||
@@ -294,7 +295,7 @@ export class ErpController {
           {
             amount,
             callbackUrl: callback_url,
-            clientId: school.client_id,
+            clientId: school.client_id || null,
             clientSecret: school.client_secret,
           },
           { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
@@ -357,6 +358,8 @@ export class ErpController {
         ),
       };
     } catch (error) {
+      console.log(error);
+      
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       if (error?.response?.data?.message)
@@ -393,7 +396,7 @@ export class ErpController {
         throw new UnauthorizedException('Unauthorized');
       }
 
-      if (!school.client_id || !school.client_secret || !school.pg_key) {
+      if (!school.pg_key) {
         throw new BadRequestException(
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
