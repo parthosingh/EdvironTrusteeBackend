@@ -492,6 +492,7 @@ export class ErpController {
           {
             transactionId: order_id,
             trusteeId: trustee_id,
+            school_id
           },
           { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
         )}`,
