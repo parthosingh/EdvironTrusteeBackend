@@ -18,6 +18,8 @@ import { CashfreeModule } from './cashfree/cashfree.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AwsS3Service } from './aws.s3/aws.s3.service';
+import { WebhooksController } from './webhooks/webhooks.controller';
+import { WebhooksModule } from './webhooks/webhooks.module';
 config();
 
 @Module({
@@ -42,6 +44,7 @@ config();
       playground: process.env.NODE_ENV === 'dev',
     }),
     CashfreeModule,
+    WebhooksModule,
   ],
 
   controllers: [AppController],

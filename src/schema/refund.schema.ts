@@ -53,6 +53,14 @@ export class RefundRequest {
   @Prop()
   @Field(() => String, { nullable: true })
   gateway: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  gatway_refund_id: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  additonalInfo: string;
 }
 
 export const RefundRequestSchema = SchemaFactory.createForClass(RefundRequest);
