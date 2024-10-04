@@ -1210,9 +1210,10 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const date = new Date('2024-08-13T11:10:07.695Z');
+    const date = new Date('2024-10-03T23:59:59.695Z');
     console.log(date);
-    const data = await this.erpService.easebuzzSettlements(date);
+    // const data = await this.erpService.easebuzzSettlements(date);
+    await this.erpService.sendSettlements(date)
   }
   @Get('/test-callback')
   async test(@Req() req:any){
