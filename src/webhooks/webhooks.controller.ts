@@ -26,7 +26,7 @@ export class WebhooksController {
     const easebuzz_refund_status = body.data.refund_status;
     await new this.webhooksLogsModel({
       type: 'Refund Webhook',
-      order_id: new Types.ObjectId(txnid) || txnid,
+      order_id: txnid,
       gateway: 'EASEBUZZ',
       body: details,
       status: 'SUCCESS',
@@ -67,7 +67,7 @@ export class WebhooksController {
     const details = JSON.stringify(body);
     await new this.webhooksLogsModel({
       type: 'Refund Webhook',
-      order_id: new Types.ObjectId(order_id) || 'not found',
+      order_id: order_id,
       gateway: 'CASHFREE',
       body: details,
       status: 'SUCCESS',
