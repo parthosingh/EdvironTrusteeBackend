@@ -55,7 +55,6 @@ export class WebhooksController {
 
   @Post('/cashfree/refund')
   async cashfreeRefundWebhook(@Body() body: any, @Res() res: any) {
-    console.log(body);
     const {
       refund_id,
       order_id,
@@ -63,8 +62,6 @@ export class WebhooksController {
       status_description,
       cf_refund_id,
     } = body.data.refund;
-
-    
 
     const cf_refund_status = body.data.refund.refund_status;
     const details = JSON.stringify(body);
