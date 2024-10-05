@@ -22,18 +22,23 @@ export class WebhooksController {
       transaction_date,
       transaction_type,
     } = body.data;
+
+    let collect_id = txnid;
+    if (collect_id.startsWith('upi_')) {
+      collect_id = collect_id.replace('upi_', '');
+    }
     const details = JSON.stringify(body.data);
     const easebuzz_refund_status = body.data.refund_status;
     await new this.webhooksLogsModel({
       type: 'Refund Webhook',
-      order_id: txnid,
+      order_id: collect_id,
       gateway: 'EASEBUZZ',
       body: details,
       status: 'SUCCESS',
     }).save();
 
     try {
-      const refundRequest = await this.refundRequestModel.findById(txnid);
+      const refundRequest = await this.refundRequestModel.findById(collect_id);
       if (!refundRequest) {
         console.log(`Refund request not Found`);
       }
@@ -150,3 +155,5 @@ export class WebhooksController {
 //     "event_time":"2022-02-28T13:04:28+05:30",
 //     "type":"REFUND_STATUS_WEBHOOK"
 //  }
+
+
