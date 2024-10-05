@@ -33,6 +33,7 @@ export class WebhooksController {
       type: 'Refund Webhook',
       order_id: collect_id,
       gateway: 'EASEBUZZ',
+      type_id:refund_id,
       body: details,
       status: 'SUCCESS',
     }).save();
@@ -74,6 +75,7 @@ export class WebhooksController {
       type: 'Refund Webhook',
       order_id: order_id,
       gateway: 'CASHFREE',
+      type_id:refund_id,
       body: details,
       status: 'SUCCESS',
     }).save();
