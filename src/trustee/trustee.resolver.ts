@@ -61,6 +61,7 @@ export class invoiceDetails {
 
 import { MerchantService } from 'src/merchant/merchant.service';
 import { RefundRequest } from 'src/schema/refund.schema';
+import { TransactionInfo } from 'src/schema/transaction.info.schema';
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -337,64 +338,90 @@ export class TrusteeResolver {
         },
         data: { trustee_id: id, token },
       };
-
+      console.time('fetching all transaction');
       const response = await axios.request(config);
-   
-      transactionReport = response.data.transactions.map(async (item: any) => {
-        let remark = null;
-        const info = await await this.trusteeService.getRemarks(
-          item.collect_id,
-        );
-        if (info) {
-          remark = info.remarks;
-        }
-        let commissionAmount = 0;
-        const commission = await this.commissionModel.findOne({
-          collect_id: new Types.ObjectId(item.collect_id),
-        });
-        if (commission) {
-          commissionAmount = commission.commission_amount;
-        }
-        return {
-          ...item,
-          merchant_name:
-            merchant_ids_to_merchant_map[item.merchant_id].school_name,
-          student_id:
-            JSON.parse(item?.additional_data).student_details?.student_id || '',
-          student_name:
-            JSON.parse(item?.additional_data).student_details?.student_name ||
-            '',
-          student_email:
-            JSON.parse(item?.additional_data).student_details?.student_email ||
-            '',
-          student_phone:
-            JSON.parse(item?.additional_data).student_details
-              ?.student_phone_no || '',
-          receipt:
-            JSON.parse(item?.additional_data).student_details?.receipt || '',
-          additional_data:
-            JSON.parse(item?.additional_data).additional_fields || '',
-          currency: 'INR',
-          school_id: item.merchant_id,
-          school_name:
-            merchant_ids_to_merchant_map[item.merchant_id].school_name,
-          remarks: remark,
-          commission: commissionAmount,
-          custom_order_id: item?.custom_order_id || null,
-        };
-      });
+      console.timeEnd('fetching all transaction');
 
+      console.time('mapping');
+
+      transactionReport = await Promise.all(
+        response.data.transactions.map(async (item: any) => {
+          let remark = null;
+          // const info = await this.trusteeService.getRemarks(item.collect_id);
+
+          // if (info) {
+          //   remark = info.remarks;
+          // }
+          let commissionAmount = 0;
+          // const commission = await this.commissionModel.findOne({
+          //   collect_id: new Types.ObjectId(item.collect_id),
+          // });
+          // if (commission) {
+          //   commissionAmount = commission.commission_amount;
+          // }
+          return {
+            ...item,
+            merchant_name:
+              merchant_ids_to_merchant_map[item.merchant_id].school_name,
+            student_id:
+              JSON.parse(item?.additional_data).student_details?.student_id ||
+              '',
+            student_name:
+              JSON.parse(item?.additional_data).student_details?.student_name ||
+              '',
+            student_email:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_email || '',
+            student_phone:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_phone_no || '',
+            receipt:
+              JSON.parse(item?.additional_data).student_details?.receipt || '',
+            additional_data:
+              JSON.parse(item?.additional_data).additional_fields || '',
+            currency: 'INR',
+            school_id: item.merchant_id,
+            school_name:
+              merchant_ids_to_merchant_map[item.merchant_id].school_name,
+            remarks: remark,
+            commission: commissionAmount,
+            custom_order_id: item?.custom_order_id || null,
+          };
+        }),
+      );
+
+      console.timeEnd('mapping');
+
+      console.time('sorting');
       transactionReport.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return dateB - dateA;
       });
-    
-      
+      console.timeEnd('sorting');
+      console.log(transactionReport.length);
 
+      const skip = 1;
+      const limit = 1;
       return transactionReport;
     } catch (error) {
       // console.log(error);
+      throw error;
+    }
+  }
+
+  @Query(() => [Commissionresponse])
+  @UseGuards(TrusteeGuard)
+  async fetchAllCommission(@Context() context) {
+    try {
+      let id = context.req.trustee;
+      const commissions = await this.commissionModel
+        .find({ trustee_id: id.toString() })
+        .sort({ createdAt: -1 });
+
+      console.log(commissions.length);
+      return commissions;
+    } catch (error) {
       throw error;
     }
   }
@@ -1543,8 +1570,6 @@ export class TrusteeResolver {
     //   throw new Error(`Residential details missing`);
     // }
 
-   
-
     const invoice = await this.invoiceModel.findOne({
       invoice_no,
       trustee_id: context.req.trustee,
@@ -2099,4 +2124,31 @@ class SettlementUtr {
   utr_number: string;
   @Field({ nullable: true })
   status: string;
+}
+
+@ObjectType()
+class Commissionresponse {
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  platform_type: string;
+
+  @Field({ nullable: true })
+  collect_id: string;
+
+  @Field({ nullable: true })
+  trustee_id: string;
+
+  @Field({ nullable: true })
+  commission_amount: number;
+
+  @Field({ nullable: true })
+  createdAt: string;
+
+  @Field({ nullable: true })
+  updatedAt: string;
+
+  @Field({ nullable: true })
+  payment_mode: string;
 }
