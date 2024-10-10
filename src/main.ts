@@ -26,7 +26,7 @@ async function bootstrap() {
     'https://dev.trustee.edviron.com',
     'https://partner.edviron.com',
     'https://merchant.edviron.com',
-
+    'https://sandbox.partner.edviron.com',
     'https://dev.merchant.edviron.com',
   ];
   app.enableCors({

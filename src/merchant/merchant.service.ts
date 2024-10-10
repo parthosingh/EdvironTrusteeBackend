@@ -45,8 +45,9 @@ export class MerchantService {
     passwordHash: string,
   ): Promise<Boolean> {
     try {
+      const lowerCaseEmail = email.toLowerCase();
       var res = false;
-      const merchant = await this.trusteeSchoolModel.findOne({ email: email });
+      const merchant = await this.trusteeSchoolModel.findOne({ email: lowerCaseEmail });
       var email_id = merchant?.email;
       var passwordMatch;
 
@@ -158,7 +159,7 @@ export class MerchantService {
           id: merchant._id,
           name: merchant.school_name,
           email: merchant.email,
-          role: 'owner' || null,
+          role: 'owner',
           phone_number: merchant.phone_number,
           user: merchant.super_admin_name,
           apiKey: trustee.apiKey,
