@@ -227,8 +227,8 @@ export class ErpService {
         //   school_id: trusteeSchool.school_id,
         //   mdr2: base_charge.platform_charges,
         // });
-        trusteeSchool.platform_charges=base_charge.platform_charges
-        await trusteeSchool.save()
+        trusteeSchool.platform_charges = base_charge.platform_charges;
+        await trusteeSchool.save();
       }
 
       return school;
@@ -540,10 +540,12 @@ export class ErpService {
         );
 
         const start = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
-        console.log(start,'start');
-        console.log(new Date(start.getTime() - 24 * 60 * 60 * 1000),'start new');
-        
-        
+        console.log(start, 'start');
+        console.log(
+          new Date(start.getTime() - 24 * 60 * 60 * 1000),
+          'start new',
+        );
+
         start.setHours(0, 0, 0, 0);
         const end = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
         end.setHours(23, 59, 59, 999);
@@ -572,54 +574,162 @@ export class ErpService {
         try {
           const response = await axios.request(config);
           console.log(response.data.payouts_history_data, 'data');
-          if (!response?.data?.payouts_history_data || response?.data?.payouts_history_data?.length === 0){
-            console.log(response.data,'res');
-            
+          if (
+            !response?.data?.payouts_history_data ||
+            response?.data?.payouts_history_data?.length === 0
+          ) {
+            console.log(response.data, 'res');
+
             console.log('no data');
             return;
           }
-          response.data.payouts_history_data.map(async(data:any)=>{
-              console.log('saving....',data);
-              const easebuzzDate=new Date(data.payout_actual_date)
-              const existingSettlement = await this.settlementReportModel.findOne({
-                utrNumber:data.bank_transaction_id,
-              });
+          response.data.payouts_history_data.map(async (data: any) => {
+            console.log('saving....', data);
+            const easebuzzDate = new Date(data.payout_actual_date);
+            const existingSettlement = await this.settlementReportModel.findOne(
+              {
+                utrNumber: data.bank_transaction_id,
+              },
+            );
 
-              if (!existingSettlement) {
-            try{
-
-            
+            if (!existingSettlement) {
+              try {
                 const settlementReport = new this.settlementReportModel({
-                  settlementAmount:
-                    data.payout_amount,
+                  settlementAmount: data.payout_amount,
                   adjustment: (0.0).toString(),
-                  netSettlementAmount:
-                    data.payout_amount,
+                  netSettlementAmount: data.payout_amount,
                   easebuzz_id: merchant.easebuzz_id,
-                  fromDate: new Date(easebuzzDate.getTime() - 24 * 60 * 60 * 1000),
-                  tillDate: new Date(easebuzzDate.getTime() - 24 * 60 * 60 * 1000),
-                  status: 'Settled',
-                  utrNumber:
-                    data.bank_transaction_id,
-                  settlementDate: new Date(
-                    data.payout_actual_date,
+                  fromDate: new Date(
+                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
                   ),
+                  tillDate: new Date(
+                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                  ),
+                  status: 'Settled',
+                  utrNumber: data.bank_transaction_id,
+                  settlementDate: new Date(data.payout_actual_date),
                   trustee: merchant.trustee_id,
                   schoolId: merchant.school_id,
-                  clientId: merchant.client_id
-                });               
-                //add mail option 
+                  clientId: merchant.client_id,
+                });
+                //add mail option
                 console.log(
                   `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
                 );
                 await settlementReport.save();
-              }catch(e){console.log(e.message);
+
+                try {
+                  const transporter = nodemailer.createTransport({
+                    pool: true,
+                    host: 'smtp.gmail.com',
+                    port: 465,
+                    secure: true,
+                    auth: {
+                      type: 'OAuth2',
+                      user: process.env.EMAIL_USER,
+                      clientId: process.env.OAUTH_CLIENT_ID,
+                      clientSecret: process.env.OAUTH_CLIENT_SECRET,
+                      refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+                    },
+                  });
+
+                  const mailOptions = {
+                    from: process.env.EMAIL_USER,
+                    to: 'tarun.k@edviron.com',
+                    subject:
+                      'Settlement Report Dt.' +
+                      new Date(
+                        settlementDate.getTime() - 86400000 * 1,
+                      ).toDateString(),
+                    attachments: [
+                      {
+                        filename: `setllement_report_${merchant.school_name}.csv`,
+                        content: `
+                    S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
+                    1, ${response.data.data[0].payment_amount.toFixed(
+                      2,
+                    )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                      2,
+                    )},	${new Date(
+                      start.getTime() - 24 * 60 * 60 * 1000,
+                    )}, ${new Date(
+                      start.getTime() - 24 * 60 * 60 * 1000,
+                    )},	Settled, ${
+                      response.data.data[0].settlement_utr
+                    }, ${new Date(
+                      settlementDate.getTime() - 86400000 * 1,
+                    ).toDateString()}`,
+                      },
+                    ],
+                    html: `
+                Dear School, <br/><br/>
+                
+                Attached is the settlement report for transactions processed on ${new Date(
+                  settlementDate.getTime() - 86400000 * 2,
+                ).toDateString()}. <br/><br/>
+                
+                If you have any questions or require further clarification, feel free to reach out. <br/><br/>
+                
+                Regards,<br/>
+                Edviron Team 
+                `,
+                  };
+                  const mailOptions2 = {
+                    from: process.env.EMAIL_USER,
+                    to: merchant.email,
+                    subject:
+                      'Settlement Report Dt.' +
+                      new Date(
+                        settlementDate.getTime() - 86400000 * 1,
+                      ).toDateString(),
+                    attachments: [
+                      {
+                        filename: `setllement_report_${merchant.school_name}.csv`,
+                        content: `
+                    S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
+                    1, ${response.data.data[0].payment_amount.toFixed(
+                      2,
+                    )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                      2,
+                    )},	${new Date(
+                      start.getTime() - 24 * 60 * 60 * 1000,
+                    )}, ${new Date(
+                      start.getTime() - 24 * 60 * 60 * 1000,
+                    )},	Settled, ${
+                      response.data.data[0].settlement_utr
+                    }, ${new Date(
+                      settlementDate.getTime() - 86400000 * 1,
+                    ).toDateString()}`,
+                      },
+                    ],
+                    html: `
+                Dear School, <br/><br/>
+                
+                Attached is the settlement report for transactions processed on ${new Date(
+                  settlementDate.getTime() - 86400000 * 2,
+                ).toDateString()}. <br/><br/>
+                
+                If you have any questions or require further clarification, feel free to reach out. <br/><br/>
+                
+                Regards,<br/>
+                Edviron Team 
+                `,
+                  };
+                  const info = await transporter.sendMail(mailOptions);
+                  await transporter.sendMail(mailOptions2);
+                } catch (e) {
+                  console.log('Error in sending mail to merchant');
+                }
+              } catch (e) {
+                console.log(e.message);
               }
-              } else {
-                console.log('Settlement already exists', existingSettlement.utrNumber);
-              }
-              
-          })          
+            } else {
+              console.log(
+                'Settlement already exists',
+                existingSettlement.utrNumber,
+              );
+            }
+          });
         } catch (e) {
           console.log(e);
           console.log(e.message);
@@ -638,7 +748,7 @@ export class ErpService {
     if (!settlementDate) {
       settlementDate = new Date();
     }
-    await this.easebuzzSettlements(settlementDate)
+    await this.easebuzzSettlements(settlementDate);
     console.log('running cron', settlementDate);
     const merchants = await this.trusteeSchoolModel.find({});
     merchants
@@ -683,10 +793,10 @@ export class ErpService {
             console.log('promise called');
             try {
               const response = await axios.request(config);
-            
+
               if (response.data.data.length === 0) return;
-              console.log(response.data.data,'cashfree response');
-              
+              console.log(response.data.data, 'cashfree response');
+
               const existingSettlement =
                 await this.settlementReportModel.findOne({
                   utrNumber: response.data.data[0].settlement_utr,
@@ -699,8 +809,10 @@ export class ErpService {
                   netSettlementAmount:
                     response.data.data[0].payment_amount.toFixed(2),
                   clientId: merchant.client_id,
-                  fromDate: new Date(response?.data?.data[0]?.payment_from) || start,
-                  tillDate: new Date(response?.data?.data[0]?.payment_till) || start,
+                  fromDate:
+                    new Date(response?.data?.data[0]?.payment_from) || start,
+                  tillDate:
+                    new Date(response?.data?.data[0]?.payment_till) || start,
                   status: 'Settled',
                   utrNumber: response.data.data[0].settlement_utr,
                   settlementDate: new Date(
@@ -709,70 +821,115 @@ export class ErpService {
                   trustee: merchant.trustee_id,
                   schoolId: merchant.school_id,
                 });
-                console.log(`saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`);
+                console.log(
+                  `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
+                );
                 await settlementReport.save();
               } else {
                 console.log('Settlement already exists', existingSettlement);
               }
 
-            //   const transporter = nodemailer.createTransport({
-            //     pool: true,
-            //     host: 'smtp.gmail.com',
-            //     port: 465,
-            //     secure: true,
-            //     auth: {
-            //       type: 'OAuth2',
-            //       user: process.env.EMAIL_USER,
-            //       clientId: process.env.OAUTH_CLIENT_ID,
-            //       clientSecret: process.env.OAUTH_CLIENT_SECRET,
-            //       refreshToken: process.env.OAUTH_REFRESH_TOKEN,
-            //     },
-            //   });
+              const transporter = nodemailer.createTransport({
+                pool: true,
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true,
+                auth: {
+                  type: 'OAuth2',
+                  user: process.env.EMAIL_USER,
+                  clientId: process.env.OAUTH_CLIENT_ID,
+                  clientSecret: process.env.OAUTH_CLIENT_SECRET,
+                  refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+                },
+              });
 
-            //   const mailOptions = {
-            //     from: process.env.EMAIL_USER,
-            //     to: 'tarun.k@edviron.com',
-            //     subject:
-            //       'Settlement Report Dt.' +
-            //       new Date(
-            //         settlementDate.getTime() - 86400000 * 1,
-            //       ).toDateString(),
-            //     attachments: [
-            //       {
-            //         filename: `setllement_report_${merchant.school_name}.csv`,
-            //         content: `
-            //     S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
-            //     1, ${response.data.data[0].payment_amount.toFixed(
-            //       2,
-            //     )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
-            //       2,
-            //     )},	${new Date(
-            //       start.getTime() - 24 * 60 * 60 * 1000,
-            //     )}, ${new Date(
-            //       start.getTime() - 24 * 60 * 60 * 1000,
-            //     )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
-            //       settlementDate.getTime() - 86400000 * 1,
-            //     ).toDateString()}`,
-            //       },
-            //     ],
-            //     html: `
-            // Dear School, <br/><br/>
+              const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: 'tarun.k@edviron.com',
+                subject:
+                  'Settlement Report Dt.' +
+                  new Date(
+                    settlementDate.getTime() - 86400000 * 1,
+                  ).toDateString(),
+                attachments: [
+                  {
+                    filename: `setllement_report_${merchant.school_name}.csv`,
+                    content: `
+                S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
+                1, ${response.data.data[0].payment_amount.toFixed(
+                  2,
+                )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                  2,
+                )},	${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )}, ${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
+                  settlementDate.getTime() - 86400000 * 1,
+                ).toDateString()}`,
+                  },
+                ],
+                html: `
+            Dear School, <br/><br/>
             
-            // Attached is the settlement report for transactions processed on ${new Date(
-            //   settlementDate.getTime() - 86400000 * 2,
-            // ).toDateString()}. <br/><br/>
+            Attached is the settlement report for transactions processed on ${new Date(
+              settlementDate.getTime() - 86400000 * 2,
+            ).toDateString()}. <br/><br/>
             
-            // If you have any questions or require further clarification, feel free to reach out. <br/><br/>
+            If you have any questions or require further clarification, feel free to reach out. <br/><br/>
             
-            // Regards,<br/>
-            // Edviron Team 
-            // `,
-            //   };
-            //   const info = await transporter.sendMail(mailOptions);
-            //   console.log(info);
+            Regards,<br/>
+            Edviron Team 
+            `,
+              };
+              const mailOptions2 = {
+                from: process.env.EMAIL_USER,
+                to: merchant.email,
+                subject:
+                  'Settlement Report Dt.' +
+                  new Date(
+                    settlementDate.getTime() - 86400000 * 1,
+                  ).toDateString(),
+                attachments: [
+                  {
+                    filename: `setllement_report_${merchant.school_name}.csv`,
+                    content: `
+                S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
+                1, ${response.data.data[0].payment_amount.toFixed(
+                  2,
+                )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                  2,
+                )},	${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )}, ${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
+                  settlementDate.getTime() - 86400000 * 1,
+                ).toDateString()}`,
+                  },
+                ],
+                html: `
+            Dear School, <br/><br/>
+            
+            Attached is the settlement report for transactions processed on ${new Date(
+              settlementDate.getTime() - 86400000 * 2,
+            ).toDateString()}. <br/><br/>
+            
+            If you have any questions or require further clarification, feel free to reach out. <br/><br/>
+            
+            Regards,<br/>
+            Edviron Team 
+            `,
+              };
+              const info = await transporter.sendMail(mailOptions);
+              await transporter.sendMail(mailOptions2);
+              // console.log(info);
               resolve({});
             } catch (error) {
-              console.log(`error getting settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`, error.message);
+              console.log(
+                `error getting settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
+                error.message,
+              );
             }
             // .catch((error) => {
             //   console.log(error.message);
@@ -781,14 +938,11 @@ export class ErpService {
         this.cashfreeService.enqueue(promise);
       });
 
-      try{
+    try {
       console.log('settlement saved');
-      
-        
-      }catch(e){  
-        console.log('error in eazebuzz settlement');
-        
-      }
+    } catch (e) {
+      console.log('error in eazebuzz settlement');
+    }
   }
 
   async calculateCommissions(commission, payment_mode, platform_type, amount) {
