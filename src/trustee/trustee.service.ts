@@ -134,7 +134,7 @@ export class TrusteeService {
           email: trustee.email_id,
           apiKey: trustee.apiKey || null,
           phone_number: trustee.phone_number,
-          role: 'owner' || null,
+          role: 'owner',
           trustee_id: trustee._id,
           brand_name: trustee.brand_name || null,
           base_mdr: baseMdr,

@@ -609,4 +609,25 @@ export class MainBackendController {
       return false;
     }
   }
+
+  @Get('get-school-data')
+  async getSchoolData(@Query('token') token: string) {
+    try {
+      const decodedPayload = await this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      const school = await this.mainBackendService.getSchool(
+        decodedPayload.school_id,
+      );
+      if(!school){
+        throw new NotFoundException('School not found');
+      }
+      return {
+        email:school.email
+      }
+    } catch (e) {
+      console.log(e.message);
+      throw new BadRequestException(e.message)
+    }
+  }
 }
