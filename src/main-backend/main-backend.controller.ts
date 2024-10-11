@@ -614,7 +614,7 @@ export class MainBackendController {
   async getSchoolData(@Query('token') token: string) {
     try {
       const decodedPayload = await this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
       });
       const school = await this.mainBackendService.getSchool(
         decodedPayload.school_id,
