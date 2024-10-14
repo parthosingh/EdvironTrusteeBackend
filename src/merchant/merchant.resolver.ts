@@ -711,7 +711,7 @@ export class MerchantResolver {
       })
       .sort({ createdAt: -1 });
 
-    if (refund_amount > order_amount) {
+    if (refund_amount > transaction_amount) {
       throw new Error('Refund amount cannot be more than order amount');
     }
 
