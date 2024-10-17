@@ -29,6 +29,7 @@ import { MerchantModule } from 'src/merchant/merchant.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 config();
 
 @Module({
@@ -60,6 +61,9 @@ config();
     ]),
     MongooseModule.forFeature([
       { name: Invoice.name, schema: InvoiceSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: RefundRequest.name, schema: RefundRequestSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({

@@ -60,7 +60,7 @@ export class invoiceDetails {
 }
 
 import { MerchantService } from 'src/merchant/merchant.service';
-import { RefundRequest } from 'src/schema/refund.schema';
+import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { TransactionInfo } from 'src/schema/transaction.info.schema';
 
 @Resolver('Trustee')
@@ -86,6 +86,8 @@ export class TrusteeResolver {
     private merchantMemberModel: mongoose.Model<MerchantMember>,
     @InjectModel(Invoice.name)
     private invoiceModel: mongoose.Model<Invoice>,
+    @InjectModel(RefundRequest.name)
+    private refundRequestModel: mongoose.Model<RefundRequest>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -1680,6 +1682,50 @@ export class TrusteeResolver {
       .limit(limit);
     return invoices;
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(()=>[RefundRequestRes])
+  async getTrusteeRefundRequest( @Context() context: any){
+    try{
+      return await this.refundRequestModel.find({trustee_id: context.req.trustee})
+    }catch(e){
+      console.error(e);
+      throw new BadRequestException('Error fetching refund requests')
+    }
+  }
+}
+
+@ObjectType()
+class RefundRequestRes {
+  @Field({ nullable: true })
+  _id: string;
+
+  @Field({ nullable: true })
+  trustee_id: string;
+
+  @Field({ nullable: true })
+  createdAt: string;
+
+  @Field({ nullable: true })
+  updatedAt: string;
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  order_id: string;
+
+  @Field({ nullable: true })
+  status: refund_status;
+
+  @Field({ nullable: true })
+  refund_amount: number;
+
+  @Field({ nullable: true })
+  order_amount: number;
+
+  @Field({ nullable: true })
+  transaction_amount: number;
 }
 
 @ObjectType()
