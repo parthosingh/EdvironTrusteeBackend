@@ -801,33 +801,33 @@ export class ErpService {
                 await this.settlementReportModel.findOne({
                   utrNumber: response.data.data[0].settlement_utr,
                 });
-              if (!existingSettlement) {
-                const settlementReport = new this.settlementReportModel({
-                  settlementAmount:
-                    response.data.data[0].payment_amount.toFixed(2),
-                  adjustment: (0.0).toString(),
-                  netSettlementAmount:
-                    response.data.data[0].payment_amount.toFixed(2),
-                  clientId: merchant.client_id,
-                  fromDate:
-                    new Date(response?.data?.data[0]?.payment_from) || start,
-                  tillDate:
-                    new Date(response?.data?.data[0]?.payment_till) || start,
-                  status: 'Settled',
-                  utrNumber: response.data.data[0].settlement_utr,
-                  settlementDate: new Date(
-                    settlementDate.getTime() - 86400000 * 1,
-                  ).toDateString(),
-                  trustee: merchant.trustee_id,
-                  schoolId: merchant.school_id,
-                });
-                console.log(
-                  `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
-                );
-                await settlementReport.save();
-              } else {
-                console.log('Settlement already exists', existingSettlement);
-              }
+                if (!existingSettlement) {
+                  const settlementReport = new this.settlementReportModel({
+                    settlementAmount:
+                      response.data.data[0].payment_amount.toFixed(2),
+                    adjustment: response.data.data[0].adjustment.toFixed(2).toString() || '0.0',
+                    netSettlementAmount:
+                      response.data.data[0].amount_settled.toFixed(2),
+                    clientId: merchant.client_id,
+                    fromDate:
+                      new Date(response?.data?.data[0]?.payment_from) || start,
+                    tillDate:
+                      new Date(response?.data?.data[0]?.payment_till) || start,
+                    status: 'Settled',
+                    utrNumber: response.data.data[0].settlement_utr,
+                    settlementDate: new Date(
+                      settlementDate.getTime() - 86400000 * 1,
+                    ).toDateString(),
+                    trustee: merchant.trustee_id,
+                    schoolId: merchant.school_id,
+                  });
+                  console.log(
+                    `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
+                  );
+                  await settlementReport.save();
+                } else {
+                  console.log('Settlement already exists', existingSettlement);
+                }
 
               const transporter = nodemailer.createTransport({
                 pool: true,
