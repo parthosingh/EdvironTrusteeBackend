@@ -516,7 +516,7 @@ export class ErpService {
     console.log(settlementDate, 'ss');
 
     const date = new Date(settlementDate.getTime());
-    date.setHours(23, 59, 59, 999);
+    date.setUTCHours(23, 59, 59, 999);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();

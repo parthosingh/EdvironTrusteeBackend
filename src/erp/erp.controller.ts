@@ -240,7 +240,7 @@ export class ErpController {
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
-      if ( !school.pg_key) {
+      if (!school.pg_key) {
         throw new BadRequestException(
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
@@ -248,7 +248,7 @@ export class ErpController {
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       console.log(decoded);
-      
+
       if (
         decoded.amount != amount ||
         decoded.callback_url != callback_url ||
@@ -359,7 +359,7 @@ export class ErpController {
       };
     } catch (error) {
       console.log(error);
-      
+
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       if (error?.response?.data?.message)
@@ -492,7 +492,7 @@ export class ErpController {
           {
             transactionId: order_id,
             trusteeId: trustee_id,
-            school_id
+            school_id,
           },
           { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
         )}`,
@@ -900,8 +900,8 @@ export class ErpController {
       return {};
     } catch (error) {
       console.log(error);
-      if(error?.response?.data){
-        throw new BadRequestException(error?.response?.data?.message)
+      if (error?.response?.data) {
+        throw new BadRequestException(error?.response?.data?.message);
       }
       throw new BadRequestException(error.message);
     }
@@ -1210,13 +1210,24 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const date = new Date('2024-10-15T23:59:59.695Z');
+    const settlementDate = new Date('2024-10-13T23:59:59.695Z');
+
+    const date = new Date(settlementDate.getTime());
+    console.log(date, 'DATE');
+    date.setUTCHours(23, 59, 59, 999); // Use setUTCHours to avoid time zone issues
     console.log(date);
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    const formattedDateString = `${day}-${month}-${year}`; //eazebuzz accepts date in DD-MM-YYYY formal seprated with - like '19-07-2024'
+    console.log(formattedDateString, 'formant date');
     // const data = await this.erpService.easebuzzSettlements(date);
-    await this.erpService.sendSettlements(date)
+    // await this.erpService.sendSettlements(date)
   }
   @Get('/test-callback')
-  async test(@Req() req:any){
+  async test(@Req() req: any) {
     console.log(req.query);
     console.log(req.body);
     console.log(req.params);

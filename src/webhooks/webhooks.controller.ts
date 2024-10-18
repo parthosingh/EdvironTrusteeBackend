@@ -24,6 +24,12 @@ export class WebhooksController {
     } = body.data;
 
     let collect_id = txnid;
+    await new this.webhooksLogsModel({
+      type: 'Refund Webhook',
+      order_id: collect_id || 'ezbcalled',
+      status: 'SUCCESS',
+    }).save();
+
     if (collect_id.startsWith('upi_')) {
       collect_id = collect_id.replace('upi_', '');
     }
