@@ -27,7 +27,7 @@ export class WebhooksController {
     await new this.webhooksLogsModel({
       type: 'Refund Webhook',
       order_id: collect_id || 'ezbcalled',
-      status: 'SUCCESS',
+      status: 'CALLED',
     }).save();
 
     if (collect_id.startsWith('upi_')) {
@@ -61,6 +61,11 @@ export class WebhooksController {
 
       res.status(200).send('OK');
     } catch (e) {
+      await new this.webhooksLogsModel({
+        type: 'Refund Webhook',
+        order_id: collect_id || 'ezbcalled',
+        status: 'Failed to save webhook',
+      }).save();
       console.log(e.message);
     }
   }
