@@ -1687,7 +1687,40 @@ export class TrusteeResolver {
   @Query(()=>[RefundRequestRes])
   async getTrusteeRefundRequest( @Context() context: any){
     try{
-      return await this.refundRequestModel.find({trustee_id: context.req.trustee})
+      // return await this.refundRequestModel.find({trustee_id: context.req.trustee})
+      const refunds=await this.refundRequestModel.aggregate([
+        {$match:{trustee_id:context.req.trustee}},
+        {
+          $lookup:
+            {
+              from: 'trusteeschools',
+              localField: 'school_id',
+              foreignField: '_id',
+              as: 'result'
+            }
+        },
+        {
+          $unwind: '$result'
+        },
+        {
+          $project:{
+            _id:1,
+            trustee_id:1,
+            school_id:'$result.school_id',
+            order_id:1,
+            school_name:'$result.school_name',
+            status:1,
+            refund_amount:1,
+            order_amount:1,
+            transaction_amount:1,
+            createdAt:1,
+            updatedAt:1
+            
+          }
+        }
+      ])
+
+      return refunds
     }catch(e){
       console.error(e);
       throw new BadRequestException('Error fetching refund requests')
@@ -1726,6 +1759,9 @@ class RefundRequestRes {
 
   @Field({ nullable: true })
   transaction_amount: number;
+
+  @Field({ nullable: true })
+  school_name: string;
 }
 
 @ObjectType()
