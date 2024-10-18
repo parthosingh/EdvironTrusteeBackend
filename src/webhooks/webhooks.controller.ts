@@ -28,6 +28,9 @@ export class WebhooksController {
       type: 'Refund Webhook',
       order_id: collect_id || 'ezbcalled',
       status: 'CALLED',
+      gateway: 'EASEBUZZ',
+      type_id: refund_id,
+      body:JSON.stringify(body)
     }).save();
 
     if (collect_id.startsWith('upi_')) {
