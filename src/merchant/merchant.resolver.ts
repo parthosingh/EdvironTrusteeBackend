@@ -779,7 +779,7 @@ export class MerchantResolver {
     return `Refund Request Created`;
   }
   @UseGuards(MerchantGuard)
-  @Query(() => [RefundRequest])
+  @Query(() => [MerchantRefundRequestRes])
   async getRefundRequests(
     @Args('page', { nullable: true }) pages: number = 1,
     @Args('limit', { nullable: true }) limit: number = 10,
