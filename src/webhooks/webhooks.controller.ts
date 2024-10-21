@@ -114,6 +114,42 @@ export class WebhooksController {
       console.error('Error saving webhook logs', e);
     }
   }
+
+  @Post('easebuzz/settlements')
+  async eassebuzzSettlements(@Body() body:any,@Res() res:any){
+    try{
+      const details=JSON.stringify(body)
+      await new this.webhooksLogsModel({
+        type:'SETTLEMENTS',
+        gateway:'EASEBUZZ',
+        // type_id:body.data.hash,
+        body:details,
+        status:'SUCCESS'
+      }).save()
+
+      console.log('called');
+      res.status(200).send('OK');
+    }catch(e){
+      console.error('Error saving webhook logs',e)
+    }
+  }
+  @Post('cashfree/settlements')
+  async cashfreeSettlements(@Body() body:any,@Res() res:any){
+    try{
+      
+      const details=JSON.stringify(body)
+      await new this.webhooksLogsModel({
+        type:'SETTLEMENTS',
+        gateway:'CASHFREE',
+        // type_id:body.data.hash,
+        body:details,
+        status:'SUCCESS'
+      }).save()
+      res.status(200).send('OK');
+    }catch(e){
+      console.error('Error saving webhook logs',e)
+    }
+  }
 }
 
 // {

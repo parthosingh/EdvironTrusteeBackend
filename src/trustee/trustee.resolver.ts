@@ -1717,8 +1717,11 @@ export class TrusteeResolver {
             updatedAt:1
             
           }
+        },
+        {
+          $sort: {createdAt:-1}
         }
-      ])
+      ]) 
 
       return refunds
     }catch(e){
