@@ -333,7 +333,7 @@ export class TrusteeResolver {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=5000`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=50000`,
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
