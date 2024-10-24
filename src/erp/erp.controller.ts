@@ -1210,20 +1210,21 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2024-10-13T23:59:59.695Z');
+    const settlementDate = new Date('2024-10-25T23:59:59.695Z');
 
     const date = new Date(settlementDate.getTime());
-    console.log(date, 'DATE');
-    date.setUTCHours(23, 59, 59, 999); // Use setUTCHours to avoid time zone issues
-    console.log(date);
+    // console.log(date, 'DATE');
+    // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
+    // console.log(date);
 
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    // const day = String(date.getDate()).padStart(2, '0');
+    // const month = String(date.getMonth() + 1).padStart(2, '0');
+    // const year = date.getFullYear();
 
-    const formattedDateString = `${day}-${month}-${year}`; //eazebuzz accepts date in DD-MM-YYYY formal seprated with - like '19-07-2024'
-    console.log(formattedDateString, 'formant date');
-    // const data = await this.erpService.easebuzzSettlements(date);
+    // const formattedDateString = `${day}-${month}-${year}`; //eazebuzz accepts date in DD-MM-YYYY formal seprated with - like '19-07-2024'
+    // console.log(formattedDateString, 'formant date');
+    // return formattedDateString
+    const data = await this.erpService.easebuzzSettlements(date);
     // await this.erpService.sendSettlements(date)
   }
   @Get('/test-callback')
