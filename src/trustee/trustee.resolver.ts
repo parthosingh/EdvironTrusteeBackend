@@ -680,15 +680,15 @@ export class TrusteeResolver {
       this.trusteeSchoolModel.countDocuments({ trustee_id: id }),
       this.trusteeSchoolModel.countDocuments({
         trustee_id: id,
-        pgMinKYC: 'MIN_KYC_APPROVED',
+        merchantStatus: 'KYC Approved',
       }),
       this.trusteeSchoolModel.countDocuments({
         trustee_id: id,
-        pgMinKYC: { $in: ['Not Initiated', 'MIN_KYC_REJECTED', null] },
+        merchantStatus: { $in: ['Not Initiated', 'MIN_KYC_REJECTED', null] },
       }),
       this.trusteeSchoolModel.countDocuments({
         trustee_id: id,
-        pgMinKYC: 'MIN_KYC_PENDING',
+        merchantStatus: 'Documents uploaded',
       }),
     ]);
 
