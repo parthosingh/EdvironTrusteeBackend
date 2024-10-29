@@ -715,8 +715,8 @@ export class ErpService {
                 Edviron Team 
                 `,
                   };
-                  const info = await transporter.sendMail(mailOptions);
-                  await transporter.sendMail(mailOptions2);
+                  // const info = await transporter.sendMail(mailOptions);
+                  // await transporter.sendMail(mailOptions2);
                 } catch (e) {
                   console.log('Error in sending mail to merchant');
                 }
@@ -921,8 +921,8 @@ export class ErpService {
             Edviron Team 
             `,
               };
-              const info = await transporter.sendMail(mailOptions);
-              await transporter.sendMail(mailOptions2);
+              // const info = await transporter.sendMail(mailOptions);
+              // await transporter.sendMail(mailOptions2);
               // console.log(info);
               resolve({});
             } catch (error) {

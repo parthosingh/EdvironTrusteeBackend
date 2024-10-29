@@ -1225,7 +1225,7 @@ export class ErpController {
     // console.log(formattedDateString, 'formant date');
     // return formattedDateString
     const data = await this.erpService.easebuzzSettlements(date);
-    // await this.erpService.sendSettlements(date)
+    await this.erpService.sendSettlements(date)
   }
   @Get('/test-callback')
   async test(@Req() req: any) {
