@@ -7,7 +7,8 @@ export enum refund_status {
   INITIATED = 'INITIATED',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
-  DELETED='DELETED BY USER'
+  DELETED='DELETED BY USER',
+  PROCESSING='PROCESSING'
 }
 
 @ObjectType()
@@ -49,6 +50,10 @@ export class RefundRequest {
   @Prop()
   @Field(() => String, { nullable: true })
   reason: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  custom_id: string;
 
   @Prop()
   @Field(() => String, { nullable: true })

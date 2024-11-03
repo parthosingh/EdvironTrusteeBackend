@@ -475,7 +475,6 @@ export class MainBackendController {
     // }
 
     console.log(invoice_id);
-    
 
     const invoice = await this.invoiceModel.findById(invoice_id);
     if (!invoice) {
@@ -527,7 +526,6 @@ export class MainBackendController {
     res.attachment(`${trusteeSchool.school_name}_platform_charges.csv`);
     return res.send(csv);
   }
-
 
   @Get('download-mdr-report')
   async downloadCsvs(
@@ -619,15 +617,31 @@ export class MainBackendController {
       const school = await this.mainBackendService.getSchool(
         decodedPayload.school_id,
       );
-      if(!school){
+      if (!school) {
         throw new NotFoundException('School not found');
       }
       return {
-        email:school.email
-      }
+        email: school.email,
+      };
     } catch (e) {
       console.log(e.message);
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
+  }
+
+  @Post('update-refund-status')
+  async updateRefundStatus(@Query('token') token: string) {
+    const decodedPayload = await this.jwtService.verify(token, {
+      secret: process.env.PAYMENTS_SERVICE_SECRET,
+    });
+
+    const refundId = decodedPayload.refund_id;
+    const refundRequest = await this.refundRequestModel.findById(refundId);
+    if (!refundRequest) {
+      throw new NotFoundException('Refund Request not found');
+    }
+    refundRequest.status = refund_status.PROCESSING;
+    refundRequest.save();
+    return 'status updated successfully' 
   }
 }

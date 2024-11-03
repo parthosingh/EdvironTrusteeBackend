@@ -719,8 +719,18 @@ export class MerchantResolver {
       throw new Error('Refund request already initiated for this order');
     }
 
-    // check amount
-    console.log(checkRefundRequest);
+    let pgConfig = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-custom-id?collect_id=${order_id}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      }
+    };
+    const refundRequests=await this.refundRequestModel.findOne({order_id:order_id})
+    const response = await axios.request(pgConfig);
+    const custom_id=response.data
 
     if (checkRefundRequest?.status === refund_status.APPROVED) {
       const totalRefunds = await this.refundRequestModel.find({
@@ -774,6 +784,7 @@ export class MerchantResolver {
       order_amount,
       transaction_amount,
       gateway: gateway || null,
+      custom_id: custom_id,
     }).save();
 
     return `Refund Request Created`;
@@ -829,6 +840,11 @@ export class MerchantResolver {
     await refundRequests.save();
     return refundRequests;
   }
+
+  @Mutation(() => String)
+  async getCustomId(@Args('trustee_id') trustee_id:string){
+    return this.merchantService.updateRefundRequest(trustee_id)
+  }
 }
 
 @ObjectType()
@@ -862,6 +878,9 @@ class MerchantRefundRequestRes {
 
   @Field({ nullable: true })
   transaction_amount: number;
+
+  @Field({ nullable: true })
+  custom_id: string;
 }
 
 @ObjectType()

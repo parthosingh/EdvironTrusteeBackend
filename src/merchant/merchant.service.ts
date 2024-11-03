@@ -18,6 +18,7 @@ import { error } from 'console';
 import { Trustee } from 'src/schema/trustee.schema';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { Types } from 'mongoose';
+import axios from 'axios';
 var loginOtps: any = {};
 var resetOtps: any = {}; //reset password
 var editOtps: any = {};
@@ -444,4 +445,36 @@ export class MerchantService {
     return refundRequests;
   }
 
+  async updateRefundRequest(trustee_id:string){
+    const refundRequest = await this.refundRequestModel.find({trustee_id:new Types.ObjectId(trustee_id)})
+    if (refundRequest.length > 0) {
+      console.log(refundRequest.length);
+      
+      refundRequest.map(async(info:any)=>{
+        try{
+          let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-custom-id?collect_id=${info.order_id}`,
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            }
+          };
+          const refundRequests=await this.refundRequestModel.findOne({order_id:info.order_id})
+          const response = await axios.request(config);
+          console.log(response.data, 'res');
+          refundRequests.custom_id=response.data
+          await refundRequests.save()
+        }catch(err){
+          console.log(`Error in getting custom id: ${err.message}`);
+          
+        }
+        
+      })
+      return 'found'
+    }
+    return 'not found';
+  }
+  
 }

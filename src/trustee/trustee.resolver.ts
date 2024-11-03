@@ -1714,7 +1714,8 @@ export class TrusteeResolver {
             order_amount:1,
             transaction_amount:1,
             createdAt:1,
-            updatedAt:1
+            updatedAt:1,
+            custom_id:1
             
           }
         },
@@ -1765,6 +1766,9 @@ class RefundRequestRes {
 
   @Field({ nullable: true })
   school_name: string;
+
+  @Field({ nullable: true })
+  custom_id: string;
 }
 
 @ObjectType()
