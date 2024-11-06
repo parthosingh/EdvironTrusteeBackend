@@ -869,6 +869,7 @@ export class ErpController {
       const response = await axios.request(config);
 
       const transactions = response.data.map((item: any) => {
+        const date = new Date(item.updatedAt);
         return {
           ...item,
           merchant_name: school.school_name,
@@ -892,6 +893,9 @@ export class ErpController {
           currency: 'INR',
           school_id: item.merchant_id,
           school_name: school.school_name,
+          formattedTransactionDate: `${date.getFullYear()}-${String(
+            date.getMonth() + 1,
+          ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
         };
       });
       if (transactions.length > 0) {
