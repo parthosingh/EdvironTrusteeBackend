@@ -27,6 +27,8 @@ import { TransactionInfo } from '../schema/transaction.info.schema';
 import { RequestMDR, mdr_status } from 'src/schema/mdr.request.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
+import { Vendors } from 'src/schema/vendors.schema';
+import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number
@@ -46,6 +48,7 @@ export class TrusteeService {
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     private jwtService: JwtService,
+    private readonly awsS3Service: AwsS3Service,
     @InjectModel(TrusteeMember.name)
     private trusteeMemberModel: mongoose.Model<TrusteeMember>,
     @InjectModel(TransactionInfo.name)
@@ -56,6 +59,8 @@ export class TrusteeService {
     private baseMdrModel: mongoose.Model<BaseMdr>,
     @InjectModel(SchoolMdr.name)
     private schoolMdrModel: mongoose.Model<SchoolMdr>,
+    @InjectModel(Vendors.name)
+    private vendorsModel: mongoose.Model<Vendors>,
   ) {}
 
   async loginAndGenerateToken(
@@ -190,7 +195,7 @@ export class TrusteeService {
             pg_key: 1,
             disabled_modes: 1,
             platform_charges: 1,
-            updatedAt:1
+            updatedAt: 1,
           },
         )
         .sort({ createdAt: -1 })
@@ -1328,13 +1333,187 @@ export class TrusteeService {
     }
   }
 
-  async generateToken(id:Types.ObjectId) {
+  async generateToken(id: Types.ObjectId) {
     const payload = { id };
     return this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
     });
   }
 
- 
+  async onboardVendor(
+    client_id: string,
+    trustee_id: string,
+    school_id: string,
+    vendor_info: {
+      status: string;
+      name: string;
+      email: string;
+      phone: string;
+      verify_account: boolean;
+      dashboard_access: boolean;
+      schedule_option: number;
+      bank: { account_number: string; account_holder: string; ifsc: string };
+      kyc_details: {
+        account_type: string;
+        business_type: string;
+        uidai?: string;
+        gst?: string;
+        cin?: string;
+        pan?: string;
+        passport_number?: string;
+      };
+    },
+    chequeBase64:string,
+    chequeExtension:string
+  ) {
+    const checkVendors = await this.vendorsModel.findOne({
+      email: vendor_info.email,
+    });
+    if (checkVendors) {
+      throw new BadRequestException('Vendor already exists with this email');
+    }
+    const checkVendorNumber = await this.vendorsModel.findOne({
+      phone: vendor_info.phone,
+    });
+    if (checkVendorNumber) {
+      throw new BadRequestException(
+        'Vendor already exists with this phone number',
+      );
+    }
 
+    const newVendor = await new this.vendorsModel({
+      school_id: new Types.ObjectId(school_id),
+      trustee_id: new Types.ObjectId(trustee_id),
+      name: vendor_info.name,
+      // email: vendor_info.email,
+      // phone: vendor_info.phone,
+      client_id,
+      status: 'INITIATED',
+      schedule_option: vendor_info.schedule_option,
+      bank_details: vendor_info.bank,
+      kyc_info: vendor_info.kyc_details,
+    }).save();
+console.log('uploading');
+
+    const url=await this.uploadCheque(newVendor._id.toString(),chequeBase64,chequeExtension);
+  // return url
+    const token = this.jwtService.sign(
+      { client_id },
+      {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      },
+    );
+
+    const data = {
+      token,
+      client_id,
+      vendor_info: { vendor_id: newVendor._id.toString(), ...vendor_info },
+    };
+    console.log(data);
+    
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/create-vendor`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data,
+    };
+    try{
+
+   
+    const response = await axios.request(config);
+    const updatedStatus = response.data.status;
+    newVendor.status = updatedStatus;
+    newVendor.email = vendor_info.email;
+    newVendor.phone = vendor_info.phone;
+    newVendor.cheque=url
+    newVendor.vendor_id= newVendor._id.toString();
+    await newVendor.save();
+    return 'Vendor Created Successfully';
+  }catch(err){
+      console.log(err);
+      if(err?.response?.data?.message){
+        throw new BadRequestException(err.response.data.message);
+      }
+      throw new Error('Error occurred while creating vendor');
+  }
+  }
+
+  async getAllVendors(trustee_id: string, page: number, pageSize: number) {
+    try {
+      const skip = (page - 1) * pageSize;
+
+      const vendors = await this.vendorsModel
+        .find({ trustee_id: new Types.ObjectId(trustee_id) })
+        .skip(skip)
+        .limit(pageSize);
+
+      const totalVendors = await this.vendorsModel.countDocuments({
+        trustee_id: new Types.ObjectId(trustee_id),
+      });
+
+      return {
+        vendors,
+        totalPages: Math.ceil(totalVendors / pageSize),
+        currentPage: page,
+      };
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async getSchoolVendors(school_id: string, pageSize: number, limit: number) {
+    try {
+      const vendors = await this.vendorsModel.find({
+        school_id: new Types.ObjectId(school_id),
+      });
+      return vendors;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+ 
+  async uploadCheque(
+    vendor_id: string,
+    base64: string,
+    chequeExtension: string,
+  ) {
+    try {
+      
+      const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+      const buffer = Buffer.from(base64Data, 'base64');
+       
+      let mimeType = 'application/octet-stream'; // Default if type is unknown
+      if (chequeExtension === 'pdf') {
+        mimeType = 'application/pdf';
+      } else if (['jpg', 'jpeg', 'png'].includes(chequeExtension)) {
+        mimeType = `image/${chequeExtension === 'jpg' ? 'jpeg' : chequeExtension}`;
+      } else {
+        throw new Error('Unsupported file type file type.');
+      } 
+
+      const chequeUrl = await new Promise<string>(async (resolve, reject) => {
+        try {
+          // Upload the PDF buffer to AWS S3
+          const url = await this.awsS3Service.uploadToS3(
+            buffer,
+            `cheque_${vendor_id}.${chequeExtension}`,
+            mimeType,
+            'edviron-backend-dev',
+          );
+
+          resolve(url);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      return chequeUrl;
+    } catch (e) {
+      throw new Error(e.message);
+    }
+  }
 }

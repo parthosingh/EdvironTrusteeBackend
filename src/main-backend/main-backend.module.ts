@@ -14,6 +14,8 @@ import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
+import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
+import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 
 @Module({
   imports: [
@@ -38,6 +40,7 @@ import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
     MongooseModule.forFeature([
       { name: Invoice.name, schema: InvoiceSchema },
     ]),
+    MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_INTRANET,
@@ -45,7 +48,7 @@ import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
       }),
     }),
   ],
-  providers: [MainBackendService, TrusteeService, EmailService],
+  providers: [MainBackendService, TrusteeService, EmailService,AwsS3Service],
   controllers: [MainBackendController],
 })
 export class MainBackendModule {}

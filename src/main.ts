@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-
+import * as bodyParser from 'body-parser';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const whitelist = [
@@ -29,6 +29,8 @@ async function bootstrap() {
     'https://sandbox.partner.edviron.com',
     'https://dev.merchant.edviron.com',
   ];
+  app.use(bodyParser.json({ limit: '10mb' }));
+  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
   app.enableCors({
     origin: function (origin, callback) {
       if (whitelist.indexOf(origin) !== -1) {

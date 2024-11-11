@@ -12,8 +12,34 @@ export class WebhooksController {
     @InjectModel(RefundRequest.name)
     private refundRequestModel: mongoose.Model<RefundRequest>,
   ) {}
+
+  data = {
+    status: '1',
+    data: {
+      hash: '1010327624aeb6dc82cdcf14c95f0f1d18d992b5cdada319afae4559523af4e5eda7f2b644bf302bac7a4696c14379290dde3c9510b4652dadfd90bf91a64870',
+      udf1: null,
+      udf2: null,
+      udf3: null,
+      udf4: null,
+      udf5: null,
+      udf6: null,
+      udf7: null,
+      txnid: '67062e5c8650d1a1d05c9450',
+      easepayid: 'E2410090ATP16F',
+      refund_id: 'R5USF6DEMZ',
+      arn_number: '428312197365',
+      refund_amount: 1.0,
+      refund_status: 'accepted',
+      transaction_date: '2024-10-09 12:48:52.000000',
+      transaction_type: 'Debit Card',
+      merchant_refund_id: '670635dd3a07cbd8b82666ce',
+      transaction_amount: 1.0,
+      refund_request_date: '2024-10-18 10:15:02.734599',
+      chargeback_description: '',
+    },
+  };
   @Post('/easebuzz/refund')
-  async easebuzzRefundWebhook(@Body() body: any,@Res() res: any) {
+  async easebuzzRefundWebhook(@Body() body: any, @Res() res: any) {
     const {
       txnid,
       easepayid,
@@ -30,7 +56,7 @@ export class WebhooksController {
       status: 'CALLED',
       gateway: 'EASEBUZZ',
       type_id: refund_id,
-      body:JSON.stringify(body)
+      body: JSON.stringify(body),
     }).save();
 
     if (collect_id.startsWith('upi_')) {
@@ -42,7 +68,7 @@ export class WebhooksController {
       type: 'Refund Webhook',
       order_id: collect_id,
       gateway: 'EASEBUZZ',
-      type_id:refund_id,
+      type_id: refund_id,
       body: details,
       status: 'SUCCESS',
     }).save();
@@ -53,7 +79,10 @@ export class WebhooksController {
         console.log(`Refund request not Found`);
       }
       let status = refund_status.INITIATED;
-      if (easebuzz_refund_status === 'accepted' || easebuzz_refund_status === 'refunded') {
+      if (
+        easebuzz_refund_status === 'accepted' ||
+        easebuzz_refund_status === 'refunded'
+      ) {
         status = refund_status.APPROVED;
       }
       refundRequest.status = status;
@@ -89,7 +118,7 @@ export class WebhooksController {
       type: 'Refund Webhook',
       order_id: order_id,
       gateway: 'CASHFREE',
-      type_id:refund_id,
+      type_id: refund_id,
       body: details,
       status: 'SUCCESS',
     }).save();
@@ -116,38 +145,37 @@ export class WebhooksController {
   }
 
   @Post('easebuzz/settlements')
-  async eassebuzzSettlements(@Body() body:any,@Res() res:any){
-    try{
-      const details=JSON.stringify(body)
+  async eassebuzzSettlements(@Body() body: any, @Res() res: any) {
+    try {
+      const details = JSON.stringify(body);
       await new this.webhooksLogsModel({
-        type:'SETTLEMENTS',
-        gateway:'EASEBUZZ',
+        type: 'SETTLEMENTS',
+        gateway: 'EASEBUZZ',
         // type_id:body.data.hash,
-        body:details,
-        status:'SUCCESS'
-      }).save()
+        body: details,
+        status: 'SUCCESS',
+      }).save();
 
       console.log('called');
       res.status(200).send('OK');
-    }catch(e){
-      console.error('Error saving webhook logs',e)
+    } catch (e) {
+      console.error('Error saving webhook logs', e);
     }
   }
   @Post('cashfree/settlements')
-  async cashfreeSettlements(@Body() body:any,@Res() res:any){
-    try{
-      
-      const details=JSON.stringify(body)
+  async cashfreeSettlements(@Body() body: any, @Res() res: any) {
+    try {
+      const details = JSON.stringify(body);
       await new this.webhooksLogsModel({
-        type:'SETTLEMENTS',
-        gateway:'CASHFREE',
+        type: 'SETTLEMENTS',
+        gateway: 'CASHFREE',
         // type_id:body.data.hash,
-        body:details,
-        status:'SUCCESS'
-      }).save()
+        body: details,
+        status: 'SUCCESS',
+      }).save();
       res.status(200).send('OK');
-    }catch(e){
-      console.error('Error saving webhook logs',e)
+    } catch (e) {
+      console.error('Error saving webhook logs', e);
     }
   }
 }
@@ -207,5 +235,3 @@ export class WebhooksController {
 //     "event_time":"2022-02-28T13:04:28+05:30",
 //     "type":"REFUND_STATUS_WEBHOOK"
 //  }
-
-

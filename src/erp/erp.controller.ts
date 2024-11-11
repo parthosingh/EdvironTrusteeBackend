@@ -191,6 +191,10 @@ export class ErpController {
       additional_data?: {};
       custom_order_id?: string;
       req_webhook_urls?: [string];
+      split_payments?: boolean;
+      vendors_info?: [
+        { vendor_id: string; percentage?: number; amount?: number },
+      ];
     },
     @Req() req,
   ) {
@@ -209,6 +213,8 @@ export class ErpController {
         receipt,
         custom_order_id,
         req_webhook_urls,
+        split_payments,
+        vendors_info,
       } = body;
       if (!school_id) {
         throw new BadRequestException('School id is required');
@@ -244,6 +250,58 @@ export class ErpController {
         throw new BadRequestException(
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
+      }
+
+      if (split_payments && !vendors_info) {
+        throw new BadRequestException(
+          'Vendors information is required for split payments',
+        );
+      }
+
+      if (split_payments && vendors_info && vendors_info.length < 0) {
+        throw new BadRequestException('At least one vendor is required');
+      }
+
+      if (vendors_info && vendors_info.length > 0) {
+        // Determine the split method (amount or percentage) based on the first vendor
+        let splitMethod = null;
+
+        for (const vendor of vendors_info) {
+          // Check if vendor_id is present
+          if (!vendor.vendor_id) {
+            throw new BadRequestException('Vendor ID is required');
+          }
+
+          // Check if both amount and percentage are used
+          const hasAmount = typeof vendor.amount === 'number';
+          const hasPercentage = typeof vendor.percentage === 'number';
+          if (hasAmount && hasPercentage) {
+            throw new BadRequestException(
+              'Amount and Percentage cannot be present at the same time',
+            );
+          }
+
+          // Determine and enforce split method consistency
+          const currentMethod = hasAmount
+            ? 'amount'
+            : hasPercentage
+              ? 'percentage'
+              : null;
+          if (!splitMethod) {
+            splitMethod = currentMethod;
+          } else if (currentMethod && currentMethod !== splitMethod) {
+            throw new BadRequestException(
+              'All vendors must use the same split method (either amount or percentage)',
+            );
+          }
+
+          // Ensure either amount or percentage is provided for each vendor
+          if (!hasAmount && !hasPercentage) {
+            throw new BadRequestException(
+              'Each vendor must have either an amount or a percentage',
+            );
+          }
+        }
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
@@ -315,6 +373,8 @@ export class ErpController {
         ccavenue_access_code: school.ccavenue_access_code || null,
         ccavenue_merchant_id: school.ccavenue_merchant_id || null,
         ccavenue_working_key: school.ccavenue_working_key || null,
+        // split_payments: split_payments || false,
+        // vendors_info: vendors_info || null,
       });
       let config = {
         method: 'post',
@@ -359,7 +419,6 @@ export class ErpController {
       };
     } catch (error) {
       console.log(error);
-
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       if (error?.response?.data?.message)
@@ -782,6 +841,7 @@ export class ErpController {
 
       const total_pages = Math.ceil(response.data.totalTransactions / limit);
       const transactions = response.data.transactions.map((item: any) => {
+        const date = new Date(item.updatedAt);
         return {
           ...item,
           merchant_name:
@@ -807,6 +867,9 @@ export class ErpController {
           school_id: item.merchant_id,
           school_name:
             merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          formattedDate: `${date.getFullYear()}-${String(
+            date.getMonth() + 1,
+          ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
         };
       });
       return {
@@ -1214,7 +1277,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2024-10-25T23:59:59.695Z');
+    const settlementDate = new Date('2024-11-05T23:59:59.695Z');
 
     const date = new Date(settlementDate.getTime());
     // console.log(date, 'DATE');
@@ -1228,9 +1291,9 @@ export class ErpController {
     // const formattedDateString = `${day}-${month}-${year}`; //eazebuzz accepts date in DD-MM-YYYY formal seprated with - like '19-07-2024'
     // console.log(formattedDateString, 'formant date');
     // return formattedDateString
-    const data = await this.erpService.easebuzzSettlements(date);
-    await this.erpService.sendSettlements(date)
-  }
+    // const data = await this.erpService.easebuzzSettlements(date);
+    await this.erpService.sendSettlements(date);
+  } 
   @Get('/test-callback')
   async test(@Req() req: any) {
     console.log(req.query);

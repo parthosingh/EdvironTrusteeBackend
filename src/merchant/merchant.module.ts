@@ -20,6 +20,8 @@ import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
+import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
+import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 
 @Module({
   imports: [
@@ -44,6 +46,7 @@ import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
     MongooseModule.forFeature([
       { name: RefundRequest.name, schema: RefundRequestSchema },
     ]),
+    MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },
@@ -68,6 +71,7 @@ import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
     MerchantResolver,
     MerchantService,
     EmailService,
+    AwsS3Service
   ],
   exports:[MerchantService]
 })

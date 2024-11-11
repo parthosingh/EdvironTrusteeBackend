@@ -48,6 +48,10 @@ import * as path from 'path';
 import * as ejs from 'ejs';
 import puppeteer from 'puppeteer';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import { MerchantService } from 'src/merchant/merchant.service';
+import { refund_status, RefundRequest } from 'src/schema/refund.schema';
+import { TransactionInfo } from 'src/schema/transaction.info.schema';
+import { kyc_details } from 'src/schema/vendors.schema';
 
 @InputType()
 export class invoiceDetails {
@@ -59,9 +63,83 @@ export class invoiceDetails {
   total: number;
 }
 
-import { MerchantService } from 'src/merchant/merchant.service';
-import { refund_status, RefundRequest } from 'src/schema/refund.schema';
-import { TransactionInfo } from 'src/schema/transaction.info.schema';
+@InputType()
+class BankInfoInput {
+  @Field()
+  account_number: string;
+
+  @Field()
+  account_holder_name: string;
+
+  @Field()
+  ifsc: string;
+}
+
+@InputType()
+class KycDetailsInput {
+  @Field()
+  account_type: string;
+
+  @Field()
+  business_type: string;
+
+  @Field({ nullable: true })
+  uidai?: string;
+
+  @Field({ nullable: true })
+  gst?: string;
+
+  @Field({ nullable: true })
+  cin?: string;
+
+  @Field({ nullable: true })
+  pan?: string;
+
+  @Field({ nullable: true })
+  passport_number?: string;
+}
+
+@InputType()
+export class vendorBanksInfo{
+  @Field({ nullable: true })
+  account_holder: string;
+
+  @Field({ nullable: true })
+  account_number: string;
+
+  @Field({ nullable: true })
+  ifsc: string;
+}
+
+@InputType()
+class VendorInfoInput {
+  @Field()
+  status: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  email: string;
+
+  @Field()
+  phone: string;
+
+  @Field()
+  verify_account: boolean;
+
+  @Field()
+  dashboard_access: boolean;
+
+  @Field(() => Int)
+  schedule_option: number;
+
+  @Field(() => vendorBanksInfo)
+  bank: vendorBanksInfo;
+
+  @Field(() => KycDetailsInput)
+  kyc_details: KycDetailsInput;
+}
 
 @Resolver('Trustee')
 export class TrusteeResolver {
@@ -345,7 +423,8 @@ export class TrusteeResolver {
       console.timeEnd('fetching all transaction');
 
       console.time('mapping');
-
+      console.log( response.data.transactions);
+      
       transactionReport = await Promise.all(
         response.data.transactions.map(async (item: any) => {
           let remark = null;
@@ -392,6 +471,7 @@ export class TrusteeResolver {
         }),
       );
 
+      
       console.timeEnd('mapping');
 
       console.time('sorting');
@@ -1684,52 +1764,182 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(()=>[RefundRequestRes])
-  async getTrusteeRefundRequest( @Context() context: any){
-    try{
+  @Query(() => [RefundRequestRes])
+  async getTrusteeRefundRequest(@Context() context: any) {
+    try {
       // return await this.refundRequestModel.find({trustee_id: context.req.trustee})
-      const refunds=await this.refundRequestModel.aggregate([
-        {$match:{trustee_id:context.req.trustee}},
+      const refunds = await this.refundRequestModel.aggregate([
+        { $match: { trustee_id: context.req.trustee } },
         {
-          $lookup:
-            {
-              from: 'trusteeschools',
-              localField: 'school_id',
-              foreignField: '_id',
-              as: 'result'
-            }
+          $lookup: {
+            from: 'trusteeschools',
+            localField: 'school_id',
+            foreignField: '_id',
+            as: 'result',
+          },
         },
         {
-          $unwind: '$result'
+          $unwind: '$result',
         },
         {
-          $project:{
-            _id:1,
-            trustee_id:1,
-            school_id:'$result.school_id',
-            order_id:1,
-            school_name:'$result.school_name',
-            status:1,
-            refund_amount:1,
-            order_amount:1,
-            transaction_amount:1,
-            createdAt:1,
-            updatedAt:1,
-            custom_id:1
-            
-          }
+          $project: {
+            _id: 1,
+            trustee_id: 1,
+            school_id: '$result.school_id',
+            order_id: 1,
+            school_name: '$result.school_name',
+            status: 1,
+            refund_amount: 1,
+            order_amount: 1,
+            transaction_amount: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            custom_id: 1,
+          },
         },
         {
-          $sort: {createdAt:-1}
-        }
-      ]) 
+          $sort: { createdAt: -1 },
+        },
+      ]);
 
-      return refunds
-    }catch(e){
+      return refunds;
+    } catch (e) {
       console.error(e);
-      throw new BadRequestException('Error fetching refund requests')
+      throw new BadRequestException('Error fetching refund requests');
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async createVendor(
+    @Args('school_id') school_id: string,
+    @Args('vendor_info', { type: () => VendorInfoInput })
+    vendor_info: VendorInfoInput,
+    @Context() context: any,
+    @Args('chequeBase64') chequeBase64?:string,
+    @Args('chequeExtension') chequeExtension?:string
+  ): Promise<string> {
+    const trustee_id = context.req.trustee
+    console.log({school_id,trustee_id});
+    
+    const emailRegex = /^[\w-+.]+@([\w-]+\.)+[\w-]{2,4}$/;
+    const phoneRegex = /^\d{10}$/;
+    const gstRegex = /^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1})$/;
+    const accountNumberRegex = /^\d{9,18}$/;
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+
+    if (!emailRegex.test(vendor_info.email)) {
+      throw new BadRequestException('Invalid email format');
+    }
+
+    if (!phoneRegex.test(vendor_info.phone)) {
+      throw new BadRequestException('Phone number must be exactly 10 digits');
+    }
+
+    if (vendor_info.kyc_details.gst && !gstRegex.test(vendor_info.kyc_details.gst)) {
+      throw new BadRequestException('Invalid GST format');
+    }
+
+
+    if(!chequeBase64){
+      throw new BadRequestException('Cheque image is required');
+    }
+
+    if (!accountNumberRegex.test(vendor_info.bank.account_number)) {
+      throw new BadRequestException('Account number must be between 9 and 18 digits');
+    }
+
+    if (!ifscRegex.test(vendor_info.bank.ifsc)) {
+      throw new BadRequestException('Invalid IFSC code format');
+    }
+
+
+    const school = await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)});
+    if (!school) throw new NotFoundException('School not found');
+
+    if(school.trustee_id === trustee_id) {
+      throw new ForbiddenException('You are not authorized to perform this operation');
+    }
+    const client_id=school.client_id || null
+    if(!client_id){
+      throw new BadRequestException('Client ID not found Kindly contact us at tarun.k@edviron.com');
+    }
+    return await this.trusteeService.onboardVendor(client_id,trustee_id.toString(),school_id,vendor_info,chequeBase64,chequeExtension);
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => VendorsPaginationResponse)
+  async getVendors(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any
+  ) {
+    const trustee_id = context.req.trustee
+    const vendors = await this.trusteeService.getAllVendors(trustee_id.toString(), page, limit);
+    return vendors;
+  }
+}
+
+@ObjectType()
+export class vendorBanksInfoRes{
+  @Field({ nullable: true })
+  account_holder: string;
+
+  @Field({ nullable: true })
+  account_number: string;
+
+  @Field({ nullable: true })
+  ifsc: string;
+}
+
+
+@ObjectType()
+export class VendorsResponse{
+  @Field({ nullable: true })
+  _id: string;
+
+  @Field({ nullable: true })
+  trustee_id: string;
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  name: string;
+
+  @Field({ nullable: true })
+  email: string;
+
+  @Field({ nullable: true })
+  phone: string;
+
+  @Field({ nullable: true })
+  bank_details: vendorBanksInfoRes;
+
+  @Field({ nullable: true })
+  kyc_info: kyc_details;
+
+  @Field({ nullable: true })
+  createdAt: string;
+
+  @Field({ nullable: true })
+  updatedAt: string;
+
+  @Field({ nullable: true })
+  status: string;
+  
+}
+
+@ObjectType()
+class VendorsPaginationResponse {
+  @Field(() => [VendorsResponse])
+  vendors: VendorsResponse[];
+
+  @Field(() => Int)
+  totalPages: number;
+
+  @Field(() => Int)
+  currentPage: number;
 }
 
 @ObjectType()
@@ -1953,6 +2163,9 @@ class School {
   email: string;
 
   @Field(() => String, { nullable: true })
+  phone_number: string;
+
+  @Field(() => String, { nullable: true })
   merchantStatus: string;
 
   @Field(() => [String], { nullable: true })
@@ -2003,6 +2216,18 @@ class getSchool {
 }
 
 @ObjectType()
+class Vendor{
+  @Field({nullable: true})
+  vendor_id: string;
+
+  @Field({nullable: true})
+  percentage: number;
+
+  @Field({nullable: true})
+  amount: number;
+}
+
+@ObjectType()
 class TransactionReport {
   @Field({ nullable: true })
   collect_id: string;
@@ -2042,6 +2267,8 @@ class TransactionReport {
   commission: number;
   @Field({ nullable: true })
   custom_order_id?: string;
+  @Field(() => [Vendor], { nullable: true })
+  vendors_info: [Vendor];
 }
 
 @ObjectType()
