@@ -1435,6 +1435,12 @@ console.log('uploading');
     return 'Vendor Created Successfully';
   }catch(err){
       console.log(err);
+      try{
+        await this.vendorsModel.findByIdAndDelete(newVendor._id);
+      }catch(e){
+        console.log(e);
+        throw new Error('Error occurred while creating vendor');
+      }
       if(err?.response?.data?.message){
         throw new BadRequestException(err.response.data.message);
       }
