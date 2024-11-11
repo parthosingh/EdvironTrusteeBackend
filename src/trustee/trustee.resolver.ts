@@ -228,7 +228,6 @@ export class TrusteeResolver {
     try {
       let id = context.req.trustee;
       const schools = await this.trusteeService.getSchools(id);
-
       return {
         schools: schools.schoolData,
       };
@@ -516,7 +515,8 @@ export class TrusteeResolver {
 
       return await this.trusteeSchoolModel.find({
         trustee_id: id,
-      });
+      })
+      
     } catch (error) {
       throw error;
     }

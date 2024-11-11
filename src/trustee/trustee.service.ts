@@ -195,6 +195,7 @@ export class TrusteeService {
             pg_key: 1,
             disabled_modes: 1,
             platform_charges: 1,
+            phone_number: 1,
             updatedAt: 1,
           },
         )
