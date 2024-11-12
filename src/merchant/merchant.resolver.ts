@@ -14,6 +14,7 @@ import {
   Mutation,
   ObjectType,
   Query,
+  Int,
   Resolver,
 } from '@nestjs/graphql';
 import { JwtService } from '@nestjs/jwt';
@@ -27,6 +28,7 @@ import { MerchantService } from './merchant.service';
 import {
   AuthResponse,
   resetPassResponse,
+  VendorsPaginationResponse,
   verifyRes,
 } from 'src/trustee/trustee.resolver';
 import { MerchantMember } from '../schema/merchant.member.schema';
@@ -844,6 +846,16 @@ export class MerchantResolver {
   @Mutation(() => String)
   async getCustomId(@Args('trustee_id') trustee_id:string){
     return this.merchantService.updateRefundRequest(trustee_id)
+  }
+
+  @Query(() => VendorsPaginationResponse)
+  async getMerchnantVendor(@Args('school_id') school_id:string,  @Args('page', { type: () => Int }) page: number,
+  @Args('limit', { type: () => Int }) limit: number,){
+    return this.trusteeService.getSchoolVendors(
+      school_id,
+      page,
+      limit,
+    )
   }
 }
 

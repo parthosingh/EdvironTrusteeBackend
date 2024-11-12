@@ -1382,55 +1382,55 @@ export class TrusteeService {
       );
     }
     try {
-    const newVendor = await new this.vendorsModel({
-      school_id: new Types.ObjectId(school_id),
-      trustee_id: new Types.ObjectId(trustee_id),
-      name: vendor_info.name,
-      email: vendor_info.email,
-      phone: vendor_info.phone,
-      client_id,
-      status: 'INITIATED',
-      schedule_option: vendor_info.schedule_option,
-      bank_details: vendor_info.bank,
-      kyc_info: vendor_info.kyc_details,
-    }).save();
-    const url = await this.uploadCheque(
-      newVendor._id.toString(),
-      chequeBase64,
-      chequeExtension,
-    );
-    newVendor.cheque = url;
+      const newVendor = await new this.vendorsModel({
+        school_id: new Types.ObjectId(school_id),
+        trustee_id: new Types.ObjectId(trustee_id),
+        name: vendor_info.name,
+        email: vendor_info.email,
+        phone: vendor_info.phone,
+        client_id,
+        status: 'INITIATED',
+        schedule_option: vendor_info.schedule_option,
+        bank_details: vendor_info.bank,
+        kyc_info: vendor_info.kyc_details,
+      }).save();
+      const url = await this.uploadCheque(
+        newVendor._id.toString(),
+        chequeBase64,
+        chequeExtension,
+      );
+      newVendor.cheque = url;
 
-    // return url
-    // const token = this.jwtService.sign(
-    //   { client_id },
-    //   {
-    //     secret: process.env.PAYMENTS_SERVICE_SECRET,
-    //   },
-    // );
+      // return url
+      // const token = this.jwtService.sign(
+      //   { client_id },
+      //   {
+      //     secret: process.env.PAYMENTS_SERVICE_SECRET,
+      //   },
+      // );
 
-    // const data = {
-    //   token,
-    //   client_id,
-    //   vendor_info: { vendor_id: newVendor._id.toString(), ...vendor_info },
-    // };
+      // const data = {
+      //   token,
+      //   client_id,
+      //   vendor_info: { vendor_id: newVendor._id.toString(), ...vendor_info },
+      // };
 
-    // let config = {
-    //   method: 'post',
-    //   maxBodyLength: Infinity,
-    //   url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/create-vendor`,
-    //   headers: {
-    //     accept: 'application/json',
-    //     'content-type': 'application/json',
-    //   },
-    //   data,
-    // };
-    // const response = await axios.request(config);
-    // const updatedStatus = response.data.status;
-    // newVendor.status = updatedStatus;
-    // newVendor.email = vendor_info.email;
-    // newVendor.phone = vendor_info.phone;
-    
+      // let config = {
+      //   method: 'post',
+      //   maxBodyLength: Infinity,
+      //   url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/create-vendor`,
+      //   headers: {
+      //     accept: 'application/json',
+      //     'content-type': 'application/json',
+      //   },
+      //   data,
+      // };
+      // const response = await axios.request(config);
+      // const updatedStatus = response.data.status;
+      // newVendor.status = updatedStatus;
+      // newVendor.email = vendor_info.email;
+      // newVendor.phone = vendor_info.phone;
+
       newVendor.vendor_id = newVendor._id.toString();
       await newVendor.save();
       return 'Vendor Created Successfully';
@@ -1462,16 +1462,32 @@ export class TrusteeService {
     }
   }
 
-  async getSchoolVendors(school_id: string, pageSize: number, limit: number) {
+  async getSchoolVendors(school_id: string, page: number, limit: number) {
     try {
-      const vendors = await this.vendorsModel.find({
+      // Calculate the number of documents to skip based on the current page and limit
+      const skip = (page - 1) * limit;
+  
+      // Fetch vendors with pagination applied
+      const vendors = await this.vendorsModel
+        .find({ school_id: new Types.ObjectId(school_id) })
+        .skip(skip)
+        .limit(limit);
+  
+      // Optional: Get the total count of vendors for the specified school to provide additional pagination info
+      const totalVendors = await this.vendorsModel.countDocuments({
         school_id: new Types.ObjectId(school_id),
       });
-      return vendors;
+  
+      return {
+        vendors,
+        totalPages: Math.ceil(totalVendors / limit),
+        currentPage:page
+      };
     } catch (error) {
       throw new Error(error.message);
     }
   }
+  
 
   async uploadCheque(
     vendor_id: string,
@@ -1515,7 +1531,64 @@ export class TrusteeService {
     }
   }
 
-  
+  async approveVendor(
+    vendor_info: {
+      vendor_id: string;
+      status: string;
+      name: string;
+      email: string;
+      phone: string;
+      verify_account: boolean;
+      dashboard_access: boolean;
+      schedule_option: number;
+      bank: { account_number: string; account_holder: string; ifsc: string };
+      kyc_details: {
+        account_type: string;
+        business_type: string;
+        uidai?: string;
+        gst?: string;
+        cin?: string;
+        pan?: string;
+        passport_number?: string;
+      };
+    },
+    trustee_id: string,
+    school_id: string,
+  ) {
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    if (!school) throw new NotFoundException('School not found for Trustee');
+    const vendor = await this.vendorsModel.findById(vendor_info.vendor_id);
+    if (!vendor) throw new NotFoundException('Vendor not found');
 
-  
+    const token = this.jwtService.sign(
+      { client_id: school.client_id },
+      {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      },
+    );
+    const data = {
+      token,
+      client_id: school.client_id,
+      vendor_info: vendor_info,
+    };
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/create-vendor`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data,
+    };
+
+    const response = await axios.request(config);
+    const updatedStatus = response.data.status;
+    vendor.status = updatedStatus;
+    await vendor.save();
+    return 'Vendor updated successfully to Vendor status: ' + updatedStatus;
+  }
 }

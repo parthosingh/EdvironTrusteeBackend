@@ -1931,7 +1931,7 @@ export class VendorsResponse{
 }
 
 @ObjectType()
-class VendorsPaginationResponse {
+export class VendorsPaginationResponse {
   @Field(() => [VendorsResponse])
   vendors: VendorsResponse[];
 

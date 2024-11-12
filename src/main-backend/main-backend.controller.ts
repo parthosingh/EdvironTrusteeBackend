@@ -709,6 +709,6 @@ export class MainBackendController {
       throw new BadRequestException('Invalid Token');
     }
 
-    // return this.trusteeService.approveVendor(body.vendor_info, body.trustee_id, body.school_id);
+    return this.trusteeService.approveVendor(body.vendor_info, body.trustee_id, body.school_id);
   }
 }
