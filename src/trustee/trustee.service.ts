@@ -1364,8 +1364,8 @@ export class TrusteeService {
         passport_number?: string;
       };
     },
-    chequeBase64:string,
-    chequeExtension:string
+    chequeBase64: string,
+    chequeExtension: string,
   ) {
     const checkVendors = await this.vendorsModel.findOne({
       email: vendor_info.email,
@@ -1381,72 +1381,62 @@ export class TrusteeService {
         'Vendor already exists with this phone number',
       );
     }
-
+    try {
     const newVendor = await new this.vendorsModel({
       school_id: new Types.ObjectId(school_id),
       trustee_id: new Types.ObjectId(trustee_id),
       name: vendor_info.name,
-      // email: vendor_info.email,
-      // phone: vendor_info.phone,
+      email: vendor_info.email,
+      phone: vendor_info.phone,
       client_id,
       status: 'INITIATED',
       schedule_option: vendor_info.schedule_option,
       bank_details: vendor_info.bank,
       kyc_info: vendor_info.kyc_details,
     }).save();
-console.log('uploading');
-
-    const url=await this.uploadCheque(newVendor._id.toString(),chequeBase64,chequeExtension);
-  // return url
-    const token = this.jwtService.sign(
-      { client_id },
-      {
-        secret: process.env.PAYMENTS_SERVICE_SECRET,
-      },
+    const url = await this.uploadCheque(
+      newVendor._id.toString(),
+      chequeBase64,
+      chequeExtension,
     );
+    newVendor.cheque = url;
 
-    const data = {
-      token,
-      client_id,
-      vendor_info: { vendor_id: newVendor._id.toString(), ...vendor_info },
-    };
-    console.log(data);
+    // return url
+    // const token = this.jwtService.sign(
+    //   { client_id },
+    //   {
+    //     secret: process.env.PAYMENTS_SERVICE_SECRET,
+    //   },
+    // );
+
+    // const data = {
+    //   token,
+    //   client_id,
+    //   vendor_info: { vendor_id: newVendor._id.toString(), ...vendor_info },
+    // };
+
+    // let config = {
+    //   method: 'post',
+    //   maxBodyLength: Infinity,
+    //   url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/create-vendor`,
+    //   headers: {
+    //     accept: 'application/json',
+    //     'content-type': 'application/json',
+    //   },
+    //   data,
+    // };
+    // const response = await axios.request(config);
+    // const updatedStatus = response.data.status;
+    // newVendor.status = updatedStatus;
+    // newVendor.email = vendor_info.email;
+    // newVendor.phone = vendor_info.phone;
     
-    let config = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/create-vendor`,
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-      },
-      data,
-    };
-    try{
-
-   
-    const response = await axios.request(config);
-    const updatedStatus = response.data.status;
-    newVendor.status = updatedStatus;
-    newVendor.email = vendor_info.email;
-    newVendor.phone = vendor_info.phone;
-    newVendor.cheque=url
-    newVendor.vendor_id= newVendor._id.toString();
-    await newVendor.save();
-    return 'Vendor Created Successfully';
-  }catch(err){
-      console.log(err);
-      try{
-        await this.vendorsModel.findByIdAndDelete(newVendor._id);
-      }catch(e){
-        console.log(e);
-        throw new Error('Error occurred while creating vendor');
-      }
-      if(err?.response?.data?.message){
-        throw new BadRequestException(err.response.data.message);
-      }
-      throw new Error('Error occurred while creating vendor');
-  }
+      newVendor.vendor_id = newVendor._id.toString();
+      await newVendor.save();
+      return 'Vendor Created Successfully';
+    } catch (err) {
+      throw new Error(err.message);
+    }
   }
 
   async getAllVendors(trustee_id: string, page: number, pageSize: number) {
@@ -1482,25 +1472,26 @@ console.log('uploading');
       throw new Error(error.message);
     }
   }
- 
+
   async uploadCheque(
     vendor_id: string,
     base64: string,
     chequeExtension: string,
   ) {
     try {
-      
       const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
       const buffer = Buffer.from(base64Data, 'base64');
-       
+
       let mimeType = 'application/octet-stream'; // Default if type is unknown
       if (chequeExtension === 'pdf') {
         mimeType = 'application/pdf';
       } else if (['jpg', 'jpeg', 'png'].includes(chequeExtension)) {
-        mimeType = `image/${chequeExtension === 'jpg' ? 'jpeg' : chequeExtension}`;
+        mimeType = `image/${
+          chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
+        }`;
       } else {
         throw new Error('Unsupported file type file type.');
-      } 
+      }
 
       const chequeUrl = await new Promise<string>(async (resolve, reject) => {
         try {
@@ -1523,4 +1514,6 @@ console.log('uploading');
       throw new Error(e.message);
     }
   }
+
+  
 }
