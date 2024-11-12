@@ -642,6 +642,73 @@ export class MainBackendController {
     }
     refundRequest.status = refund_status.PROCESSING;
     refundRequest.save();
-    return 'status updated successfully' 
+    return 'status updated successfully';
+  }
+
+  @Get('get-vendor-list')
+  async getVendorList(
+    @Query('token') token: string,
+    @Query('page_number') page_number: number,
+    @Query('page_size') page_size: number,
+    @Query('trustee_id') trustee_id: string,
+  ) {
+    try {
+      const decodedPayload = await this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+
+      if(decodedPayload.trustee_id !== trustee_id || decodedPayload.page_number !== page_number || decodedPayload.page_size !== page_size) {
+        throw new BadRequestException('Invalid Token');
+      }
+
+      const vendors = await this.trusteeService.getAllVendors(
+        trustee_id,
+        page_number,
+        page_size,
+      );
+      return vendors;
+    } catch (e) {
+      console.log(e.message);
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @Post('/approve-vendor')
+  async approveVendor(
+    @Body() body:{
+      vendor_info: {
+        vendor_id:string;
+        status: string;
+        name: string;
+        email: string;
+        phone: string;
+        verify_account: boolean;
+        dashboard_access: boolean;
+        schedule_option: number;
+        bank: { account_number: string; account_holder: string; ifsc: string };
+        kyc_details: {
+          account_type: string;
+          business_type: string;
+          uidai?: string;
+          gst?: string;
+          cin?: string;
+          pan?: string;
+          passport_number?: string;
+        };
+      },
+      trustee_id: string,
+      school_id: string,
+      token: string
+    }
+  ){
+    const decodedPayload = await this.jwtService.verify(body.token, {
+      secret: process.env.JWT_SECRET_FOR_INTRANET,
+    });
+
+    if(decodedPayload.trustee_id !== body.trustee_id || decodedPayload.school_id !== body.school_id) {
+      throw new BadRequestException('Invalid Token');
+    }
+
+    // return this.trusteeService.approveVendor(body.vendor_info, body.trustee_id, body.school_id);
   }
 }
