@@ -147,7 +147,8 @@ export class MerchantService {
       const decodedPayload = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
       });
-
+      console.log(decodedPayload,'payload');
+      
       const merchant = await this.trusteeSchoolModel.findById(
         decodedPayload.id,
       );

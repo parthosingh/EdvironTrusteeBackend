@@ -850,6 +850,7 @@ export class MerchantResolver {
     return this.merchantService.updateRefundRequest(trustee_id);
   }
 
+  @UseGuards(MerchantGuard)
   @Query(() => VendorsPaginationResponse)
   async getMerchantVendor(
     @Args('page', { type: () => Int }) page: number,
@@ -857,7 +858,8 @@ export class MerchantResolver {
     @Context() context: any,
   ) {
     const school_id = context.req.merchant;
-    return this.trusteeService.getSchoolVendors(school_id, page, limit);
+    const school = await this.trusteeSchoolModel.findById(school_id);   
+    return this.trusteeService.getSchoolVendors(school.school_id.toString(), page, limit);
   }
 }
 
