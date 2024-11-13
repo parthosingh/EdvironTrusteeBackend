@@ -856,7 +856,7 @@ export class MerchantResolver {
     @Args('limit', { type: () => Int }) limit: number,
     @Context() context: any,
   ) {
-    const school_id = context.req.merchant.toString();
+    const school_id = context.req.merchant;
     return this.trusteeService.getSchoolVendors(school_id, page, limit);
   }
 }
