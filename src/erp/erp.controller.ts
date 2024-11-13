@@ -373,8 +373,8 @@ export class ErpController {
         ccavenue_access_code: school.ccavenue_access_code || null,
         ccavenue_merchant_id: school.ccavenue_merchant_id || null,
         ccavenue_working_key: school.ccavenue_working_key || null,
-        // split_payments: split_payments || false,
-        // vendors_info: vendors_info || null,
+        split_payments: split_payments || false,
+        vendors_info: vendors_info || null,
       });
       let config = {
         method: 'post',
