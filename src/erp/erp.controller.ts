@@ -1310,4 +1310,22 @@ export class ErpController {
     console.log(req.path);
     console.log(req.method);
   }
+
+  @Get('/upi-pay')
+  @UseGuards(ErpGuard)
+  async getUpiPay(
+    @Query('collect_id') collect_id: string,
+  ){
+    const token = await this.jwtService.sign({collect_id},{ secret: process.env.PAYMENTS_SERVICE_SECRET})
+    const config ={
+      method: 'GET',
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/upi-payment?collect_id=${collect_id}&token=${token}`,
+      headers: {
+        accept: 'application/json',
+        'Content-Type': 'application/json',
+      }
+    }
+    const {data:response} = await axios.request(config);
+    return response;
+  }
 }

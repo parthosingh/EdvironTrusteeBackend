@@ -1466,28 +1466,28 @@ export class TrusteeService {
     try {
       // Calculate the number of documents to skip based on the current page and limit
       const skip = (page - 1) * limit;
-  
+
       // Fetch vendors with pagination applied
       const vendors = await this.vendorsModel
         .find({ school_id: new Types.ObjectId(school_id) })
+        .sort({ createdAt: -1 }) // Sort by createdAt in descending order
         .skip(skip)
         .limit(limit);
-  
+
       // Optional: Get the total count of vendors for the specified school to provide additional pagination info
       const totalVendors = await this.vendorsModel.countDocuments({
         school_id: new Types.ObjectId(school_id),
       });
-  
+
       return {
         vendors,
         totalPages: Math.ceil(totalVendors / limit),
-        currentPage:page
+        currentPage: page,
       };
     } catch (error) {
       throw new Error(error.message);
     }
   }
-  
 
   async uploadCheque(
     vendor_id: string,

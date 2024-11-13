@@ -728,11 +728,13 @@ export class MerchantResolver {
       headers: {
         accept: 'application/json',
         'content-type': 'application/json',
-      }
+      },
     };
-    const refundRequests=await this.refundRequestModel.findOne({order_id:order_id})
+    const refundRequests = await this.refundRequestModel.findOne({
+      order_id: order_id,
+    });
     const response = await axios.request(pgConfig);
-    const custom_id=response.data
+    const custom_id = response.data;
 
     if (checkRefundRequest?.status === refund_status.APPROVED) {
       const totalRefunds = await this.refundRequestModel.find({
@@ -844,18 +846,18 @@ export class MerchantResolver {
   }
 
   @Mutation(() => String)
-  async getCustomId(@Args('trustee_id') trustee_id:string){
-    return this.merchantService.updateRefundRequest(trustee_id)
+  async getCustomId(@Args('trustee_id') trustee_id: string) {
+    return this.merchantService.updateRefundRequest(trustee_id);
   }
 
   @Query(() => VendorsPaginationResponse)
-  async getMerchnantVendor(@Args('school_id') school_id:string,  @Args('page', { type: () => Int }) page: number,
-  @Args('limit', { type: () => Int }) limit: number,){
-    return this.trusteeService.getSchoolVendors(
-      school_id,
-      page,
-      limit,
-    )
+  async getMerchantVendor(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+  ) {
+    const school_id = context.req.merchant.toString();
+    return this.trusteeService.getSchoolVendors(school_id, page, limit);
   }
 }
 
