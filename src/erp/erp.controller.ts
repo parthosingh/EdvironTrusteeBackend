@@ -1315,11 +1315,35 @@ export class ErpController {
   @UseGuards(ErpGuard)
   async getUpiPay(
     @Query('collect_id') collect_id: string,
+    @Query('school_id') school_id: number,
+    @Query('sign') sign: string
   ){
-    const token = await this.jwtService.sign({collect_id},{ secret: process.env.PAYMENTS_SERVICE_SECRET})
+    if(!sign ||!collect_id ||!school_id){
+      throw new BadRequestException('Invalid parameters');
+    }
+
+    const school = await this.trusteeSchoolModel.findOne({school_id: new Types.ObjectId(school_id)});
+    if(!school){
+      throw new NotFoundException('Invalid school');
+    }
+    const pg_key = school.pg_key
+    if(!pg_key){
+      throw new NotFoundException('Payment Gateway is Not active yet for this merchant')
+    }
+
+    const decrypted = this.jwtService.verify(sign, { secret: pg_key });
+    if(decrypted.collect_id !== collect_id){
+      throw new BadRequestException('incorrect sign');
+    }
+    if(decrypted.school_id !== school_id){
+      throw new BadRequestException('incorrect sign');
+    }
+    
+    
+    const pg_token = await this.jwtService.sign({collect_id},{ secret: process.env.PAYMENTS_SERVICE_SECRET})
     const config ={
       method: 'GET',
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/upi-payment?collect_id=${collect_id}&token=${token}`,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/upi-payment?collect_id=${collect_id}&token=${pg_token}`,
       headers: {
         accept: 'application/json',
         'Content-Type': 'application/json',
