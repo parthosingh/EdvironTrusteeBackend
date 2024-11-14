@@ -112,7 +112,7 @@ export class vendorBanksInfo{
 }
 
 @InputType()
-class VendorInfoInput {
+export class VendorInfoInput {
   @Field()
   status: string;
 
@@ -1862,7 +1862,7 @@ export class TrusteeResolver {
     }
     const client_id=school.client_id || null
     if(!client_id){
-      throw new BadRequestException('Client ID not found Kindly contact us at tarun.k@edviron.com');
+      throw new BadRequestException('Payment gateway is not enabled for this school yet, Kindly contact us at tarun.k@edviron.com');
     }
     return await this.trusteeService.onboardVendor(client_id,trustee_id.toString(),school_id,vendor_info,chequeBase64,chequeExtension);
   }
@@ -1897,6 +1897,9 @@ export class vendorBanksInfoRes{
 export class VendorsResponse{
   @Field({ nullable: true })
   _id: string;
+
+  @Field({ nullable: true })
+  vendor_id: string;
 
   @Field({ nullable: true })
   trustee_id: string;

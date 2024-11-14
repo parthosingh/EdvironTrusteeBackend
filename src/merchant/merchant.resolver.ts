@@ -3,6 +3,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
   UnauthorizedException,
   UseGuards,
@@ -28,6 +29,7 @@ import { MerchantService } from './merchant.service';
 import {
   AuthResponse,
   resetPassResponse,
+  VendorInfoInput,
   VendorsPaginationResponse,
   verifyRes,
 } from 'src/trustee/trustee.resolver';
@@ -858,8 +860,77 @@ export class MerchantResolver {
     @Context() context: any,
   ) {
     const school_id = context.req.merchant;
-    const school = await this.trusteeSchoolModel.findById(school_id);   
-    return this.trusteeService.getSchoolVendors(school.school_id.toString(), page, limit);
+    const school = await this.trusteeSchoolModel.findById(school_id);
+    return this.trusteeService.getSchoolVendors(
+      school.school_id.toString(),
+      page,
+      limit,
+    );
+  }
+
+  @UseGuards(MerchantGuard)
+  @Mutation(() => String)
+  async createVendor(
+    @Args('vendor_info', { type: () => VendorInfoInput })
+    vendor_info: VendorInfoInput,
+    @Context() context: any,
+    @Args('chequeBase64') chequeBase64?: string,
+    @Args('chequeExtension') chequeExtension?: string,
+  ): Promise<string> {
+    const school_id = context.req.merchant;
+    const school = await this.trusteeSchoolModel.findById(school_id);
+    if (!school) throw new NotFoundException('School not found');
+
+    const emailRegex = /^[\w-+.]+@([\w-]+\.)+[\w-]{2,4}$/;
+    const phoneRegex = /^\d{10}$/;
+    const gstRegex =
+      /^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1})$/;
+    const accountNumberRegex = /^\d{9,18}$/;
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+
+    if (!emailRegex.test(vendor_info.email)) {
+      throw new BadRequestException('Invalid email format');
+    }
+
+    if (!phoneRegex.test(vendor_info.phone)) {
+      throw new BadRequestException('Phone number must be exactly 10 digits');
+    }
+
+    if (
+      vendor_info.kyc_details.gst &&
+      !gstRegex.test(vendor_info.kyc_details.gst)
+    ) {
+      throw new BadRequestException('Invalid GST format');
+    }
+
+    if (!chequeBase64) {
+      throw new BadRequestException('Cheque image is required');
+    }
+
+    if (!accountNumberRegex.test(vendor_info.bank.account_number)) {
+      throw new BadRequestException(
+        'Account number must be between 9 and 18 digits',
+      );
+    }
+
+    if (!ifscRegex.test(vendor_info.bank.ifsc)) {
+      throw new BadRequestException('Invalid IFSC code format');
+    }
+
+    const client_id = school.client_id || null;
+    if (!client_id) {
+      throw new BadRequestException(
+        'Payment gateway is not enabled for this school yet, Kindly contact us at tarun.k@edviron.com',
+      );
+    }
+    return await this.trusteeService.onboardVendor(
+      client_id,
+      school.trustee_id.toString(),
+      school.school_id.toString(),
+      vendor_info,
+      chequeBase64,
+      chequeExtension,
+    );
   }
 }
 

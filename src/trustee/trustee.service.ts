@@ -1445,6 +1445,7 @@ export class TrusteeService {
 
       const vendors = await this.vendorsModel
         .find({ trustee_id: new Types.ObjectId(trustee_id) })
+        .sort({createdAt:-1})
         .skip(skip)
         .limit(pageSize);
 
