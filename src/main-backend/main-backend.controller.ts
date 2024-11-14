@@ -655,9 +655,9 @@ export class MainBackendController {
     try {
       const decodedPayload = await this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
+      });    
 
-      if(decodedPayload.trustee_id !== trustee_id || decodedPayload.page_number !== page_number || decodedPayload.page_size !== page_size) {
+      if(decodedPayload.trustee_id !== trustee_id || decodedPayload.page_number !== Number(page_number) || decodedPayload.page_size !== Number(page_size)) {
         throw new BadRequestException('Invalid Token');
       }
 

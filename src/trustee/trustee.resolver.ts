@@ -2268,7 +2268,7 @@ class TransactionReport {
   @Field({ nullable: true })
   custom_order_id?: string;
   @Field(() => [Vendor], { nullable: true })
-  vendors_info: [Vendor];
+  vendors_info?: [Vendor];
 }
 
 @ObjectType()
