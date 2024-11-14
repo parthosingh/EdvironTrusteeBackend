@@ -870,7 +870,7 @@ export class MerchantResolver {
 
   @UseGuards(MerchantGuard)
   @Mutation(() => String)
-  async createVendor(
+  async createMerchantVendor(
     @Args('vendor_info', { type: () => VendorInfoInput })
     vendor_info: VendorInfoInput,
     @Context() context: any,
