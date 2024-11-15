@@ -1585,12 +1585,21 @@ export class TrusteeService {
       },
       data,
     };
+    try{
 
-    const response = await axios.request(config);
-    const updatedStatus = response.data.status;
-    vendor.status = updatedStatus;
-    await vendor.save();
-    return 'Vendor updated successfully to Vendor status: ' + updatedStatus;
+      const response = await axios.request(config);
+      const updatedStatus = response.data.status;
+      vendor.status = updatedStatus;
+      await vendor.save();
+      return 'Vendor updated successfully to Vendor status: ' + updatedStatus;
+    }catch(e){
+      if(e.response.data.message){
+        // console.log(e.response.data.message,'error');
+        throw new BadRequestException(e.response.data.message);
+      }
+      
+      throw new BadRequestException(e.message);
+    }
   }
 
   async getVenodrInfo(vendor_id:string){

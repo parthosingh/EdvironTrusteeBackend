@@ -655,9 +655,13 @@ export class MainBackendController {
     try {
       const decodedPayload = await this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });    
+      });
 
-      if(decodedPayload.trustee_id !== trustee_id || decodedPayload.page_number !== Number(page_number) || decodedPayload.page_size !== Number(page_size)) {
+      if (
+        decodedPayload.trustee_id !== trustee_id ||
+        decodedPayload.page_number !== Number(page_number) ||
+        decodedPayload.page_size !== Number(page_size)
+      ) {
         throw new BadRequestException('Invalid Token');
       }
 
@@ -675,39 +679,53 @@ export class MainBackendController {
 
   @Post('/approve-vendor')
   async approveVendor(
-    @Body() body:{
-      vendor_id:string,
-      trustee_id: string,
-      school_id: string,
-      token: string
+    @Body()
+    body: {
+      vendor_id: string;
+      trustee_id: string;
+      school_id: string;
+      token: string;
+    },
+  ) {
+    try {
+      const decodedPayload = await this.jwtService.verify(body.token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+
+      if (
+        decodedPayload.trustee_id !== body.trustee_id ||
+        decodedPayload.school_id !== body.school_id
+      ) {
+        throw new BadRequestException('Invalid Token');
+      }
+
+      const vendors = await this.trusteeService.getVenodrInfo(body.vendor_id);
+
+      const vendor_info = {
+        vendor_id: body.vendor_id,
+        status: 'ACTIVE',
+        name: vendors.name,
+        email: vendors.email,
+        phone: vendors.phone,
+        verify_account: true,
+        dashboard_access: true,
+        schedule_option: vendors.schedule_option || 3,
+        bank: {
+          account_number: vendors.bank_details.account_number,
+          account_holder: vendors.bank_details.account_holder,
+          ifsc: vendors.bank_details.ifsc,
+        },
+        kyc_details: vendors.kyc_info,
+      };
+
+      return this.trusteeService.approveVendor(
+        vendor_info,
+        body.trustee_id,
+        body.school_id,
+      );
+    } catch (e) {
+      // console.log(e.message, 'error sending');
+      throw new BadRequestException(e.message);
     }
-  ){
-    const decodedPayload = await this.jwtService.verify(body.token, {
-      secret: process.env.JWT_SECRET_FOR_INTRANET,
-    });
-
-    if(decodedPayload.trustee_id !== body.trustee_id || decodedPayload.school_id !== body.school_id) {
-      throw new BadRequestException('Invalid Token');
-    }
-
-    const vendors = await this.trusteeService.getVenodrInfo(body.vendor_id)
-
-    const vendor_info={
-      vendor_id: body.vendor_id,
-      status:'ACTIVE',
-      name:vendors.name,
-      email:vendors.email,
-      phone:vendors.phone,
-      verify_account:true,
-      dashboard_access:true,
-      schedule_option:vendors.schedule_option || 3,
-      bank:{account_number:vendors.bank_details.account_number,
-        account_holder:vendors.bank_details.account_holder,
-        ifsc:vendors.bank_details.ifsc
-      },
-      kyc_details:vendors.kyc_info
-    }
-
-    return this.trusteeService.approveVendor(vendor_info, body.trustee_id, body.school_id);
   }
 }
