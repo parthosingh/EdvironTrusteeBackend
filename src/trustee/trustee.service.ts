@@ -1592,4 +1592,10 @@ export class TrusteeService {
     await vendor.save();
     return 'Vendor updated successfully to Vendor status: ' + updatedStatus;
   }
+
+  async getVenodrInfo(vendor_id:string){
+    const vendor = await this.vendorsModel.findOne({vendor_id});
+    if (!vendor) throw new NotFoundException('Vendor not found');
+    return vendor;
+  } 
 }

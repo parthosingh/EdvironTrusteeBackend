@@ -676,26 +676,7 @@ export class MainBackendController {
   @Post('/approve-vendor')
   async approveVendor(
     @Body() body:{
-      vendor_info: {
-        vendor_id:string;
-        status: string;
-        name: string;
-        email: string;
-        phone: string;
-        verify_account: boolean;
-        dashboard_access: boolean;
-        schedule_option: number;
-        bank: { account_number: string; account_holder: string; ifsc: string };
-        kyc_details: {
-          account_type: string;
-          business_type: string;
-          uidai?: string;
-          gst?: string;
-          cin?: string;
-          pan?: string;
-          passport_number?: string;
-        };
-      },
+      vendor_id:string,
       trustee_id: string,
       school_id: string,
       token: string
@@ -709,6 +690,24 @@ export class MainBackendController {
       throw new BadRequestException('Invalid Token');
     }
 
-    return this.trusteeService.approveVendor(body.vendor_info, body.trustee_id, body.school_id);
+    const vendors = await this.trusteeService.getVenodrInfo(body.vendor_id)
+
+    const vendor_info={
+      vendor_id: body.vendor_id,
+      status:'ACTIVE',
+      name:vendors.name,
+      email:vendors.email,
+      phone:vendors.phone,
+      verify_account:true,
+      dashboard_access:true,
+      schedule_option:vendors.schedule_option || 3,
+      bank:{account_number:vendors.bank_details.account_number,
+        account_holder:vendors.bank_details.account_holder_name,
+        ifsc:vendors.bank_details.ifsc_code
+      },
+      kyc_details:vendors.kyc_info
+    }
+
+    return this.trusteeService.approveVendor(vendor_info, body.trustee_id, body.school_id);
   }
 }
