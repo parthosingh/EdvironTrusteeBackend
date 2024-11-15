@@ -702,8 +702,8 @@ export class MainBackendController {
       dashboard_access:true,
       schedule_option:vendors.schedule_option || 3,
       bank:{account_number:vendors.bank_details.account_number,
-        account_holder:vendors.bank_details.account_holder_name,
-        ifsc:vendors.bank_details.ifsc_code
+        account_holder:vendors.bank_details.account_holder,
+        ifsc:vendors.bank_details.ifsc
       },
       kyc_details:vendors.kyc_info
     }

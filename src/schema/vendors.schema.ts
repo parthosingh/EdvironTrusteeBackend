@@ -40,6 +40,21 @@ export class kyc_details {
 }
 
 @ObjectType()
+export class vendorBankDetails {
+  @Field(() => String, { nullable: true })
+  @Prop() 
+  account_holder: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop() 
+  account_number: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop() 
+  ifsc: string;
+}
+
+@ObjectType()
 @Schema({ timestamps: true })
 export class Vendors extends Document {
   @Prop({ type: Types.ObjectId })
@@ -83,8 +98,8 @@ export class Vendors extends Document {
   schedule_option: number;
 
   @Prop({})
-  @Field(() => bankDetails, { nullable: true })
-  bank_details: bankDetails;
+  @Field(() => vendorBankDetails, { nullable: true })
+  bank_details: vendorBankDetails;
 
   @Prop({})
   @Field(() => kyc_details, { nullable: true })
