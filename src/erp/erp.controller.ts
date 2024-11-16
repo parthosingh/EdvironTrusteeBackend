@@ -272,7 +272,8 @@ export class ErpController {
       if (vendors_info && vendors_info.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
         let splitMethod = null;
-
+        let totalAmount = 0;
+        let totalPercentage = 0;
         for (const vendor of vendors_info) {
           // Check if vendor_id is present
           if (!vendor.vendor_id) {
@@ -321,6 +322,28 @@ export class ErpController {
               'Each vendor must have either an amount or a percentage',
             );
           }
+
+          
+
+          if (hasAmount) {
+            if (vendor.amount < 0) {
+              throw new BadRequestException('Vendor amount cannot be negative');
+            }
+            totalAmount += vendor.amount;
+          } else if (hasPercentage) {
+            if (vendor.percentage < 0) {
+              throw new BadRequestException('Vendor percentage cannot be negative');
+            }
+            totalPercentage += vendor.percentage;
+          }
+        }
+        if (splitMethod === 'amount' && totalAmount > body.amount) {
+          throw new BadRequestException('Sum of vendor amounts cannot be greater than the order amount');
+        }
+      
+        // Check if total percentage exceeds 100%
+        if (splitMethod === 'percentage' && totalPercentage > 100) {
+          throw new BadRequestException('Sum of vendor percentages cannot be greater than 100%');
         }
       }
 
