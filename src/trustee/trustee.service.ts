@@ -1604,7 +1604,7 @@ export class TrusteeService {
 
   async getVenodrInfo(vendor_id:string){
     const vendor = await this.vendorsModel.findOne({vendor_id});
-    if (!vendor) throw new NotFoundException('Vendor not found');
+    if (!vendor) throw new NotFoundException('Vendor not found for vendor_id: ' + vendor_id);
     return vendor;
   } 
 }

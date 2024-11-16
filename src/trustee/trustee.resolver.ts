@@ -2228,6 +2228,9 @@ class Vendor{
 
   @Field({nullable: true})
   amount: number;
+
+  @Field({nullable: true})
+  name: string; 
 }
 
 @ObjectType()

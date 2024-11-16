@@ -28,6 +28,7 @@ import { Trustee } from 'src/schema/trustee.schema';
 import { Commission } from 'src/schema/commission.schema';
 import { Earnings } from 'src/schema/earnings.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { TrusteeService } from 'src/trustee/trustee.service';
 // import cf_commision from 'src/utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
 
 @Controller('erp')
@@ -35,6 +36,7 @@ export class ErpController {
   constructor(
     private erpService: ErpService,
     private readonly jwtService: JwtService,
+    private readonly trusteeService: TrusteeService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
@@ -193,7 +195,12 @@ export class ErpController {
       req_webhook_urls?: [string];
       split_payments?: boolean;
       vendors_info?: [
-        { vendor_id: string; percentage?: number; amount?: number },
+        {
+          vendor_id: string;
+          percentage?: number;
+          amount?: number;
+          name?: string;
+        },
       ];
     },
     @Req() req,
@@ -261,7 +268,7 @@ export class ErpController {
       if (split_payments && vendors_info && vendors_info.length < 0) {
         throw new BadRequestException('At least one vendor is required');
       }
-
+      const updatedVendorsInfo = [];
       if (vendors_info && vendors_info.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
         let splitMethod = null;
@@ -272,6 +279,19 @@ export class ErpController {
             throw new BadRequestException('Vendor ID is required');
           }
 
+          const vendors_data = await this.trusteeService.getVenodrInfo(
+            vendor.vendor_id,
+          );
+          if (!vendors_data) {
+            throw new NotFoundException(
+              'Invalid vendor id for ' + vendor.vendor_id,
+            );
+          }
+          const updatedVendor = {
+            ...vendor,
+            name: vendors_data.name 
+          };
+          updatedVendorsInfo.push(updatedVendor);
           // Check if both amount and percentage are used
           const hasAmount = typeof vendor.amount === 'number';
           const hasPercentage = typeof vendor.percentage === 'number';
@@ -374,7 +394,7 @@ export class ErpController {
         ccavenue_merchant_id: school.ccavenue_merchant_id || null,
         ccavenue_working_key: school.ccavenue_working_key || null,
         split_payments: split_payments || false,
-        vendors_info: vendors_info || null,
+        vendors_info: updatedVendorsInfo || null,
       });
       let config = {
         method: 'post',
@@ -1293,7 +1313,7 @@ export class ErpController {
     // return formattedDateString
     // const data = await this.erpService.easebuzzSettlements(date);
     await this.erpService.sendSettlements(date);
-  } 
+  }
   @Get('/test-callback')
   async test(@Req() req: any) {
     console.log(req.query);
@@ -1316,40 +1336,46 @@ export class ErpController {
   async getUpiPay(
     @Query('collect_id') collect_id: string,
     @Query('school_id') school_id: number,
-    @Query('sign') sign: string
-  ){
-    if(!sign ||!collect_id ||!school_id){
+    @Query('sign') sign: string,
+  ) {
+    if (!sign || !collect_id || !school_id) {
       throw new BadRequestException('Invalid parameters');
     }
 
-    const school = await this.trusteeSchoolModel.findOne({school_id: new Types.ObjectId(school_id)});
-    if(!school){
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    if (!school) {
       throw new NotFoundException('Invalid school');
     }
-    const pg_key = school.pg_key
-    if(!pg_key){
-      throw new NotFoundException('Payment Gateway is Not active yet for this merchant')
+    const pg_key = school.pg_key;
+    if (!pg_key) {
+      throw new NotFoundException(
+        'Payment Gateway is Not active yet for this merchant',
+      );
     }
 
     const decrypted = this.jwtService.verify(sign, { secret: pg_key });
-    if(decrypted.collect_id !== collect_id){
+    if (decrypted.collect_id !== collect_id) {
       throw new BadRequestException('incorrect sign');
     }
-    if(decrypted.school_id !== school_id){
+    if (decrypted.school_id !== school_id) {
       throw new BadRequestException('incorrect sign');
     }
-    
-    
-    const pg_token = await this.jwtService.sign({collect_id},{ secret: process.env.PAYMENTS_SERVICE_SECRET})
-    const config ={
+
+    const pg_token = await this.jwtService.sign(
+      { collect_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    const config = {
       method: 'GET',
       url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/upi-payment?collect_id=${collect_id}&token=${pg_token}`,
       headers: {
         accept: 'application/json',
         'Content-Type': 'application/json',
-      }
-    }
-    const {data:response} = await axios.request(config);
+      },
+    };
+    const { data: response } = await axios.request(config);
     return response;
   }
 }

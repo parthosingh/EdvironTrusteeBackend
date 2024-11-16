@@ -12,10 +12,19 @@ import { Commission, CommissionSchema } from 'src/schema/commission.schema';
 import { Earnings, EarningsSchema } from 'src/schema/earnings.schema';
 import { CashfreeModule } from '../cashfree/cashfree.module';
 import { CashfreeService } from '../cashfree/cashfree.service';
+import { TrusteeService } from 'src/trustee/trustee.service';
+import { TrusteeModule } from 'src/trustee/trustee.module';
+import { EmailService } from 'src/email/email.service';
+import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import { TrusteeMember, TrusteeMemberSchema } from 'src/schema/partner.member.schema';
+import { TransactionInfo, TransactionInfoSchema } from 'src/schema/transaction.info.schema';
+import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
+import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 
 @Module({
   imports: [
     CashfreeModule,
+    // TrusteeModule,
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
     MongooseModule.forFeature([
       { name: 'TrusteeSchool', schema: SchoolSchema },
@@ -28,6 +37,18 @@ import { CashfreeService } from '../cashfree/cashfree.service';
     ]),
     MongooseModule.forFeature([
       { name: BaseMdr.name, schema: BaseMdrSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: TrusteeMember.name, schema: TrusteeMemberSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: TransactionInfo.name, schema: TransactionInfoSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: RequestMDR.name, schema: RequestMDRSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Vendors.name, schema: VendorsSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({
@@ -43,7 +64,7 @@ import { CashfreeService } from '../cashfree/cashfree.service';
       { name: SchoolMdr.name, schema: SchoolMdrSchema },
     ]),
   ],
-  providers: [ErpService, CashfreeService],
+  providers: [ErpService, CashfreeService,TrusteeService,EmailService,AwsS3Service],
   controllers: [ErpController],
 })
 export class ErpModule {}
