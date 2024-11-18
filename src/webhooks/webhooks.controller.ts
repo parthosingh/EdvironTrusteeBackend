@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, ObjectId, Types } from 'mongoose';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
@@ -177,6 +177,57 @@ export class WebhooksController {
     } catch (e) {
       console.error('Error saving webhook logs', e);
     }
+  }
+
+  @Post('cashfree/vendor-settlements')
+  async cashfreeVendorSettlements(@Body() body: any, @Res() res: any) {
+    try {
+      const details = JSON.stringify(body);
+      await new this.webhooksLogsModel({
+        type: 'VENDOR_SETTLEMENTS',
+        gateway: 'CASHFREE',
+        // type_id:body.data.hash,
+        body: details,
+        status: 'SUCCESS',
+      }).save();
+      res.status(200).send('OK');
+    } catch (e) {
+      console.error('Error saving webhook logs', e);
+    }
+  }
+
+  @Post('cashfree/vendor-status')
+  async cashfreeVendorStatus(@Body() body: any, @Res() res: any) {
+    try {
+      const details = JSON.stringify(body);
+      await new this.webhooksLogsModel({
+        type: 'VENDOR_STATUS',
+        gateway: 'CASHFREE',
+        // type_id:body.data.hash,
+        body: details,
+        status: 'SUCCESS',
+      }).save();
+      res.status(200).send('OK');
+    } catch (e) {
+      console.error('Error saving webhook logs', e);
+    }
+  }
+
+
+
+  @Get('test')
+  async testSettlement() {
+    const startDate = new Date('2024-11-10'); // Start of 15th
+    const endDate = new Date('2024-11-17'); // End of 17th
+
+    const data = await this.webhooksLogsModel.find({
+      createdAt: {
+        $gte: startDate, // Greater than or equal to startDate
+        $lte: endDate, // Less than or equal to endDate
+      },
+    });
+
+    return data
   }
 }
 
