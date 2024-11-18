@@ -100,7 +100,7 @@ class KycDetailsInput {
 }
 
 @InputType()
-export class vendorBanksInfo{
+export class vendorBanksInfo {
   @Field({ nullable: true })
   account_holder: string;
 
@@ -422,8 +422,8 @@ export class TrusteeResolver {
       console.timeEnd('fetching all transaction');
 
       console.time('mapping');
-      console.log( response.data.transactions);
-      
+      console.log(response.data.transactions);
+
       transactionReport = await Promise.all(
         response.data.transactions.map(async (item: any) => {
           let remark = null;
@@ -470,7 +470,6 @@ export class TrusteeResolver {
         }),
       );
 
-      
       console.timeEnd('mapping');
 
       console.time('sorting');
@@ -515,8 +514,7 @@ export class TrusteeResolver {
 
       return await this.trusteeSchoolModel.find({
         trustee_id: id,
-      })
-      
+      });
     } catch (error) {
       throw error;
     }
@@ -1816,15 +1814,16 @@ export class TrusteeResolver {
     @Args('vendor_info', { type: () => VendorInfoInput })
     vendor_info: VendorInfoInput,
     @Context() context: any,
-    @Args('chequeBase64') chequeBase64?:string,
-    @Args('chequeExtension') chequeExtension?:string
+    @Args('chequeBase64') chequeBase64?: string,
+    @Args('chequeExtension') chequeExtension?: string,
   ): Promise<string> {
-    const trustee_id = context.req.trustee
-    console.log({school_id,trustee_id});
-    
+    const trustee_id = context.req.trustee;
+    console.log({ school_id, trustee_id });
+
     const emailRegex = /^[\w-+.]+@([\w-]+\.)+[\w-]{2,4}$/;
     const phoneRegex = /^\d{10}$/;
-    const gstRegex = /^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1})$/;
+    const gstRegex =
+      /^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1})$/;
     const accountNumberRegex = /^\d{9,18}$/;
     const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 
@@ -1836,35 +1835,51 @@ export class TrusteeResolver {
       throw new BadRequestException('Phone number must be exactly 10 digits');
     }
 
-    if (vendor_info.kyc_details.gst && !gstRegex.test(vendor_info.kyc_details.gst)) {
+    if (
+      vendor_info.kyc_details.gst &&
+      !gstRegex.test(vendor_info.kyc_details.gst)
+    ) {
       throw new BadRequestException('Invalid GST format');
     }
 
-
-    if(!chequeBase64){
+    if (!chequeBase64) {
       throw new BadRequestException('Cheque image is required');
     }
 
     if (!accountNumberRegex.test(vendor_info.bank.account_number)) {
-      throw new BadRequestException('Account number must be between 9 and 18 digits');
+      throw new BadRequestException(
+        'Account number must be between 9 and 18 digits',
+      );
     }
 
     if (!ifscRegex.test(vendor_info.bank.ifsc)) {
       throw new BadRequestException('Invalid IFSC code format');
     }
 
-
-    const school = await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)});
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
     if (!school) throw new NotFoundException('School not found');
 
-    if(school.trustee_id === trustee_id) {
-      throw new ForbiddenException('You are not authorized to perform this operation');
+    if (school.trustee_id === trustee_id) {
+      throw new ForbiddenException(
+        'You are not authorized to perform this operation',
+      );
     }
-    const client_id=school.client_id || null
-    if(!client_id){
-      throw new BadRequestException('Payment gateway is not enabled for this school yet, Kindly contact us at tarun.k@edviron.com');
+    const client_id = school.client_id || null;
+    if (!client_id) {
+      throw new BadRequestException(
+        'Payment gateway is not enabled for this school yet, Kindly contact us at tarun.k@edviron.com',
+      );
     }
-    return await this.trusteeService.onboardVendor(client_id,trustee_id.toString(),school_id,vendor_info,chequeBase64,chequeExtension);
+    return await this.trusteeService.onboardVendor(
+      client_id,
+      trustee_id.toString(),
+      school_id,
+      vendor_info,
+      chequeBase64,
+      chequeExtension,
+    );
   }
 
   @UseGuards(TrusteeGuard)
@@ -1872,16 +1887,106 @@ export class TrusteeResolver {
   async getVendors(
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
-    @Context() context: any
+    @Context() context: any,
   ) {
-    const trustee_id = context.req.trustee
-    const vendors = await this.trusteeService.getAllVendors(trustee_id.toString(), page, limit);
+    const trustee_id = context.req.trustee;
+    const vendors = await this.trusteeService.getAllVendors(
+      trustee_id.toString(),
+      page,
+      limit,
+    );
     return vendors;
+  }
+  @UseGuards(TrusteeGuard)
+  @Query(() => VendorsTransactionPaginatedResponse)
+  async getVendorTransaction(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Args('vendor_id', { type: () => String }) vendor_id: string,
+    @Context() context: any,
+  ) {
+    console.log('test');
+
+    const trustee_id = context.req.trustee;
+    const transactions = this.trusteeService.getVendorTransactions(
+      vendor_id,
+      trustee_id.toString(),
+      page,
+      limit,
+    );
+    return transactions;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => VendorsTransactionPaginatedResponse)
+  async getAllVendorTransaction(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+  ) {
+    console.log('test');
+
+    const trustee_id = context.req.trustee;
+    const transactions = this.trusteeService.getAllVendorTransactions(
+
+      trustee_id.toString(),
+      page,
+      limit,
+    );
+    return transactions;
   }
 }
 
 @ObjectType()
-export class vendorBanksInfoRes{
+export class VendorsTransactionPaginatedResponse {
+  @Field(() => [VendorTransaction],{nullable: true})
+  vendorsTransaction: VendorTransaction[];
+
+  @Field({ nullable: true })
+  totalCount: number;
+
+  @Field({ nullable: true })
+  page: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
+
+  @Field({ nullable: true })
+  limit: number;
+}
+
+@ObjectType()
+export class VendorTransaction {
+  @Field({ nullable: true })
+  _id: string;
+
+  @Field({ nullable: true })
+  collect_id: string;
+
+  @Field({ nullable: true })
+  custom_id: string;
+
+  @Field({ nullable: true })
+  name: string;
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  // @Field({ nullable: true })
+  // trustee_id: string;
+
+  @Field({ nullable: true })
+  amount: number;
+
+  @Field({ nullable: true })
+  createdAt: string;
+
+  @Field({ nullable: true })
+  updatedAt: string;
+}
+
+@ObjectType()
+export class vendorBanksInfoRes {
   @Field({ nullable: true })
   account_holder: string;
 
@@ -1892,9 +1997,8 @@ export class vendorBanksInfoRes{
   ifsc: string;
 }
 
-
 @ObjectType()
-export class VendorsResponse{
+export class VendorsResponse {
   @Field({ nullable: true })
   _id: string;
 
@@ -1930,7 +2034,6 @@ export class VendorsResponse{
 
   @Field({ nullable: true })
   status: string;
-  
 }
 
 @ObjectType()
@@ -2219,18 +2322,18 @@ class getSchool {
 }
 
 @ObjectType()
-class Vendor{
-  @Field({nullable: true})
+class Vendor {
+  @Field({ nullable: true })
   vendor_id: string;
 
-  @Field({nullable: true})
+  @Field({ nullable: true })
   percentage: number;
 
-  @Field({nullable: true})
+  @Field({ nullable: true })
   amount: number;
 
-  @Field({nullable: true})
-  name: string; 
+  @Field({ nullable: true })
+  name: string;
 }
 
 @ObjectType()

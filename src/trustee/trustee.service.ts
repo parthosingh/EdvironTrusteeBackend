@@ -1445,7 +1445,7 @@ export class TrusteeService {
 
       const vendors = await this.vendorsModel
         .find({ trustee_id: new Types.ObjectId(trustee_id) })
-        .sort({createdAt:-1})
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(pageSize);
 
@@ -1585,26 +1585,97 @@ export class TrusteeService {
       },
       data,
     };
-    try{
-
+    try {
       const response = await axios.request(config);
       const updatedStatus = response.data.status;
       vendor.status = updatedStatus;
       await vendor.save();
       return 'Vendor updated successfully to Vendor status: ' + updatedStatus;
-    }catch(e){
-      if(e.response.data.message){
+    } catch (e) {
+      if (e.response.data.message) {
         // console.log(e.response.data.message,'error');
         throw new BadRequestException(e.response.data.message);
       }
-      
+
       throw new BadRequestException(e.message);
     }
   }
 
-  async getVenodrInfo(vendor_id:string){
-    const vendor = await this.vendorsModel.findOne({vendor_id});
-    if (!vendor) throw new NotFoundException('Vendor not found for vendor_id: ' + vendor_id);
+  async getVenodrInfo(vendor_id: string) {
+    const vendor = await this.vendorsModel.findOne({ vendor_id });
+    if (!vendor)
+      throw new NotFoundException(
+        'Vendor not found for vendor_id: ' + vendor_id,
+      );
     return vendor;
-  } 
+  }
+
+
+  async getVendorTransactions(vendor_id: string, trustee_id: string,page: number,limit: number) {
+    const vendor = await this.vendorsModel.findOne({ vendor_id });
+    if (!vendor) throw new NotFoundException('Vendor not found for');
+    const token = this.jwtService.sign(
+      { validate_trustee: trustee_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&vendor_id=${vendor_id}&page=${page}&limit=${limit}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+
+    const { data: transactions } = await axios.request(config);
+    console.log(transactions);
+    
+    return transactions;
+  }
+
+  async getAllVendorTransactions(trustee_id: string,page: number,limit: number) {
+    
+    const token = this.jwtService.sign(
+      { validate_trustee: trustee_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&trustee_id=${trustee_id}&page=${page}&limit=${limit}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+
+    const { data: transactions } = await axios.request(config);
+    console.log(transactions);
+    
+    return transactions;
+  }
+
+  
+  async getMerchantVendorTransactions(trustee_id: string,school_id: string,page: number,limit: number) {
+    
+    const token = this.jwtService.sign(
+      { validate_trustee: trustee_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&school_id=${school_id}&page=${page}&limit=${limit}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+
+    const { data: transactions } = await axios.request(config);
+    console.log(transactions);
+    
+    return transactions;
+  }
 }

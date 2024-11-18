@@ -31,6 +31,7 @@ import {
   resetPassResponse,
   VendorInfoInput,
   VendorsPaginationResponse,
+  VendorsTransactionPaginatedResponse,
   verifyRes,
 } from 'src/trustee/trustee.resolver';
 import { MerchantMember } from '../schema/merchant.member.schema';
@@ -931,6 +932,24 @@ export class MerchantResolver {
       chequeBase64,
       chequeExtension,
     );
+  }
+
+  @UseGuards(MerchantGuard)
+  @Query(() => VendorsTransactionPaginatedResponse)
+  async getMerchantVendorTransaction(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+  ) {
+    const school_id = context.req.merchant;
+    const school = await this.trusteeSchoolModel.findById(school_id);
+    const transactions = this.trusteeService.getMerchantVendorTransactions(
+      school.trustee_id.toString(),
+      school.school_id.toString(),
+      page,
+      limit,
+    );
+    return transactions;
   }
 }
 
