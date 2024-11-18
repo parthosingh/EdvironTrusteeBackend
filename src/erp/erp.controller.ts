@@ -280,12 +280,19 @@ export class ErpController {
             throw new BadRequestException('Vendor ID is required');
           }
 
+
           const vendors_data = await this.trusteeService.getVenodrInfo(
             vendor.vendor_id,
           );
           if (!vendors_data) {
             throw new NotFoundException(
               'Invalid vendor id for ' + vendor.vendor_id,
+            );
+          }
+
+          if(vendors_data.vendor_id !== 'ACTIVE'){
+            throw new BadRequestException(
+              'Vendor is not active. Please approve the vendor first. for ' + vendor.vendor_id,
             );
           }
           const updatedVendor = {
