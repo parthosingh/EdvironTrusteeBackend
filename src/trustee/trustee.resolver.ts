@@ -1866,12 +1866,12 @@ export class TrusteeResolver {
         'You are not authorized to perform this operation',
       );
     }
-    const client_id = school.client_id || null;
-    if (!client_id) {
-      throw new BadRequestException(
-        'Payment gateway is not enabled for this school yet, Kindly contact us at tarun.k@edviron.com',
-      );
-    }
+    const client_id = school.client_id || 'null';
+    // if (!client_id) {
+    //   throw new BadRequestException(
+    //     'Payment gateway is not enabled for this school yet, Kindly contact us at tarun.k@edviron.com',
+    //   );
+    // }
     return await this.trusteeService.onboardVendor(
       client_id,
       trustee_id.toString(),
