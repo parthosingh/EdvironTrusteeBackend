@@ -1159,11 +1159,13 @@ export class ErpController {
       }
 
       const checkCommission = await this.commissionModel.findOne({
-        collect_id:new Types.ObjectId(transaction_id)
-      })
+        collect_id: new Types.ObjectId(transaction_id),
+      });
+      console.log(checkCommission);
 
-      if (checkCommission){
-      throw new BadRequestException('Commission already updated');}
+      if (checkCommission) {
+        throw new BadRequestException('Commission already updated');
+      }
 
       await new this.commissionModel({
         school_id: new Types.ObjectId(school_id),
@@ -1227,6 +1229,11 @@ export class ErpController {
         decrypted.collect_id != collect_id
       ) {
         throw new ForbiddenException('request forged');
+      }
+
+      const checkCommision=await this.commissionModel.findOne({collect_id: new Types.ObjectId(collect_id)});
+      if(checkCommision){
+        throw new BadRequestException('Commission already updated');
       }
 
       const school = await this.trusteeSchoolModel.findOne({
