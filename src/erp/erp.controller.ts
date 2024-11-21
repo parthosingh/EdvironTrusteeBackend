@@ -1230,11 +1230,11 @@ export class ErpController {
       ) {
         throw new ForbiddenException('request forged');
       }
-
+ 
       const checkCommision=await this.commissionModel.findOne({collect_id: new Types.ObjectId(collect_id)});
-      if(checkCommision){
-        throw new BadRequestException('Commission already updated');
-      }
+      // if(checkCommision){
+      //   throw new BadRequestException('Commission already updated');
+      // }
 
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
@@ -1282,14 +1282,21 @@ export class ErpController {
       // const edvCommission = trustee_base - cashfree_commission; // Edviron Earnings (Trustee base rate - cashfree Commission)
       const erpCommissionWithGST = erpCommission + erpCommission * 0.18;
 
-      await new this.commissionModel({
-        school_id,
-        trustee_id,
-        commission_amount: erpCommissionWithGST,
-        payment_mode,
-        platform_type,
-        collect_id: new Types.ObjectId(collect_id),
-      }).save(); // ERP Commission
+      await this.commissionModel.findOneAndUpdate(
+        { collect_id: new Types.ObjectId(collect_id) },  // Filter by collect_id
+        {
+          $set: {
+            school_id,
+            trustee_id,
+            commission_amount: erpCommissionWithGST,
+            payment_mode,
+            platform_type,
+            collect_id: new Types.ObjectId(collect_id),
+          },
+        }, 
+        { upsert: true, new: true }  // upsert: true will insert a new document if no matching document is found
+      );
+      
 
       return {
         status: 'successful',
