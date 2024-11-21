@@ -280,7 +280,6 @@ export class ErpController {
             throw new BadRequestException('Vendor ID is required');
           }
 
-
           const vendors_data = await this.trusteeService.getVenodrInfo(
             vendor.vendor_id,
           );
@@ -290,14 +289,15 @@ export class ErpController {
             );
           }
 
-          if(vendors_data.vendor_id !== 'ACTIVE'){
+          if (vendors_data.vendor_id !== 'ACTIVE') {
             throw new BadRequestException(
-              'Vendor is not active. Please approve the vendor first. for ' + vendor.vendor_id,
+              'Vendor is not active. Please approve the vendor first. for ' +
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
             ...vendor,
-            name: vendors_data.name 
+            name: vendors_data.name,
           };
           updatedVendorsInfo.push(updatedVendor);
           // Check if both amount and percentage are used
@@ -330,8 +330,6 @@ export class ErpController {
             );
           }
 
-          
-
           if (hasAmount) {
             if (vendor.amount < 0) {
               throw new BadRequestException('Vendor amount cannot be negative');
@@ -339,18 +337,24 @@ export class ErpController {
             totalAmount += vendor.amount;
           } else if (hasPercentage) {
             if (vendor.percentage < 0) {
-              throw new BadRequestException('Vendor percentage cannot be negative');
+              throw new BadRequestException(
+                'Vendor percentage cannot be negative',
+              );
             }
             totalPercentage += vendor.percentage;
           }
         }
         if (splitMethod === 'amount' && totalAmount > body.amount) {
-          throw new BadRequestException('Sum of vendor amounts cannot be greater than the order amount');
+          throw new BadRequestException(
+            'Sum of vendor amounts cannot be greater than the order amount',
+          );
         }
-      
+
         // Check if total percentage exceeds 100%
         if (splitMethod === 'percentage' && totalPercentage > 100) {
-          throw new BadRequestException('Sum of vendor percentages cannot be greater than 100%');
+          throw new BadRequestException(
+            'Sum of vendor percentages cannot be greater than 100%',
+          );
         }
       }
 
@@ -1154,6 +1158,13 @@ export class ErpController {
         throw new ForbiddenException('request forged');
       }
 
+      const checkCommission = await this.commissionModel.findOne({
+        collect_id:new Types.ObjectId(transaction_id)
+      })
+
+      if (checkCommission){
+      throw new BadRequestException('Commission already updated');}
+
       await new this.commissionModel({
         school_id: new Types.ObjectId(school_id),
         trustee_id: new Types.ObjectId(trustee_id),
@@ -1371,42 +1382,47 @@ export class ErpController {
     if (!sign || !collect_id || !school_id) {
       throw new BadRequestException('Invalid parameters');
     }
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new NotFoundException('Invalid school');
+      }
+      const pg_key = school.pg_key;
+      if (!pg_key) {
+        throw new NotFoundException(
+          'Payment Gateway is Not active yet for this merchant',
+        );
+      }
 
-    const school = await this.trusteeSchoolModel.findOne({
-      school_id: new Types.ObjectId(school_id),
-    });
-    if (!school) {
-      throw new NotFoundException('Invalid school');
-    }
-    const pg_key = school.pg_key;
-    if (!pg_key) {
-      throw new NotFoundException(
-        'Payment Gateway is Not active yet for this merchant',
+      const decrypted = this.jwtService.verify(sign, { secret: pg_key });
+      if (decrypted.collect_id !== collect_id) {
+        throw new BadRequestException('incorrect sign');
+      }
+      if (decrypted.school_id !== school_id) {
+        throw new BadRequestException('incorrect sign');
+      }
+
+      const pg_token = await this.jwtService.sign(
+        { collect_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
+      const config = {
+        method: 'GET',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/upi-payment?collect_id=${collect_id}&token=${pg_token}`,
+        headers: {
+          accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      };
+      const { data: response } = await axios.request(config);
+      return response;
+    } catch (e) {
+      if (e.response?.data?.message) {
+        throw new BadRequestException(e.response.data.message);
+      }
+      throw new BadRequestException(e.message);
     }
-
-    const decrypted = this.jwtService.verify(sign, { secret: pg_key });
-    if (decrypted.collect_id !== collect_id) {
-      throw new BadRequestException('incorrect sign');
-    }
-    if (decrypted.school_id !== school_id) {
-      throw new BadRequestException('incorrect sign');
-    }
-
-    const pg_token = await this.jwtService.sign(
-      { collect_id },
-      { secret: process.env.PAYMENTS_SERVICE_SECRET },
-    );
-    const config = {
-      method: 'GET',
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/upi-payment?collect_id=${collect_id}&token=${pg_token}`,
-      headers: {
-        accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    };
-    const { data: response } = await axios.request(config);
-    return response;
   }
-  
 }
