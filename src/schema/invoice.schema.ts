@@ -123,6 +123,10 @@ export class Invoice {
 
   @Prop({})
   @Field(() => String)
+  amount_in_words: string;
+
+  @Prop({})
+  @Field(() => String)
   invoice_url: string;
 }
 

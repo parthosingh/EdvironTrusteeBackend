@@ -37,7 +37,7 @@ import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
 import { Commission } from 'src/schema/commission.schema';
 import { MerchantMember } from 'src/schema/merchant.member.schema';
-
+import * as moment from 'moment';
 import {
   Invoice,
   invoice_status,
@@ -1583,7 +1583,14 @@ export class TrusteeResolver {
   async uploadInvoice(
     @Args('base64') base64: string,
     @Args('invoice_no') invoice_no: string,
+    @Args('invoice_date') invoice_date: string,
+    @Args('hsn') hsn: string,
+    @Args('amount_in_words') amount_in_words: string,
+    @Args('amount') amount: number,
+    @Args('amount_without_gst') amount_without_gst: number,
+    @Args('tax') tax: number,
     @Args('duration') duration: string,
+    @Args('note') note: string,
     @Context() context: any,
   ) {
     const buffer = Buffer.from(base64.split(',')[1], 'base64');
@@ -1591,15 +1598,62 @@ export class TrusteeResolver {
     if (!trustee) {
       throw new NotFoundException('Merchant Not Found');
     }
-    const check_invoice = await this.invoiceModel.findOne({invoice_no})
-    if (check_invoice) {
-      throw new BadRequestException('Invoice already exists with invoice Number');    
-    }
-    const invoice = await new this.invoiceModel({
-      trustee_id: trustee._id,
+    const check_invoice = await this.invoiceModel.findOne({
       invoice_no,
-      duration,
+      trustee_id: context.req.trustee,
+    });
+    if (check_invoice) {
+      throw new BadRequestException(
+        'Invoice already exists with invoice Number',
+      );
+    }
+
+    const parsedInvoiceDate = invoice_date;
+
+    const targetMonthYear = invoice_date.slice(invoice_date.indexOf(' ') + 1); // Extract "October 2024"
+
+    const existingInvoice = await this.invoiceModel.findOne({
+      trustee_id: context.req.trustee,
+      invoice_date: { $regex: new RegExp(`\\b${targetMonthYear}\\b`, 'i') }, // Case-insensitive match for the month and year
+    });
+
+    if (existingInvoice) {
+      throw new ConflictException(
+        `An invoice for ${targetMonthYear} already exists.`,
+      );
+    }
+
+    const invoice = await new this.invoiceModel({
+      invoice_details: {
+        amount_without_gst,
+        tax,
+        total: amount,
+      },
+      seller_details: {
+        name: trustee.name,
+        gstIn: trustee.gstIn || 'NA',
+        residence_state: trustee.residence_state || 'NA',
+        account_holder_name:
+          trustee.bank_details?.account_holder_name || 'NA',
+        account_number: trustee.bank_details?.account_number || 'NA',
+        ifsc_code: trustee.bank_details?.ifsc_code || 'NA',
+      },
+      buyer_details: {
+        name: `THRIVEDGE EDUTECH PRIVATE LIMITED`,
+        gstIn: '06AAJCT8114C1ZJ',
+        address:
+          '4th & 5th Floor, DLF Phase-5,Sector-43, Golf Course Rd, Gurugram. DLF QE, Gurgaon, Dlf Qe, Haryana, India, 122002',
+        placeOfSupply: 'Delhi-NCR',
+      },
       invoice_status: invoice_status.PENDING,
+      invoice_date: parsedInvoiceDate,
+      invoice_no,
+      amount_in_words,
+      hsn,
+      note,
+      trustee_id: context.req.trustee,
+      amount,
+      duration,
     }).save();
 
     const pdfUrl = await new Promise<string>(async (resolve, reject) => {
@@ -1639,92 +1693,90 @@ export class TrusteeResolver {
     @Args('note') note: string,
     @Context() context: any,
   ) {
-    const trustee = await this.trusteeModel.findById(context.req.trustee);
-    if (!trustee) {
-      throw new NotFoundException('Merchant Not Found');
+    try {
+      const trustee = await this.trusteeModel.findById(context.req.trustee);
+      if (!trustee) {
+        throw new NotFoundException('Merchant Not Found');
+      }
+
+      const invoice = await this.invoiceModel.findOne({
+        invoice_no,
+        trustee_id: context.req.trustee,
+      });
+
+      if (invoice) {
+        throw new ConflictException(`Invoice number already present`);
+      }
+      const parsedInvoiceDate = invoice_date;
+      const targetMonthYear = parsedInvoiceDate.slice(invoice_date.indexOf(' ') + 1); // Extract "October 2024"
+
+      const existingInvoice = await this.invoiceModel.findOne({
+        trustee_id: context.req.trustee,
+        invoice_date: { $regex: new RegExp(`\\b${targetMonthYear}\\b`, 'i') }, // Case-insensitive match for the month and year
+      });
+
+      if (existingInvoice) {
+        throw new ConflictException(
+          `An invoice for ${targetMonthYear} already exists.`,
+        );
+      }
+
+
+      const newInvoice = await new this.invoiceModel({
+        trustee_id: context.req.trustee,
+        invoice_details: {
+          amount_without_gst,
+          tax,
+          total: amount,
+        },
+        seller_details: {
+          name: trustee.name,
+          gstIn: trustee.gstIn || 'NA',
+          residence_state: trustee.residence_state || 'NA',
+          account_holder_name:
+            trustee.bank_details?.account_holder_name || 'NA',
+          account_number: trustee.bank_details?.account_number || 'NA',
+          ifsc_code: trustee.bank_details?.ifsc_code || 'NA',
+        },
+        buyer_details: {
+          name: `THRIVEDGE EDUTECH PRIVATE LIMITED`,
+          gstIn: '06AAJCT8114C1ZJ',
+          address:
+            '4th & 5th Floor, DLF Phase-5,Sector-43, Golf Course Rd, Gurugram. DLF QE, Gurgaon, Dlf Qe, Haryana, India, 122002',
+          placeOfSupply: 'Delhi-NCR',
+        },
+        invoice_status: invoice_status.PENDING,
+        invoice_date: parsedInvoiceDate,
+        invoice_no,
+        duration,
+        amount_in_words,
+        hsn,
+        note,
+      }).save();
+
+      const invoiceData = {
+        invoiceDate: parsedInvoiceDate,
+        invoiceNumber: invoice_no,
+        hsn,
+        amountInWords: amount_in_words,
+        note,
+        sellerDetails: newInvoice.seller_details,
+        buyerDetails: newInvoice.buyer_details,
+        month: duration,
+        details: {
+          amount_without_gst,
+          tax,
+          total: amount,
+        },
+      };
+
+      setImmediate(() => {
+        this.generateInvoicePDF(newInvoice._id.toString(), invoiceData);
+      });
+      return `Invoice Request created`;
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
-
-    // if (!trustee.bank_details) {
-    //   throw new Error(`Bank details missing`);
-    // }
-    // if (!trustee.gstIn) {
-    //   throw new Error(`GST details missing`);
-    // }
-    // if (!trustee.residence_state) {
-    //   throw new Error(`Residential details missing`);
-    // }
-
-    const invoice = await this.invoiceModel.findOne({
-      invoice_no,
-      trustee_id: context.req.trustee,
-    });
-
-    if (invoice) {
-      throw new ConflictException(`Invoice number already present`);
-    }
-    const invoiceMonth = new Date(invoice_date).getMonth();
-    const invoiceYear = new Date(invoice_date).getFullYear();
-    const existingInvoice = await this.invoiceModel.findOne({
-      trustee_id: context.req.trustee,
-      'invoice_details.month': invoiceMonth, // Assuming 'month' is stored in the invoice details
-      'invoice_details.year': invoiceYear, // Add 'year' as part of the invoice details if necessary
-    });
-
-    if (existingInvoice) {
-      throw new ConflictException(
-        `An invoice has already been requested or approved for the month ${invoiceMonth}/${invoiceYear}.`
-      );
-    }
-
-    const parsedInvoiceDate = invoice_date;
-
-    const newInvoice = await new this.invoiceModel({
-      trustee_id: context.req.trustee,
-      invoice_details: {
-        amount_without_gst,
-        tax,
-        total: amount,
-      },
-      seller_details: {
-        name: trustee.name,
-        gstIn: trustee.gstIn || 'NA',
-        residence_state: trustee.residence_state || 'NA',
-        account_holder_name: trustee.bank_details?.account_holder_name || 'NA',
-        account_number: trustee.bank_details?.account_number || 'NA',
-        ifsc_code: trustee.bank_details?.ifsc_code || 'NA',
-      },
-      buyer_details: {
-        name: `THRIVEDGE EDUTECH PRIVATE LIMITED`,
-        gstIn: '06AAJCT8114C1ZJ',
-        address:
-          '4th & 5th Floor, DLF Phase-5,Sector-43, Golf Course Rd, Gurugram. DLF QE, Gurgaon, Dlf Qe, Haryana, India, 122002',
-        placeOfSupply: 'Delhi-NCR',
-      },
-      invoice_status: invoice_status.PENDING,
-      invoice_date: parsedInvoiceDate,
-      invoice_no,
-    }).save();
-
-    const invoiceData = {
-      invoiceDate: parsedInvoiceDate,
-      invoiceNumber: invoice_no,
-      hsn,
-      amountInWords: amount_in_words,
-      note,
-      sellerDetails: newInvoice.seller_details,
-      buyerDetails: newInvoice.buyer_details,
-      month: duration,
-      details: {
-        amount_without_gst,
-        tax,
-        total: amount,
-      },
-    };
-
-    setImmediate(() => {
-      this.generateInvoicePDF(newInvoice._id.toString(), invoiceData);
-    });
-    return `Invoice Request created`;
   }
 
   async generateInvoicePDF(invoiceId: string, invoiceData: any) {
@@ -1945,7 +1997,6 @@ export class TrusteeResolver {
 
     const trustee_id = context.req.trustee;
     const transactions = this.trusteeService.getAllVendorTransactions(
-
       trustee_id.toString(),
       page,
       limit,
@@ -1956,7 +2007,7 @@ export class TrusteeResolver {
 
 @ObjectType()
 export class VendorsTransactionPaginatedResponse {
-  @Field(() => [VendorTransaction],{nullable: true})
+  @Field(() => [VendorTransaction], { nullable: true })
   vendorsTransaction: VendorTransaction[];
 
   @Field({ nullable: true })
@@ -2132,6 +2183,9 @@ class InvoiceResponse {
 
   @Field({ nullable: true })
   reason: string;
+
+  @Field({ nullable: true })
+  duration: string;
 }
 
 @ObjectType()
