@@ -9,6 +9,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, ObjectId, Types } from 'mongoose';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
+import { TrusteeSchool } from 'src/schema/school.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { Vendors } from 'src/schema/vendors.schema';
 import { WebhookLogs } from 'src/schema/webhook.schema';
@@ -24,9 +25,11 @@ export class WebhooksController {
     private venodrsSettlementmodel: mongoose.Model<VendorsSettlement>,
     @InjectModel(Vendors.name)
     private venodrsModel: mongoose.Model<Vendors>,
+    @InjectModel(TrusteeSchool.name)
+    private TrusteeSchoolmodel: mongoose.Model<TrusteeSchool>,
   ) {}
 
-  data = {
+  demoData = {
     data: {
       settlement: {
         account_mode: 'BANK',
@@ -238,8 +241,10 @@ export class WebhooksController {
       webhooklogs.type_id = vendor_id;
       await webhooklogs.save();
       const client_id = body.merchant.merchant_id || null;
-
+      
       const checkVendors = await this.venodrsModel.findOne({ vendor_id });
+      const school = await this.TrusteeSchoolmodel.findOne({ school_id: checkVendors.school_id });
+      const school_name=school.school_name
       if (!checkVendors) {
         webhooklogs.error = `Error in Finding Venodrs for ${vendor_id}`;
         webhooklogs.status = 'SETTLEMENT_ERROR';
@@ -268,6 +273,7 @@ export class WebhooksController {
             settlement_id,
             settlement_initiated_on:new Date(settlement_initiated_on),
             status,
+            school_name
           },
         },
         { 

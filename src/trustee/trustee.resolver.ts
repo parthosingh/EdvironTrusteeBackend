@@ -2140,6 +2140,9 @@ export class VendorsSettlementReport {
   status: string;
 
   @Field({ nullable: true })
+  school_name: string;
+
+  @Field({ nullable: true })
   createdAt: Date;
 
   @Field({ nullable: true })
