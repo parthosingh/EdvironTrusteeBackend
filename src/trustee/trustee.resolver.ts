@@ -1591,6 +1591,10 @@ export class TrusteeResolver {
     if (!trustee) {
       throw new NotFoundException('Merchant Not Found');
     }
+    const check_invoice = await this.invoiceModel.findOne({invoice_no})
+    if (check_invoice) {
+      throw new BadRequestException('Invoice already exists with invoice Number');    
+    }
     const invoice = await new this.invoiceModel({
       trustee_id: trustee._id,
       invoice_no,
@@ -1657,6 +1661,19 @@ export class TrusteeResolver {
 
     if (invoice) {
       throw new ConflictException(`Invoice number already present`);
+    }
+    const invoiceMonth = new Date(invoice_date).getMonth();
+    const invoiceYear = new Date(invoice_date).getFullYear();
+    const existingInvoice = await this.invoiceModel.findOne({
+      trustee_id: context.req.trustee,
+      'invoice_details.month': invoiceMonth, // Assuming 'month' is stored in the invoice details
+      'invoice_details.year': invoiceYear, // Add 'year' as part of the invoice details if necessary
+    });
+
+    if (existingInvoice) {
+      throw new ConflictException(
+        `An invoice has already been requested or approved for the month ${invoiceMonth}/${invoiceYear}.`
+      );
     }
 
     const parsedInvoiceDate = invoice_date;
