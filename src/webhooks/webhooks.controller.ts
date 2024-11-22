@@ -229,7 +229,7 @@ export class WebhooksController {
         settlement_initiated_on,
         status,
       } = vendorSettlement.settlement;
-      console.log(vendorSettlement, 'logs');
+      // console.log(vendorSettlement, 'logs');
 
       if(!utr){
         webhooklogs.error = `UTR missing for ${settlement_id}`;
@@ -273,7 +273,8 @@ export class WebhooksController {
             settlement_id,
             settlement_initiated_on:new Date(settlement_initiated_on),
             status,
-            school_name
+            school_name,
+            vendor_name:checkVendors.name
           },
         },
         { 

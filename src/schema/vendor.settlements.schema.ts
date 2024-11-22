@@ -64,6 +64,10 @@ export class VendorsSettlement extends Document {
   @Prop()
   school_name: string;
 
+  @Field()
+  @Prop()
+  vendor_name: string;
+
   @Prop()
   @Field(() => Date)
   settlement_initiated_on: Date;
