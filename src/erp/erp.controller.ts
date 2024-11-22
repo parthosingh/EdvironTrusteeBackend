@@ -487,6 +487,8 @@ export class ErpController {
   async getCollectRequestStatus(@Req() req) {
     try {
       const trustee_id = req.userTrustee.id;
+      console.log(trustee_id);
+      
       const { collect_request_id } = req.params;
       const { school_id, sign } = req.query;
       if (!collect_request_id) {
@@ -516,11 +518,14 @@ export class ErpController {
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-
+      console.log(decoded);
+      console.log(collect_request_id,school_id);
+      
+      
       if (
         decoded.collect_request_id != collect_request_id ||
-        decoded.school_id != school_id
-      ) {
+        decoded.school_id != school_id 
+      ) { 
         throw new ForbiddenException('request forged');
       }
 
@@ -1397,6 +1402,8 @@ export class ErpController {
       throw new BadRequestException('Invalid parameters');
     }
     try {
+      console.log('pp');
+      
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
@@ -1411,6 +1418,10 @@ export class ErpController {
       }
 
       const decrypted = this.jwtService.verify(sign, { secret: pg_key });
+      console.log(decrypted,'dat');
+      console.log({school_id,collect_id});
+      
+      
       if (decrypted.collect_id !== collect_id) {
         throw new BadRequestException('incorrect sign');
       }

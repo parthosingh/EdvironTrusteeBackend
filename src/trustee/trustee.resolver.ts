@@ -51,7 +51,8 @@ import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 import { MerchantService } from 'src/merchant/merchant.service';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { TransactionInfo } from 'src/schema/transaction.info.schema';
-import { kyc_details } from 'src/schema/vendors.schema';
+import { kyc_details, Vendors } from 'src/schema/vendors.schema';
+import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 
 @InputType()
 export class invoiceDetails {
@@ -166,6 +167,8 @@ export class TrusteeResolver {
     private invoiceModel: mongoose.Model<Invoice>,
     @InjectModel(RefundRequest.name)
     private refundRequestModel: mongoose.Model<RefundRequest>,
+    @InjectModel(VendorsSettlement.name)
+    private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -1633,8 +1636,7 @@ export class TrusteeResolver {
         name: trustee.name,
         gstIn: trustee.gstIn || 'NA',
         residence_state: trustee.residence_state || 'NA',
-        account_holder_name:
-          trustee.bank_details?.account_holder_name || 'NA',
+        account_holder_name: trustee.bank_details?.account_holder_name || 'NA',
         account_number: trustee.bank_details?.account_number || 'NA',
         ifsc_code: trustee.bank_details?.ifsc_code || 'NA',
       },
@@ -1708,7 +1710,9 @@ export class TrusteeResolver {
         throw new ConflictException(`Invoice number already present`);
       }
       const parsedInvoiceDate = invoice_date;
-      const targetMonthYear = parsedInvoiceDate.slice(invoice_date.indexOf(' ') + 1); // Extract "October 2024"
+      const targetMonthYear = parsedInvoiceDate.slice(
+        invoice_date.indexOf(' ') + 1,
+      ); // Extract "October 2024"
 
       const existingInvoice = await this.invoiceModel.findOne({
         trustee_id: context.req.trustee,
@@ -1720,7 +1724,6 @@ export class TrusteeResolver {
           `An invoice for ${targetMonthYear} already exists.`,
         );
       }
-
 
       const newInvoice = await new this.invoiceModel({
         trustee_id: context.req.trustee,
@@ -2003,6 +2006,144 @@ export class TrusteeResolver {
     );
     return transactions;
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => VendorsSettlementReportPaginatedResponse)
+  async getAllVendorSettlementReport(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+  ) {
+    const trusteeId = context.req.trustee;
+    const totalCount = await this.vendorsSettlementModel.countDocuments({
+      trustee_id: trusteeId,
+    });
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Fetch paginated data
+    const vendor_settlements = await this.vendorsSettlementModel
+      .find({ trustee_id: trusteeId })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .exec();
+
+    // Return paginated response
+    return {
+      vendor_settlements,
+      totalCount,
+      totalPages,
+      page,
+      limit,
+    };
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => VendorsSettlementReportPaginatedResponse)
+  async getSingleVendorSettlementReport(
+    @Args('vendor_id', { type: () => String }) vendor_id: string,
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+  ) {
+    const trusteeId = context.req.trustee;
+    const totalCount = await this.vendorsSettlementModel.countDocuments({
+      trustee_id: trusteeId,
+    });
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Fetch paginated data
+    const vendor_settlements = await this.vendorsSettlementModel
+      .find({ trustee_id: trusteeId, vendor_id: vendor_id })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .exec();
+
+    // Return paginated response
+    return {
+      vendor_settlements,
+      totalCount,
+      totalPages,
+      page,
+      limit,
+    };
+  }
+}
+
+@ObjectType()
+export class VendorsSettlementReportPaginatedResponse {
+  @Field(() => [VendorsSettlementReport], { nullable: true })
+  vendor_settlements: VendorsSettlementReport[];
+
+  @Field({ nullable: true })
+  totalCount: number;
+
+  @Field({ nullable: true })
+  page: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
+
+  @Field({ nullable: true })
+  limit: number;
+}
+
+@ObjectType()
+export class VendorsSettlementReport {
+  @Field({ nullable: true })
+  _id: string;
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  vendor_id: string;
+
+  @Field({ nullable: true })
+  trustee_id: string;
+
+  @Field({ nullable: true })
+  client_id: string;
+
+  @Field({ nullable: true })
+  utr: string;
+
+  @Field({ nullable: true })
+  adjustment: number;
+
+  @Field({ nullable: true })
+  settlement_amount: number;
+
+  @Field({ nullable: true })
+  vendor_transaction_amount: number;
+
+  @Field({ nullable: true })
+  payment_from: Date;
+
+  @Field({ nullable: true })
+  payment_till: Date;
+
+  @Field({ nullable: true })
+  settled_on: Date;
+
+  @Field({ nullable: true })
+  settlement_id: string;
+
+  @Field({ nullable: true })
+  settlement_initiated_on: Date;
+
+  @Field({ nullable: true })
+  status: string;
+
+  @Field({ nullable: true })
+  createdAt: Date;
+
+  @Field({ nullable: true })
+  updatedAt: Date;
 }
 
 @ObjectType()
@@ -2040,8 +2181,8 @@ export class VendorTransaction {
   @Field({ nullable: true })
   school_id: string;
 
-  // @Field({ nullable: true })
-  // trustee_id: string;
+  @Field({ nullable: true })
+  status: string;
 
   @Field({ nullable: true })
   amount: number;

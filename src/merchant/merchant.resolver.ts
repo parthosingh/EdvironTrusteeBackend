@@ -31,6 +31,7 @@ import {
   resetPassResponse,
   VendorInfoInput,
   VendorsPaginationResponse,
+  VendorsSettlementReportPaginatedResponse,
   VendorsTransactionPaginatedResponse,
   verifyRes,
 } from 'src/trustee/trustee.resolver';
@@ -40,6 +41,7 @@ import { Trustee } from 'src/schema/trustee.schema';
 import { TransactionInfo } from 'src/schema/transaction.info.schema';
 import { TrusteeService } from 'src/trustee/trustee.service';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
+import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 
 @Resolver('Merchant')
 export class MerchantResolver {
@@ -55,6 +57,8 @@ export class MerchantResolver {
     @InjectModel(RefundRequest.name)
     private refundRequestModel: mongoose.Model<RefundRequest>,
     private readonly trusteeService: TrusteeService,
+    @InjectModel(VendorsSettlement.name)
+    private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
   ) {}
 
   @Mutation(() => Boolean)
@@ -950,6 +954,35 @@ export class MerchantResolver {
       limit,
     );
     return transactions;
+  }
+
+  @UseGuards(MerchantGuard)
+  @Query(() => VendorsSettlementReportPaginatedResponse)
+  async getMerchantVendorSettlementReport(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+  ) {
+    const merchant_id = context.req.merchant;
+    const school = await this.trusteeSchoolModel.findById(merchant_id);
+    if (!school) throw new NotFoundException('School not found');
+    const totalCount = await this.vendorsSettlementModel.countDocuments({
+      school_id: school.school_id,
+    });
+    const totalPages = Math.ceil(totalCount / limit);
+    const vendor_settlements = this.vendorsSettlementModel
+      .find({ school_id: school.school_id })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    return {
+      vendor_settlements,
+      totalCount,
+      totalPages,
+      page,
+      limit,
+    };
   }
 }
 

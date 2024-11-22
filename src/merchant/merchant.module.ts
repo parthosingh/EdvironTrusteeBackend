@@ -22,6 +22,7 @@ import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
 
 @Module({
   imports: [
@@ -45,6 +46,9 @@ import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
     ]),
     MongooseModule.forFeature([
       { name: RefundRequest.name, schema: RefundRequestSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
     ]),
     MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
     JwtModule.registerAsync({

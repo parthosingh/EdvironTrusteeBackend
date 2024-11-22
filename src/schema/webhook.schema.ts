@@ -26,6 +26,10 @@ export class WebhookLogs extends Document {
 
   @Prop({})
   @Field(() => String)
+  error: string;
+
+  @Prop({})
+  @Field(() => String)
   status: string;
 
   // Add other properties as needed

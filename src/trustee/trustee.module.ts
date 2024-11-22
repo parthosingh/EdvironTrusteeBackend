@@ -31,6 +31,7 @@ import { join } from 'path';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
+import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
 config();
 
 @Module({
@@ -65,6 +66,9 @@ config();
     ]),
     MongooseModule.forFeature([
       { name: RefundRequest.name, schema: RefundRequestSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
     ]),
     MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
     JwtModule.registerAsync({
