@@ -2119,6 +2119,9 @@ export class VendorsSettlementReport {
   settlement_amount: number;
 
   @Field({ nullable: true })
+  net_settlement_amount: number;
+
+  @Field({ nullable: true })
   vendor_transaction_amount: number;
 
   @Field({ nullable: true })

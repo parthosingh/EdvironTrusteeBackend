@@ -228,6 +228,7 @@ export class WebhooksController {
         settlement_id,
         settlement_initiated_on,
         status,
+        amount_settled
       } = vendorSettlement.settlement;
       // console.log(vendorSettlement, 'logs');
 
@@ -265,7 +266,8 @@ export class WebhooksController {
             utr,
             vendor_id,
             adjustment,
-            settlement_amount,
+            settlement_amount:amount_settled,
+            net_settlement_amount:settlement_amount,
             vendor_transaction_amount,
             payment_from:new Date(payment_from),
             payment_till:new Date(payment_till),

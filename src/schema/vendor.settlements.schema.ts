@@ -36,6 +36,11 @@ export class VendorsSettlement extends Document {
   @Field(() => Number)
   settlement_amount: number;
 
+  
+  @Prop()
+  @Field(() => Number)
+  net_settlement_amount: number;
+
   @Prop()
   @Field(() => Number)
   vendor_transaction_amount: number;
