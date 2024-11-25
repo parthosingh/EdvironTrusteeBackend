@@ -2077,6 +2077,8 @@ export class TrusteeResolver {
   @Query(() => SettlementsTransactionsPaginatedResponse)
   async getSettlementsTransactions(
     @Args('utr', { type: () => String }) utr: string,
+    @Args('limit', { type: () => Int }) limit: number,
+
     @Args('cursor', { type: () => String,nullable:true }) cursor: string | null,
   ){
     try{
@@ -2085,7 +2087,8 @@ export class TrusteeResolver {
       throw new Error('Settlement not found')
     }
     const client_id = settlement.clientId
-    return await this.trusteeService.getTransactionsForSettlements(utr, client_id, cursor)
+    return await this.trusteeService.getTransactionsForSettlements(utr, client_id, limit,cursor)
+
     }catch(e){
       throw new BadRequestException(e.message)
     }

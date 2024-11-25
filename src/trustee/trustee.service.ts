@@ -1679,13 +1679,16 @@ export class TrusteeService {
     return transactions;
   }
 
-  async getTransactionsForSettlements(utr: string,client_id: string,cursor: string | null) {
+
+  async getTransactionsForSettlements(utr: string,client_id: string,limit:number, cursor?: string | null) {
     const token = this.jwtService.sign(
       { utr,client_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
     const paginationData={
       cursor:cursor,
+      limit:limit
+
     }
     const config = {
       method: 'post',
