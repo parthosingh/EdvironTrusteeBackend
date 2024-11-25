@@ -1357,7 +1357,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2024-11-05T23:59:59.695Z');
+    const settlementDate = new Date('2024-11-22T23:59:59.695Z');
 
     const date = new Date(settlementDate.getTime());
     // console.log(date, 'DATE');

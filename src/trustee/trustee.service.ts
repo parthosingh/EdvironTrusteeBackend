@@ -1679,4 +1679,26 @@ export class TrusteeService {
     return transactions;
   }
 
+  async getTransactionsForSettlements(utr: string,client_id: string,cursor: string | null) {
+    const token = this.jwtService.sign(
+      { utr,client_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    const paginationData={
+      cursor:cursor,
+    }
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/settlements-transactions?token=${token}&utr=${utr}&client_id=${client_id}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data:paginationData
+    };
+    const { data: transactions } = await axios.request(config);
+    return transactions;
+  }
+
 }

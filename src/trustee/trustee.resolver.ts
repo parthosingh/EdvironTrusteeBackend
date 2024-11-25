@@ -2072,6 +2072,82 @@ export class TrusteeResolver {
       limit,
     };
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => SettlementsTransactionsPaginatedResponse)
+  async getSettlementsTransactions(
+    @Args('utr', { type: () => String }) utr: string,
+    @Args('cursor', { type: () => String,nullable:true }) cursor: string | null,
+  ){
+    try{
+    const settlement= await this.settlementReportModel.findOne({utrNumber:utr})
+    if(!settlement){
+      throw new Error('Settlement not found')
+    }
+    const client_id = settlement.clientId
+    return await this.trusteeService.getTransactionsForSettlements(utr, client_id, cursor)
+    }catch(e){
+      throw new BadRequestException(e.message)
+    }
+  }
+}
+
+@ObjectType()
+export class  SettlementsTransactionsPaginatedResponse{
+  @Field(() => [SettlementsTransactions], { nullable: true })
+  settlements_transactions: SettlementsTransactions[];
+
+  @Field({ nullable: true })
+  limit:number
+
+  @Field({ nullable: true })
+  cursor:string
+
+}
+
+@ObjectType()
+export class SettlementsTransactions{
+  @Field({ nullable: true })
+  custom_order_id: string;
+
+  @Field({ nullable: true })
+  order_id: string;
+
+  @Field({ nullable: true })
+  event_status: string;
+
+  @Field({ nullable: true })
+  event_settlement_amount: number;
+
+  @Field({ nullable: true })
+  order_amount: number;
+
+  @Field({ nullable: true })
+  event_amount: number;
+
+  @Field({ nullable: true })
+  event_time: string;
+
+  @Field({ nullable: true })
+  payment_group: string;
+
+  @Field({ nullable: true })
+  settlement_utr: string;
+
+  @Field({ nullable: true })
+  student_id: string;
+
+  @Field({ nullable: true })
+  student_name: string;
+
+  @Field({ nullable: true })
+  student_email: string;
+
+  @Field({ nullable: true })
+  student_phone_no: string;
+
+  @Field({ nullable: true })
+  school_id: string;
 }
 
 @ObjectType()
