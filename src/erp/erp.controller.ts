@@ -1329,6 +1329,24 @@ export class ErpController {
     return { school_name: school.school_name };
   }
 
+  
+  @Get('school-data')
+  async getSchoolData(@Body() body: { school_id: string; token: string }) {
+    const { school_id, token } = body;
+    // const decrypted = this.jwtService.verify(token, {
+    //   secret: process.env.PAYMENTS_SERVICE_SECRET,
+    // });
+    // if (decrypted.school_id !== school_id) {
+    //   throw new UnauthorizedException('token forged');
+    // }
+
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+
+    return { school_name: school.school_name };
+  }
+
   @Get('trustee-logo')
   async getTrusteeLogo(
     @Body() body: { token: string },
