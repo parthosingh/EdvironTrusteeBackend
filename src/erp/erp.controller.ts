@@ -1331,8 +1331,8 @@ export class ErpController {
 
   
   @Get('school-data')
-  async getSchoolData(@Body() body: { school_id: string; token: string }) {
-    const { school_id, token } = body;
+  async getSchoolData(@Req() req:any ) {
+    const { school_id } = req.query;
     // const decrypted = this.jwtService.verify(token, {
     //   secret: process.env.PAYMENTS_SERVICE_SECRET,
     // });
