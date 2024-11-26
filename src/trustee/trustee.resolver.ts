@@ -2078,7 +2078,6 @@ export class TrusteeResolver {
   async getSettlementsTransactions(
     @Args('utr', { type: () => String }) utr: string,
     @Args('limit', { type: () => Int }) limit: number,
-
     @Args('cursor', { type: () => String,nullable:true }) cursor: string | null,
   ){
     try{
@@ -2139,6 +2138,9 @@ export class SettlementsTransactions{
 
   @Field({ nullable: true })
   student_id: string;
+
+  @Field({ nullable: true })
+  school_name: string;
 
   @Field({ nullable: true })
   student_name: string;

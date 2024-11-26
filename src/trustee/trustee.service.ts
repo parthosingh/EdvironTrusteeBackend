@@ -1701,7 +1701,24 @@ export class TrusteeService {
       data:paginationData
     };
     const { data: transactions } = await axios.request(config);
-    return transactions;
+    const {settlements_transactions}=transactions
+
+   const school = await this.trusteeSchoolModel.findOne({client_id})
+   if(!school) throw new BadRequestException(`Could not find school `)
+    settlements_transactions.forEach((transaction:any) =>{
+      transaction.school_name=school.school_name
+    })
+  
+    const updated_settlements_transactions = {
+      ...settlements_transactions,
+      school_name:'test'
+    }
+
+    return {
+      limit:transactions.limit,
+      cursor: transactions.cursor,
+      settlements_transactions,
+    };
   }
 
 }
