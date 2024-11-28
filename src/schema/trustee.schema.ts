@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { ObjectType, Field } from '@nestjs/graphql';
-import { Document } from 'mongoose';
+import { ObjectType, Field,ID } from '@nestjs/graphql';
+import { Document, ObjectId,Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 
 @ObjectType()
@@ -93,6 +93,16 @@ export class Trustee extends Document {
   @Field()
   @Prop()
   logo: string;
+
+  @Prop({})
+  @Field(() => Boolean,{defaultValue:false})
+  isOnboarder: boolean;
+
+  @Prop({ type: Types.ObjectId })
+  @Field(() => ID)
+  onboarder: ObjectId;
+
+
 }
 
 export const TrusteeSchema = SchemaFactory.createForClass(Trustee);

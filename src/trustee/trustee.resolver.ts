@@ -2515,7 +2515,7 @@ class SchoolTokenResponse {
   user: User;
 }
 
-// Define a type for the User
+
 @ObjectType()
 class TrusteeUser {
   @Field()
