@@ -47,7 +47,7 @@ export class OnboardingService {
         throw new Error('Phone number already exists');
       }
 
-      const checkTrustee = await this.onboarderERPModel.findById(trustee_id);
+      const checkTrustee = await this.trusteeModel.findById(trustee_id);
       if (!checkTrustee) {
         throw new Error('Trustee not found');
       }
