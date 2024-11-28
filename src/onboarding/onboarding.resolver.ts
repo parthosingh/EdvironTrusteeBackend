@@ -50,7 +50,7 @@ export class OnboardingResolver {
     return await this.onboardingService.createTrustee(info);
   }
 
-  @Query(() => token)
+  @Mutation(() => token)
   async loginOnboarder(
     @Args('email') email: string,
     @Args('password') password: string,
