@@ -20,6 +20,10 @@ import { join } from 'path';
 import { AwsS3Service } from './aws.s3/aws.s3.service';
 import { WebhooksController } from './webhooks/webhooks.controller';
 import { WebhooksModule } from './webhooks/webhooks.module';
+// import { OnboardingService } from './onboarding/onboarding.service';
+// import { OnboardingController } from './onboarding/onboarding.controller';
+import { OnboardingResolver } from './onboarding/onboarding.resolver';
+import { OnboardingModule } from './onboarding/onboarding.module';
 config();
 
 @Module({
@@ -45,6 +49,7 @@ config();
     }),
     CashfreeModule,
     WebhooksModule,
+    OnboardingModule,
   ],
 
   controllers: [AppController],
