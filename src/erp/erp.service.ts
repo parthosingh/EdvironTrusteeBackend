@@ -801,33 +801,35 @@ export class ErpService {
                 await this.settlementReportModel.findOne({
                   utrNumber: response.data.data[0].settlement_utr,
                 });
-                if (!existingSettlement) {
-                  const settlementReport = new this.settlementReportModel({
-                    settlementAmount:
-                      response.data.data[0].payment_amount.toFixed(2),
-                    adjustment: response.data.data[0].adjustment.toFixed(2).toString() || '0.0',
-                    netSettlementAmount:
-                      response.data.data[0].amount_settled.toFixed(2),
-                    clientId: merchant.client_id,
-                    fromDate:
-                      new Date(response?.data?.data[0]?.payment_from) || start,
-                    tillDate:
-                      new Date(response?.data?.data[0]?.payment_till) || start,
-                    status: 'Settled',
-                    utrNumber: response.data.data[0].settlement_utr,
-                    settlementDate: new Date(
-                      settlementDate.getTime() - 86400000 * 1,
-                    ).toDateString(),
-                    trustee: merchant.trustee_id,
-                    schoolId: merchant.school_id,
-                  });
-                  console.log(
-                    `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
-                  );
-                  await settlementReport.save();
-                } else {
-                  console.log('Settlement already exists', existingSettlement);
-                }
+              if (!existingSettlement) {
+                const settlementReport = new this.settlementReportModel({
+                  settlementAmount:
+                    response.data.data[0].payment_amount.toFixed(2),
+                  adjustment:
+                    response.data.data[0].adjustment.toFixed(2).toString() ||
+                    '0.0',
+                  netSettlementAmount:
+                    response.data.data[0].amount_settled.toFixed(2),
+                  clientId: merchant.client_id,
+                  fromDate:
+                    new Date(response?.data?.data[0]?.payment_from) || start,
+                  tillDate:
+                    new Date(response?.data?.data[0]?.payment_till) || start,
+                  status: 'Settled',
+                  utrNumber: response.data.data[0].settlement_utr,
+                  settlementDate: new Date(
+                    settlementDate.getTime() - 86400000 * 1,
+                  ).toDateString(),
+                  trustee: merchant.trustee_id,
+                  schoolId: merchant.school_id,
+                });
+                console.log(
+                  `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
+                );
+                await settlementReport.save();
+              } else {
+                console.log('Settlement already exists', existingSettlement);
+              }
 
               const transporter = nodemailer.createTransport({
                 pool: true,
@@ -980,5 +982,73 @@ export class ErpService {
       }
     }
     return commissionAmount;
+  }
+
+  async testSettlementSingle(settlementDate: Date) {
+    const start = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
+    end.setHours(23, 59, 59, 999);
+
+    const axios = require('axios');
+    const data = JSON.stringify({
+      pagination: {
+        limit: 1000,
+      },
+      filters: {
+        start_date: start.toISOString(),
+        end_date: end.toISOString(),
+      },
+    });
+
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: 'https://api.cashfree.com/pg/settlements',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-api-version': '2023-08-01',
+        'x-partner-apikey': process.env.CASHFREE_API_KEY,
+        'x-partner-merchantid': 'CF_750839cc-0b2a-43ce-a90e-21eb92121b29',
+      },
+      data: data,
+    };
+    const response = await axios.request(config);
+    if (response.data.data.length === 0){ 
+      console.log('no data found');
+      
+      return};
+    console.log(response.data.data, 'cashfree response');
+  
+    
+    const existingSettlement = await this.settlementReportModel.findOne({
+      utrNumber: response.data.data[0].settlement_utr,
+    });
+    const merchant =await this.trusteeSchoolModel.findOne({client_id:"CF_750839cc-0b2a-43ce-a90e-21eb92121b29"})
+    if (!existingSettlement) {
+      const settlementReport = new this.settlementReportModel({
+        settlementAmount: response.data.data[0].payment_amount.toFixed(2),
+        adjustment:
+          response.data.data[0].adjustment.toFixed(2).toString() || '0.0',
+        netSettlementAmount: response.data.data[0].amount_settled.toFixed(2),
+        clientId: merchant.client_id,
+        fromDate: new Date(response?.data?.data[0]?.payment_from) || start,
+        tillDate: new Date(response?.data?.data[0]?.payment_till) || start,
+        status: 'Settled',
+        utrNumber: response.data.data[0].settlement_utr,
+        settlementDate: new Date(
+          settlementDate.getTime() - 86400000 * 1,
+        ).toDateString(),
+        trustee: merchant.trustee_id,
+        schoolId: merchant.school_id,
+      });
+      console.log(
+        `saving settlement report for ${merchant.school_name}(${merchant.client_id}) on ${settlementDate}`,
+      );
+      await settlementReport.save();
+    } else {
+      console.log('Settlement already exists', existingSettlement);
+    }
   }
 }
