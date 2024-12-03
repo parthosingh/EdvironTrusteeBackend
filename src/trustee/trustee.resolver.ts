@@ -395,7 +395,7 @@ export class TrusteeResolver {
   async getTransactionReport(@Context() context) {
     try {
       let id = context.req.trustee;
-
+      console.time('mapping merchant transaction');
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: id,
       });
@@ -405,7 +405,7 @@ export class TrusteeResolver {
       merchants.map((merchant: any) => {
         merchant_ids_to_merchant_map[merchant.school_id] = merchant;
       });
-
+      console.timeEnd('mapping merchant transaction');
       let token = this.jwtService.sign(
         { trustee_id: id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
@@ -413,12 +413,12 @@ export class TrusteeResolver {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=50000&startDate=2024-11-01&endDate=2024-12-31`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=50000&startDate=2024-12-01&endDate=2024-12-31`,
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
         },
-        data: { trustee_id: id, token },
+        data: { trustee_id: id, token }, 
       };
       console.time('fetching all transaction');
       const response = await axios.request(config);
