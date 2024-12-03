@@ -29,6 +29,7 @@ import { Commission } from 'src/schema/commission.schema';
 import { Earnings } from 'src/schema/earnings.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { TrusteeService } from 'src/trustee/trustee.service';
+import QRCode from 'qrcode';
 // import cf_commision from 'src/utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
 
 @Controller('erp')
@@ -1731,8 +1732,6 @@ export class ErpController {
       throw new BadRequestException('Invalid parameters');
     }
     try {
-      console.log('pp');
-      
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
@@ -1764,7 +1763,7 @@ export class ErpController {
       );
       const config = {
         method: 'GET',
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/upi-payment?collect_id=${collect_id}&token=${pg_token}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/upi-pay-qr?collect_id=${collect_id}&token=${pg_token}`,
         headers: {
           accept: 'application/json',
           'Content-Type': 'application/json',
@@ -1777,6 +1776,31 @@ export class ErpController {
         throw new BadRequestException(e.response.data.message);
       }
       throw new BadRequestException(e.message);
+    }
+  }
+
+  @Get('/upi-data')
+  async getUpiData(@Query('collect_id') collect_id: string) {
+    try{
+      const config={
+        method: 'GET',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/upi-pay-qr?collect_id=${collect_id}`,
+        headers: {
+          accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      }
+      var QRCode = require('qrcode')
+      const { data: response } = await axios.request(config);
+      console.log(QRCode);
+
+      const qrCodeBase64 = await QRCode.toDataURL(response, {
+        margin: 2, // Add margin to the QR code
+        width: 300, // Width of the QR code
+      });
+      return qrCodeBase64;
+    }catch(e){
+      console.log(e)
     }
   }
 }

@@ -29,6 +29,7 @@ import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { SchoolMdr } from 'src/schema/school_mdr.schema';
 import { Vendors } from 'src/schema/vendors.schema';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import QRCode from 'qrcode';
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number
