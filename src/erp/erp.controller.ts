@@ -1686,7 +1686,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2024-11-15T23:59:59.695Z');
+    const settlementDate = new Date('2024-12-03T23:59:59.695Z');
 
     const date = new Date(settlementDate.getTime());
     // console.log(date, 'DATE');
@@ -1700,9 +1700,9 @@ export class ErpController {
     // const formattedDateString = `${day}-${month}-${year}`; //eazebuzz accepts date in DD-MM-YYYY formal seprated with - like '19-07-2024'
     // console.log(formattedDateString, 'formant date');
     // return formattedDateString
-    // const data = await this.erpService.easebuzzSettlements(date);
+    const data = await this.erpService.easebuzzSettlements(date);
     // await this.erpService.sendSettlements(date);
-    return await this.erpService.testSettlementSingle(settlementDate)
+    // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
   async test(@Req() req: any) {
@@ -1763,7 +1763,7 @@ export class ErpController {
       );
       const config = {
         method: 'GET',
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/upi-pay-qr?collect_id=${collect_id}&token=${pg_token}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/upi-payment?collect_id=${collect_id}&token=${pg_token}`,
         headers: {
           accept: 'application/json',
           'Content-Type': 'application/json',
