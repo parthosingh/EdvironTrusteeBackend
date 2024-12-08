@@ -100,7 +100,7 @@ const cf_commision = [
         charge: 70,
         charge_type: 'FLAT',
         upto: null,
-       },
+      },
     ],
   },
   {
@@ -136,5 +136,6 @@ const cf_commision = [
     ],
   },
 ];
+
 
 export default cf_commision;

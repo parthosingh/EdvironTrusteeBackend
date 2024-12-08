@@ -390,16 +390,83 @@ export class TrusteeResolver {
     return settlementReports;
   }
 
-  @Query(() => [TransactionReport])
+  @Query(() => TransactionReportResponsePaginated)
   @UseGuards(TrusteeGuard)
-  async getTransactionReport(@Context() context) {
+  async getTransactionReport(
+    @Context() context,
+    @Args('startDate', { nullable: true }) startDate?: string,
+    @Args('endDate', { nullable: true }) endDate?: string,
+    @Args('status', { nullable: true, defaultValue: null }) status?: string,
+    @Args('school_id', { nullable: true, defaultValue: null })
+    school_id?: string,
+    @Args('page', { nullable: true, defaultValue: '1' }) page?: string,
+    @Args('limit', { nullable: true, defaultValue: '500' }) limit?: string,
+    @Args('isCustomSearch', { nullable: true, defaultValue: null })
+    isCustomSearch?: boolean,
+    @Args('searchFilter', { nullable: true, defaultValue: null })
+    searchFilter?: string,
+    @Args('searchParams', { nullable: true, defaultValue: null })
+    searchParams?: string,
+  ) {
     try {
+      console.log(school_id);
+      if(searchFilter==='order_id'){
+        const checkId=mongoose.Types.ObjectId.isValid(searchFilter);
+        if(!checkId) throw new BadRequestException('Invalid order id');
+      }
       let id = context.req.trustee;
       console.time('mapping merchant transaction');
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: id,
       });
       let transactionReport = [];
+
+      const now = new Date();
+
+      // First day of the month
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const firstLocalDate = firstDay.toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata',
+      });
+      const firstLocalDateObject = new Date(firstLocalDate);
+      const firstYear = firstLocalDateObject.getFullYear();
+      const firstMonth = String(firstLocalDateObject.getMonth() + 1).padStart(
+        2,
+        '0',
+      ); // Month is zero-based
+      const firstDayOfMonth = String(firstLocalDateObject.getDate()).padStart(
+        2,
+        '0',
+      ); // Add leading zero if needed
+      const formattedFirstDay = `${firstYear}-${firstMonth}-${firstDayOfMonth}`;
+      console.log(formattedFirstDay, 'First Day');
+
+      // Last day of the month
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day is 0th of next month
+      const lastLocalDate = lastDay.toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata',
+      });
+      const lastLocalDateObject = new Date(lastLocalDate);
+      const lastYear = lastLocalDateObject.getFullYear();
+      const lastMonth = String(lastLocalDateObject.getMonth() + 1).padStart(
+        2,
+        '0',
+      ); // Month is zero-based
+      const lastDayOfMonth = String(lastLocalDateObject.getDate()).padStart(
+        2,
+        '0',
+      ); // Add leading zero if needed
+      const formattedLastDay = `${lastYear}-${lastMonth}-${lastDayOfMonth}`;
+      console.log(formattedLastDay, 'Last Day');
+
+      const first = startDate || formattedFirstDay;
+      const last = endDate || formattedLastDay;
+
+      if (!endDate) {
+        const now = new Date();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endDate = lastDay.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+      }
 
       const merchant_ids_to_merchant_map = {};
       merchants.map((merchant: any) => {
@@ -413,15 +480,30 @@ export class TrusteeResolver {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=50000&startDate=2024-12-01&endDate=2024-12-31`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
         },
-        data: { trustee_id: id, token }, 
+        data: {
+          trustee_id: id,
+          token,
+          searchParams,
+          isCustomSearch,
+          seachFilter: searchFilter,
+        },
       };
+      console.log(config);
+
       console.time('fetching all transaction');
+
       const response = await axios.request(config);
+
+      console.log(response.data, 'data');
+      let transactionLimit = Number(limit) || 100;
+      let transactionPage = Number(page) || 1;
+      let total_pages = response.data.totalTransactions / transactionLimit;
+
       console.timeEnd('fetching all transaction');
 
       console.time('mapping');
@@ -429,18 +511,7 @@ export class TrusteeResolver {
       transactionReport = await Promise.all(
         response.data.transactions.map(async (item: any) => {
           let remark = null;
-          // const info = await this.trusteeService.getRemarks(item.collect_id);
 
-          // if (info) {
-          //   remark = info.remarks;
-          // }
-          let commissionAmount = 0;
-          // const commission = await this.commissionModel.findOne({
-          //   collect_id: new Types.ObjectId(item.collect_id),
-          // });
-          // if (commission) {
-          //   commissionAmount = commission.commission_amount;
-          // }
           return {
             ...item,
             merchant_name:
@@ -466,7 +537,7 @@ export class TrusteeResolver {
             school_name:
               merchant_ids_to_merchant_map[item.merchant_id].school_name,
             remarks: remark,
-            commission: commissionAmount,
+            // commission: commissionAmount,
             custom_order_id: item?.custom_order_id || null,
           };
         }),
@@ -481,14 +552,22 @@ export class TrusteeResolver {
         return dateB - dateA;
       });
       console.timeEnd('sorting');
-      console.log(transactionReport.length);
-
-      const skip = 1;
-      const limit = 1;
-      return transactionReport;
+      console.log(response.data.totalTransactions);
+      // return transactionReport
+      if (isCustomSearch) {
+        total_pages = 1;
+      }
+      return {
+        transactionReport: transactionReport,
+        total_pages,
+        current_page: transactionPage,
+      };
     } catch (error) {
-      // console.log(error);
-      throw error;
+      // console.log(error,'response');
+      if(error?.response?.data?.message){
+        throw new BadRequestException(error?.response?.data?.message);
+      }
+      throw new BadRequestException(error.message);
     }
   }
 
@@ -2077,37 +2156,47 @@ export class TrusteeResolver {
   async getSettlementsTransactions(
     @Args('utr', { type: () => String }) utr: string,
     @Args('limit', { type: () => Int }) limit: number,
-    @Args('cursor', { type: () => String,nullable:true }) cursor: string | null,
-  ){
-    try{
-    const settlement= await this.settlementReportModel.findOne({utrNumber:utr})
-    if(!settlement){
-      throw new Error('Settlement not found')
-    }
-    const client_id = settlement.clientId
-    return await this.trusteeService.getTransactionsForSettlements(utr, client_id, limit,cursor)
-
-    }catch(e){
-      throw new BadRequestException(e.message)
+    @Args('cursor', { type: () => String, nullable: true })
+    cursor: string | null,
+  ) {
+    try {
+      const settlement = await this.settlementReportModel.findOne({
+        utrNumber: utr,
+      });
+      if (!settlement) {
+        throw new Error('Settlement not found');
+      }
+      const client_id = settlement.clientId;
+      return await this.trusteeService.getTransactionsForSettlements(
+        utr,
+        client_id,
+        limit,
+        cursor,
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => String)
+  async settlementStatus() {}
 }
 
 @ObjectType()
-export class  SettlementsTransactionsPaginatedResponse{
+export class SettlementsTransactionsPaginatedResponse {
   @Field(() => [SettlementsTransactions], { nullable: true })
   settlements_transactions: SettlementsTransactions[];
 
   @Field({ nullable: true })
-  limit:number
+  limit: number;
 
   @Field({ nullable: true })
-  cursor:string
-
+  cursor: string;
 }
 
 @ObjectType()
-export class SettlementsTransactions{
+export class SettlementsTransactions {
   @Field({ nullable: true })
   custom_order_id: string;
 
@@ -2514,7 +2603,6 @@ class SchoolTokenResponse {
   user: User;
 }
 
-
 @ObjectType()
 class TrusteeUser {
   @Field()
@@ -2679,6 +2767,18 @@ class TransactionReport {
   custom_order_id?: string;
   @Field(() => [Vendor], { nullable: true })
   vendors_info?: [Vendor];
+}
+
+@ObjectType()
+class TransactionReportResponsePaginated {
+  @Field(() => [TransactionReport], { nullable: true })
+  transactionReport: [TransactionReport];
+
+  @Field({ nullable: true })
+  total_pages: number;
+
+  @Field({ nullable: true })
+  current_page: number;
 }
 
 @ObjectType()

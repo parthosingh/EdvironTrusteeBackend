@@ -1171,12 +1171,12 @@ export class ErpController {
   async getTransaction(@Req() req) {
     try {
       const trustee_id = req.userTrustee.id;
-
       const page = Number(req.query.page || 1);
       const limit = Number(req.query.limit || 10);
       const status = req.query.status || null;
       const start_date = req.query.start_date || null;
       const end_date = req.query.end_date || null;
+    
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: trustee_id,
       });
@@ -1686,13 +1686,12 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2024-12-03T23:59:59.695Z');
-
+    const settlementDate = new Date('2024-12-06T23:59:59.695Z'); 
     const date = new Date(settlementDate.getTime());
     // console.log(date, 'DATE');
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
     // console.log(date);
-
+ 
     // const day = String(date.getDate()).padStart(2, '0');
     // const month = String(date.getMonth() + 1).padStart(2, '0');
     // const year = date.getFullYear();
