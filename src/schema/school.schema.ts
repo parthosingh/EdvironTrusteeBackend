@@ -162,6 +162,10 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => Boolean,{defaultValue:false})
   isCcavenue: boolean;
+  
+  @Prop({})
+  @Field(() => Boolean,{defaultValue:false})
+  isVendor: boolean;
 
   @Prop({})
   @Field(() => String)

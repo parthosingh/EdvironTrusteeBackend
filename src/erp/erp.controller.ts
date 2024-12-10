@@ -224,6 +224,8 @@ export class ErpController {
         split_payments,
         vendors_info,
       } = body;
+
+      let splitPay = split_payments
       if (!school_id) {
         throw new BadRequestException('School id is required');
       }
@@ -359,6 +361,18 @@ export class ErpController {
         }
       }
 
+      if(school.isVendor && school.vendor_id){
+        console.log('ADDING vendor info');
+        
+        const updatedVendor = {
+          vendor_id: school.vendor_id,
+          percentage: 100,
+          name: school.school_name,
+        };
+        splitPay=true
+        updatedVendorsInfo.push(updatedVendor);
+      }
+
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       console.log(decoded);
 
@@ -428,7 +442,7 @@ export class ErpController {
         ccavenue_access_code: school.ccavenue_access_code || null,
         ccavenue_merchant_id: school.ccavenue_merchant_id || null,
         ccavenue_working_key: school.ccavenue_working_key || null,
-        split_payments: split_payments || false,
+        split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
       });
       let config = {
