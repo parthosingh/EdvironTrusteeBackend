@@ -410,9 +410,9 @@ export class TrusteeResolver {
   ) {
     try {
       console.log(school_id);
-      if(searchFilter==='order_id'){
-        const checkId=mongoose.Types.ObjectId.isValid(searchFilter);
-        if(!checkId) throw new BadRequestException('Invalid order id');
+      if (searchFilter === 'order_id') {
+        const checkId = mongoose.Types.ObjectId.isValid(searchFilter);
+        if (!checkId) throw new BadRequestException('Invalid order id');
       }
       let id = context.req.trustee;
       console.time('mapping merchant transaction');
@@ -564,7 +564,7 @@ export class TrusteeResolver {
       };
     } catch (error) {
       // console.log(error,'response');
-      if(error?.response?.data?.message){
+      if (error?.response?.data?.message) {
         throw new BadRequestException(error?.response?.data?.message);
       }
       throw new BadRequestException(error.message);
@@ -2179,8 +2179,99 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(() => String)
-  async settlementStatus() {}
+  @Query(() => ErpWebhooksLogsPaginatedResponse)
+  async GetWEbhookLogs(
+    @Context() context: any,
+    @Args('startDate', { type: () => String })
+    startDate: string,
+    @Args('endDate', { type: () => String })
+    endDate: string,
+    @Args('page', { type: () => Int, nullable: true }) page: number | null,
+    @Args('limit', { type: () => Int, nullable: true }) limit: number | null,
+    @Args('school_id', { type: () => String, nullable: true })
+    school_id: string | null,
+    @Args('collect_id', { type: () => String, nullable: true })
+    collect_id: string | null,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const data = {
+        trustee_id,
+        startDate,
+        endDate,
+        page,
+        limit,
+        school_id,
+        collect_id,
+      };
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/erp-webhook-logs`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: data,
+      };
+      const response = await axios(config);
+
+      return response.data;
+    } catch (e) {
+      throw new Error(e.message);
+    }
+  }
+}
+
+@ObjectType()
+export class ErpWebhooksLogs {
+  @Field({ nullable: true })
+  id: string;
+
+  @Field({ nullable: true })
+  collect_id: string;
+
+  @Field({ nullable: true })
+  webhookType: string;
+
+  @Field({ nullable: true })
+  payload: string;
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  webhook_url: string;
+
+  @Field({ nullable: true })
+  isSuccess: boolean;
+
+  @Field({ nullable: true })
+  status_code: string;
+
+  @Field({ nullable: true })
+  trustee_id: string;
+
+  @Field({ nullable: true })
+  createdAt: String;
+
+  @Field({ nullable: true })
+  updatedAt: String;
+
+  @Field({ nullable: true })
+  triggered_time: string;
+}
+
+@ObjectType()
+export class ErpWebhooksLogsPaginatedResponse {
+  @Field(() => [ErpWebhooksLogs], { nullable: true })
+  erp_webhooks_logs: ErpWebhooksLogs[];
+
+  @Field({ nullable: true })
+  totalRecords: number;
+
+  @Field({ nullable: true })
+  page: number;
 }
 
 @ObjectType()
