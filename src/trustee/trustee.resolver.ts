@@ -2226,7 +2226,10 @@ export class TrusteeResolver {
 @ObjectType()
 export class ErpWebhooksLogs {
   @Field({ nullable: true })
-  id: string;
+  _id: string;
+
+  @Field({ nullable: true })
+  response: string;
 
   @Field({ nullable: true })
   collect_id: string;
