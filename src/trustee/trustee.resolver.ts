@@ -2221,6 +2221,53 @@ export class TrusteeResolver {
       throw new Error(e.message);
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [batchTransactionsReport])
+  async getBatchTransactionReport(
+    @Args('year') year: string,
+    @Context() context: any,
+  ) {
+    const trustee_id = context.req.trustee;
+    try {
+      return await this.trusteeService.getBatchTransactions(
+        trustee_id.toString(),
+        year,
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+}
+
+@ObjectType()
+export class batchTransactionsReport {
+  @Field({ nullable: true })
+  _id: string;
+
+  @Field({ nullable: true })
+  trustee_id: string;
+
+  @Field({ nullable: true })
+  total_order_amount: number;
+
+  @Field({ nullable: true })
+  total_transaction_amount: number;
+
+  @Field({ nullable: true })
+  month: string;
+
+  @Field({ nullable: true })
+  year: string;
+
+  @Field({ nullable: true })
+  status: string;
+
+  @Field({ nullable: true })
+  createdAt: string;
+
+  @Field({ nullable: true })
+  updatedAt: string;
 }
 
 @ObjectType()

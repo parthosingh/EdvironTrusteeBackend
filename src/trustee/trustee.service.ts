@@ -1722,4 +1722,28 @@ export class TrusteeService {
     };
   }
 
+  async getBatchTransactions(trustee_id: string, year: string) {
+    const token = this.jwtService.sign(
+      { trustee_id: trustee_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    console.log(process.env.PAYMENTS_SERVICE_SECRET);
+
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-batch-transactions?trustee_id=${trustee_id}&year=${year}&token=${token}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+    try {
+      const { data: batchTransactions } = await axios.request(config);
+      return batchTransactions;
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+
 }
