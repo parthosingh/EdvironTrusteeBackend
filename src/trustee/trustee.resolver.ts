@@ -2252,6 +2252,9 @@ export class batchTransactionsReport {
   total_order_amount: number;
 
   @Field({ nullable: true })
+  total_transactions: number;
+
+  @Field({ nullable: true })
   total_transaction_amount: number;
 
   @Field({ nullable: true })
