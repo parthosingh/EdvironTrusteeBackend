@@ -2216,6 +2216,8 @@ export class TrusteeResolver {
     school_id: string | null,
     @Args('collect_id', { type: () => String, nullable: true })
     collect_id: string | null,
+    @Args('custom_id', { type: () => String, nullable: true })
+    custom_id: string | null,
   ) {
     try {
       const trustee_id = context.req.trustee;
@@ -2227,6 +2229,7 @@ export class TrusteeResolver {
         limit,
         school_id,
         collect_id,
+        custom_id,
       };
       const config = {
         method: 'post',
