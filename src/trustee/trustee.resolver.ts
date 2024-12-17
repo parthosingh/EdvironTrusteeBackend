@@ -1772,6 +1772,7 @@ export class TrusteeResolver {
     @Args('duration') duration: string,
     @Args('note') note: string,
     @Context() context: any,
+    @Args('base64', { nullable: true }) base64: string,
   ) {
     try {
       const trustee = await this.trusteeModel.findById(context.req.trustee);
@@ -1850,7 +1851,30 @@ export class TrusteeResolver {
           total: amount,
         },
       };
+      if (base64) {
+        const buffer = Buffer.from(base64.split(',')[1], 'base64');
+        const pdfUrl = await new Promise<string>(async (resolve, reject) => {
+          try {
+            // Upload the PDF buffer to AWS S3
+            const url = await this.awsS3Service.uploadToS3(
+              buffer,
+              `invoice_${invoice._id.toString()}.pdf`,
+              'application/pdf',
+              'edviron-backend-dev',
+            );
 
+            resolve(url);
+          } catch (error) {
+            reject(error);
+          }
+        });
+
+        if (pdfUrl) {
+          newInvoice.invoice_url = pdfUrl;
+          await newInvoice.save();
+        }
+        return `Invoice Request created`;
+      }
       setImmediate(() => {
         this.generateInvoicePDF(newInvoice._id.toString(), invoiceData);
       });
