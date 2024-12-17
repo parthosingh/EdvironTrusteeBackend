@@ -587,6 +587,25 @@ export class TrusteeResolver {
     }
   }
 
+  @Query(() => [Commissionresponse])
+  @UseGuards(TrusteeGuard)
+  async fetchAllSchoolsCommission(
+    @Args('school_id') school_id: string,
+    @Context() context
+  ) {
+    try {
+      let id = context.req.trustee;
+      const commissions = await this.commissionModel
+        .find({ trustee_id: id.toString(),school_id })
+        .sort({ createdAt: -1 });
+
+      console.log(commissions.length);
+      return commissions;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   @Query(() => [School])
   @UseGuards(TrusteeGuard)
   async getAllSchoolQuery(@Context() context): Promise<any> {
