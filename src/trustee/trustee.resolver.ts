@@ -2225,9 +2225,9 @@ export class TrusteeResolver {
   @Query(() => ErpWebhooksLogsPaginatedResponse)
   async GetWEbhookLogs(
     @Context() context: any,
-    @Args('startDate', { type: () => String })
+    @Args('startDate', { type: () => String,nullable: true })
     startDate: string,
-    @Args('endDate', { type: () => String })
+    @Args('endDate', { type: () => String,nullable: true })
     endDate: string,
     @Args('page', { type: () => Int, nullable: true }) page: number | null,
     @Args('limit', { type: () => Int, nullable: true }) limit: number | null,
