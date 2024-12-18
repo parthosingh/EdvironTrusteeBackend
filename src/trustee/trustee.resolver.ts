@@ -407,13 +407,15 @@ export class TrusteeResolver {
     searchFilter?: string,
     @Args('searchParams', { nullable: true, defaultValue: null })
     searchParams?: string,
+    @Args('payment_modes', { type: () => [String], nullable: true, defaultValue: null })
+    payment_modes?: string[],
   ) {
     try {
       console.log(school_id);
-      if (searchFilter === 'order_id') {
-        const checkId = mongoose.Types.ObjectId.isValid(searchFilter);
-        if (!checkId) throw new BadRequestException('Invalid order id');
-      }
+      // if (searchFilter === 'order_id') {
+      //   const checkId = mongoose.Types.ObjectId.isValid(searchFilter);
+      //   if (!checkId) throw new BadRequestException('Invalid order id');
+      // }
       let id = context.req.trustee;
       console.time('mapping merchant transaction');
       const merchants = await this.trusteeSchoolModel.find({
@@ -491,6 +493,7 @@ export class TrusteeResolver {
           searchParams,
           isCustomSearch,
           seachFilter: searchFilter,
+          payment_modes
         },
       };
       console.log(config);
