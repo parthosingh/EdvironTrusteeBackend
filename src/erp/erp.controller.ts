@@ -1064,7 +1064,7 @@ export class ErpController {
       if (school_id) {
         filterQuery = {
           ...filterQuery,
-          school_id: new Types.ObjectId(school_id),
+          schoolId: new Types.ObjectId(school_id),
         };
       }
 
