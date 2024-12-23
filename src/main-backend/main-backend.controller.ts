@@ -728,4 +728,37 @@ export class MainBackendController {
       throw new BadRequestException(e.message);
     }
   }
+
+  @Post('initiate-auto-refund')
+  async initiateAutoRefund(
+    @Body()
+    body: {
+      refund_amount: number;
+      collect_id: string;
+      school_id: string;
+      trustee_id: string;
+      custom_id: string;
+      gateway: string;
+      reason: string;
+    },
+  ) {
+    const {refund_amount,collect_id,school_id,trustee_id,custom_id,gateway,reason}=body
+    try{
+
+      const refunds=await this.refundRequestModel.create({
+        trustee_id:new Types.ObjectId(trustee_id),
+        school_id:new Types.ObjectId(school_id),
+        order_id: new Types.ObjectId(collect_id),
+        status: refund_status.AUTO_REFUND_INITIATED,
+        refund_amount,
+        order_amount: refund_amount,
+        transaction_amount: refund_amount,
+        reason,
+        gateway,
+        custom_id,
+      })
+    }catch(e){
+      throw new BadRequestException(e.message)
+    }
+  }
 }
