@@ -1083,14 +1083,10 @@ export class ErpController {
       }
       //paginated query
       const settlements = await this.settlementModel
-        .find(
-          filterQuery,
-          null,
-          {
-            skip: (page - 1) * limit,
-            limit: limit,
-          },
-        ) 
+        .find(filterQuery, null, {
+          skip: (page - 1) * limit,
+          limit: limit,
+        })
         .select('-clientId -trustee')
         .sort({ createdAt: -1 });
       const count = await this.settlementModel.countDocuments(filterQuery);
@@ -1836,6 +1832,71 @@ export class ErpController {
       return qrCodeBase64;
     } catch (e) {
       console.log(e);
+    }
+  }
+
+  @UseGuards(ErpGuard) 
+  @Get('settlement-transactions')
+  async getSettlementTransactions(
+    @Query('settlement_id') settlement_id: string,
+    @Query('utr_number') utr_number: string,
+    @Query('cursor') cursor: string | null,
+    @Query('limit') limit: string
+  ) {
+  let dataLimit=Number(limit) || 10
+
+  if(dataLimit<10 || dataLimit>1000){
+    throw new BadRequestException('Limit should be between 10 and 1000');
+  }
+    let utrNumber = utr_number;
+    try {
+      if (settlement_id) {
+        const settlement = await this.settlementModel.findById(settlement_id);
+        if (!settlement) {
+          throw new NotFoundException(
+            'Settlement not found for ' + settlement_id,
+          );
+        }
+        utrNumber = settlement.utrNumber;
+      }
+      const settlement = await this.settlementModel.findOne({
+        utrNumber: utrNumber,
+      });
+      const client_id = settlement.clientId;
+      const token = this.jwtService.sign(
+        { utrNumber, client_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+
+      const paginationData = {
+        cursor: cursor,
+        limit: dataLimit,
+      };
+
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/settlements-transactions?token=${token}&utr=${utrNumber}&client_id=${client_id}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: paginationData,
+      };
+      
+      
+      const { data: transactions } = await axios.request(config);
+      const { settlements_transactions } = transactions;
+
+      return {
+        limit:transactions.limit,
+        cursor: transactions.cursor,
+        settlements_transactions,
+      };
+    } catch (e) {
+      console.log(e);
+      
+      throw new BadRequestException(e.message);
     }
   }
 }
