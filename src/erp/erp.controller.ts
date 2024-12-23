@@ -225,7 +225,7 @@ export class ErpController {
         vendors_info,
       } = body;
 
-      let splitPay = split_payments
+      let splitPay = split_payments;
       if (!school_id) {
         throw new BadRequestException('School id is required');
       }
@@ -361,15 +361,15 @@ export class ErpController {
         }
       }
 
-      if(school.isVendor && school.vendor_id){
+      if (school.isVendor && school.vendor_id) {
         console.log('ADDING vendor info');
-        
+
         const updatedVendor = {
           vendor_id: school.vendor_id,
           percentage: 100,
           name: school.school_name,
         };
-        splitPay=true
+        splitPay = true;
         updatedVendorsInfo.push(updatedVendor);
       }
 
@@ -547,7 +547,7 @@ export class ErpController {
       } = body;
       const { reseller_name } = req.params;
       console.log(reseller_name, 'reseller_name');
-      
+
       if (!school_id) {
         throw new BadRequestException('School id is required');
       }
@@ -813,7 +813,7 @@ export class ErpController {
     try {
       const trustee_id = req.userTrustee.id;
       console.log(trustee_id);
-      
+
       const { collect_request_id } = req.params;
       const { school_id, sign } = req.query;
       if (!collect_request_id) {
@@ -844,13 +844,12 @@ export class ErpController {
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       console.log(decoded);
-      console.log(collect_request_id,school_id);
-      
-      
+      console.log(collect_request_id, school_id);
+
       if (
         decoded.collect_request_id != collect_request_id ||
-        decoded.school_id != school_id 
-      ) { 
+        decoded.school_id != school_id
+      ) {
         throw new ForbiddenException('request forged');
       }
 
@@ -1052,25 +1051,49 @@ export class ErpController {
   async getSettlements(@Req() req) {
     try {
       const trustee_id = req.userTrustee.id;
+      const school_id = req.query.school_id;
+      const startDate = req.query.startDate;
+      const endDate = req.query.endDate;
       const page = Number(req.query.page || 1);
-      const limit = Number(req.query.limit || 10);
+      const limit = Number(req.query.limit || 100);
 
+      let filterQuery: any = {
+        trustee: trustee_id,
+      };
+
+      if (school_id) {
+        filterQuery = {
+          ...filterQuery,
+          school_id: new Types.ObjectId(school_id),
+        };
+      }
+
+      if (startDate && endDate) {
+        const start_date = new Date(startDate);
+        const end_date = new Date(endDate);
+        end_date.setHours(23, 59, 59, 999);
+
+        filterQuery = {
+          ...filterQuery,
+          settlementDate: {
+            $gte: start_date,
+            $lte: end_date,
+          },
+        };
+      }
       //paginated query
       const settlements = await this.settlementModel
         .find(
-          {
-            trustee: trustee_id,
-          },
+          filterQuery,
           null,
           {
             skip: (page - 1) * limit,
             limit: limit,
           },
-        )
-        .select('-clientId -trustee');
-      const count = await this.settlementModel.countDocuments({
-        trustee: trustee_id,
-      });
+        ) 
+        .select('-clientId -trustee')
+        .sort({ createdAt: -1 });
+      const count = await this.settlementModel.countDocuments(filterQuery);
       const total_pages = Math.ceil(count / limit);
       return {
         page,
@@ -1190,7 +1213,7 @@ export class ErpController {
       const status = req.query.status || null;
       const start_date = req.query.start_date || null;
       const end_date = req.query.end_date || null;
-    
+
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: trustee_id,
       });
@@ -1560,8 +1583,10 @@ export class ErpController {
       ) {
         throw new ForbiddenException('request forged');
       }
- 
-      const checkCommision=await this.commissionModel.findOne({collect_id: new Types.ObjectId(collect_id)});
+
+      const checkCommision = await this.commissionModel.findOne({
+        collect_id: new Types.ObjectId(collect_id),
+      });
       // if(checkCommision){
       //   throw new BadRequestException('Commission already updated');
       // }
@@ -1613,7 +1638,7 @@ export class ErpController {
       const erpCommissionWithGST = erpCommission + erpCommission * 0.18;
 
       await this.commissionModel.findOneAndUpdate(
-        { collect_id: new Types.ObjectId(collect_id) },  // Filter by collect_id
+        { collect_id: new Types.ObjectId(collect_id) }, // Filter by collect_id
         {
           $set: {
             school_id,
@@ -1623,10 +1648,9 @@ export class ErpController {
             platform_type,
             collect_id: new Types.ObjectId(collect_id),
           },
-        }, 
-        { upsert: true, new: true }  // upsert: true will insert a new document if no matching document is found
+        },
+        { upsert: true, new: true }, // upsert: true will insert a new document if no matching document is found
       );
-      
 
       return {
         status: 'successful',
@@ -1654,9 +1678,8 @@ export class ErpController {
     return { school_name: school.school_name };
   }
 
-  
   @Get('school-data')
-  async getSchoolData(@Req() req:any ) {
+  async getSchoolData(@Req() req: any) {
     const { school_id } = req.query;
     // const decrypted = this.jwtService.verify(token, {
     //   secret: process.env.PAYMENTS_SERVICE_SECRET,
@@ -1700,12 +1723,12 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2024-12-06T23:59:59.695Z'); 
+    const settlementDate = new Date('2024-12-06T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
     // console.log(date, 'DATE');
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
     // console.log(date);
- 
+
     // const day = String(date.getDate()).padStart(2, '0');
     // const month = String(date.getMonth() + 1).padStart(2, '0');
     // const year = date.getFullYear();
@@ -1759,10 +1782,9 @@ export class ErpController {
       }
 
       const decrypted = this.jwtService.verify(sign, { secret: pg_key });
-      console.log(decrypted,'dat');
-      console.log({school_id,collect_id});
-      
-      
+      console.log(decrypted, 'dat');
+      console.log({ school_id, collect_id });
+
       if (decrypted.collect_id !== collect_id) {
         throw new BadRequestException('incorrect sign');
       }
@@ -1794,16 +1816,16 @@ export class ErpController {
 
   @Get('/upi-data')
   async getUpiData(@Query('collect_id') collect_id: string) {
-    try{
-      const config={
+    try {
+      const config = {
         method: 'GET',
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/upi-pay-qr?collect_id=${collect_id}`,
         headers: {
           accept: 'application/json',
           'Content-Type': 'application/json',
         },
-      }
-      var QRCode = require('qrcode')
+      };
+      var QRCode = require('qrcode');
       const { data: response } = await axios.request(config);
       console.log(QRCode);
 
@@ -1812,8 +1834,8 @@ export class ErpController {
         width: 300, // Width of the QR code
       });
       return qrCodeBase64;
-    }catch(e){
-      console.log(e)
+    } catch (e) {
+      console.log(e);
     }
   }
 }
