@@ -137,5 +137,4 @@ const cf_commision = [
   },
 ];
 
-
 export default cf_commision;

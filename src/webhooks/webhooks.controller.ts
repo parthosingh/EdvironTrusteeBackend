@@ -10,9 +10,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, ObjectId, Types } from 'mongoose';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';
+import { Trustee } from 'src/schema/trustee.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { Vendors } from 'src/schema/vendors.schema';
 import { WebhookLogs } from 'src/schema/webhook.schema';
+import axios, { AxiosError } from 'axios';
 
 @Controller('webhooks')
 export class WebhooksController {
@@ -27,40 +29,36 @@ export class WebhooksController {
     private venodrsModel: mongoose.Model<Vendors>,
     @InjectModel(TrusteeSchool.name)
     private TrusteeSchoolmodel: mongoose.Model<TrusteeSchool>,
+    @InjectModel(Trustee.name)
+    private TrusteeModel: mongoose.Model<Trustee>,
   ) {}
 
   demoData = {
     data: {
       settlement: {
-        account_mode: 'BANK',
         adjustment: 0,
-        amount_settled: 10,
-        payment_amount: null,
-        payment_from: '2024-11-18',
-        payment_till: '2024-11-18',
+        amount_settled: 366150,
+        payment_amount: 366150,
+        payment_from: '2024-12-21T02:41:51+05:30',
+        payment_till: '2024-12-22T23:57:10+05:30',
         reason: null,
+        remarks: null,
         service_charge: 0,
         service_tax: 0,
-        settled_on: '2024-11-21T11:01:04+05:30',
-        settled_orders_count: 1,
-        settlement_amount: 10,
-        settlement_id: 2589864,
-        settlement_initiated_on: '2024-11-21T11:00:56+05:30',
-        status: 'CREATED',
-        utr: null,
-        vendor_id: '6551a123',
-        vendor_pg_service_charges: 0,
-        vendor_pg_service_tax: 0,
-        vendor_settlement_service_charges: 0,
-        vendor_settlement_service_tax: 0,
-        vendor_split_service_charges: 0,
-        vendor_split_service_tax: 0,
-        vendor_transaction_amount: 10,
+        settled_on: '2024-12-23T13:52:38+05:30',
+        settlement_amount: 366150,
+        settlement_charge: 0,
+        settlement_id: 111939000,
+        settlement_initiated_on: '2024-12-23T13:52:38+05:30',
+        settlement_tax: 0,
+        settlement_type: 'NORMAL_SETTLEMENT',
+        status: 'SUCCESS',
+        utr: 'UTIBR72024122300097378',
       },
     },
-    event_time: '2024-11-21T11:01:04+05:30',
-    merchant: { merchant_id: 'CF_642c30cb-c03b-4159-b847-dd80b677fe81' },
-    type: 'VENDOR_SETTLEMENT_INITIATED',
+    event_time: '2024-12-23T13:52:38+05:30',
+    merchant: { merchant_id: 'CF_943d6a8b-b575-4418-8fa9-0466b83e9bbd' },
+    type: 'SETTLEMENT_SUCCESS',
   };
   @Post('/easebuzz/refund')
   async easebuzzRefundWebhook(@Body() body: any, @Res() res: any) {
@@ -197,7 +195,94 @@ export class WebhooksController {
         body: details,
         status: 'SUCCESS',
       }).save();
-      res.status(200).send('OK');
+
+      const { settlement } = body.data;
+      const {
+        adjustment,
+        amount_settled,
+        payment_amount,
+        payment_from,
+        payment_till,
+        reason,
+        remarks,
+        service_charge,
+        service_tax,
+        settled_on,
+        settlement_amount,
+        settlement_charge,
+        settlement_id,
+        settlement_initiated_on,
+        settlement_tax,
+        settlement_type,
+        status,
+        utr,
+      } = settlement;
+
+      const payload = {
+        adjustment,
+        amount_settled,
+        payment_amount,
+        payment_from,
+        payment_till,
+        service_charge,
+        service_tax,
+        settled_on,
+        settlement_amount,
+        settlement_charge,
+        settlement_id,
+        settlement_initiated_on,
+        status,
+        utr,
+      };
+      const merchant_id = body.data.merchant.merchant_id;
+      const merchant = await this.TrusteeSchoolmodel.findOne({
+        client_id: merchant_id,
+      });
+      if (!merchant) {
+        throw new Error('Merchnat not Found');
+      }
+
+      const trustee = await this.TrusteeModel.findById(merchant.trustee_id);
+      if (!trustee) {
+        throw new Error('Trustee not Found');
+      }
+      const webhook_urls = trustee.settlement_webhook_url;
+      if (!webhook_urls) {
+        return res.status(200).send('OK');
+      }
+
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: webhook_urls,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: payload,
+      };
+      try {
+        const response = await axios.request(config);
+        const res = JSON.stringify(response.data) || 'NA';
+        await this.webhooksLogsModel.create({
+          type: 'ERP_SETTLEMENTS_WEBHOOK_SUCCESS',
+          gateway: 'CASHFREE',
+          status: 'SUCCESS',
+          res,
+          trustee_id: merchant.trustee_id,
+          school_id: merchant.school_id,
+        });
+      } catch (e) {
+        await this.webhooksLogsModel.create({
+          type: 'ERP_SETTLEMENTS_WEBHOOK_ERROR',
+          error: e.message,
+          status: 'FAILED',
+          gateway: 'CASHFREE',
+          trustee_id: merchant.trustee_id,
+          school_id: merchant.school_id,
+        });
+      }
+      return res.status(200).send('OK');
     } catch (e) {
       console.error('Error saving webhook logs', e);
     }
@@ -207,7 +292,7 @@ export class WebhooksController {
   async cashfreeVendorSettlements(@Body() body: any, @Res() res: any) {
     try {
       const details = JSON.stringify(body);
-      const webhooklogs=await new this.webhooksLogsModel({
+      const webhooklogs = await new this.webhooksLogsModel({
         type: 'VENDOR_SETTLEMENTS',
         gateway: 'CASHFREE',
         // type_id:body.data.hash,
@@ -228,24 +313,26 @@ export class WebhooksController {
         settlement_id,
         settlement_initiated_on,
         status,
-        amount_settled
+        amount_settled,
       } = vendorSettlement.settlement;
       // console.log(vendorSettlement, 'logs');
 
-      if(!utr){
+      if (!utr) {
         webhooklogs.error = `UTR missing for ${settlement_id}`;
         webhooklogs.status = 'SETTLEMENT_ERROR';
-        await webhooklogs.save()
+        await webhooklogs.save();
         return res.status(400).send('Invalid UTR');
       }
 
       webhooklogs.type_id = vendor_id;
       await webhooklogs.save();
       const client_id = body.merchant.merchant_id || null;
-      
+
       const checkVendors = await this.venodrsModel.findOne({ vendor_id });
-      const school = await this.TrusteeSchoolmodel.findOne({ school_id: checkVendors.school_id });
-      const school_name=school.school_name
+      const school = await this.TrusteeSchoolmodel.findOne({
+        school_id: checkVendors.school_id,
+      });
+      const school_name = school.school_name;
       if (!checkVendors) {
         webhooklogs.error = `Error in Finding Venodrs for ${vendor_id}`;
         webhooklogs.status = 'SETTLEMENT_ERROR';
@@ -254,10 +341,10 @@ export class WebhooksController {
         // throw new NotFoundException(`Vendor Not Found ${vendor_id}`);
         return res.status(404).send('Vendor Not Found ');
       }
-      console.log(new Date(settled_on),'date');
-      const settlementDate=new Date(settled_on)
+      console.log(new Date(settled_on), 'date');
+      const settlementDate = new Date(settled_on);
       const newSettlement = await this.venodrsSettlementmodel.findOneAndUpdate(
-        { settlement_id:settlement_id.toString() },
+        { settlement_id: settlement_id.toString() },
         {
           $set: {
             school_id: checkVendors.school_id,
@@ -266,20 +353,20 @@ export class WebhooksController {
             utr,
             vendor_id,
             adjustment,
-            settlement_amount:amount_settled,
-            net_settlement_amount:settlement_amount,
+            settlement_amount: amount_settled,
+            net_settlement_amount: settlement_amount,
             vendor_transaction_amount,
-            payment_from:new Date(payment_from),
-            payment_till:new Date(payment_till),
-            settled_on:settlementDate,
+            payment_from: new Date(payment_from),
+            payment_till: new Date(payment_till),
+            settled_on: settlementDate,
             settlement_id,
-            settlement_initiated_on:new Date(settlement_initiated_on),
+            settlement_initiated_on: new Date(settlement_initiated_on),
             status,
             school_name,
-            vendor_name:checkVendors.name
+            vendor_name: checkVendors.name,
           },
         },
-        { 
+        {
           upsert: true,
           new: true,
         },
@@ -303,13 +390,23 @@ export class WebhooksController {
         status: 'SUCCESS',
       }).save();
 
-     
       res.status(200).send('OK');
     } catch (e) {
       console.log(e);
 
       console.error('Error saving webhook logs', e.message);
     }
+  }
+
+  @Post('/test-webhooks')
+  async testWebhooks(@Body() body: any, @Res() res: any) {
+    const details = JSON.stringify(body);
+    await new this.webhooksLogsModel({
+      body:details,
+      type: 'TEST_WEBHOOKS',
+    }).save();
+
+    return res.status(200).send('OK');
   }
 
   @Get('test')

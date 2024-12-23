@@ -16,6 +16,14 @@ export class WebhookLogs extends Document {
   @Field(() => ID)
   order_id: ObjectId;
 
+  @Prop({type: Types.ObjectId})
+  @Field(() => ID)
+  trustee_id: ObjectId;
+
+  @Prop({type: Types.ObjectId})
+  @Field(() => ID)
+  school_id: ObjectId;
+
   @Prop({})
   @Field(() => String)
   type_id: string;
@@ -23,6 +31,10 @@ export class WebhookLogs extends Document {
   @Prop({})
   @Field(() => String)
   body: string;
+
+  @Prop({})
+  @Field(() => String)
+  res: string;
 
   @Prop({})
   @Field(() => String)

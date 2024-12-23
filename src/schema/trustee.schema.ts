@@ -94,6 +94,10 @@ export class Trustee extends Document {
   @Prop()
   logo: string;
 
+  @Field()
+  @Prop({ nullable: true })
+  settlement_webhook_url: string;
+
   @Prop({})
   @Field(() => Boolean,{defaultValue:false})
   isOnboarder: boolean;

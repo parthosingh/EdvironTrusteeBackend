@@ -6,6 +6,7 @@ import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { SchoolSchema, TrusteeSchool } from 'src/schema/school.schema';
+import { Trustee, TrusteeSchema } from 'src/schema/trustee.schema';
 
 @Module({
   imports: [
@@ -22,6 +23,10 @@ import { SchoolSchema, TrusteeSchool } from 'src/schema/school.schema';
 
       MongooseModule.forFeature([
         { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
+      ]),
+      
+      MongooseModule.forFeature([
+        { name: Trustee.name, schema: TrusteeSchema },
       ]),
   ],
   controllers: [WebhooksController],
