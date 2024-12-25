@@ -407,7 +407,11 @@ export class TrusteeResolver {
     searchFilter?: string,
     @Args('searchParams', { nullable: true, defaultValue: null })
     searchParams?: string,
-    @Args('payment_modes', { type: () => [String], nullable: true, defaultValue: null })
+    @Args('payment_modes', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
     payment_modes?: string[],
   ) {
     try {
@@ -493,7 +497,7 @@ export class TrusteeResolver {
           searchParams,
           isCustomSearch,
           seachFilter: searchFilter,
-          payment_modes
+          payment_modes,
         },
       };
       console.log(config);
@@ -594,12 +598,12 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async fetchAllSchoolsCommission(
     @Args('school_id') school_id: string,
-    @Context() context
+    @Context() context,
   ) {
     try {
       let id = context.req.trustee;
       const commissions = await this.commissionModel
-        .find({ trustee_id: id.toString(),school_id })
+        .find({ trustee_id: id.toString(), school_id })
         .sort({ createdAt: -1 });
 
       console.log(commissions.length);
@@ -2119,9 +2123,13 @@ export class TrusteeResolver {
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
     @Context() context: any,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate?: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate?: string,
+    @Args('status', { type: () => String, nullable: true }) status?: string,
+    @Args('vendor_id', { type: () => String, nullable: true })
+    vendor_id?: string,
   ) {
-    console.log('test');
-
     const trustee_id = context.req.trustee;
     const transactions = this.trusteeService.getAllVendorTransactions(
       trustee_id.toString(),
@@ -2149,6 +2157,7 @@ export class TrusteeResolver {
     // Fetch paginated data
     const vendor_settlements = await this.vendorsSettlementModel
       .find({ trustee_id: trusteeId })
+      .sort({ createdAt: -1 }) 
       .skip((page - 1) * limit)
       .limit(limit)
       .exec();
@@ -2228,9 +2237,9 @@ export class TrusteeResolver {
   @Query(() => ErpWebhooksLogsPaginatedResponse)
   async GetWEbhookLogs(
     @Context() context: any,
-    @Args('startDate', { type: () => String,nullable: true })
+    @Args('startDate', { type: () => String, nullable: true })
     startDate: string,
-    @Args('endDate', { type: () => String,nullable: true })
+    @Args('endDate', { type: () => String, nullable: true })
     endDate: string,
     @Args('page', { type: () => Int, nullable: true }) page: number | null,
     @Args('limit', { type: () => Int, nullable: true }) limit: number | null,
