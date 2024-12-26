@@ -1641,6 +1641,10 @@ export class TrusteeService {
       { validate_trustee: trustee_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
+
+    const data ={
+      
+    }
     const config = {
       method: 'get',
       maxBodyLength: Infinity,

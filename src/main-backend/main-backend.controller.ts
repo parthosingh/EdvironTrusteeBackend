@@ -757,6 +757,7 @@ export class MainBackendController {
         gateway,
         custom_id,
       })
+      return refunds
     }catch(e){
       throw new BadRequestException(e.message)
     }
