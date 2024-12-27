@@ -986,7 +986,7 @@ export class MerchantResolver {
 }
 
 @ObjectType()
-class MerchantRefundRequestRes {
+export class MerchantRefundRequestRes {
   @Field({ nullable: true })
   _id: string;
 

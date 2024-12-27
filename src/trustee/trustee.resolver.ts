@@ -53,6 +53,7 @@ import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { TransactionInfo } from 'src/schema/transaction.info.schema';
 import { kyc_details, Vendors } from 'src/schema/vendors.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
+import { MerchantRefundRequestRes } from 'src/merchant/merchant.resolver';
 
 @InputType()
 export class invoiceDetails {
@@ -1930,11 +1931,11 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(() => [RefundRequest])
+  @Query(() => [MerchantRefundRequestRes])
   async getRefundRequest(@Args('order_id') order_id: string) {
     const refundRequests =
       await this.merchnatService.getRefundRequest(order_id);
-    // console.log(refundRequests);
+    console.log(refundRequests);
     
     if (!refundRequests) {
       return {
