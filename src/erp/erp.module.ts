@@ -20,6 +20,7 @@ import { TrusteeMember, TrusteeMemberSchema } from 'src/schema/partner.member.sc
 import { TransactionInfo, TransactionInfoSchema } from 'src/schema/transaction.info.schema';
 import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
+import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 
 @Module({
   imports: [
@@ -62,6 +63,9 @@ import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
     MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
     MongooseModule.forFeature([
       { name: SchoolMdr.name, schema: SchoolMdrSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: RefundRequest.name, schema: RefundRequestSchema },
     ]),
   ],
   providers: [ErpService, CashfreeService,TrusteeService,EmailService,AwsS3Service],

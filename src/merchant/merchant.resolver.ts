@@ -590,7 +590,6 @@ export class MerchantResolver {
   @Mutation(() => String)
   async initiateRefund(
     @Args('order_id') order_id: string,
-
     @Args('refund_amount') refund_amount: number,
     @Args('refund_note') refund_note: string,
     @Context() context,

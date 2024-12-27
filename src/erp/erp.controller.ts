@@ -30,6 +30,7 @@ import { Earnings } from 'src/schema/earnings.schema';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { TrusteeService } from 'src/trustee/trustee.service';
 import QRCode from 'qrcode';
+import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 // import cf_commision from 'src/utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
 
 @Controller('erp')
@@ -50,6 +51,8 @@ export class ErpController {
     private earningsModel: mongoose.Model<Earnings>,
     @InjectModel(BaseMdr.name)
     private baseMdrModel: mongoose.Model<BaseMdr>,
+    @InjectModel(RefundRequest.name)
+    private refundRequestModel: mongoose.Model<RefundRequest>,
   ) {}
 
   @Get('payment-link')
@@ -1719,7 +1722,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2024-12-06T23:59:59.695Z');
+    const settlementDate = new Date('2024-12-26T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
     // console.log(date, 'DATE');
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
@@ -1835,19 +1838,19 @@ export class ErpController {
     }
   }
 
-  @UseGuards(ErpGuard) 
+  @UseGuards(ErpGuard)
   @Get('settlement-transactions')
   async getSettlementTransactions(
     @Query('settlement_id') settlement_id: string,
     @Query('utr_number') utr_number: string,
     @Query('cursor') cursor: string | null,
-    @Query('limit') limit: string
+    @Query('limit') limit: string,
   ) {
-  let dataLimit=Number(limit) || 10
+    let dataLimit = Number(limit) || 10;
 
-  if(dataLimit<10 || dataLimit>1000){
-    throw new BadRequestException('Limit should be between 10 and 1000');
-  }
+    if (dataLimit < 10 || dataLimit > 1000) {
+      throw new BadRequestException('Limit should be between 10 and 1000');
+    }
     let utrNumber = utr_number;
     try {
       if (settlement_id) {
@@ -1883,20 +1886,160 @@ export class ErpController {
         },
         data: paginationData,
       };
-      
-      
+
       const { data: transactions } = await axios.request(config);
       const { settlements_transactions } = transactions;
 
       return {
-        limit:transactions.limit,
+        limit: transactions.limit,
         cursor: transactions.cursor,
         settlements_transactions,
       };
     } catch (e) {
       console.log(e);
-      
+
       throw new BadRequestException(e.message);
     }
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('initiate-refund')
+  async initiateRefund(
+    @Body()
+    body: {
+      sign: string;
+      refund_amount: number;
+      school_id: string;
+      order_id: string;
+      refund_note: string;
+    },
+    @Req() req: any,
+  ) {
+    const { school_id, sign, refund_amount, order_id, refund_note } = body;
+    console.log({ refund_amount });
+
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    if (!school) {
+      throw new NotFoundException('Invalid School Id ');
+    }
+
+    const pg_key = school.pg_key;
+    const client_id = school.client_id;
+    if (!pg_key && !client_id) {
+      throw new NotFoundException(
+        'Payment Gateway not enabled for this school',
+      );
+    }
+
+    const decrypted = this.jwtService.verify(sign, { secret: pg_key });
+    if (
+      decrypted.school_id !== school_id &&
+      decrypted.order_id !== order_id
+    ) {
+      throw new BadRequestException('Invalid Sign');
+    }
+
+    const checkRefundRequest = await this.refundRequestModel
+      .findOne({
+        order_id: new Types.ObjectId(order_id),
+      })
+      .sort({ createdAt: -1 });
+
+    if (checkRefundRequest?.status === refund_status.INITIATED) {
+      throw new BadRequestException(
+        'Refund request already initiated for this order',
+      );
+    }
+    const pg_token = this.jwtService.sign(
+      { school_id, collect_request_id: order_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    let pgConfig = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transaction-info`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: { school_id, collect_request_id: order_id, token: pg_token },
+    };
+
+    const response = await axios.request(pgConfig);
+    console.log(refund_amount);
+
+    const custom_id = response.data[0].custom_order_id;
+    const order_amount = response.data[0].order_amount;
+    const transaction_amount = response.data[0].transaction_amount;
+    console.log(custom_id, order_amount, transaction_amount);
+
+    if (refund_amount > order_amount) {
+      throw new BadRequestException(
+        'Refund amount cannot be greater than order amount',
+      );
+    }
+
+    if (checkRefundRequest?.status === refund_status.APPROVED) {
+      const totalRefunds = await this.refundRequestModel.find({
+        order_id: new Types.ObjectId(order_id),
+        status: refund_status.APPROVED,
+      });
+      let totalRefundAmount = 0;
+      totalRefunds.map((refund: any) => {
+        totalRefundAmount += refund.refund_amount;
+      });
+      console.log(totalRefundAmount, 'amount refunded');
+      const refundableAmount =
+        checkRefundRequest.transaction_amount - totalRefundAmount;
+      console.log(refundableAmount, 'amount can be refunded');
+
+      if (refund_amount > refundableAmount) {
+        throw new Error(
+          'Refund amount cannot be more than remaining refundable amount ' +
+            refundableAmount +
+            'Rs',
+        );
+      }
+    }
+
+    const token = this.jwtService.sign(
+      { order_id },
+      { secret: process.env.JWT_SECRET_FOR_TRUSTEE },
+    );
+
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/gatewat-name?token=${token}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+    const res = await axios.request(config);
+
+    let gateway = res.data;
+    if (gateway === 'EDVIRON_PG') {
+      gateway = 'EDVIRON_CASHFREE';
+    }
+
+    await new this.refundRequestModel({
+      trustee_id: school.trustee_id,
+      school_id: school_id,
+      order_id: new Types.ObjectId(order_id),
+      status: refund_status.INITIATED,
+      refund_amount,
+      order_amount,
+      transaction_amount,
+      gateway: gateway || null,
+      custom_id: custom_id,
+    }).save();
+
+    return `Refund Request Created`;
+  }
+  catch(error) {
+    throw new BadRequestException(error.message);
   }
 }
