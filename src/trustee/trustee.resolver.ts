@@ -1930,11 +1930,12 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(() => RefundRequest)
+  @Query(() => [RefundRequest])
   async getRefundRequest(@Args('order_id') order_id: string) {
     const refundRequests =
       await this.merchnatService.getRefundRequest(order_id);
-
+    // console.log(refundRequests);
+    
     if (!refundRequests) {
       return {
         trustee_id: null,
