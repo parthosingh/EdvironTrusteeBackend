@@ -2971,6 +2971,8 @@ class TransactionReport {
   commission: number;
   @Field({ nullable: true })
   custom_order_id?: string;
+  @Field({ nullable: true })
+  payment_time?: string;
   @Field(() => [Vendor], { nullable: true })
   vendors_info?: [Vendor];
 }
