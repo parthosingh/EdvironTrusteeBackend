@@ -2,7 +2,6 @@ import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 import { PlatformCharge } from './school.schema';
-import { SplitRefundDetails } from 'src/merchant/merchant.resolver';
 
 export enum refund_status {
   INITIATED = 'INITIATED',
@@ -12,10 +11,18 @@ export enum refund_status {
   PROCESSING = 'PROCESSING',
   AUTO_REFUND_INITIATED = 'AUTO_REFUND_INITIATED',
 }
+@ObjectType()
+class SplitRefundsDetails {
+  @Field()
+  vendor_id: string;
+
+  @Field()
+  amount: number;
+}
 
 @ObjectType()
 @Schema({ timestamps: true })
-export class RefundRequest {
+export class RefundRequest  {
   @Prop({ type: Types.ObjectId })
   @Field(() => ID)
   trustee_id: ObjectId;
@@ -69,8 +76,8 @@ export class RefundRequest {
   isSplitRedund: boolean;
 
   @Prop()
-  @Field(() => [SplitRefundDetails], { nullable: true })
-  split_refund_details: SplitRefundDetails[];
+  @Field(() => [SplitRefundsDetails], { nullable: true })
+  split_refund_details: SplitRefundsDetails[];
 
   @Prop()
   @Field(() => String, { nullable: true })
