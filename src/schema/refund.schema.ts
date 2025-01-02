@@ -1,21 +1,21 @@
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 import { PlatformCharge } from './school.schema';
+import { SplitRefundDetails } from 'src/merchant/merchant.resolver';
 
 export enum refund_status {
   INITIATED = 'INITIATED',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
-  DELETED='DELETED BY USER',
-  PROCESSING='PROCESSING',
-  AUTO_REFUND_INITIATED='AUTO_REFUND_INITIATED'
+  DELETED = 'DELETED BY USER',
+  PROCESSING = 'PROCESSING',
+  AUTO_REFUND_INITIATED = 'AUTO_REFUND_INITIATED',
 }
 
 @ObjectType()
 @Schema({ timestamps: true })
 export class RefundRequest {
-
   @Prop({ type: Types.ObjectId })
   @Field(() => ID)
   trustee_id: ObjectId;
@@ -29,7 +29,7 @@ export class RefundRequest {
   order_id: ObjectId;
 
   @Prop()
-  @Field(() =>String, {defaultValue:refund_status.INITIATED})
+  @Field(() => String, { defaultValue: refund_status.INITIATED })
   status: refund_status;
 
   @Prop()
@@ -65,8 +65,17 @@ export class RefundRequest {
   gatway_refund_id: string;
 
   @Prop()
+  @Field(() => Boolean, { defaultValue: false, nullable: true })
+  isSplitRedund: boolean;
+
+  @Prop()
+  @Field(() => [SplitRefundDetails], { nullable: true })
+  split_refund_details: SplitRefundDetails[];
+
+  @Prop()
   @Field(() => String, { nullable: true })
   additonalInfo: string;
 }
 
 export const RefundRequestSchema = SchemaFactory.createForClass(RefundRequest);
+ 
