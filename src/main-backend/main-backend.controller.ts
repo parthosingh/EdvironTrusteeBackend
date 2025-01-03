@@ -699,7 +699,7 @@ export class MainBackendController {
         throw new BadRequestException('Invalid Token');
       }
 
-      const vendors = await this.trusteeService.getVenodrInfo(body.vendor_id);
+      const vendors = await this.trusteeService.getVenodrInfo(body.vendor_id,body.school_id);
 
       const vendor_info = {
         vendor_id: body.vendor_id,

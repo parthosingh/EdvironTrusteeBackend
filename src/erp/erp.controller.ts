@@ -288,14 +288,16 @@ export class ErpController {
 
           const vendors_data = await this.trusteeService.getVenodrInfo(
             vendor.vendor_id,
+            school_id
           );
           if (!vendors_data) {
             throw new NotFoundException(
               'Invalid vendor id for ' + vendor.vendor_id,
             );
           }
-
-          if (vendors_data.vendor_id !== 'ACTIVE') {
+          console.log(vendors_data,'venodr');
+          
+          if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
                 vendor.vendor_id,
@@ -610,6 +612,7 @@ export class ErpController {
 
           const vendors_data = await this.trusteeService.getVenodrInfo(
             vendor.vendor_id,
+            body.school_id
           );
           if (!vendors_data) {
             throw new NotFoundException(
@@ -617,7 +620,7 @@ export class ErpController {
             );
           }
 
-          if (vendors_data.vendor_id !== 'ACTIVE') {
+          if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
                 vendor.vendor_id,
