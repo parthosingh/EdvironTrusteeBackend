@@ -1634,12 +1634,14 @@ export class TrusteeResolver {
         })
       }
 
-      if(trustee.settlement_webhook_url){}
-      webhookUrls.push({
-        id:webhookUrls.length + 1,
-        url:trustee.settlement_webhook_url,
-        type:webhookType.SETTLEMENTS
-      })
+      if(trustee.settlement_webhook_url){
+
+        webhookUrls.push({
+          id:webhookUrls.length + 1,
+          url:trustee.settlement_webhook_url,
+          type:webhookType.SETTLEMENTS
+        })
+      }
     
       return webhookUrls;
     } catch (error) {
