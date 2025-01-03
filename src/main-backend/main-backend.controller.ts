@@ -762,4 +762,18 @@ export class MainBackendController {
       throw new BadRequestException(e.message)
     }
   }
+
+  @Get('get-refund-info')
+  async getRefundInfo(
+    @Query('refund_id') refund_id: string,
+    @Query('token') token: string,
+  ){
+    try{
+      const refund=await this.refundRequestModel.findById(refund_id)
+      if(!refund){
+        throw new NotFoundException('refund not found')
+      }
+      return refund
+    }catch(e){}
+  }
 }
