@@ -1750,4 +1750,8 @@ export class TrusteeService {
     }
   }
 
+  async fetchSettlementInfo(){
+    
+  }
+
 }

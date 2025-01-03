@@ -776,4 +776,94 @@ export class MainBackendController {
       return refund
     }catch(e){}
   }
+
+  @Post('get-settlement-reco')
+  async getSettlementReco(
+    @Body()
+    body: {
+      trustee_id: string;
+      settlement_date: string;
+      transaction_start_date: string;
+      transaction_end_date: string;
+    },
+  ) {
+    const {
+      transaction_start_date,
+      transaction_end_date,
+      trustee_id,
+      settlement_date,
+    } = body;
+    const schools = await this.trusteeSchoolModel.find({
+      trustee_id: new Types.ObjectId(body.trustee_id),
+    });
+
+    let failure: any[] = [];
+    let success: any[] = [];
+
+    for (const school of schools) {
+      if (school.pg_key) {
+        const settlementRecon = await this.mainBackendService.settlementRecon(
+          school.school_id.toString(),
+          settlement_date,
+          transaction_start_date,
+          transaction_end_date,
+          trustee_id,
+          school.school_name,
+        );
+
+        if (settlementRecon.missMatched) {
+          failure.push(settlementRecon);
+        } else {
+          success.push(settlementRecon);
+        }
+      }
+    }
+    return { success, failure };
+  }
+
+  @Post('get-settlement-reco2')
+  async getSettlementReco2(
+    @Body()
+    body: {
+      trustee_id: string;
+      school_id: string;
+      settlement_date: string;
+      transaction_start_date: string;
+      transaction_end_date: string;
+    },
+  ) {
+    const {
+      transaction_start_date,
+      transaction_end_date,
+      trustee_id,
+      settlement_date,
+      school_id,
+    } = body;
+    const school = await this.trusteeSchoolModel.find({
+      school_id: new Types.ObjectId(school_id),
+    });
+    if (!school) {
+      throw new BadRequestException('Invalid Trustee ID');
+    }
+    let failure: any[] = [];
+    let success: any[] = [];
+
+    const settlementRecon = await this.mainBackendService.settlementRecon(
+      school_id,
+      settlement_date,
+      transaction_start_date,
+      transaction_end_date,
+      trustee_id,
+      'school.',
+    );
+
+    if (settlementRecon.missMatched) {
+      failure.push(settlementRecon);
+    } else {
+      success.push(settlementRecon);
+    }
+
+    return { success, failure };
+  }
+
 }

@@ -979,14 +979,14 @@ export class MerchantResolver {
       school_id: school.school_id,
     });
     const totalPages = Math.ceil(totalCount / limit);
-    const vendor_settlements = this.vendorsSettlementModel
+    const vendor_settlements = await this.vendorsSettlementModel
       .find({ school_id: school.school_id })
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
     return {
-      vendor_settlements,
+      vendor_settlements, 
       totalCount,
       totalPages,
       page,

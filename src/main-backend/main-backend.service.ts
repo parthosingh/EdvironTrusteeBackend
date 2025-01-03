@@ -17,6 +17,8 @@ import {
 } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
+import  axios from 'axios';
+import { SettlementReport } from 'src/schema/settlement.schema';
 
 @Injectable()
 export class MainBackendService {
@@ -27,6 +29,8 @@ export class MainBackendService {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(TrusteeMember.name)
     private trusteeMemberModel: mongoose.Model<TrusteeMember>,
+    @InjectModel(SettlementReport.name)
+    private settlementReportModel: mongoose.Model<SettlementReport>,
   ) {}
 
   async createTrustee(info) {
@@ -336,5 +340,100 @@ export class MainBackendService {
     } catch (error) {
       throw new BadRequestException(error.message);
     }
+  }
+
+  
+  async settlementRecon(
+    school_id: string,
+    settlement_date: string,
+    transaction_start_date: string,
+    transaction_end_date: string,
+    trustee_id: string,
+    school_name: string,
+  ) {
+ 
+    // Convert the input date to the start and end of the day in UTC
+    const targetDate = new Date(settlement_date);
+    
+    const startOfDayIST = new Date(targetDate.setHours(0, 0, 0, 0));
+    // Convert to UTC
+    console.log(targetDate,'date');
+    console.log(startOfDayIST,'startOfDayIST');
+    
+    const startOfDayUTC = new Date(
+      startOfDayIST.getTime() - 5.5 * 60 * 60 * 1000,
+    );
+
+    // End of day in IST
+    const endOfDayIST = new Date(targetDate.setHours(23, 59, 59, 999));
+    // Convert to UTC
+    const endOfDayUTC = new Date(endOfDayIST.getTime() - 5.5 * 60 * 60 * 1000);
+    console.log({
+      $gte: startOfDayIST,
+      $lt: endOfDayUTC,
+    });
+    console.log(school_id);
+    
+    
+    // Query to find settlements for the specific day
+    const settlements = await this.settlementReportModel.find({
+      schoolId:new Types.ObjectId(school_id), // Match the school_id
+      settlementDate: {
+        $gte: startOfDayIST,
+        $lt: endOfDayUTC,
+      },
+    });
+    
+console.log(settlements,'sett');
+
+    let totalSettlementAmount = 0;
+    settlements.forEach((settlement) => {
+      totalSettlementAmount += settlement.netSettlementAmount;
+    });
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-transaction-report-batched
+`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: {
+        end_date: transaction_end_date,
+        start_date: transaction_start_date,
+        school_id: school_id,
+        status: 'SUCCESS',
+        trustee_id: trustee_id,
+      },
+    };
+
+    const response = await axios.request(config);
+    console.log(response.data);
+    const transaction = response.data;
+    let transaction_sum =0
+    if (transaction.length !== 0) {
+      transaction_sum = transaction.transactions[0].totalOrderAmount;
+    }
+
+    if (transaction_sum === totalSettlementAmount) {
+      return {
+        missMatched: false,
+        transaction_sum: transaction_sum,
+        totalSettlementAmount: totalSettlementAmount,
+        school_id: school_id,
+        diff: 0,
+        school_name
+      };
+    }
+    return {
+      missMatched: true,
+      transaction_sum: transaction_sum,
+      totalSettlementAmount: totalSettlementAmount,
+      school_id: school_id,
+      diff: transaction_sum - totalSettlementAmount,
+      school_name
+    };
   }
 }
