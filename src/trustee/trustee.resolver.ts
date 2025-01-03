@@ -55,6 +55,14 @@ import { kyc_details, Vendors } from 'src/schema/vendors.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { MerchantRefundRequestRes } from 'src/merchant/merchant.resolver';
 
+
+
+export enum webhookType {
+  PAYMENTS = 'PAYMENTS',
+  REFUNDS = 'REFUNDS',
+  SETTLEMENTS = 'SETTLEMENTS'
+}
+
 @InputType()
 export class invoiceDetails {
   @Field({ nullable: true })
@@ -1535,6 +1543,7 @@ export class TrusteeResolver {
   async createWebhooks(
     @Context() context: any,
     @Args('webhookUrl', { type: () => String }) webhookUrl: string,
+    @Args('type', { type: () => String }) type: string,
   ) {
     try {
       const role = context.req.role;
@@ -1549,8 +1558,17 @@ export class TrusteeResolver {
       if (!trustee) {
         throw new NotFoundException('Trustee not found');
       }
-
-      return await this.trusteeService.createWebhooks(trustee, webhookUrl);
+      if(type === webhookType.PAYMENTS){
+        return await this.trusteeService.createWebhooks(trustee, webhookUrl);
+      }else if(type === webhookType.REFUNDS){
+         trustee.refund_webhook_url=webhookUrl
+         await trustee.save();
+         return 'Refund webhook created successfully'
+      }else if(type === webhookType.SETTLEMENTS){
+        trustee.settlement_webhook_url=webhookUrl
+        await trustee.save();
+        return 'Settlement webhook created successfully'
+      }
     } catch (error) {
       throw new Error(error.message);
     }
@@ -1561,6 +1579,7 @@ export class TrusteeResolver {
   async deleteWebhook(
     @Context() context: any,
     @Args('webHook_id', { type: () => Number }) webhook_id: number,
+    @Args('type', { type: () => String }) type: string,
   ) {
     try {
       const role = context.req.role;
@@ -1576,8 +1595,19 @@ export class TrusteeResolver {
       if (!trustee) {
         throw new NotFoundException('Trustee not found');
       }
+      if(type === webhookType.PAYMENTS){
+        await this.trusteeService.deleteWebhook(trustee, webhook_id);
+        return 'Webhook deleted successfully'      
+      }else if(type === webhookType.REFUNDS){
+        trustee.refund_webhook_url=null
+        await trustee.save();
+        return 'Webhook deleted successfully'      
+      }else if(type === webhookType.SETTLEMENTS){
+        trustee.settlement_webhook_url=null
+        await trustee.save();
+        return 'Webhook deleted successfully'      
+      }
 
-      return await this.trusteeService.deleteWebhook(trustee, webhook_id);
     } catch (error) {
       throw new Error(error.message);
     }
@@ -1586,7 +1616,7 @@ export class TrusteeResolver {
   @Query(() => [WebhookUrlType])
   @UseGuards(TrusteeGuard)
   async getWebhooks(@Context() context: any) {
-    try {
+    try { 
       const trustee = await this.trusteeModel.findById(
         new Types.ObjectId(context.req.trustee),
       );
@@ -1595,7 +1625,23 @@ export class TrusteeResolver {
         throw new NotFoundException('Trustee not found');
       }
 
-      return trustee.webhook_urls;
+      let webhookUrls:any=trustee.webhook_urls
+      if(trustee.refund_webhook_url){
+        webhookUrls.push({
+          id:webhookUrls.length + 1,
+          url:trustee.refund_webhook_url,
+          type:webhookType.REFUNDS
+        })
+      }
+
+      if(trustee.settlement_webhook_url){}
+      webhookUrls.push({
+        id:webhookUrls.length + 1,
+        url:trustee.settlement_webhook_url,
+        type:webhookType.SETTLEMENTS
+      })
+    
+      return webhookUrls;
     } catch (error) {
       throw new Error(error.message);
     }

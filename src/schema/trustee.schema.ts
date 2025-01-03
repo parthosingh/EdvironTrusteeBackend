@@ -3,15 +3,20 @@ import { ObjectType, Field,ID } from '@nestjs/graphql';
 import { Document, ObjectId,Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 
+
 @ObjectType()
 export class WebhookUrlType {
   @Prop() 
-  @Field(() => Number)
+  @Field(() => Number,{ nullable: true })
   id: number;
 
   @Prop() 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   url: string;
+
+  @Prop() 
+  @Field(() => String, { nullable: true })
+  type?: string;
 }
 
 
