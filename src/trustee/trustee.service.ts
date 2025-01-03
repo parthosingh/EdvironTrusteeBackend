@@ -1602,8 +1602,11 @@ export class TrusteeService {
     }
   }
 
-  async getVenodrInfo(vendor_id: string,school_id:string) {
-    const vendor = await this.vendorsModel.findOne({ vendor_id,school_id:new Types.ObjectId(school_id) });
+  async getVenodrInfo(vendor_id: string, school_id: string) {
+    const vendor = await this.vendorsModel.findOne({
+      vendor_id,
+      school_id: new Types.ObjectId(school_id),
+    });
     if (!vendor)
       throw new NotFoundException(
         'Vendor not found for vendor_id: ' + vendor_id,
@@ -1611,8 +1614,12 @@ export class TrusteeService {
     return vendor;
   }
 
-
-  async getVendorTransactions(vendor_id: string, trustee_id: string,page: number,limit: number) {
+  async getVendorTransactions(
+    vendor_id: string,
+    trustee_id: string,
+    page: number,
+    limit: number,
+  ) {
     const vendor = await this.vendorsModel.findOne({ vendor_id });
     if (!vendor) throw new NotFoundException('Vendor not found for');
     const token = this.jwtService.sign(
@@ -1631,20 +1638,21 @@ export class TrusteeService {
 
     const { data: transactions } = await axios.request(config);
     console.log(transactions);
-    
+
     return transactions;
   }
 
-  async getAllVendorTransactions(trustee_id: string,page: number,limit: number) {
-    
+  async getAllVendorTransactions(
+    trustee_id: string,
+    page: number,
+    limit: number,
+  ) {
     const token = this.jwtService.sign(
       { validate_trustee: trustee_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
 
-    const data ={
-      
-    }
+    const data = {};
     const config = {
       method: 'get',
       maxBodyLength: Infinity,
@@ -1657,13 +1665,16 @@ export class TrusteeService {
 
     const { data: transactions } = await axios.request(config);
     console.log(transactions);
-    
+
     return transactions;
   }
 
-  
-  async getMerchantVendorTransactions(trustee_id: string,school_id: string,page: number,limit: number) {
-    
+  async getMerchantVendorTransactions(
+    trustee_id: string,
+    school_id: string,
+    page: number,
+    limit: number,
+  ) {
     const token = this.jwtService.sign(
       { validate_trustee: trustee_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
@@ -1680,21 +1691,24 @@ export class TrusteeService {
 
     const { data: transactions } = await axios.request(config);
     console.log(transactions);
-    
+
     return transactions;
   }
 
-
-  async getTransactionsForSettlements(utr: string,client_id: string,limit:number, cursor?: string | null) {
+  async getTransactionsForSettlements(
+    utr: string,
+    client_id: string,
+    limit: number,
+    cursor?: string | null,
+  ) {
     const token = this.jwtService.sign(
-      { utr,client_id },
+      { utr, client_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
-    const paginationData={
-      cursor:cursor,
-      limit:limit
-
-    }
+    const paginationData = {
+      cursor: cursor,
+      limit: limit,
+    };
     const config = {
       method: 'post',
       maxBodyLength: Infinity,
@@ -1703,24 +1717,24 @@ export class TrusteeService {
         accept: 'application/json',
         'content-type': 'application/json',
       },
-      data:paginationData
+      data: paginationData,
     };
     const { data: transactions } = await axios.request(config);
-    const {settlements_transactions}=transactions
+    const { settlements_transactions } = transactions;
 
-   const school = await this.trusteeSchoolModel.findOne({client_id})
-   if(!school) throw new BadRequestException(`Could not find school `)
-    settlements_transactions.forEach((transaction:any) =>{
-      transaction.school_name=school.school_name
-    })
-  
+    const school = await this.trusteeSchoolModel.findOne({ client_id });
+    if (!school) throw new BadRequestException(`Could not find school `);
+    settlements_transactions.forEach((transaction: any) => {
+      transaction.school_name = school.school_name;
+    });
+
     const updated_settlements_transactions = {
       ...settlements_transactions,
-      school_name:'test'
-    }
+      school_name: 'test',
+    };
 
     return {
-      limit:transactions.limit,
+      limit: transactions.limit,
       cursor: transactions.cursor,
       settlements_transactions,
     };
@@ -1750,8 +1764,9 @@ export class TrusteeService {
     }
   }
 
-  async fetchSettlementInfo(){
-    
-  }
-
+  async fetchSettlementInfo(
+    settlement_date: string,
+    school_id: string,
+    trustee_id: string,
+  ) {}
 }

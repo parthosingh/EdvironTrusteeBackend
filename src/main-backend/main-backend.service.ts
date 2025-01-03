@@ -17,7 +17,7 @@ import {
 } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
-import  axios from 'axios';
+import axios from 'axios';
 import { SettlementReport } from 'src/schema/settlement.schema';
 
 @Injectable()
@@ -342,7 +342,6 @@ export class MainBackendService {
     }
   }
 
-  
   async settlementRecon(
     school_id: string,
     settlement_date: string,
@@ -351,15 +350,14 @@ export class MainBackendService {
     trustee_id: string,
     school_name: string,
   ) {
- 
     // Convert the input date to the start and end of the day in UTC
     const targetDate = new Date(settlement_date);
-    
+
     const startOfDayIST = new Date(targetDate.setHours(0, 0, 0, 0));
     // Convert to UTC
-    console.log(targetDate,'date');
-    console.log(startOfDayIST,'startOfDayIST');
-    
+    console.log(targetDate, 'date');
+    console.log(startOfDayIST, 'startOfDayIST');
+
     const startOfDayUTC = new Date(
       startOfDayIST.getTime() - 5.5 * 60 * 60 * 1000,
     );
@@ -373,18 +371,17 @@ export class MainBackendService {
       $lt: endOfDayUTC,
     });
     console.log(school_id);
-    
-    
+
     // Query to find settlements for the specific day
     const settlements = await this.settlementReportModel.find({
-      schoolId:new Types.ObjectId(school_id), // Match the school_id
+      schoolId: new Types.ObjectId(school_id), // Match the school_id
       settlementDate: {
         $gte: startOfDayIST,
         $lt: endOfDayUTC,
       },
     });
-    
-console.log(settlements,'sett');
+
+    console.log(settlements, 'sett');
 
     let totalSettlementAmount = 0;
     settlements.forEach((settlement) => {
@@ -412,7 +409,7 @@ console.log(settlements,'sett');
     const response = await axios.request(config);
     console.log(response.data);
     const transaction = response.data;
-    let transaction_sum =0
+    let transaction_sum = 0;
     if (transaction.length !== 0) {
       transaction_sum = transaction.transactions[0].totalOrderAmount;
     }
@@ -424,7 +421,7 @@ console.log(settlements,'sett');
         totalSettlementAmount: totalSettlementAmount,
         school_id: school_id,
         diff: 0,
-        school_name
+        school_name,
       };
     }
     return {
@@ -433,7 +430,7 @@ console.log(settlements,'sett');
       totalSettlementAmount: totalSettlementAmount,
       school_id: school_id,
       diff: transaction_sum - totalSettlementAmount,
-      school_name
+      school_name,
     };
   }
 }

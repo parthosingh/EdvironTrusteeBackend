@@ -986,7 +986,7 @@ export class MerchantResolver {
       .limit(limit);
 
     return {
-      vendor_settlements, 
+      vendor_settlements,
       totalCount,
       totalPages,
       page,
@@ -1136,6 +1136,21 @@ export class MerchantRefundRequestRes {
 }
 
 @ObjectType()
+class VendorInfo {
+  @Field({ nullable: true })
+  vendor_id: string;
+
+  @Field({ nullable: true })
+  percentage: number;
+
+  @Field({ nullable: true })
+  amount: number;
+
+  @Field({ nullable: true })
+  name: string;
+}
+
+@ObjectType()
 class MerchantTransactionReport {
   @Field({ nullable: true })
   collect_id: string;
@@ -1173,6 +1188,10 @@ class MerchantTransactionReport {
   details: string;
   @Field({ nullable: true })
   custom_order_id: string;
+  @Field({ nullable: true })
+  payment_time?: string;
+  @Field(() => [VendorInfo], { nullable: true })
+  vendors_info?: [VendorInfo];
 }
 
 @ObjectType()
