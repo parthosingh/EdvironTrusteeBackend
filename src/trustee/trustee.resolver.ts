@@ -2387,6 +2387,9 @@ export class DisputesRes {
 
   @Field({ nullable: true })
   totalCount: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
 }
 
 @ObjectType()

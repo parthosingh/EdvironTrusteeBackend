@@ -16,13 +16,23 @@ import { TrusteeService } from 'src/trustee/trustee.service';
 import { TrusteeModule } from 'src/trustee/trustee.module';
 import { EmailService } from 'src/email/email.service';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
-import { TrusteeMember, TrusteeMemberSchema } from 'src/schema/partner.member.schema';
-import { TransactionInfo, TransactionInfoSchema } from 'src/schema/transaction.info.schema';
+import {
+  TrusteeMember,
+  TrusteeMemberSchema,
+} from 'src/schema/partner.member.schema';
+import {
+  TransactionInfo,
+  TransactionInfoSchema,
+} from 'src/schema/transaction.info.schema';
 import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
-import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
+import {
+  VendorsSettlement,
+  VendorsSettlementSchema,
+} from 'src/schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
+import { Capture, CaptureSchema } from 'src/schema/capture.schema';
 
 @Module({
   imports: [
@@ -38,9 +48,7 @@ import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
     MongooseModule.forFeature([
       { name: Earnings.name, schema: EarningsSchema },
     ]),
-    MongooseModule.forFeature([
-      { name: BaseMdr.name, schema: BaseMdrSchema },
-    ]),
+    MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
     MongooseModule.forFeature([
       { name: TrusteeMember.name, schema: TrusteeMemberSchema },
     ]),
@@ -50,10 +58,10 @@ import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
     MongooseModule.forFeature([
       { name: RequestMDR.name, schema: RequestMDRSchema },
     ]),
+    MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
     MongooseModule.forFeature([
-      { name: Vendors.name, schema: VendorsSchema },
+      { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
     ]),
-     MongooseModule.forFeature([{ name: VendorsSettlement.name, schema: VendorsSettlementSchema }]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_API_KEY,
@@ -70,11 +78,20 @@ import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
     MongooseModule.forFeature([
       { name: RefundRequest.name, schema: RefundRequestSchema },
     ]),
-     MongooseModule.forFeature([
-          { name: Disputes.name, schema: DisputesSchema },
-        ]),
+    MongooseModule.forFeature([
+      { name: Disputes.name, schema: DisputesSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Capture.name, schema: CaptureSchema },
+    ]),
   ],
-  providers: [ErpService, CashfreeService,TrusteeService,EmailService,AwsS3Service],
+  providers: [
+    ErpService,
+    CashfreeService,
+    TrusteeService,
+    EmailService,
+    AwsS3Service,
+  ],
   controllers: [ErpController],
 })
 export class ErpModule {}

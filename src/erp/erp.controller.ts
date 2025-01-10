@@ -31,6 +31,7 @@ import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { TrusteeService } from 'src/trustee/trustee.service';
 import QRCode from 'qrcode';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
+import { Capture } from 'src/schema/capture.schema';
 // import cf_commision from 'src/utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
 
 @Controller('erp')
@@ -53,6 +54,8 @@ export class ErpController {
     private baseMdrModel: mongoose.Model<BaseMdr>,
     @InjectModel(RefundRequest.name)
     private refundRequestModel: mongoose.Model<RefundRequest>,
+    @InjectModel(Capture.name)
+    private CapturetModel: mongoose.Model<Capture>,
   ) {}
 
   @Get('payment-link')
@@ -2054,13 +2057,148 @@ export class ErpController {
       transaction_end_date: string;
     },
   ) {
-    const { trustee_id, school_id, settlement_date, transaction_start_date, transaction_end_date }=body
+    const {
+      trustee_id,
+      school_id,
+      settlement_date,
+      transaction_start_date,
+      transaction_end_date,
+    } = body;
     return await this.trusteeService.reconSettlementAndTransaction(
       trustee_id,
       school_id,
       settlement_date,
       transaction_start_date,
       transaction_end_date,
-    )
+    );
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('payment-capture')
+  async paymentCapture(
+    @Body()
+    body: {
+      collect_id: string;
+      amount: number;
+      capture: string;
+      school_id: string;
+      sign: string;
+    },
+  ) {
+    const { collect_id, amount, school_id, sign, capture } = body;
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('Invalid School Id');
+      }
+      // const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      // if (decoded.collect_id === !collect_id) {
+      //   throw new BadRequestException('Invalid Collect Id');
+      // }
+      const payload = {
+        collect_id,
+      };
+
+      const token = this.jwtService.sign(payload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/payment-capture`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        data: {
+          collect_id,
+          amount,
+          capture,
+          token,
+        },
+      };
+
+      const response = await axios.request(config);
+      const data = response.data;
+      console.log(data);
+
+      const { captureInfo, paymentInfo } = data;
+
+      const captureData = await this.CapturetModel.findOneAndUpdate(
+        { collect_id: collect_id },
+        {
+          $set: {
+            school_id: new Types.ObjectId(school_id),
+            trustee_id: school.trustee_id,
+            collect_id: collect_id,
+            custom_order_id: paymentInfo.custom_order_id,
+            order_amount: paymentInfo.order_amount,
+            payment_amount: paymentInfo.payment_amount,
+            action: captureInfo.authorization.action,
+            capture_status: captureInfo.authorization.status,
+            capture_start_date: new Date(captureInfo.authorization.start_time),
+            capture_end_date: new Date(captureInfo.authorization.end_time),
+            approve_by: new Date(captureInfo.authorization.approve_by),
+            action_reference: captureInfo.authorization.action_reference,
+            capture_amount: captureInfo.authorization.captured_amount,
+            is_captured: captureInfo.is_captured,
+            error_details: captureInfo.error_details,
+            auth_id: captureInfo.auth_id,
+            bank_reference: captureInfo.bank_reference,
+          },
+        },
+        { upsert: true, new: true },
+      );
+
+      return captureData;
+    } catch (e) {
+      // console.log(e);
+      if (e.response?.data.message) {
+        console.log(e.response.data);
+        if(e.response.data.message.startsWith("Capture/Void")){
+          throw new BadRequestException("Capture/Void not enabled for your merchant account");
+        }
+        throw new BadRequestException(e.response.data.message);
+      }
+      throw new BadRequestException(e.message);
+    }
   }
 }
+
+const captureData = {
+  cf_payment_id: '12376123',
+  order_id: 'order_8123',
+  entity: 'payment',
+  payment_currency: 'INR',
+  error_details: null,
+  order_amount: 10.01,
+  is_captured: true,
+  payment_group: 'upi',
+  authorization: {
+    action: 'CAPTURE',
+    status: 'PENDING',
+    captured_amount: 100,
+    start_time: '2022-02-09T18:04:34+05:30',
+    end_time: '2022-02-19T18:04:34+05:30',
+    approve_by: '2022-02-09T18:04:34+05:30',
+    action_reference: '6595231908096894505959',
+    action_time: '2022-08-03T16:09:51',
+  },
+  payment_method: {
+    upi: {
+      channel: 'collect',
+      upi_id: 'rohit@xcxcx',
+    },
+  },
+  payment_amount: 10.01,
+  payment_time: '2021-07-23T12:15:06+05:30',
+  payment_completion_time: '2021-07-23T12:18:59+05:30',
+  payment_status: 'SUCCESS',
+  payment_message: 'Transaction successful',
+  bank_reference: 'P78112898712',
+  auth_id: 'A898101',
+};

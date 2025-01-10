@@ -2168,11 +2168,14 @@ export class TrusteeService {
           .limit(limit),
         this.DisputesModel.countDocuments(query),
       ]);
-      console.log(disputes, totalCount);
-      
+      const totalPages = Math.ceil(totalCount / limit);
+
+      console.log(disputes, totalCount, totalPages);
+
       return {
         disputes,
         totalCount,
+        totalPages,
       };
     } catch (e) {
       throw new BadRequestException(e.message);
