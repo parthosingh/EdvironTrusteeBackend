@@ -23,6 +23,7 @@ import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
+import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
 
 @Module({
   imports: [
@@ -51,6 +52,9 @@ import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.se
       { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
     ]),
     MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
+     MongooseModule.forFeature([
+          { name: Disputes.name, schema: DisputesSchema },
+        ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },

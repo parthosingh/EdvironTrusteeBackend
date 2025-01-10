@@ -17,6 +17,8 @@ import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 import { SettlementReport, SettlementSchema } from 'src/schema/settlement.schema';
+import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
+import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
 
 @Module({
   imports: [
@@ -43,6 +45,10 @@ import { SettlementReport, SettlementSchema } from 'src/schema/settlement.schema
     ]),
     MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
     MongooseModule.forFeature([{ name: SettlementReport.name, schema: SettlementSchema }]),
+    MongooseModule.forFeature([{ name: VendorsSettlement.name, schema: VendorsSettlementSchema }]),
+     MongooseModule.forFeature([
+          { name: Disputes.name, schema: DisputesSchema },
+        ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_INTRANET,

@@ -30,6 +30,10 @@ export class WebhookLogs extends Document {
 
   @Prop({})
   @Field(() => String)
+  collect_id: string;
+
+  @Prop({})
+  @Field(() => String)
   body: string;
 
   @Prop({})

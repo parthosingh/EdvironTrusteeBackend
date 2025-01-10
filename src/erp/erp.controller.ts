@@ -288,15 +288,15 @@ export class ErpController {
 
           const vendors_data = await this.trusteeService.getVenodrInfo(
             vendor.vendor_id,
-            school_id
+            school_id,
           );
           if (!vendors_data) {
             throw new NotFoundException(
               'Invalid vendor id for ' + vendor.vendor_id,
             );
           }
-          console.log(vendors_data,'venodr');
-          
+          console.log(vendors_data, 'venodr');
+
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
@@ -612,7 +612,7 @@ export class ErpController {
 
           const vendors_data = await this.trusteeService.getVenodrInfo(
             vendor.vendor_id,
-            body.school_id
+            body.school_id,
           );
           if (!vendors_data) {
             throw new NotFoundException(
@@ -1725,7 +1725,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2024-12-26T23:59:59.695Z');
+    const settlementDate = new Date('2025-01-05T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
     // console.log(date, 'DATE');
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
@@ -1937,10 +1937,7 @@ export class ErpController {
     }
 
     const decrypted = this.jwtService.verify(sign, { secret: pg_key });
-    if (
-      decrypted.school_id !== school_id &&
-      decrypted.order_id !== order_id
-    ) {
+    if (decrypted.school_id !== school_id && decrypted.order_id !== order_id) {
       throw new BadRequestException('Invalid Sign');
     }
 
@@ -2044,5 +2041,26 @@ export class ErpController {
   }
   catch(error) {
     throw new BadRequestException(error.message);
+  }
+
+  @Post('settlement-recons')
+  async settlementRecons(
+    @Body()
+    body: {
+      trustee_id: string;
+      school_id: string;
+      settlement_date: string;
+      transaction_start_date: string;
+      transaction_end_date: string;
+    },
+  ) {
+    const { trustee_id, school_id, settlement_date, transaction_start_date, transaction_end_date }=body
+    return await this.trusteeService.reconSettlementAndTransaction(
+      trustee_id,
+      school_id,
+      settlement_date,
+      transaction_start_date,
+      transaction_end_date,
+    )
   }
 }

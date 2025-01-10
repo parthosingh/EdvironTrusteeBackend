@@ -16,7 +16,14 @@ import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { Vendors } from 'src/schema/vendors.schema';
 import { WebhookLogs } from 'src/schema/webhook.schema';
 import axios, { AxiosError } from 'axios';
+import * as jwt from 'jsonwebtoken';
+import { Disputes } from 'src/schema/disputes.schema';
 
+export enum DISPUTES_STATUS {
+  DISPUTE_CREATED = 'DISPUTE_CREATED',
+  DISPUTE_UPDATED = 'DISPUTE_UPDATED',
+  DISPUTE_CLOSED = 'DISPUTE_CLOSED',
+}
 @Controller('webhooks')
 export class WebhooksController {
   constructor(
@@ -32,6 +39,8 @@ export class WebhooksController {
     private TrusteeSchoolmodel: mongoose.Model<TrusteeSchool>,
     @InjectModel(Trustee.name)
     private TrusteeModel: mongoose.Model<Trustee>,
+    @InjectModel(Disputes.name)
+    private DisputesModel: mongoose.Model<Disputes>,
   ) {}
 
   demoData = {
@@ -534,60 +543,124 @@ export class WebhooksController {
 
     return data;
   }
+
+  // Dispute Webhooks
+  @Post('cashfree/dispute-webhooks')
+  async cashfreeDisputeWebhooks(@Body() body: any, @Res() res: any) {
+    const details = JSON.stringify(body);
+    const webhooklogs = await new this.webhooksLogsModel({
+      body: details,
+    }).save();
+    try {
+      const {
+        dispute_id,
+        dispute_type,
+        reason_code,
+        reason_description,
+        dispute_amount,
+        created_at,
+        updated_at,
+        respond_by,
+        resolved_at,
+        dispute_status,
+        cf_dispute_remarks,
+      } = body.data.dispute;
+
+      const { order_id } = body.data.order_details;
+      const webhook_type = body.data.type;
+      webhooklogs.collect_id = order_id;
+      await webhooklogs.save();
+      const token = jwt.sign(
+        { collect_request_id: order_id },
+        process.env.PAYMENTS_SERVICE_SECRET,
+      );
+      const orderDetailsConfig = {
+        method: 'get',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/erp-transaction-info?collect_request_id=${order_id}&token=${token}`,
+        headers: {
+          accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      };
+      console.log('fetching data');
+
+      const { data: response } = await axios.request(orderDetailsConfig);
+      const transactionInfo = response[0];
+      const custom_order_id = transactionInfo.custom_order_id || 'NA';
+      const school_id = transactionInfo.school_id;
+      const school = await this.TrusteeSchoolmodel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('School not found');
+      }
+
+      const dispute = await this.DisputesModel.findOneAndUpdate(
+        { dispute_id },
+        {
+          $set: {
+            school_id: new Types.ObjectId(school_id),
+            trustee_id: school.trustee_id,
+            collect_id: order_id,
+            custom_order_id,
+            dispute_type,
+            reason_description,
+            dispute_amount,
+            order_amount: transactionInfo.order_amount,
+            payment_amount: transactionInfo.transaction_amount,
+            dispute_created_date: new Date(created_at),
+            dispute_updated_date: new Date(updated_at),
+            dispute_respond_by_date: new Date(respond_by),
+            dispute_status,
+            dispute_remark: cf_dispute_remarks,
+            // dispute_resolved_at_date: new Date(resolved_at),
+            // resolved_at,
+            // cf_dispute_remarks,
+          },
+        },
+        { upsert: true, new: true },
+      );
+      if (resolved_at) {
+        dispute.dispute_resolved_at_date = new Date(resolved_at);
+        await dispute.save();
+      }
+      res.status(200).send('OK');
+    } catch (e) {
+      console.log(e.message);
+    }
+  }
 }
 
-// {
-//     "status": "0",
-//     //cancontain"0"or"1".If"0" means"data"parametercontainserrormessagesomeerror.if"1",  means"data"parametercontainspayoutdata
-//       "data": {
-//       "hash": "f9d519857d1a102ad04809fdd6d32a19ca5c448d0ee909e6b46552e4b7aede4496c4fad2aef16f3709b3ac13c47d54c2ec45c606b3d0ae4c589976e976fa63bd",
-//       "txnid": "Lq8JvtoIBM",
-//       "easepayid": "DTPQ8SVS0H",
-//       "refund_id": "RSR9QR844I",
-//       "refund_amount": 1,
-//       "refund_status": "accepted",
-//       //canbe: "queued","accepted", "refunded"
-//       "transaction_date": "2018-05-26 14:36:48.000000",
-//       "transaction_type": "Netbanking",
-//       "transaction_amount": 2,
-//       "refund_request_date": "2018-05-28 17:03:18.798735"
-//     }
-//   }
-
-// {
-//     "data":{
-//  "refund":{
-//           "cf_refund_id":11325632,
-//           "cf_payment_id":789727431,
-//           "refund_id":"refund_sampleorder0413",
-//           "order_id":"sampleorder0413",
-//           "refund_amount":2.00,
-//           "refund_currency":"INR",
-//           "entity":"Refund",
-//           "refund_type":"MERCHANT_INITIATED",
-//           "refund_arn":"205907014017",
-//           "refund_status":"SUCCESS",
-//           "status_description":"Refund processed successfully",
-//           "created_at":"2022-02-28T12:54:25+05:30",
-//           "processed_at":"2022-02-28T13:04:27+05:30",
-//           "refund_charge":0,
-//           "refund_note":"Test",
-//           "refund_splits":[
-//              {
-//                 "merchantVendorId":"sampleID12345",
-//                 "amount":1,
-//                 "percentage":null
-//              },
-//              {
-//                 "merchantVendorId":"otherVendor",
-//                 "amount":1,
-//                 "percentage":null
-//              }
-//           ],
-//           "metadata":null,
-//           "refund_mode":"STANDARD"
-//        }
-//     },
-//     "event_time":"2022-02-28T13:04:28+05:30",
-//     "type":"REFUND_STATUS_WEBHOOK"
-//  }
+// Dispute payload
+const payloadTest = {
+  data: {
+    dispute: {
+      dispute_id: '433475257',
+      dispute_type: 'CHARGEBACK',
+      reason_code: '4855',
+      reason_description: 'Goods or Services Not Provided',
+      dispute_amount: 4500,
+      created_at: '2023-06-15T21:16:03+05:30',
+      updated_at: '2023-06-15T21:16:51+05:30',
+      respond_by: '2023-06-18T00:00:00+05:30',
+      resolved_at: '2023-06-15T21:16:51.682836678+05:30',
+      dispute_status: 'CHARGEBACK_MERCHANT_WON',
+      cf_dispute_remarks: 'Chargeback won by merchant',
+    },
+    order_details: {
+      order_id: 'order_1944392D4jHtCeVPPdTXkaUwg5cfnujQe',
+      order_amount: 4500,
+      order_currency: 'INR',
+      cf_payment_id: 885457437,
+      payment_amount: 4500,
+      payment_currency: 'INR',
+    },
+    customer_details: {
+      customer_name: 'Dileep Kumar s',
+      customer_phone: '8000000000',
+      customer_email: 'dileep@gmail.com',
+    },
+  },
+  event_time: '2023-06-15T21:17:14+05:30',
+  type: 'DISPUTE_CLOSED',
+};

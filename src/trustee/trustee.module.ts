@@ -19,7 +19,10 @@ import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
 import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 import { Commission, CommissionSchema } from 'src/schema/commission.schema';
-import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
+import {
+  MerchantMember,
+  MerchantMemberSchema,
+} from 'src/schema/merchant.member.schema';
 import { CashfreeService } from '../cashfree/cashfree.service';
 import { CashfreeModule } from '../cashfree/cashfree.module';
 import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
@@ -31,7 +34,11 @@ import { join } from 'path';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
-import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
+import {
+  VendorsSettlement,
+  VendorsSettlementSchema,
+} from 'src/schema/vendor.settlements.schema';
+import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
 config();
 
 @Module({
@@ -42,7 +49,9 @@ config();
     }),
     CashfreeModule,
     MerchantModule,
-    MongooseModule.forFeature([{ name: MerchantMember.name, schema: MerchantMemberSchema }]),
+    MongooseModule.forFeature([
+      { name: MerchantMember.name, schema: MerchantMemberSchema },
+    ]),
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
     MongooseModule.forFeature([
       { name: 'TrusteeMember', schema: TrusteeMemberSchema },
@@ -61,9 +70,7 @@ config();
     MongooseModule.forFeature([
       { name: Commission.name, schema: CommissionSchema },
     ]),
-    MongooseModule.forFeature([
-      { name: Invoice.name, schema: InvoiceSchema },
-    ]),
+    MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]),
     MongooseModule.forFeature([
       { name: RefundRequest.name, schema: RefundRequestSchema },
     ]),
@@ -71,6 +78,12 @@ config();
       { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
     ]),
     MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
+    MongooseModule.forFeature([
+      { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Disputes.name, schema: DisputesSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },
@@ -96,7 +109,7 @@ config();
     TrusteeGuard,
     MainBackendService,
     EmailService,
-    AwsS3Service
+    AwsS3Service,
   ],
 })
 export class TrusteeModule {}

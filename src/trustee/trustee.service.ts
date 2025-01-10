@@ -30,6 +30,10 @@ import { SchoolMdr } from 'src/schema/school_mdr.schema';
 import { Vendors } from 'src/schema/vendors.schema';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 import QRCode from 'qrcode';
+import { SettlementReport } from 'src/schema/settlement.schema';
+import { RefundRequest } from 'src/schema/refund.schema';
+import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
+import { Disputes } from 'src/schema/disputes.schema';
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number
@@ -62,6 +66,14 @@ export class TrusteeService {
     private schoolMdrModel: mongoose.Model<SchoolMdr>,
     @InjectModel(Vendors.name)
     private vendorsModel: mongoose.Model<Vendors>,
+    @InjectModel(SettlementReport.name)
+    private settlementReportModel: mongoose.Model<SettlementReport>,
+    @InjectModel(RefundRequest.name)
+    private refundRequestModel: mongoose.Model<RefundRequest>,
+    @InjectModel(VendorsSettlement.name)
+    private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
+    @InjectModel(Disputes.name)
+    private DisputesModel: mongoose.Model<Disputes>,
   ) {}
 
   async loginAndGenerateToken(
@@ -1701,6 +1713,8 @@ export class TrusteeService {
     limit: number,
     cursor?: string | null,
   ) {
+    // console.log(utr);
+
     const token = this.jwtService.sign(
       { utr, client_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
@@ -1719,25 +1733,36 @@ export class TrusteeService {
       },
       data: paginationData,
     };
-    const { data: transactions } = await axios.request(config);
-    const { settlements_transactions } = transactions;
+    try {
+      const { data: transactions } = await axios.request(config);
 
-    const school = await this.trusteeSchoolModel.findOne({ client_id });
-    if (!school) throw new BadRequestException(`Could not find school `);
-    settlements_transactions.forEach((transaction: any) => {
-      transaction.school_name = school.school_name;
-    });
+      const settlements_transactions = transactions.settlements_transactions;
 
-    const updated_settlements_transactions = {
-      ...settlements_transactions,
-      school_name: 'test',
-    };
+      const school = await this.trusteeSchoolModel.findOne({ client_id });
+      let settlementTransactions = [];
+      if (!school) throw new BadRequestException(`Could not find school `);
+      settlements_transactions.forEach((transaction: any) => {
+        if (transaction?.order_id) {
+          transaction.school_name = school.school_name;
+        }
+      });
+      // console.log(transactions, 'datadagsjdgajk');
 
-    return {
-      limit: transactions.limit,
-      cursor: transactions.cursor,
-      settlements_transactions,
-    };
+      // console.log(settlements_transactions, 'settlements_transactions');
+
+      const updated_settlements_transactions = {
+        ...settlements_transactions,
+        school_name: 'test',
+      };
+
+      return {
+        limit: transactions.limit,
+        cursor: transactions.cursor,
+        settlements_transactions,
+      };
+    } catch (e) {
+      // console.log(e);
+    }
   }
 
   async getBatchTransactions(trustee_id: string, year: string) {
@@ -1760,6 +1785,8 @@ export class TrusteeService {
       const { data: batchTransactions } = await axios.request(config);
       return batchTransactions;
     } catch (e) {
+      console.log(e);
+
       throw new BadRequestException(e.message);
     }
   }
@@ -1768,5 +1795,413 @@ export class TrusteeService {
     settlement_date: string,
     school_id: string,
     trustee_id: string,
-  ) {}
+  ) {
+    // Convert the input date to the start and end of the day in UTC
+    const targetDate = new Date(settlement_date);
+
+    const startOfDayIST = new Date(targetDate.setHours(0, 0, 0, 0));
+    // Convert to UTC
+    console.log(targetDate, 'date');
+    console.log(startOfDayIST, 'startOfDayIST');
+
+    const startOfDayUTC = new Date(
+      startOfDayIST.getTime() - 5.5 * 60 * 60 * 1000,
+    );
+
+    // End of day in IST
+    const endOfDayIST = new Date(targetDate.setHours(23, 59, 59, 999));
+    // Convert to UTC
+    const endOfDayUTC = new Date(endOfDayIST.getTime() - 5.5 * 60 * 60 * 1000);
+    console.log({
+      $gte: startOfDayIST,
+      $lt: endOfDayUTC,
+    });
+    console.log(school_id);
+
+    // Query to find settlements for the specific day
+    const settlements = await this.settlementReportModel.find({
+      schoolId: new Types.ObjectId(school_id), // Match the school_id
+      settlementDate: {
+        $gte: startOfDayIST,
+        $lt: endOfDayUTC,
+      },
+    });
+
+    //  console.log(settlements);
+    return settlements;
+  }
+
+  async fetchTransactionsInfo(
+    start_date: String,
+    end_date: String,
+    school_id: string,
+    trustee_id: string,
+  ) {
+    let token = this.jwtService.sign(
+      { trustee_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    let config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?startDate=${start_date}&endDate=${end_date}&&status=SUCCESS&school_id=${school_id}&limit=10000`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: {
+        trustee_id,
+        token,
+      },
+    };
+
+    const transactions = await axios.request(config);
+    return transactions.data;
+  }
+
+  async reconSettlementAndTransaction(
+    trustee_id: string,
+    school_id: string,
+    settlement_date: string,
+    transaction_start_date: string,
+    transaction_end_date: string,
+  ) {
+    const settlements = await this.fetchSettlementInfo(
+      settlement_date,
+      school_id,
+      trustee_id,
+    );
+    console.log(settlements, 'settlement');
+
+    if (settlements.length <= 0) {
+      throw new BadRequestException(`Settlement Not found`);
+    }
+
+    let allTransactions = [];
+    let refunds = [];
+    let settlementTransactions = 0;
+    let sumSettlement = 0;
+
+    await Promise.all(
+      settlements.map(async (settlement: any) => {
+        sumSettlement += settlement.netSettlementAmount;
+        const transactions = await this.getTransactionsForSettlements(
+          settlement.utrNumber,
+          settlement.clientId,
+          1000,
+          null,
+        );
+        // console.log(transactions, 'transactions');
+
+        let settlements_transactions = transactions.settlements_transactions;
+
+        if (Array.isArray(settlements_transactions)) {
+          settlements_transactions = settlements_transactions.map(
+            (transaction: any) => {
+              const formattedTransaction = {
+                collect_id: transaction.order_id,
+                order_amount: transaction.order_amount,
+                event_type: transaction.event_type,
+              };
+              if (transaction.event_type !== 'REFUND') {
+                settlementTransactions += transaction.order_amount;
+              }
+              // Check if the event_type is 'refund' and push to refunds array
+              if (transaction.event_type === 'REFUND') {
+                refunds.push(formattedTransaction);
+              }
+
+              return formattedTransaction;
+            },
+          );
+
+          // console.log(settlements_transactions, 'transactions');
+          allTransactions.push(...settlements_transactions);
+        }
+      }),
+    );
+
+    let refundDetails: any = [];
+    refunds.forEach(async (refund: any) => {
+      console.log(refund, 'refund');
+
+      const refundInfo: any = await this.refundRequestModel.findOne({
+        order_id: new Types.ObjectId(refund.collect_id),
+      });
+
+      let token = this.jwtService.sign(
+        { trustee_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+
+      // const transactionDetailsConfig = {
+      //   method: 'get',
+      //   maxBodyLength: Infinity,
+      //   url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report?school_id=${school_id}`,
+      //   headers: {
+      //     accept: 'application/json',
+      //     'content-type': 'application/json',
+      //   },
+      //   data: {
+      //     trustee_id,
+      //     token,
+      //     searchParams: refund.collect_id,
+      //     isCustomSearch: true,
+      //     seachFilter: 'order_id',
+      //     // payment_modes,
+      //   },
+      // };
+      // try {
+      //   const transactionInfo = await axios.request(transactionDetailsConfig);
+      //   console.log(transactionInfo.data, 'refundinfo');
+      // } catch (e) {
+      //   console.log(e);
+      // }
+
+      const info = {
+        custom_id: refundInfo.custom_id,
+        isSplitRedund: refundInfo.isSplitRedund,
+        createdAt: refundInfo.createdAt,
+        updatedAt: refundInfo.updatedAt,
+        order_amount: refund.order_amount,
+      };
+      refundDetails.push(info);
+    });
+
+    // console.log(refunds, 'refunds array');
+
+    let transactionData = await this.fetchTransactionsInfo(
+      transaction_start_date,
+      transaction_end_date,
+      school_id,
+      trustee_id,
+    );
+    let durationTransactions = transactionData.transactions;
+    // console.log(durationTransactions, 'durationTransactions');
+    let toalDurationTransaction = 0;
+    let vendorTransactions: any[] = [];
+    let venodrSum = 0;
+    let earliestDate: string | null = null;
+    let latestDate: string | null = null;
+
+    await Promise.all(
+      durationTransactions.map(async (transactions: any) => {
+        toalDurationTransaction += transactions.order_amount;
+
+        if (transactions.vendors_info && transactions.vendors_info.length > 0) {
+          // Batch vendor settlement info calls
+          const settlementDate = await this.vendorSettlementInfo(
+            transactions.collect_id,
+          );
+
+          // Calculate earliest and latest dates inline
+          const currDate = new Date(settlementDate.vendorSettlementDate);
+          if (!earliestDate || currDate < new Date(earliestDate)) {
+            earliestDate = settlementDate.vendorSettlementDate;
+          }
+          if (!latestDate || currDate > new Date(latestDate)) {
+            latestDate = settlementDate.vendorSettlementDate;
+          }
+          // Process vendor splits
+          for (const vendor of transactions.vendors_info) {
+            let splitAmount = 0;
+            const transactionTime =
+              transaction.payment_time || transactions.transaction_time;
+            if (vendor.percentage) {
+              splitAmount =
+                (transactions.order_amount * vendor.percentage) / 100;
+            } else if (vendor.amount) {
+              splitAmount = vendor.amount;
+            }
+            venodrSum += splitAmount;
+
+            vendorTransactions.push({
+              splitAmount,
+              vendorName: vendor.name,
+              vendorId: vendor.vendor_id,
+              order_amount: transactions.order_amount,
+              collect_id: transactions.collect_id,
+              transactionTime,
+            });
+          }
+        }
+      }),
+    );
+
+    console.log('Earliest Date:', earliestDate);
+    console.log('Latest Date:', latestDate);
+
+    // Now, `vendorSettlementsDate` and `vendorTransactions` should be populated as expected.
+
+    // console.log('Duration Transactions:', durationTransactions);
+
+    const extraInSettlementTransactions = allTransactions.filter(
+      (transaction) =>
+        !durationTransactions.some(
+          (durationTransaction) =>
+            durationTransaction.collect_id === transaction.collect_id,
+        ),
+    );
+
+    const extraInDurationTransactions = durationTransactions.filter(
+      (durationTransaction) =>
+        !allTransactions.some(
+          (transaction) =>
+            transaction.collect_id === durationTransaction.collect_id,
+        ),
+    );
+
+    const vendorSttlementStartDate = new Date(earliestDate);
+    vendorSttlementStartDate.setHours(0, 0, 0, 0);
+    const vendorSttlementEndDate = new Date(latestDate);
+    vendorSttlementEndDate.setHours(23, 59, 59, 999);
+
+    const vendorSettlementsInfo = await this.vendorsSettlementModel.find({
+      school_id: new Types.ObjectId(school_id),
+      settled_on: {
+        $gte: vendorSttlementStartDate,
+        $lte: vendorSttlementEndDate,
+      },
+    });
+
+    const discrepancies = {
+      result: { earliestDate, latestDate },
+      vendorSettlementsInfo,
+      vendorTransactions,
+      venodrSum,
+      // toalDurationTransaction,
+      settlementAmount: sumSettlement,
+      toalDurationTransaction,
+      diffrenceAmount: sumSettlement - toalDurationTransaction,
+      extraInSettlementTransactions,
+      extraInDurationTransactions,
+      refundDetails,
+    };
+
+    // console.log('Extra in allTransactions:', extraInAllTransactions);
+    // console.log('Extra in durationTransactions:', extraInDurationTransactions);
+    // console.log(allTransactions.length);
+
+    return discrepancies;
+  }
+
+  async vendorSettlementInfo(order_id: string) {
+    const token = this.jwtService.sign(
+      { collect_id: order_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    // console.log(order_id);
+
+    const config = {
+      method: 'post',
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/vendor-transactions-settlement`,
+      headers: {
+        accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      data: {
+        collect_id: order_id,
+        token,
+      },
+    };
+    try {
+      const response = await axios.request(config);
+      // return data
+      const data = response.data;
+
+      // console.log(data,'Vendor settlement',order_id);
+      if (
+        data.data.length > 1 &&
+        data.data[1].vendor_settlement_eligibility_time
+      ) {
+        const date = data.data[1].vendor_settlement_eligibility_time;
+        const vendorutr = data.data[1].vendor_settlement_utr;
+        console.log(date, vendorutr);
+
+        return {
+          vendorSettlementDate: date,
+          vendorSettlementUtr: vendorutr,
+        };
+      }
+    } catch (e) {
+      console.log(e);
+
+      throw new BadRequestException(e.response.data.message);
+    }
+  }
+
+  async getDisputes(
+    trustee_id: string,
+    page: number,
+    limit: number,
+    school_id?: string,
+    order_id?: string,
+    custom_id?: string,
+    start_date?: string,
+    end_date?: string,
+    status?: string,
+  ) {
+    try {
+      const query: any = {
+        trustee_id: new Types.ObjectId(trustee_id),
+        ...(school_id && { school_id: new Types.ObjectId(school_id) }),
+        ...(order_id && { collect_id: order_id }),
+        ...(custom_id && { custom_id }),
+        ...(status && { dispute_status: status }),
+        ...(start_date || end_date
+          ? {
+              dispute_created_date: {
+                ...(start_date && { $gte: new Date(start_date) }),
+                ...(end_date && {
+                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+                }),
+              },
+            }
+          : {}),
+      };
+      const skip = (page - 1) * limit;
+
+      const [disputes, totalCount] = await Promise.all([
+        this.DisputesModel.find(query)
+          .sort({ dispute_created_date: -1 })
+          .skip(skip)
+          .limit(limit),
+        this.DisputesModel.countDocuments(query),
+      ]);
+      console.log(disputes, totalCount);
+      
+      return {
+        disputes,
+        totalCount,
+      };
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
 }
+
+const transaction = {
+  additional_data:
+    '{"student_details":{"student_id":"bvbmva1409","student_email":"trkrishnamaya8@gmail.com","student_name":"DEVNAND T R","student_phone_no":"9605575149"},"additional_fields":{}}',
+  custom_order_id: '608A173583829534048358',
+  req_webhook_urls: [
+    'https://bvbmva.amserp.in/index.php/user/login/pg_webhook_api/?pg=edviron&order_id=608A173583829534048358&',
+  ],
+  vendors_info: [],
+  isSplitPayments: false,
+  isQRPayment: false,
+  status: 'SUCCESS',
+  transaction_amount: 8855.9,
+  payment_method: 'upi',
+  details: '{"upi":{"channel":null,"upi_id":"trkrishnaja8@oksbi"}}',
+  bank_reference: '500235129815',
+  collect_id: '6776ca4014d26ebf58d2b37e',
+  order_amount: 8850,
+  merchant_id: '6692338a25ce10ce85cddac3',
+  currency: 'INR',
+  createdAt: '2025-01-02T17:17:52.240Z',
+  updatedAt: '2025-01-02T17:18:48.526Z',
+  transaction_time: '2025-01-02T17:18:48.526Z',
+  isAutoRefund: false,
+  payment_time: '2025-01-02T17:18:15.000Z',
+};

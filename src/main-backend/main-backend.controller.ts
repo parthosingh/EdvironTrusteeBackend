@@ -866,4 +866,13 @@ export class MainBackendController {
     return { success, failure };
   }
 
+  @Post('get-vendors-transactions-settlement')
+  async getVendorsTransactionsSettlement(
+    @Body() body:{
+      collect_id: string;
+    }
+  ){
+    return await this.trusteeService.vendorSettlementInfo(body.collect_id)
+  }
+
 }

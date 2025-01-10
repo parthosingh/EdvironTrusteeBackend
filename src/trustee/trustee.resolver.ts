@@ -54,13 +54,12 @@ import { TransactionInfo } from 'src/schema/transaction.info.schema';
 import { kyc_details, Vendors } from 'src/schema/vendors.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { MerchantRefundRequestRes } from 'src/merchant/merchant.resolver';
-
-
+import { Disputes } from 'src/schema/disputes.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
   REFUNDS = 'REFUNDS',
-  SETTLEMENTS = 'SETTLEMENTS'
+  SETTLEMENTS = 'SETTLEMENTS',
 }
 
 @InputType()
@@ -1558,16 +1557,16 @@ export class TrusteeResolver {
       if (!trustee) {
         throw new NotFoundException('Trustee not found');
       }
-      if(type === webhookType.PAYMENTS){
+      if (type === webhookType.PAYMENTS) {
         return await this.trusteeService.createWebhooks(trustee, webhookUrl);
-      }else if(type === webhookType.REFUNDS){
-         trustee.refund_webhook_url=webhookUrl
-         await trustee.save();
-         return 'Refund webhook created successfully'
-      }else if(type === webhookType.SETTLEMENTS){
-        trustee.settlement_webhook_url=webhookUrl
+      } else if (type === webhookType.REFUNDS) {
+        trustee.refund_webhook_url = webhookUrl;
         await trustee.save();
-        return 'Settlement webhook created successfully'
+        return 'Refund webhook created successfully';
+      } else if (type === webhookType.SETTLEMENTS) {
+        trustee.settlement_webhook_url = webhookUrl;
+        await trustee.save();
+        return 'Settlement webhook created successfully';
       }
     } catch (error) {
       throw new Error(error.message);
@@ -1595,19 +1594,18 @@ export class TrusteeResolver {
       if (!trustee) {
         throw new NotFoundException('Trustee not found');
       }
-      if(type === webhookType.PAYMENTS){
+      if (type === webhookType.PAYMENTS) {
         await this.trusteeService.deleteWebhook(trustee, webhook_id);
-        return 'Webhook deleted successfully'      
-      }else if(type === webhookType.REFUNDS){
-        trustee.refund_webhook_url=null
+        return 'Webhook deleted successfully';
+      } else if (type === webhookType.REFUNDS) {
+        trustee.refund_webhook_url = null;
         await trustee.save();
-        return 'Webhook deleted successfully'      
-      }else if(type === webhookType.SETTLEMENTS){
-        trustee.settlement_webhook_url=null
+        return 'Webhook deleted successfully';
+      } else if (type === webhookType.SETTLEMENTS) {
+        trustee.settlement_webhook_url = null;
         await trustee.save();
-        return 'Webhook deleted successfully'      
+        return 'Webhook deleted successfully';
       }
-
     } catch (error) {
       throw new Error(error.message);
     }
@@ -1616,7 +1614,7 @@ export class TrusteeResolver {
   @Query(() => [WebhookUrlType])
   @UseGuards(TrusteeGuard)
   async getWebhooks(@Context() context: any) {
-    try { 
+    try {
       const trustee = await this.trusteeModel.findById(
         new Types.ObjectId(context.req.trustee),
       );
@@ -1625,24 +1623,23 @@ export class TrusteeResolver {
         throw new NotFoundException('Trustee not found');
       }
 
-      let webhookUrls:any=trustee.webhook_urls
-      if(trustee.refund_webhook_url){
+      let webhookUrls: any = trustee.webhook_urls;
+      if (trustee.refund_webhook_url) {
         webhookUrls.push({
-          id:webhookUrls.length + 1,
-          url:trustee.refund_webhook_url,
-          type:webhookType.REFUNDS
-        })
+          id: webhookUrls.length + 1,
+          url: trustee.refund_webhook_url,
+          type: webhookType.REFUNDS,
+        });
       }
 
-      if(trustee.settlement_webhook_url){
-
+      if (trustee.settlement_webhook_url) {
         webhookUrls.push({
-          id:webhookUrls.length + 1,
-          url:trustee.settlement_webhook_url,
-          type:webhookType.SETTLEMENTS
-        })
+          id: webhookUrls.length + 1,
+          url: trustee.settlement_webhook_url,
+          type: webhookType.SETTLEMENTS,
+        });
       }
-    
+
       return webhookUrls;
     } catch (error) {
       throw new Error(error.message);
@@ -1984,7 +1981,7 @@ export class TrusteeResolver {
     const refundRequests =
       await this.merchnatService.getRefundRequest(order_id);
     console.log(refundRequests);
-    
+
     if (!refundRequests) {
       return {
         trustee_id: null,
@@ -2207,7 +2204,7 @@ export class TrusteeResolver {
     // Fetch paginated data
     const vendor_settlements = await this.vendorsSettlementModel
       .find({ trustee_id: trusteeId })
-      .sort({ createdAt: -1 }) 
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .exec();
@@ -2346,6 +2343,50 @@ export class TrusteeResolver {
       throw new BadRequestException(e.message);
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => DisputesRes)
+  async getDisputes(
+    @Context() context: any,
+    @Args('page', { type: () => Int, defaultValue: 0 }) page: number,
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
+    @Args('school_id', { type: () => String, nullable: true })
+    school_id: string,
+    @Args('collect_id', { type: () => String, nullable: true })
+    collect_id: string,
+    @Args('custom_id', { type: () => String, nullable: true })
+    custom_id: string,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate: string,
+    @Args('dispute_status', { type: () => String, nullable: true })
+    dispute_status: string,
+  ) {
+    try {
+      return this.trusteeService.getDisputes(
+        context.req.trustee,
+        page,
+        limit,
+        school_id,
+        collect_id,
+        custom_id,
+        startDate,
+        endDate,
+        dispute_status,
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+}
+
+@ObjectType()
+export class DisputesRes {
+  @Field(() => [Disputes], { nullable: true })
+  disputes: Disputes[];
+
+  @Field({ nullable: true })
+  totalCount: number;
 }
 
 @ObjectType()

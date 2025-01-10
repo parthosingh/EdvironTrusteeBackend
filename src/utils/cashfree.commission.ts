@@ -189,4 +189,23 @@ const dummy = {
   },
 };
 
+const demo = {
+  created_at: '2024-01-16T17:33:11+05:30',
+  event_time: '2025-01-08T18:10:39+05:30',
+  merchant_email: 'tarun.k+2@edviron.com',
+  merchant_id: 'CF_b830d89e-9d19-476d-9542-e984608d0254',
+  merchant_name: 'EDVIRON',
+  onboarding_status: 'Email Verified',
+  product_status: [
+    {
+      activation_status: 'ACTIVE',
+      meta_data: { transaction_access: 'full' },
+      product_full_kyc_status: 'FULL_KYC_APPROVED',
+      product_min_kyc_status: 'MIN_KYC_APPROVED',
+      product_name: 'PG',
+    },
+  ],
+  type: 'MERCHANT_ONBOARDING_STATUS',
+};
+
 export default cf_commision;

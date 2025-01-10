@@ -7,6 +7,7 @@ import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.se
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { SchoolSchema, TrusteeSchool } from 'src/schema/school.schema';
 import { Trustee, TrusteeSchema } from 'src/schema/trustee.schema';
+import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
 
 @Module({
   imports: [
@@ -27,6 +28,9 @@ import { Trustee, TrusteeSchema } from 'src/schema/trustee.schema';
       
       MongooseModule.forFeature([
         { name: Trustee.name, schema: TrusteeSchema },
+      ]),
+      MongooseModule.forFeature([
+        { name: Disputes.name, schema: DisputesSchema },
       ]),
   ],
   controllers: [WebhooksController],
