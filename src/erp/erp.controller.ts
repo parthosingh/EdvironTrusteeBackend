@@ -2153,8 +2153,14 @@ export class ErpController {
         },
         { upsert: true, new: true },
       );
-
-      return captureData;
+      const res={
+        auth_id:captureData.auth_id,
+        captured_amount:captureData.capture_amount,
+        capture_status:captureData.capture_status,
+        action:captureData.action,
+        is_captured:captureData.is_captured,
+      }
+      return res;
     } catch (e) {
       // console.log(e);
       if (e.response?.data.message) {
