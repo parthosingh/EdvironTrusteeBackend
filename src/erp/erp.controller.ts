@@ -2093,10 +2093,10 @@ export class ErpController {
       if (!school) {
         throw new BadRequestException('Invalid School Id');
       }
-      // const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-      // if (decoded.collect_id === !collect_id) {
-      //   throw new BadRequestException('Invalid Collect Id');
-      // }
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      if (decoded.collect_id === !collect_id) {
+        throw new BadRequestException('Invalid Collect Id');
+      }
       const payload = {
         collect_id,
       };
