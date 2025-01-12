@@ -2085,6 +2085,8 @@ export class ErpController {
       sign: string;
     },
   ) {
+    console.log('pp');
+    
     const { collect_id, amount, school_id, sign, capture } = body;
     try {
       const school = await this.trusteeSchoolModel.findOne({
@@ -2093,6 +2095,8 @@ export class ErpController {
       if (!school) {
         throw new BadRequestException('Invalid School Id');
       }
+      console.log(school);
+      
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       if (decoded.collect_id === !collect_id) {
         throw new BadRequestException('Invalid Collect Id');

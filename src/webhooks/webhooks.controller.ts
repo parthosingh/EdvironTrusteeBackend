@@ -18,6 +18,7 @@ import { WebhookLogs } from 'src/schema/webhook.schema';
 import axios, { AxiosError } from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { Disputes } from 'src/schema/disputes.schema';
+import { TempSettlementReport } from 'src/schema/tempSettlements.schema';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -41,6 +42,8 @@ export class WebhooksController {
     private TrusteeModel: mongoose.Model<Trustee>,
     @InjectModel(Disputes.name)
     private DisputesModel: mongoose.Model<Disputes>,
+    @InjectModel(TempSettlementReport.name)
+    private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
   ) {}
 
   demoData = {
@@ -370,6 +373,29 @@ export class WebhooksController {
       if (!webhook_urls) {
         return res.status(200).send('OK');
       }
+      const saveSettlements=await this.TempSettlementReportModel.findOneAndUpdate(
+        {utrNumber: utr},
+        {
+          $set: {
+            settlementAmount: settlement_amount,
+            adjustment: adjustment,
+            netSettlementAmount: amount_settled,
+            fromDate: new Date(payment_from),
+            tillDate: new Date(payment_till),
+            status: status,
+            utrNumber: utr,
+            settlementDate: new Date(settled_on),
+            clientId: merchant_id,
+            trustee: merchant.trustee_id,
+            schoolId: merchant.school_id,
+
+          }
+        },
+        {
+          upsert: true,
+          new: true,
+        },
+      )
 
       const config = {
         method: 'post',

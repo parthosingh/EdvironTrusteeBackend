@@ -8,6 +8,7 @@ import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { SchoolSchema, TrusteeSchool } from 'src/schema/school.schema';
 import { Trustee, TrusteeSchema } from 'src/schema/trustee.schema';
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
+import { TempSettlementReport, TempSettlementReportSchema } from 'src/schema/tempSettlements.schema';
 
 @Module({
   imports: [
@@ -31,6 +32,10 @@ import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
       ]),
       MongooseModule.forFeature([
         { name: Disputes.name, schema: DisputesSchema },
+      ]),
+
+      MongooseModule.forFeature([
+        { name: TempSettlementReport.name, schema: TempSettlementReportSchema },
       ]),
   ],
   controllers: [WebhooksController],
