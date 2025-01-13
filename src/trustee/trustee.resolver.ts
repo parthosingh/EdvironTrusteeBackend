@@ -55,6 +55,7 @@ import { kyc_details, Vendors } from 'src/schema/vendors.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { MerchantRefundRequestRes } from 'src/merchant/merchant.resolver';
 import { Disputes } from 'src/schema/disputes.schema';
+import { Reconciliation } from 'src/schema/Reconciliation.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -2378,6 +2379,41 @@ export class TrusteeResolver {
       throw new BadRequestException(e.message);
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => ReconRes)
+  async getReconcilation(
+    @Context() context: any,
+    @Args('page', { type: () => Int, defaultValue: 0 }) page: number,
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
+    @Args('school_id', { type: () => String, nullable: true })
+    school_id: string,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate: string,
+  ) {
+    const trustee_id = context.req.trustee.toString();
+    return await this.trusteeService.getReconciliation(
+      trustee_id,
+      page,
+      limit,
+      startDate,
+      endDate,
+      school_id,
+    );
+  }
+}
+
+@ObjectType()
+export class ReconRes {
+  @Field(() => [Reconciliation], { nullable: true })
+  reconciliation: Reconciliation[];
+
+  @Field({ nullable: true })
+  totalCount: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
 }
 
 @ObjectType()

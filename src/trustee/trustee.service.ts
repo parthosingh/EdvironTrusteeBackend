@@ -34,6 +34,7 @@ import { SettlementReport } from 'src/schema/settlement.schema';
 import { RefundRequest } from 'src/schema/refund.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { Disputes } from 'src/schema/disputes.schema';
+import { Reconciliation } from 'src/schema/Reconciliation.schema';
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number
@@ -74,6 +75,8 @@ export class TrusteeService {
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     @InjectModel(Disputes.name)
     private DisputesModel: mongoose.Model<Disputes>,
+    @InjectModel(Reconciliation.name)
+    private ReconciliationModel: mongoose.Model<Reconciliation>,
   ) {}
 
   async loginAndGenerateToken(
@@ -1811,10 +1814,10 @@ export class TrusteeService {
     // End of day in IST
     const endOfDayIST = new Date(targetDate.setHours(23, 59, 59, 999));
     // Convert to UTC
-    const endOfDayUTC = new Date(endOfDayIST.getTime() - 5.5 * 60 * 60 * 1000);
+    // const endOfDayUTC = new Date(endOfDayIST.getTime() - 5.5 * 60 * 60 * 1000);
     console.log({
       $gte: startOfDayIST,
-      $lt: endOfDayUTC,
+      $lt: endOfDayIST,
     });
     console.log(school_id);
 
@@ -1823,7 +1826,7 @@ export class TrusteeService {
       schoolId: new Types.ObjectId(school_id), // Match the school_id
       settlementDate: {
         $gte: startOfDayIST,
-        $lt: endOfDayUTC,
+        $lt: endOfDayIST,
       },
     });
 
@@ -1871,7 +1874,6 @@ export class TrusteeService {
       school_id,
       trustee_id,
     );
-    console.log(settlements, 'settlement');
 
     if (settlements.length <= 0) {
       throw new BadRequestException(`Settlement Not found`);
@@ -1922,13 +1924,14 @@ export class TrusteeService {
     );
 
     let refundDetails: any = [];
+    let refundSum = 0;
     refunds.forEach(async (refund: any) => {
       console.log(refund, 'refund');
 
       const refundInfo: any = await this.refundRequestModel.findOne({
         order_id: new Types.ObjectId(refund.collect_id),
       });
-
+      refundSum += refundInfo.refund_amount;
       let token = this.jwtService.sign(
         { trustee_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
@@ -1960,6 +1963,7 @@ export class TrusteeService {
 
       const info = {
         custom_id: refundInfo.custom_id,
+        refund_amount: refundInfo.refund_amount,
         isSplitRedund: refundInfo.isSplitRedund,
         createdAt: refundInfo.createdAt,
         updatedAt: refundInfo.updatedAt,
@@ -2055,20 +2059,29 @@ export class TrusteeService {
     vendorSttlementStartDate.setHours(0, 0, 0, 0);
     const vendorSttlementEndDate = new Date(latestDate);
     vendorSttlementEndDate.setHours(23, 59, 59, 999);
+    console.log('sett', {
+      $gte: vendorSttlementStartDate,
+      $lte: vendorSttlementEndDate,
+    });
 
     const vendorSettlementsInfo = await this.vendorsSettlementModel.find({
       school_id: new Types.ObjectId(school_id),
+      // trustee_id: new Types.ObjectId(trustee_id),
       settled_on: {
         $gte: vendorSttlementStartDate,
         $lte: vendorSttlementEndDate,
       },
     });
-
+    let venodrSettlementSum = 0;
+    vendorSettlementsInfo.forEach((info) => {
+      venodrSettlementSum += info.net_settlement_amount;
+    });
     const discrepancies = {
       result: { earliestDate, latestDate },
       vendorSettlementsInfo,
       vendorTransactions,
       venodrSum,
+      venodrSettlementSum,
       // toalDurationTransaction,
       settlementAmount: sumSettlement,
       toalDurationTransaction,
@@ -2077,6 +2090,25 @@ export class TrusteeService {
       extraInDurationTransactions,
       refundDetails,
     };
+
+    console.log(discrepancies);
+
+    const records = await new this.ReconciliationModel({
+      fromDate: new Date(transaction_start_date),
+      tillDate: new Date(transaction_end_date),
+      settlementDate: new Date(settlement_date),
+      settlementAmount: sumSettlement,
+      totaltransactionAmount: toalDurationTransaction,
+      merchantAdjustment: sumSettlement - toalDurationTransaction,
+      splitTransactionAmount: venodrSum,
+      splitSettlementAmount: venodrSettlementSum,
+      refundSum: refundSum,
+      extraInSettlement: extraInSettlementTransactions,
+      extraInTransaction: extraInDurationTransactions,
+      refunds: refundDetails,
+      trustee: new Types.ObjectId(trustee_id),
+      schoolId: new Types.ObjectId(school_id),
+    }).save();
 
     // console.log('Extra in allTransactions:', extraInAllTransactions);
     // console.log('Extra in durationTransactions:', extraInDurationTransactions);
@@ -2170,7 +2202,7 @@ export class TrusteeService {
       ]);
       const totalPages = Math.ceil(totalCount / limit);
 
-      console.log(disputes, totalCount, totalPages);
+      // console.log(disputes, totalCount, totalPages);
 
       return {
         disputes,
@@ -2180,6 +2212,52 @@ export class TrusteeService {
     } catch (e) {
       throw new BadRequestException(e.message);
     }
+  }
+
+  async getReconciliation(
+    trustee_id: string,
+    page: number,
+    limit: number,
+    start_date?: string,
+    end_date?: string,
+    school_id?: string,
+  ) {
+    try {
+      let query: any = {
+        trustee: new Types.ObjectId(trustee_id),
+        ...(school_id && { schoolId: new Types.ObjectId(school_id) }),
+        ...(start_date || end_date
+          ? {
+              settlementDate: {
+                ...(start_date && { $gte: new Date(start_date) }),
+                ...(end_date && {
+                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+                }),
+              },
+            }
+          : {}),
+      };
+
+      console.log(query);
+      
+      const [reconciliation, totalCount] = await Promise.all([
+        this.ReconciliationModel.find(query)
+          .sort({ settlementDate: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit),
+        this.ReconciliationModel.countDocuments(query),
+      ]);
+
+      console.log(reconciliation);
+      
+
+      const totalPages = Math.ceil(totalCount / limit);
+      return {
+        reconciliation,
+        totalCount,
+        totalPages,
+      };
+    } catch (e) {}
   }
 }
 

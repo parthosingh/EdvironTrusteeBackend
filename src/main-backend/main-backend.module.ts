@@ -19,6 +19,7 @@ import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 import { SettlementReport, SettlementSchema } from 'src/schema/settlement.schema';
 import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
+import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
 
 @Module({
   imports: [
@@ -48,6 +49,9 @@ import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
     MongooseModule.forFeature([{ name: VendorsSettlement.name, schema: VendorsSettlementSchema }]),
      MongooseModule.forFeature([
           { name: Disputes.name, schema: DisputesSchema },
+        ]),
+     MongooseModule.forFeature([
+          { name: Reconciliation.name, schema: ReconciliationSchema },
         ]),
     JwtModule.registerAsync({
       useFactory: () => ({

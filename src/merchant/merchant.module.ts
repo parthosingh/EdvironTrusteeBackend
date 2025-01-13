@@ -22,8 +22,12 @@ import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
-import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
+import {
+  VendorsSettlement,
+  VendorsSettlementSchema,
+} from 'src/schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
+import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
 
 @Module({
   imports: [
@@ -52,9 +56,12 @@ import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
       { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
     ]),
     MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
-     MongooseModule.forFeature([
-          { name: Disputes.name, schema: DisputesSchema },
-        ]),
+    MongooseModule.forFeature([
+      { name: Disputes.name, schema: DisputesSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Reconciliation.name, schema: ReconciliationSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },
@@ -79,8 +86,8 @@ import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
     MerchantResolver,
     MerchantService,
     EmailService,
-    AwsS3Service
+    AwsS3Service,
   ],
-  exports:[MerchantService]
+  exports: [MerchantService],
 })
 export class MerchantModule {}

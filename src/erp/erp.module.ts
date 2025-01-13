@@ -33,6 +33,7 @@ import {
 } from 'src/schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
 import { Capture, CaptureSchema } from 'src/schema/capture.schema';
+import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
 
 @Module({
   imports: [
@@ -62,6 +63,9 @@ import { Capture, CaptureSchema } from 'src/schema/capture.schema';
     MongooseModule.forFeature([
       { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
     ]),
+     MongooseModule.forFeature([
+          { name: Reconciliation.name, schema: ReconciliationSchema },
+        ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_API_KEY,
