@@ -306,7 +306,7 @@ export class WebhooksController {
     } catch (e) {
       console.error('Error saving webhook logs', e);
     }
-  }
+  } 
   @Post('cashfree/settlements')
   async cashfreeSettlements(@Body() body: any, @Res() res: any) {
     try {
@@ -357,7 +357,9 @@ export class WebhooksController {
         status,
         utr,
       };
-      const merchant_id = body.data.merchant.merchant_id;
+      console.log(body.merchant);
+      
+      const merchant_id = body.merchant.merchant_id;
       const merchant = await this.TrusteeSchoolmodel.findOne({
         client_id: merchant_id,
       });
@@ -370,9 +372,7 @@ export class WebhooksController {
         throw new Error('Trustee not Found');
       }
       const webhook_urls = trustee.settlement_webhook_url;
-      if (!webhook_urls) {
-        return res.status(200).send('OK');
-      }
+      
       const saveSettlements=await this.TempSettlementReportModel.findOneAndUpdate(
         {utrNumber: utr},
         {
@@ -396,7 +396,10 @@ export class WebhooksController {
           new: true,
         },
       )
-
+      console.log(saveSettlements);
+      if (!webhook_urls) {
+        return res.status(200).send('OK');
+      }
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -427,7 +430,7 @@ export class WebhooksController {
           trustee_id: merchant.trustee_id,
           school_id: merchant.school_id,
         });
-      }
+      } 
       return res.status(200).send('OK');
     } catch (e) {
       console.error('Error saving webhook logs', e);

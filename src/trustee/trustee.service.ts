@@ -1900,10 +1900,18 @@ export class TrusteeService {
         if (Array.isArray(settlements_transactions)) {
           settlements_transactions = settlements_transactions.map(
             (transaction: any) => {
+              console.log(transaction,'debug log 1');
+              
               const formattedTransaction = {
                 collect_id: transaction.order_id,
                 order_amount: transaction.order_amount,
                 event_type: transaction.event_type,
+                custom_order_id: transaction.custom_order_id,
+                student_name: transaction.student_name,
+                student_email: transaction.student_email,
+                student_phone_no: transaction.student_phone_no,
+                payment_group: transaction.payment_group,
+                payment_time: transaction.event_amount
               };
               if (transaction.event_type !== 'REFUND') {
                 settlementTransactions += transaction.order_amount;
@@ -1926,9 +1934,7 @@ export class TrusteeService {
     let refundDetails: any = [];
     let refundSum = 0;
     refunds.forEach(async (refund: any) => {
-      console.log(refund, 'refund');
-
-      const refundInfo: any = await this.refundRequestModel.findOne({
+     const refundInfo: any = await this.refundRequestModel.findOne({
         order_id: new Types.ObjectId(refund.collect_id),
       });
       refundSum += refundInfo.refund_amount;
@@ -2031,14 +2037,7 @@ export class TrusteeService {
         }
       }),
     );
-
-    console.log('Earliest Date:', earliestDate);
-    console.log('Latest Date:', latestDate);
-
-    // Now, `vendorSettlementsDate` and `vendorTransactions` should be populated as expected.
-
     // console.log('Duration Transactions:', durationTransactions);
-
     const extraInSettlementTransactions = allTransactions.filter(
       (transaction) =>
         !durationTransactions.some(
@@ -2059,10 +2058,6 @@ export class TrusteeService {
     vendorSttlementStartDate.setHours(0, 0, 0, 0);
     const vendorSttlementEndDate = new Date(latestDate);
     vendorSttlementEndDate.setHours(23, 59, 59, 999);
-    console.log('sett', {
-      $gte: vendorSttlementStartDate,
-      $lte: vendorSttlementEndDate,
-    });
 
     const vendorSettlementsInfo = await this.vendorsSettlementModel.find({
       school_id: new Types.ObjectId(school_id),
@@ -2078,37 +2073,53 @@ export class TrusteeService {
     });
     const discrepancies = {
       result: { earliestDate, latestDate },
+      durationTransactions,
+      settlements_transactions:allTransactions,
       vendorSettlementsInfo,
       vendorTransactions,
       venodrSum,
       venodrSettlementSum,
-      // toalDurationTransaction,
       settlementAmount: sumSettlement,
       toalDurationTransaction,
       diffrenceAmount: sumSettlement - toalDurationTransaction,
       extraInSettlementTransactions,
       extraInDurationTransactions,
       refundDetails,
+      
     };
 
-    console.log(discrepancies);
 
-    const records = await new this.ReconciliationModel({
-      fromDate: new Date(transaction_start_date),
-      tillDate: new Date(transaction_end_date),
-      settlementDate: new Date(settlement_date),
-      settlementAmount: sumSettlement,
-      totaltransactionAmount: toalDurationTransaction,
-      merchantAdjustment: sumSettlement - toalDurationTransaction,
-      splitTransactionAmount: venodrSum,
-      splitSettlementAmount: venodrSettlementSum,
-      refundSum: refundSum,
-      extraInSettlement: extraInSettlementTransactions,
-      extraInTransaction: extraInDurationTransactions,
-      refunds: refundDetails,
-      trustee: new Types.ObjectId(trustee_id),
-      schoolId: new Types.ObjectId(school_id),
-    }).save();
+    const schoolInfo = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+   try{
+
+     const records = await new this.ReconciliationModel({
+       fromDate: new Date(transaction_start_date),
+       tillDate: new Date(transaction_end_date),
+       settlementDate: new Date(settlement_date),
+       settlementAmount: sumSettlement,
+       totaltransactionAmount: toalDurationTransaction,
+       merchantAdjustment: sumSettlement - toalDurationTransaction,
+       splitTransactionAmount: venodrSum,
+       splitSettlementAmount: venodrSettlementSum,
+       vendors_transactions: vendorTransactions,
+       refundSum: refundSum,
+       extraInSettlement: extraInSettlementTransactions,
+       extraInTransaction: extraInDurationTransactions,
+       refunds: refundDetails,
+       trustee: new Types.ObjectId(trustee_id),
+       schoolId: new Types.ObjectId(school_id),
+       school_name: schoolInfo.school_name || 'NA',
+       settlements_transactions:allTransactions,
+       duration_transactions:durationTransactions
+     }).save();
+   }catch(e){
+    console.log(e);
+    
+   }
+
+
 
     // console.log('Extra in allTransactions:', extraInAllTransactions);
     // console.log('Extra in durationTransactions:', extraInDurationTransactions);
@@ -2238,8 +2249,7 @@ export class TrusteeService {
           : {}),
       };
 
-      console.log(query);
-      
+    
       const [reconciliation, totalCount] = await Promise.all([
         this.ReconciliationModel.find(query)
           .sort({ settlementDate: -1 })
@@ -2248,9 +2258,7 @@ export class TrusteeService {
         this.ReconciliationModel.countDocuments(query),
       ]);
 
-      console.log(reconciliation);
-      
-
+   
       const totalPages = Math.ceil(totalCount / limit);
       return {
         reconciliation,
