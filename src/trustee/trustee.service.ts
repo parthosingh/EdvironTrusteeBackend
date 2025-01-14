@@ -1936,6 +1936,10 @@ export class TrusteeService {
     );
     let durationTransactions = transactionData.transactions;
 
+    durationTransactions.map(async (transaction)=>{
+      
+    })
+
     // let refundDetails: any = [];
     let refundSum = 0;
     const refundDetails = await Promise.all(
