@@ -1893,15 +1893,12 @@ export class TrusteeService {
           1000,
           null,
         );
-        // console.log(transactions, 'transactions');
 
         let settlements_transactions = transactions.settlements_transactions;
 
         if (Array.isArray(settlements_transactions)) {
           settlements_transactions = settlements_transactions.map(
             (transaction: any) => {
-              console.log(transaction,'debug log 1');
-              
               const formattedTransaction = {
                 collect_id: transaction.order_id,
                 order_amount: transaction.order_amount,
@@ -1911,7 +1908,7 @@ export class TrusteeService {
                 student_email: transaction.student_email,
                 student_phone_no: transaction.student_phone_no,
                 payment_group: transaction.payment_group,
-                payment_time: transaction.event_amount
+                payment_time: transaction.event_amount,
               };
               if (transaction.event_type !== 'REFUND') {
                 settlementTransactions += transaction.order_amount;
@@ -1931,55 +1928,6 @@ export class TrusteeService {
       }),
     );
 
-    let refundDetails: any = [];
-    let refundSum = 0;
-    refunds.forEach(async (refund: any) => {
-     const refundInfo: any = await this.refundRequestModel.findOne({
-        order_id: new Types.ObjectId(refund.collect_id),
-      });
-      refundSum += refundInfo.refund_amount;
-      let token = this.jwtService.sign(
-        { trustee_id },
-        { secret: process.env.PAYMENTS_SERVICE_SECRET },
-      );
-
-      // const transactionDetailsConfig = {
-      //   method: 'get',
-      //   maxBodyLength: Infinity,
-      //   url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report?school_id=${school_id}`,
-      //   headers: {
-      //     accept: 'application/json',
-      //     'content-type': 'application/json',
-      //   },
-      //   data: {
-      //     trustee_id,
-      //     token,
-      //     searchParams: refund.collect_id,
-      //     isCustomSearch: true,
-      //     seachFilter: 'order_id',
-      //     // payment_modes,
-      //   },
-      // };
-      // try {
-      //   const transactionInfo = await axios.request(transactionDetailsConfig);
-      //   console.log(transactionInfo.data, 'refundinfo');
-      // } catch (e) {
-      //   console.log(e);
-      // }
-
-      const info = {
-        custom_id: refundInfo.custom_id,
-        refund_amount: refundInfo.refund_amount,
-        isSplitRedund: refundInfo.isSplitRedund,
-        createdAt: refundInfo.createdAt,
-        updatedAt: refundInfo.updatedAt,
-        order_amount: refund.order_amount,
-      };
-      refundDetails.push(info);
-    });
-
-    // console.log(refunds, 'refunds array');
-
     let transactionData = await this.fetchTransactionsInfo(
       transaction_start_date,
       transaction_end_date,
@@ -1987,6 +1935,40 @@ export class TrusteeService {
       trustee_id,
     );
     let durationTransactions = transactionData.transactions;
+
+    // let refundDetails: any = [];
+    let refundSum = 0;
+    const refundDetails = await Promise.all(
+      refunds.map(async (refund: any) => {
+        const refundInfo: any = await this.refundRequestModel.findOne({
+          order_id: new Types.ObjectId(refund.collect_id),
+        });
+        refundSum += refundInfo.refund_amount;
+    
+        const transactionData = await this.fetchTransactionInfo(refund.collect_id);
+        console.log(transactionData, 'transactionData');
+        
+        const inSettlements = durationTransactions.some(
+          (transaction) => transaction.collect_id === transactionData.collect_id,
+        );
+        console.log(refundInfo);
+    
+        return {
+          custom_id: refundInfo.custom_id,
+          collect_id: transactionData.collect_id,
+          createdAt: refundInfo.createdAt,
+          updatedAt: refundInfo.updatedAt,
+          payment_time: transactionData.transaction_time,
+          order_amount: refund.order_amount,
+          refund_amount: refundInfo.refund_amount,
+          isSplitRefund: refundInfo.isSplitRefund || false,
+          inSettlements,
+        };
+      }),
+    );
+
+    // console.log(refunds, 'refunds array');
+
     // console.log(durationTransactions, 'durationTransactions');
     let toalDurationTransaction = 0;
     let vendorTransactions: any[] = [];
@@ -2071,10 +2053,13 @@ export class TrusteeService {
     vendorSettlementsInfo.forEach((info) => {
       venodrSettlementSum += info.net_settlement_amount;
     });
+    console.log(refundDetails,'ven');
+    
     const discrepancies = {
       result: { earliestDate, latestDate },
+      utr: settlements[0].utrNumber,
       durationTransactions,
-      settlements_transactions:allTransactions,
+      settlements_transactions: allTransactions,
       vendorSettlementsInfo,
       vendorTransactions,
       venodrSum,
@@ -2085,41 +2070,36 @@ export class TrusteeService {
       extraInSettlementTransactions,
       extraInDurationTransactions,
       refundDetails,
-      
     };
-
 
     const schoolInfo = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });
-   try{
-
-     const records = await new this.ReconciliationModel({
-       fromDate: new Date(transaction_start_date),
-       tillDate: new Date(transaction_end_date),
-       settlementDate: new Date(settlement_date),
-       settlementAmount: sumSettlement,
-       totaltransactionAmount: toalDurationTransaction,
-       merchantAdjustment: sumSettlement - toalDurationTransaction,
-       splitTransactionAmount: venodrSum,
-       splitSettlementAmount: venodrSettlementSum,
-       vendors_transactions: vendorTransactions,
-       refundSum: refundSum,
-       extraInSettlement: extraInSettlementTransactions,
-       extraInTransaction: extraInDurationTransactions,
-       refunds: refundDetails,
-       trustee: new Types.ObjectId(trustee_id),
-       schoolId: new Types.ObjectId(school_id),
-       school_name: schoolInfo.school_name || 'NA',
-       settlements_transactions:allTransactions,
-       duration_transactions:durationTransactions
-     }).save();
-   }catch(e){
-    console.log(e);
-    
-   }
-
-
+    try {
+      const records = await new this.ReconciliationModel({
+        fromDate: new Date(transaction_start_date),
+        tillDate: new Date(transaction_end_date),
+        settlementDate: new Date(settlement_date),
+        settlementAmount: sumSettlement,
+        totaltransactionAmount: toalDurationTransaction,
+        merchantAdjustment: sumSettlement - toalDurationTransaction,
+        splitTransactionAmount: venodrSum,
+        splitSettlementAmount: venodrSettlementSum,
+        vendors_transactions: vendorTransactions,
+        refundSum: refundSum,
+        extraInSettlement: extraInSettlementTransactions,
+        extraInTransaction: extraInDurationTransactions,
+        refunds: refundDetails,
+        trustee: new Types.ObjectId(trustee_id),
+        schoolId: new Types.ObjectId(school_id),
+        school_name: schoolInfo.school_name || 'NA',
+        settlements_transactions: allTransactions,
+        duration_transactions: durationTransactions,
+        utrNumber: settlements[0].utrNumber,
+      }).save();
+    } catch (e) {
+      console.log(e);
+    }
 
     // console.log('Extra in allTransactions:', extraInAllTransactions);
     // console.log('Extra in durationTransactions:', extraInDurationTransactions);
@@ -2249,7 +2229,6 @@ export class TrusteeService {
           : {}),
       };
 
-    
       const [reconciliation, totalCount] = await Promise.all([
         this.ReconciliationModel.find(query)
           .sort({ settlementDate: -1 })
@@ -2258,7 +2237,6 @@ export class TrusteeService {
         this.ReconciliationModel.countDocuments(query),
       ]);
 
-   
       const totalPages = Math.ceil(totalCount / limit);
       return {
         reconciliation,
@@ -2266,6 +2244,29 @@ export class TrusteeService {
         totalPages,
       };
     } catch (e) {}
+  }
+
+  async fetchTransactionInfo(collect_id: string) {
+    let token = this.jwtService.sign(
+      { collect_request_id: collect_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    const transactionDetailsConfig = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/erp-transaction-info?collect_request_id=${collect_id}&token=${token}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+    try {
+      const transactionInfo = await axios.request(transactionDetailsConfig);
+      console.log(transactionInfo.data, 'refundinfo');
+      return transactionInfo.data[0];
+    } catch (e) {
+      console.log(e);
+    }
   }
 }
 

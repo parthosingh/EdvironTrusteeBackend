@@ -27,6 +27,44 @@ export class ReconTransactionInfo {
 }
 
 @ObjectType()
+export class ReconRefundInfo {
+  @Prop()
+  @Field(() => String, { nullable: true })
+  custom_id: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  collect_id: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  createdAt: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  updatedAt: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  payment_time: string;
+
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  order_amount: number;
+
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  refund_amount: number;
+
+  @Prop()
+  @Field(() => Boolean, { nullable: true })
+  inSettlements: boolean;
+  
+  @Field(() => Boolean, { nullable: true })
+  isSplitRefund: boolean;
+}
+
+@ObjectType()
 export class vendorTransactionReconInfo {
   @Prop()
   @Field(() => String, { nullable: true })
@@ -155,8 +193,8 @@ export class Reconciliation {
   extraInTransaction: ReconTransactionInfo[];
 
   @Prop()
-  @Field(() => [ReconTransactionInfo], { defaultValue: [] })
-  refunds: ReconTransactionInfo[];
+  @Field(() => [ReconRefundInfo], { defaultValue: [] })
+  refunds: ReconRefundInfo[];
 
   @Prop()
   @Field(() => [vendorTransactionReconInfo], { defaultValue: [] })
@@ -185,6 +223,10 @@ export class Reconciliation {
   @Field(() => String, { nullable: true })
   @Prop({ required: true, type: String })
   school_name: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop({ required: true, type: String })
+  utrNumber: string;
 }
 
 export const ReconciliationSchema =

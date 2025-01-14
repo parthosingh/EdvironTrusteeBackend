@@ -390,7 +390,7 @@ export class WebhooksController {
             schoolId: merchant.school_id,
 
           }
-        },
+        }, 
         {
           upsert: true,
           new: true,
