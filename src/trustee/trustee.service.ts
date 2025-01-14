@@ -1958,7 +1958,7 @@ export class TrusteeService {
         console.log(refundInfo);
     
         return {
-          custom_id: refundInfo.custom_id,
+          custom_order_id: refundInfo.custom_id,
           collect_id: transactionData.collect_id,
           createdAt: refundInfo.createdAt,
           updatedAt: refundInfo.updatedAt,
