@@ -1983,7 +1983,7 @@ export class TrusteeService {
     await Promise.all(
       durationTransactions.map(async (transactions: any) => {
         toalDurationTransaction += transactions.order_amount;
-
+        transactions.inSettlements = true;
         if (transactions.vendors_info && transactions.vendors_info.length > 0) {
           // Batch vendor settlement info calls
           const settlementDate = await this.vendorSettlementInfo(
@@ -2023,6 +2023,7 @@ export class TrusteeService {
         }
       }),
     );
+
     // console.log('Duration Transactions:', durationTransactions);
     const extraInSettlementTransactions = allTransactions.filter(
       (transaction) =>
@@ -2039,6 +2040,12 @@ export class TrusteeService {
             transaction.collect_id === durationTransaction.collect_id,
         ),
     );
+    
+    // Set `inSettlement` to false for matching objects
+    extraInDurationTransactions.forEach((transaction) => {
+      transaction.inSettlement = false;
+    });
+    
 
     const vendorSttlementStartDate = new Date(earliestDate);
     vendorSttlementStartDate.setHours(0, 0, 0, 0);
@@ -2058,11 +2065,13 @@ export class TrusteeService {
       venodrSettlementSum += info.net_settlement_amount;
     });
     console.log(refundDetails,'ven');
+    console.log({  duration_transactions: durationTransactions,});
+    
     
     const discrepancies = {
       result: { earliestDate, latestDate },
       utr: settlements[0].utrNumber,
-      durationTransactions,
+      duration_transactions: durationTransactions,
       settlements_transactions: allTransactions,
       vendorSettlementsInfo,
       vendorTransactions,
@@ -2081,6 +2090,7 @@ export class TrusteeService {
     });
     try {
       const records = await new this.ReconciliationModel({
+      
         fromDate: new Date(transaction_start_date),
         tillDate: new Date(transaction_end_date),
         settlementDate: new Date(settlement_date),
@@ -2098,7 +2108,6 @@ export class TrusteeService {
         schoolId: new Types.ObjectId(school_id),
         school_name: schoolInfo.school_name || 'NA',
         settlements_transactions: allTransactions,
-        duration_transactions: durationTransactions,
         utrNumber: settlements[0].utrNumber,
       }).save();
     } catch (e) {

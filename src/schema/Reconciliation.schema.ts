@@ -24,6 +24,9 @@ export class ReconTransactionInfo {
   @Prop()
   @Field(() => Number, { nullable: true })
   order_amount: number;
+  @Prop()
+  @Field(() => Boolean, { nullable: true })
+  inSettlements: boolean;
 }
 
 @ObjectType()
@@ -171,6 +174,7 @@ export class DurationTransactions {
   @Prop()
   @Field(() => [VendorSplit], { nullable: true })
   vendors_info: VendorSplit[];
+
 }
 
 @ObjectType()
