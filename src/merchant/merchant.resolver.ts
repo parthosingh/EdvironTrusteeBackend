@@ -43,6 +43,7 @@ import { TransactionInfo } from 'src/schema/transaction.info.schema';
 import { TrusteeService } from 'src/trustee/trustee.service';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
+import { EmailService } from 'src/email/email.service';
 
 @InputType()
 export class SplitRefundDetails {
@@ -69,6 +70,7 @@ export class MerchantResolver {
     private readonly trusteeService: TrusteeService,
     @InjectModel(VendorsSettlement.name)
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
+    private emailService: EmailService,
   ) {}
 
   @Mutation(() => Boolean)
@@ -795,7 +797,7 @@ export class MerchantResolver {
       gateway = 'EDVIRON_CASHFREE';
     }
 
-    await new this.refundRequestModel({
+    const refund = await new this.refundRequestModel({
       trustee_id: school.trustee_id,
       school_id: school_id,
       order_id: new Types.ObjectId(order_id),
@@ -806,6 +808,12 @@ export class MerchantResolver {
       gateway: gateway || null,
       custom_id: custom_id,
     }).save();
+
+    // await this.emailService.sendRefundInitiatedAlert(
+    //   school.school_name,
+    //   refund._id.toString(),
+    //   refund_amount,
+    // );
 
     return `Refund Request Created`;
   }

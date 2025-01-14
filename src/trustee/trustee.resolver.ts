@@ -3096,6 +3096,8 @@ class TransactionReport {
   @Field({ nullable: true })
   isAutoRefund: boolean;
   @Field({ nullable: true })
+  isQRPayment: boolean;
+  @Field({ nullable: true })
   commission: number;
   @Field({ nullable: true })
   custom_order_id?: string;

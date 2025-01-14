@@ -50,7 +50,7 @@ export class VendorSplit{
 export class ReconRefundInfo {
   @Prop()
   @Field(() => String, { nullable: true })
-  custom_id: string;
+  custom_order_id: string;
 
   @Prop()
   @Field(() => String, { nullable: true })
