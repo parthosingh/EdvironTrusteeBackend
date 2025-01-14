@@ -27,6 +27,26 @@ export class ReconTransactionInfo {
 }
 
 @ObjectType()
+export class VendorSplit{
+  @Prop()
+  @Field(() => String, { nullable: true })
+  vendor_id: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  vendor_name: string;
+
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  amount: number;
+
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  percentage: number;
+
+}
+
+@ObjectType()
 export class ReconRefundInfo {
   @Prop()
   @Field(() => String, { nullable: true })
@@ -59,7 +79,7 @@ export class ReconRefundInfo {
   @Prop()
   @Field(() => Boolean, { nullable: true })
   inSettlements: boolean;
-  
+
   @Field(() => Boolean, { nullable: true })
   isSplitRefund: boolean;
 }
@@ -147,6 +167,10 @@ export class DurationTransactions {
   @Prop()
   @Field(() => String, { nullable: true })
   updatedAt: string;
+
+  @Prop()
+  @Field(() => [VendorSplit], { nullable: true })
+  vendors_info: VendorSplit[];
 }
 
 @ObjectType()

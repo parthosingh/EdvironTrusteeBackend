@@ -58,4 +58,37 @@ export class EmailService {
     console.log('mail sent', { email_id, subject });
     return true;
   }
+
+  // async sendRefundInitiatedAlert() {
+  //   const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com']; // List of primary recipients
+  //   const ccRecipients = ['cc1@example.com', 'cc2@example.com']; // List of CC recipients
+  
+  //   const htmlToSend = `
+  //     Refund has been initiated.
+  //   `;
+  
+  //   const mailOptions = {
+  //     from: process.env.EMAIL_USER, // Sender email
+  //     to: emailRecipients.join(','), // Join multiple recipients with commas
+  //     cc: ccRecipients.join(','), // Join multiple CC recipients with commas
+  //     subject: 'Refund',
+  //     html: htmlToSend,
+  //   };
+  
+  //   try {
+  //     const transporter = nodemailer.createTransport({
+  //       service: 'Gmail', // or your preferred email service
+  //       auth: {
+  //         user: process.env.EMAIL_USER, // Email address of the sender
+  //         pass: process.env.EMAIL_PASS, // Email password or app-specific password
+  //       },
+  //     });
+  
+  //     const info = await transporter.sendMail(mailOptions);
+  //     console.log('Email sent successfully:', info.messageId);
+  //   } catch (error) {
+  //     console.error('Error sending email:', error);
+  //   }
+  // }
+  
 }
