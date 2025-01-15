@@ -28,6 +28,7 @@ async function bootstrap() {
     'https://merchant.edviron.com',
     'https://sandbox.partner.edviron.com',
     'https://dev.merchant.edviron.com',
+    'https://qa.partner.edviron.com'
   ];
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));

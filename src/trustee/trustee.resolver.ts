@@ -412,6 +412,8 @@ export class TrusteeResolver {
     @Args('limit', { nullable: true, defaultValue: '500' }) limit?: string,
     @Args('isCustomSearch', { nullable: true, defaultValue: null })
     isCustomSearch?: boolean,
+    @Args('isQRCode', { nullable: true, defaultValue: null })
+    isQRCode?: boolean,
     @Args('searchFilter', { nullable: true, defaultValue: null })
     searchFilter?: string,
     @Args('searchParams', { nullable: true, defaultValue: null })
@@ -472,7 +474,7 @@ export class TrusteeResolver {
         '0',
       ); // Add leading zero if needed
       const formattedLastDay = `${lastYear}-${lastMonth}-${lastDayOfMonth}`;
-      console.log(formattedLastDay, 'Last Day');
+     
 
       const first = startDate || formattedFirstDay;
       const last = endDate || formattedLastDay;
@@ -507,15 +509,13 @@ export class TrusteeResolver {
           isCustomSearch,
           seachFilter: searchFilter,
           payment_modes,
+          isQRCode
         },
       };
-      console.log(config);
-
+     
       console.time('fetching all transaction');
 
       const response = await axios.request(config);
-
-      console.log(response.data, 'data');
       let transactionLimit = Number(limit) || 100;
       let transactionPage = Number(page) || 1;
       let total_pages = response.data.totalTransactions / transactionLimit;

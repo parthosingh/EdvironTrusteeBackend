@@ -539,6 +539,8 @@ export class WebhooksController {
         status: 'SUCCESS',
       }).save();
 
+      // const 
+
       res.status(200).send('OK');
     } catch (e) {
       console.log(e);
@@ -579,6 +581,7 @@ export class WebhooksController {
     const details = JSON.stringify(body);
     const webhooklogs = await new this.webhooksLogsModel({
       body: details,
+      
     }).save();
     try {
       const {

@@ -2021,7 +2021,7 @@ export class TrusteeService {
             });
           }
         }
-      }),
+      }), 
     );
 
     // console.log('Duration Transactions:', durationTransactions);
