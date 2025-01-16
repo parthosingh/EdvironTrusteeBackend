@@ -1657,32 +1657,55 @@ export class TrusteeService {
     return transactions;
   }
 
-  async getAllVendorTransactions(
-    trustee_id: string,
-    page: number,
-    limit: number,
-  ) {
-    const token = this.jwtService.sign(
-      { validate_trustee: trustee_id },
-      { secret: process.env.PAYMENTS_SERVICE_SECRET },
-    );
+  
 
-    const data = {};
-    const config = {
-      method: 'get',
-      maxBodyLength: Infinity,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&trustee_id=${trustee_id}&page=${page}&limit=${limit}`,
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-      },
-    };
+ async getAllVendorTransactions(
+  trustee_id: string,
+  page: number,
+  limit: number,
+  status?:string,
+  vendor_id?: string,
+  school_id?:string,
+  start_date?:string,
+  end_date?:string,
+  custom_id?:string,
+  order_id?:string,   
+) {
+  const token = this.jwtService.sign(
+    { validate_trustee: trustee_id },
+    { secret: process.env.PAYMENTS_SERVICE_SECRET },
+  );
 
-    const { data: transactions } = await axios.request(config);
-    console.log(transactions);
+  const data = {
+    trustee_id: trustee_id,
+    token: token,
+    page: page,
+    limit: limit,
+    status:status,
+    vendor_id:vendor_id,
+    school_id:school_id,
+    start_date:start_date,
+    end_date:end_date,
+    custom_id: custom_id,
+    collect_id: order_id,
 
-    return transactions;
-  }
+  };
+  const config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&trustee_id=${trustee_id}&page=${page}&limit=${limit}`,
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    data: data,
+  };
+  const { data: transactions } = await axios.request(config);
+  console.log(transactions);
+
+  return transactions;
+}
+
 
   async getMerchantVendorTransactions(
     trustee_id: string,

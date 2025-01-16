@@ -474,7 +474,6 @@ export class TrusteeResolver {
         '0',
       ); // Add leading zero if needed
       const formattedLastDay = `${lastYear}-${lastMonth}-${lastDayOfMonth}`;
-     
 
       const first = startDate || formattedFirstDay;
       const last = endDate || formattedLastDay;
@@ -509,10 +508,10 @@ export class TrusteeResolver {
           isCustomSearch,
           seachFilter: searchFilter,
           payment_modes,
-          isQRCode
+          isQRCode,
         },
       };
-     
+
       console.time('fetching all transaction');
 
       const response = await axios.request(config);
@@ -2177,12 +2176,25 @@ export class TrusteeResolver {
     @Args('status', { type: () => String, nullable: true }) status?: string,
     @Args('vendor_id', { type: () => String, nullable: true })
     vendor_id?: string,
+    @Args('school_id', { type: () => String, nullable: true })
+    school_id?: string,
+    @Args('custom_id', { type: () => String, nullable: true })
+    custom_id?: string,
+    @Args('order_id', { type: () => String, nullable: true })
+    order_id?: string,
   ) {
     const trustee_id = context.req.trustee;
     const transactions = this.trusteeService.getAllVendorTransactions(
       trustee_id.toString(),
       page,
       limit,
+      status,
+      vendor_id,
+      school_id,
+      startDate,
+      endDate,
+      custom_id,
+      order_id,
     );
     return transactions;
   }
@@ -2193,18 +2205,41 @@ export class TrusteeResolver {
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
     @Context() context: any,
+    @Args('start_date', { type: () => String, nullable: true })
+    start_date?: string,
+    @Args('end_date', { type: () => String, nullable: true }) end_date?: string,
+    @Args('utr', { type: () => String, nullable: true })
+    utr?: string,
+    @Args('school_id', { type: () => String, nullable: true })
+    school_id?: string,
+    @Args('vendor_id', { type: () => String, nullable: true })
+    vendor_id?: string,
   ) {
     const trusteeId = context.req.trustee;
-    const totalCount = await this.vendorsSettlementModel.countDocuments({
-      trustee_id: trusteeId,
-    });
 
+    let schoolId = new Types.ObjectId(school_id);
+
+    const query = {
+      trustee_id: trusteeId,
+      ...(school_id && { school_id: schoolId }),
+      ...(vendor_id && { vendor_id: new Types.ObjectId(vendor_id) }),
+      ...(utr && { utr: utr }),
+      ...(start_date &&
+        end_date && {
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
+    };
+
+    const totalCount = await this.vendorsSettlementModel.countDocuments(query);
     // Calculate total pages
     const totalPages = Math.ceil(totalCount / limit);
 
     // Fetch paginated data
     const vendor_settlements = await this.vendorsSettlementModel
-      .find({ trustee_id: trusteeId })
+      .find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
