@@ -80,7 +80,7 @@ export class EmailService {
     const mailOptions = {
       from: process.env.EMAIL_USER, // Sender email
       to: emailRecipients.join(','), // Join multiple recipients with commas
-      cc: ccRecipients.join(','), // Join multiple CC recipients with commas
+      // cc: ccRecipients.join(','), // Join multiple CC recipients with commas
       subject: 'Refund Initiated',
       html: htmlToSend,
     };
@@ -92,4 +92,87 @@ export class EmailService {
       console.error('Error sending email:', error);
     }
   }
+
+  async errorAlert(error: string) {
+    const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
+    const htmlToSend = `
+    <html>
+      <body>
+      <p>
+        Error in Generating payments in Payment API's 
+      </p>
+      <p> Error msg : ${error}</p>
+  </body>
+  </html>
+  `;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER, // Sender email
+      to: emailRecipients.join(','), // Join multiple recipients with commas
+      // cc: ccRecipients.join(','), // Join multiple CC recipients with commas
+      subject: 'Refund Initiated',
+      html: htmlToSend,
+    };
+    try {
+      await this.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  }
+
+  tt = {
+    customer_details: {
+      customer_email: null,
+      customer_id: '7112AAA812234',
+      customer_name: null,
+      customer_phone: '9898989898',
+    },
+    error_details: {
+      error_code: 'TECHNICAL_FAILURE',
+      error_code_raw: null,
+      error_description:
+        "Authentication could not be completed by customer's bank due to technical issue. Request customer to attempt again.",
+      error_description_raw: null,
+      error_reason: 'authentication_failed',
+      error_source: 'issuer bank/scheme',
+    },
+    order: {
+      order_amount: 150,
+      order_currency: 'INR',
+      order_id: '678a17af40e0a39139677805',
+      order_tags: null,
+    },
+    payment: {
+      auth_id: null,
+      bank_reference: null,
+      cf_payment_id: 3419040617,
+      payment_amount: 150.9,
+      payment_currency: 'INR',
+      payment_group: 'debit_card',
+      payment_message: '!ERROR!-FSS0001-Authentication Not Available.',
+      payment_method: {
+        card: {
+          card_bank_name: 'STATE BANK OF INDIA',
+          card_country: 'IN',
+          card_network: 'visa',
+          card_number: 'XXXXXXXXXXXX1757',
+          card_sub_type: 'R',
+          card_type: 'debit_card',
+          channel: null,
+        },
+      },
+      payment_status: 'FAILED',
+      payment_time: '2025-01-17T14:14:13+05:30',
+    },
+    payment_gateway_details: {
+      gateway_name: 'CASHFREE',
+      gateway_order_id: '3688046163',
+      gateway_order_reference_id: 'null',
+      gateway_payment_id: '3419040617',
+      gateway_settlement: null,
+      gateway_status_code: null,
+    },
+    payment_offers: null,
+  };
 }

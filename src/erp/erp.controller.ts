@@ -498,8 +498,9 @@ export class ErpController {
       console.log(error);
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
-      if (error?.response?.data?.message)
-        throw new ConflictException(error.response.data.message);
+      if (error?.response?.data?.message){
+        
+        throw new ConflictException(error.response.data.message);}
       console.log('error in create collect request', error);
       throw error;
     }

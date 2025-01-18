@@ -809,11 +809,11 @@ export class MerchantResolver {
       custom_id: custom_id,
     }).save();
 
-    // await this.emailService.sendRefundInitiatedAlert(
-    //   school.school_name,
-    //   refund._id.toString(),
-    //   refund_amount,
-    // );
+    await this.emailService.sendRefundInitiatedAlert(
+      school.school_name,
+      refund._id.toString(),
+      refund_amount,
+    );
 
     return `Refund Request Created`;
   }
