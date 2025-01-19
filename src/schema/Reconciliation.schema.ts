@@ -30,7 +30,7 @@ export class ReconTransactionInfo {
 }
 
 @ObjectType()
-export class VendorSplit{
+export class VendorSplit {
   @Prop()
   @Field(() => String, { nullable: true })
   vendor_id: string;
@@ -46,7 +46,29 @@ export class VendorSplit{
   @Prop()
   @Field(() => Number, { nullable: true })
   percentage: number;
+}
 
+@ObjectType()
+export class otherAdjustments {
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  event_amount: number;
+
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  event_settlement_amount: number;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  event_time: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  settlement_utr: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  adjustment_remarks: string;
 }
 
 @ObjectType()
@@ -174,7 +196,6 @@ export class DurationTransactions {
   @Prop()
   @Field(() => [VendorSplit], { nullable: true })
   vendors_info: VendorSplit[];
-
 }
 
 @ObjectType()
@@ -195,6 +216,10 @@ export class Reconciliation {
   @Prop({ required: true, type: Number })
   @Field(() => Number)
   totaltransactionAmount: number;
+
+  @Prop({ required: true, type: Number })
+  @Field(() => Number)
+  merchantOtherAdjustment: number;
 
   @Prop({ required: true, type: Number })
   @Field(() => Number)
@@ -235,6 +260,10 @@ export class Reconciliation {
   @Prop()
   @Field(() => [DurationTransactions], { defaultValue: [] })
   duration_transactions: DurationTransactions[];
+
+  @Prop()
+  @Field(() => [otherAdjustments], { defaultValue: [] })
+  other_adjustments: otherAdjustments[];
 
   @Prop({ required: true, type: Date })
   @Field(() => Date)
