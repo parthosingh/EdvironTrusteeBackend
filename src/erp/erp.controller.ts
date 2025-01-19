@@ -305,14 +305,13 @@ export class ErpController {
                 vendor.vendor_id,
             );
           }
-          if (vendor.amount > 0 && vendor.amount) {
-            const updatedVendor = {
-              ...vendor,
-              name: vendors_data.name,
-            };
-            updatedVendorsInfo.push(updatedVendor);
-          }
-          // Check if both amount and percentage are used
+          const updatedVendor = {
+            ...vendor,
+            name: vendors_data.name,
+          };
+          updatedVendorsInfo.push(updatedVendor);
+
+          // Check if both amount and percentage are used 
           const hasAmount = typeof vendor.amount === 'number';
           const hasPercentage = typeof vendor.percentage === 'number';
           if (hasAmount && hasPercentage) {
