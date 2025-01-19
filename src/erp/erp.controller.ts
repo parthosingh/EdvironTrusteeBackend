@@ -298,7 +298,6 @@ export class ErpController {
               'Invalid vendor id for ' + vendor.vendor_id,
             );
           }
-          console.log(vendors_data, 'venodr');
 
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
@@ -306,11 +305,13 @@ export class ErpController {
                 vendor.vendor_id,
             );
           }
-          const updatedVendor = {
-            ...vendor,
-            name: vendors_data.name,
-          };
-          updatedVendorsInfo.push(updatedVendor);
+          if (vendor.amount > 0 && vendor.amount) {
+            const updatedVendor = {
+              ...vendor,
+              name: vendors_data.name,
+            };
+            updatedVendorsInfo.push(updatedVendor);
+          }
           // Check if both amount and percentage are used
           const hasAmount = typeof vendor.amount === 'number';
           const hasPercentage = typeof vendor.percentage === 'number';
@@ -382,8 +383,6 @@ export class ErpController {
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-      console.log(decoded);
-
       if (
         decoded.amount != amount ||
         decoded.callback_url != callback_url ||
@@ -498,9 +497,9 @@ export class ErpController {
       console.log(error);
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
-      if (error?.response?.data?.message){
-        
-        throw new ConflictException(error.response.data.message);}
+      if (error?.response?.data?.message) {
+        throw new ConflictException(error.response.data.message);
+      }
       console.log('error in create collect request', error);
       throw error;
     }
@@ -2087,7 +2086,7 @@ export class ErpController {
     },
   ) {
     console.log('pp');
-    
+
     const { collect_id, amount, school_id, sign, capture } = body;
     try {
       const school = await this.trusteeSchoolModel.findOne({
@@ -2097,7 +2096,7 @@ export class ErpController {
         throw new BadRequestException('Invalid School Id');
       }
       console.log(school);
-      
+
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       if (decoded.collect_id === !collect_id) {
         throw new BadRequestException('Invalid Collect Id');
@@ -2158,20 +2157,22 @@ export class ErpController {
         },
         { upsert: true, new: true },
       );
-      const res={
-        auth_id:captureData.auth_id,
-        captured_amount:captureData.capture_amount,
-        capture_status:captureData.capture_status,
-        action:captureData.action,
-        is_captured:captureData.is_captured,
-      }
+      const res = {
+        auth_id: captureData.auth_id,
+        captured_amount: captureData.capture_amount,
+        capture_status: captureData.capture_status,
+        action: captureData.action,
+        is_captured: captureData.is_captured,
+      };
       return res;
     } catch (e) {
       // console.log(e);
       if (e.response?.data.message) {
         console.log(e.response.data);
-        if(e.response.data.message.startsWith("Capture/Void")){
-          throw new BadRequestException("Capture/Void not enabled for your merchant account");
+        if (e.response.data.message.startsWith('Capture/Void')) {
+          throw new BadRequestException(
+            'Capture/Void not enabled for your merchant account',
+          );
         }
         throw new BadRequestException(e.response.data.message);
       }
