@@ -233,10 +233,11 @@ export class ErpController {
       let PaymnetWebhookUrl: any = req_webhook_urls;
       if (req_webhook_urls && !Array.isArray(req_webhook_urls)) {
         const decodeWebhookUrl = decodeURIComponent(req.body.req_webhook_urls);
-        PaymnetWebhookUrl = JSON.parse(decodeWebhookUrl);
+        console.log(decodeWebhookUrl);
+        PaymnetWebhookUrl = decodeWebhookUrl
       }
       let splitPay = split_payments;
-      if (!school_id) {
+      if (!school_id) { 
         throw new BadRequestException('School id is required');
       }
       if (!amount) {
