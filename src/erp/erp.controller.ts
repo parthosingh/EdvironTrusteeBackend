@@ -234,7 +234,7 @@ export class ErpController {
       if (req_webhook_urls && !Array.isArray(req_webhook_urls)) {
         const decodeWebhookUrl = decodeURIComponent(req.body.req_webhook_urls);
         console.log(decodeWebhookUrl);
-        PaymnetWebhookUrl = decodeWebhookUrl
+        PaymnetWebhookUrl = JSON.parse(decodeWebhookUrl);
       }
       let splitPay = split_payments;
       if (!school_id) { 
