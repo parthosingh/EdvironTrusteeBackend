@@ -50,6 +50,7 @@
     "nodemailer": "^6.9.9",
     "puppeteer": "^23.1.0",
     "qrcode": "^1.5.4",
+    "qs": "^6.14.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   },

@@ -33,7 +33,7 @@ import QRCode from 'qrcode';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { Capture } from 'src/schema/capture.schema';
 // import cf_commision from 'src/utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
-
+import * as qs from 'qs';
 @Controller('erp')
 export class ErpController {
   constructor(
@@ -230,7 +230,11 @@ export class ErpController {
         split_payments,
         vendors_info,
       } = body;
-
+      let PaymnetWebhookUrl: any = req_webhook_urls;
+      if (!Array.isArray(req_webhook_urls)) {
+        const decodeWebhookUrl = decodeURIComponent(req.body.req_webhook_urls);
+        PaymnetWebhookUrl = JSON.parse(decodeWebhookUrl);
+      }
       let splitPay = split_payments;
       if (!school_id) {
         throw new BadRequestException('School id is required');
@@ -267,6 +271,13 @@ export class ErpController {
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
       }
+      let PGVendorInfo: any = vendors_info;
+      if (split_payments && vendors_info && !Array.isArray(vendors_info)) {
+        const decoded_vendor_info = decodeURIComponent(req.body.vendors_info);
+        PGVendorInfo = JSON.parse(decoded_vendor_info);
+        console.log(PGVendorInfo, 'v');
+        console.log(typeof PGVendorInfo);
+      }
 
       if (split_payments && !vendors_info) {
         throw new BadRequestException(
@@ -278,17 +289,18 @@ export class ErpController {
         throw new BadRequestException('At least one vendor is required');
       }
       const updatedVendorsInfo = [];
-      if (vendors_info && vendors_info.length > 0) {
+      if (PGVendorInfo && PGVendorInfo.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
         let splitMethod = null;
         let totalAmount = 0;
         let totalPercentage = 0;
-        for (const vendor of vendors_info) {
+        for (const vendor of PGVendorInfo) {
+          console.log(vendor, 'vendor');
+
           // Check if vendor_id is present
           if (!vendor.vendor_id) {
             throw new BadRequestException('Vendor ID is required');
           }
-
           const vendors_data = await this.trusteeService.getVenodrInfo(
             vendor.vendor_id,
             school_id,
@@ -311,7 +323,7 @@ export class ErpController {
           };
           updatedVendorsInfo.push(updatedVendor);
 
-          // Check if both amount and percentage are used 
+          // Check if both amount and percentage are used
           const hasAmount = typeof vendor.amount === 'number';
           const hasPercentage = typeof vendor.percentage === 'number';
           if (hasAmount && hasPercentage) {
@@ -392,19 +404,19 @@ export class ErpController {
 
       const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
       const trustee = await this.trusteeModel.findById(trusteeObjId);
-      let webHookUrl = req_webhook_urls?.length;
+      let webHookUrl = PaymnetWebhookUrl?.length;
       // if (trustee.webhook_urls.length || req_webhook_urls?.length) {
       //   webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
       // }
 
       let all_webhooks: string[] = [];
-      if (trustee.webhook_urls.length || req_webhook_urls?.length) {
+      if (trustee.webhook_urls.length || PaymnetWebhookUrl?.length) {
         const trusteeUrls = trustee.webhook_urls.map((item) => item.url);
-        all_webhooks = [...(req_webhook_urls || []), ...trusteeUrls];
+        all_webhooks = [...(PaymnetWebhookUrl || []), ...trusteeUrls];
       }
 
       if (trustee.webhook_urls.length === 0) {
-        all_webhooks = req_webhook_urls || [];
+        all_webhooks = PaymnetWebhookUrl || [];
       }
 
       const additionalInfo = {
