@@ -231,7 +231,7 @@ export class ErpController {
         vendors_info,
       } = body;
       let PaymnetWebhookUrl: any = req_webhook_urls;
-      if (!Array.isArray(req_webhook_urls)) {
+      if (req_webhook_urls && !Array.isArray(req_webhook_urls)) {
         const decodeWebhookUrl = decodeURIComponent(req.body.req_webhook_urls);
         PaymnetWebhookUrl = JSON.parse(decodeWebhookUrl);
       }
