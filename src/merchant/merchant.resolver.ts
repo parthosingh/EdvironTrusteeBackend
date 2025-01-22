@@ -30,6 +30,7 @@ import { MerchantService } from './merchant.service';
 import {
   AuthResponse,
   resetPassResponse,
+  TransactionReportResponsePaginated,
   VendorInfoInput,
   VendorsPaginationResponse,
   VendorsSettlementReportPaginatedResponse,
@@ -122,7 +123,10 @@ export class MerchantResolver {
         user: userMerchant.user,
         trustee_id: userMerchant.trustee_id,
         trustee_logo: userMerchant.trustee_logo,
+        school_id: userMerchant.school_id,
       };
+      console.log(user,'userrr');
+      
       return user;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -177,92 +181,196 @@ export class MerchantResolver {
     return settlementReports;
   }
 
-  @Query(() => [MerchantTransactionReport])
+  @Query(() => TransactionReportResponsePaginated)
   @UseGuards(MerchantGuard)
-  async getMerchantTransactionReport(@Context() context) {
+  async getMerchantTransactionReport(
+    @Context() context,
+    @Args('startDate', { nullable: true }) startDate?: string,
+    @Args('endDate', { nullable: true }) endDate?: string,
+    @Args('status', { nullable: true, defaultValue: null }) status?: string,
+    @Args('page', { nullable: true, defaultValue: '1' }) page?: string,
+    @Args('limit', { nullable: true, defaultValue: '500' }) limit?: string,
+    @Args('isCustomSearch', { nullable: true, defaultValue: null })
+    isCustomSearch?: boolean,
+    @Args('isQRCode', { nullable: true, defaultValue: null })
+    isQRCode?: boolean,
+    @Args('searchFilter', { nullable: true, defaultValue: null })
+    searchFilter?: string,
+    @Args('searchParams', { nullable: true, defaultValue: null })
+    searchParams?: string,
+    @Args('payment_modes', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    payment_modes?: string[],
+  ) {
     try {
       const merchant = await this.trusteeSchoolModel.findById(
         context.req.merchant,
       );
-
-      const school_id = merchant?.school_id;
-
+      if (!merchant) throw new NotFoundException('User not found');
+      const school_id=merchant.school_id.toString();
+      console.log(school_id);
+      if (searchFilter === 'order_id') {
+        const checkId = mongoose.Types.ObjectId.isValid(searchParams);
+        if (!checkId) throw new BadRequestException('Invalid order id');
+      }
+      let id = context.req.trustee;
+      console.time('mapping merchant transaction');
+      const merchants = await this.trusteeSchoolModel.find({
+        trustee_id: id,
+      });
       let transactionReport = [];
 
-      if (!school_id) return transactionReport;
+      const now = new Date();
 
-      if (!merchant) throw new NotFoundException('Merchant not found');
+      // First day of the month
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const firstLocalDate = firstDay.toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata',
+      });
+      const firstLocalDateObject = new Date(firstLocalDate);
+      const firstYear = firstLocalDateObject.getFullYear();
+      const firstMonth = String(firstLocalDateObject.getMonth() + 1).padStart(
+        2,
+        '0',
+      ); // Month is zero-based
+      const firstDayOfMonth = String(firstLocalDateObject.getDate()).padStart(
+        2,
+        '0',
+      ); // Add leading zero if needed
+      const formattedFirstDay = `${firstYear}-${firstMonth}-${firstDayOfMonth}`;
+      console.log(formattedFirstDay, 'First Day');
 
-      console.log(`Getting report for ${merchant.merchantName}(${school_id})`);
+      // Last day of the month
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day is 0th of next month
+      const lastLocalDate = lastDay.toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata',
+      });
+      const lastLocalDateObject = new Date(lastLocalDate);
+      const lastYear = lastLocalDateObject.getFullYear();
+      const lastMonth = String(lastLocalDateObject.getMonth() + 1).padStart(
+        2,
+        '0',
+      ); // Month is zero-based
+      const lastDayOfMonth = String(lastLocalDateObject.getDate()).padStart(
+        2,
+        '0',
+      ); // Add leading zero if needed
+      const formattedLastDay = `${lastYear}-${lastMonth}-${lastDayOfMonth}`;
 
-      const token = this.jwtService.sign(
-        { school_id },
+      const first = startDate || formattedFirstDay;
+      const last = endDate || formattedLastDay;
+
+      if (!endDate) {
+        const now = new Date();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endDate = lastDay.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+      }
+
+      // const merchant_ids_to_merchant_map = {};
+      // merchants.map((merchant: any) => {
+      //   merchant_ids_to_merchant_map[merchant.school_id] = merchant;
+      // });
+      console.timeEnd('mapping merchant transaction');
+      let token = this.jwtService.sign(
+        { trustee_id: merchant.trustee_id.toString() },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
-
-      const config = {
+      let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transactions-report?limit=50000`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
         },
-        data: { school_id: school_id, token },
+        data: {
+          trustee_id: merchant.trustee_id.toString(),
+          token,
+          searchParams,
+          isCustomSearch,
+          seachFilter: searchFilter,
+          payment_modes,
+          isQRCode,
+        },
       };
 
+      console.time('fetching all transaction');
+      console.log(config,'opopo');
+      
       const response = await axios.request(config);
+    
+      
+      let transactionLimit = Number(limit) || 100;
+      let transactionPage = Number(page) || 1;
+      let total_pages = response.data.totalTransactions / transactionLimit;
 
-      if (
-        response.data.length == 0 &&
-        response.data == 'No orders found for clientId'
-      ) {
-        console.log('No transactions for merchant');
+      console.timeEnd('fetching all transaction');
 
-        return transactionReport;
-      }
+      console.time('mapping');
 
-      transactionReport = [...response.data.transactions];
-
-      transactionReport = response.data.transactions.map(
-        async (transaction) => {
-          // Parse additional_data from the transaction
+      transactionReport = await Promise.all(
+        response.data.transactions.map(async (item: any) => {
           let remark = null;
-          remark = await this.trusteeService.getRemarks(transaction.collect_id);
-          if (remark) {
-            transaction.remarks = remark.remarks;
-          }
-          let additionalData: AdditionalData = {};
-          if (transaction.additional_data) {
-            additionalData = JSON.parse(transaction.additional_data);
-          }
 
-          transaction.student_id =
-            additionalData?.student_details?.student_id || '';
-          transaction.student_name =
-            additionalData?.student_details?.student_name || '';
-          transaction.student_email =
-            additionalData?.student_details?.student_email || '';
-          transaction.student_phone =
-            additionalData?.student_details?.student_phone_no || '';
-          transaction.receipt = additionalData?.student_details?.receipt || '';
-          transaction.additional_data = additionalData?.additional_fields || '';
-          transaction.school_id = school_id || '';
-          transaction.school_name = merchant?.school_name || '';
-
-          return transaction;
-        },
+          return {
+            ...item,
+            merchant_name:
+              merchant.school_name,
+            student_id:
+              JSON.parse(item?.additional_data).student_details?.student_id ||
+              '',
+            student_name:
+              JSON.parse(item?.additional_data).student_details?.student_name ||
+              '',
+            student_email:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_email || '',
+            student_phone:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_phone_no || '',
+            receipt:
+              JSON.parse(item?.additional_data).student_details?.receipt || '',
+            additional_data:
+              JSON.parse(item?.additional_data).additional_fields || '',
+            currency: 'INR',
+            school_id: item.merchant_id,
+            school_name:
+              merchant.school_name,
+            remarks: remark,
+            // commission: commissionAmount,
+            custom_order_id: item?.custom_order_id || null,
+          };
+        }),
       );
 
+      console.timeEnd('mapping');
+
+      console.time('sorting');
       transactionReport.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return dateB - dateA;
       });
-
-      return transactionReport;
+      console.timeEnd('sorting');
+      console.log(response.data.totalTransactions);
+      // return transactionReport
+      if (isCustomSearch) {
+        total_pages = 1;
+      }
+      return {
+        transactionReport: transactionReport,
+        total_pages,
+        current_page: transactionPage,
+      };
     } catch (error) {
-      throw error;
+      // console.log(error,'response');
+      if (error?.response?.data?.message) {
+        throw new BadRequestException(error?.response?.data?.message);
+      }
+      throw new BadRequestException(error.message);
     }
   }
 
@@ -1220,6 +1328,8 @@ class MerchantUser {
   user: string;
   @Field({ nullable: true })
   trustee_id?: string;
+  @Field({ nullable: true })
+  school_id?: string;
   @Field({ nullable: true })
   trustee_logo?: string;
 }

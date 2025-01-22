@@ -586,17 +586,59 @@ export class TrusteeResolver {
     }
   }
 
-  @Query(() => [Commissionresponse])
+  @Query(() => Commissionres)
   @UseGuards(TrusteeGuard)
-  async fetchAllCommission(@Context() context) {
+  async fetchAllCommission(
+    @Context() context,
+    @Args('startDate', { nullable: true }) startDate?: string,
+    @Args('endDate', { nullable: true }) endDate?: string,
+  ) {
     try {
       let id = context.req.trustee;
-      const commissions = await this.commissionModel
-        .find({ trustee_id: id.toString() })
-        .sort({ createdAt: -1 });
+      // const commissions = await this.commissionModel
+      //   .find({ trustee_id: id.toString() })
+      //   .sort({ createdAt: -1 });
+      let query: any = {
+        trustee_id: id.toString(),
+      };
+      if (startDate && endDate) {
+        const start_date = new Date(startDate);
 
-      console.log(commissions.length);
-      return commissions;
+        const end_date = new Date(endDate);
+        end_date.setHours(23, 59, 59, 999);
+        const utcStartDate= new Date(start_date.getTime()-(5.5 * 60 * 60 * 1000))
+        const utcEndDate= new Date(end_date.getTime()-(5.5 * 60 * 60 * 1000))
+        query = {
+          trustee_id: id.toString(),
+          createdAt: {
+            $gte: utcStartDate,
+            $lte: utcEndDate,
+          },
+        };
+      }
+      console.log(query);
+      
+      const sumCommision = await this.commissionModel.aggregate([
+        {
+          $match: query,
+        },
+        {
+          $group: {
+            _id: null,
+            totalCommission: { $sum: '$commission_amount' },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            totalCommission: 1,
+          },
+        },
+      ]);
+      console.log(sumCommision);
+
+      // console.log(commissions.length);
+      return sumCommision[0];
     } catch (error) {
       throw error;
     }
@@ -3143,7 +3185,7 @@ class TransactionReport {
 }
 
 @ObjectType()
-class TransactionReportResponsePaginated {
+export class TransactionReportResponsePaginated {
   @Field(() => [TransactionReport], { nullable: true })
   transactionReport: [TransactionReport];
 
@@ -3350,4 +3392,10 @@ class Commissionresponse {
 
   @Field({ nullable: true })
   payment_mode: string;
+}
+
+@ObjectType()
+export class Commissionres {
+  @Field({ nullable: true })
+  totalCommission: number;
 }

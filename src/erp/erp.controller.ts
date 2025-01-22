@@ -381,6 +381,26 @@ export class ErpController {
         updatedVendorsInfo.push(updatedVendor);
       }
 
+      const adjustedAmount = school.adjustedAmount || 0;
+      // console.log(school,'school');
+      if (
+        school.isAdjustment &&
+        Number(amount) >= school.minAdjustmnentAmount &&
+        amount <= school.maxAdjustmnentAmount &&
+        adjustedAmount + Number(amount) <= school.targetAdjustmnentAmount
+      ) {
+        const updatedVendor = {
+          vendor_id: school.adjustment_vendor_id,
+          percentage: 100,
+          name: school.school_name,
+        };
+        splitPay = true;
+        updatedVendorsInfo.push(updatedVendor);
+        school.adjustedAmount = school.adjustedAmount + Number(amount);
+        await school.save();
+      }
+      console.log(splitPay, updatedVendorsInfo);
+
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       if (
         decoded.amount != amount ||
@@ -2217,10 +2237,10 @@ export class ErpController {
         },
       };
       const response = await axios.request(config);
-      return response.data
+      return response.data;
     } catch (e) {
       console.log(e);
-      
+
       throw new BadRequestException(e.message);
     }
   }

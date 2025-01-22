@@ -168,6 +168,30 @@ export class TrusteeSchool {
   isVendor: boolean;
 
   @Prop({})
+  @Field(() => Boolean,{defaultValue:false})
+  isAdjustment: boolean;
+
+  @Prop({})
+  @Field(() => Number)
+  minAdjustmnentAmount: number;
+
+  @Prop({})
+  @Field(() => Number)
+  maxAdjustmnentAmount: number;
+
+  @Prop({})
+  @Field(() => Number)
+  targetAdjustmnentAmount: number;
+
+  @Prop({})
+  @Field(() => Number,{defaultValue:0})
+  adjustedAmount: number;
+
+  @Prop({})
+  @Field(() => String)
+  adjustment_vendor_id: string;
+
+  @Prop({})
   @Field(() => String)
   super_admin_name: string;
   createdAt?: Date;

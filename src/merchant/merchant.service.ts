@@ -167,7 +167,8 @@ export class MerchantService {
           apiKey: trustee.apiKey,
           merchant: merchant._id,
           trustee_id:trustee._id,
-          trustee_logo:trustee.logo || null
+          trustee_logo:trustee.logo || null,
+          school_id:merchant.school_id
         };
         return userMerchant;
       }
