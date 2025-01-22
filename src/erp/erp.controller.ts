@@ -311,7 +311,7 @@ export class ErpController {
           };
           updatedVendorsInfo.push(updatedVendor);
 
-          // Check if both amount and percentage are used 
+          // Check if both amount and percentage are used
           const hasAmount = typeof vendor.amount === 'number';
           const hasPercentage = typeof vendor.percentage === 'number';
           if (hasAmount && hasPercentage) {
@@ -2174,6 +2174,53 @@ export class ErpController {
         }
         throw new BadRequestException(e.response.data.message);
       }
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @UseGuards(ErpGuard)
+  @Get('get-order-link')
+  async getOrderLink(
+    @Query()
+    query: {
+      sign: string;
+      collect_id: string;
+      school_id: string;
+    },
+  ) {
+    const { sign, collect_id, school_id } = query;
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('Invalid School Id');
+      }
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      if (decoded.collect_id === !collect_id) {
+        throw new BadRequestException('Invalid Sign');
+      }
+      const payload = {
+        collect_id,
+      };
+      const token = this.jwtService.sign(payload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+
+      const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-order-payment-link?token=${token}&collect_id=${collect_id}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+      };
+      const response = await axios.request(config);
+      return response.data
+    } catch (e) {
+      console.log(e);
+      
       throw new BadRequestException(e.message);
     }
   }
