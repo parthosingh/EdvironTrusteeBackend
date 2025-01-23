@@ -1888,10 +1888,11 @@ export class TrusteeService {
       trustee_id,
     );
 
-    if (settlements.length <= 0) {
-      throw new BadRequestException(`Settlement Not found`);
-    }
-
+    // if (settlements.length <= 0) {
+    //   throw new BadRequestException(`Settlement Not found`);
+    // }
+    let payment_service_tax = 0;
+    let payment_service_charge = 0;
     let allTransactions = [];
     let refunds = [];
     let settlementTransactions = 0;
@@ -1926,6 +1927,8 @@ export class TrusteeService {
                 payment_group: transaction.payment_group,
                 payment_time: transaction.event_amount,
               };
+              payment_service_charge += transaction.payment_service_charge;
+              payment_service_tax += transaction.payment_service_tax;
               if (transaction.event_type !== 'REFUND') {
                 settlementTransactions += transaction.order_amount;
               }
@@ -1933,6 +1936,7 @@ export class TrusteeService {
               if (transaction.event_type === 'REFUND') {
                 refunds.push(formattedTransaction);
               }
+
               if (transaction.event_type === 'OTHER_ADJUSTMENT') {
                 sumOtherAdjustments += transaction.event_amount;
                 otherAdjustments.push(transaction);
@@ -1974,7 +1978,6 @@ export class TrusteeService {
           (transaction) =>
             transaction.collect_id === transactionData.collect_id,
         );
-        console.log(refundInfo);
 
         return {
           custom_order_id: refundInfo.custom_id,
@@ -1998,7 +2001,7 @@ export class TrusteeService {
     let venodrSum = 0;
     let earliestDate: string | null = null;
     let latestDate: string | null = null;
-
+    let vendorSettlementsInfo: any = [];
     await Promise.all(
       durationTransactions.map(async (transactions: any) => {
         toalDurationTransaction += transactions.order_amount;
@@ -2008,6 +2011,7 @@ export class TrusteeService {
           const settlementDate = await this.vendorSettlementInfo(
             transactions.collect_id,
           );
+          console.log(settlementDate, 'ptransactionsp');
 
           // Calculate earliest and latest dates inline
           const currDate = new Date(settlementDate.vendorSettlementDate);
@@ -2019,6 +2023,8 @@ export class TrusteeService {
           }
           // Process vendor splits
           for (const vendor of transactions.vendors_info) {
+            console.log(vendor, 'pvendorp');
+
             let splitAmount = 0;
             const transactionTime =
               transaction.payment_time || transactions.transaction_time;
@@ -2043,6 +2049,10 @@ export class TrusteeService {
       }),
     );
 
+    const schoolInfo = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+
     // console.log('Duration Transactions:', durationTransactions);
     const extraInSettlementTransactions = allTransactions.filter(
       (transaction) =>
@@ -2064,29 +2074,107 @@ export class TrusteeService {
     extraInDurationTransactions.forEach((transaction) => {
       transaction.inSettlement = false;
     });
+    let vendorRefunds: any = [];
+    let VendorRefundSum = 0;
+    let venodrSettlementSum = 0;
+    if (earliestDate) {
+      const formatStartDate = earliestDate.split(' ')[0];
+      const formatEndDate = latestDate.split(' ')[0];
+      const vendorSttlementStartDate = new Date(`${formatStartDate}T00:00:00Z`);
 
-    const vendorSttlementStartDate = new Date(earliestDate);
-    vendorSttlementStartDate.setHours(0, 0, 0, 0);
-    const vendorSttlementEndDate = new Date(latestDate);
-    vendorSttlementEndDate.setHours(23, 59, 59, 999);
-
-    const vendorSettlementsInfo = await this.vendorsSettlementModel.find({
-      school_id: new Types.ObjectId(school_id),
-      // trustee_id: new Types.ObjectId(trustee_id),
-      settled_on: {
+      vendorSttlementStartDate.setHours(0, 0, 0, 0);
+      const vendorSttlementEndDate = new Date(`${formatEndDate}T23:59:59Z`);
+      console.log({
+        earliestDate,
+        formatStartDate,
         $gte: vendorSttlementStartDate,
         $lte: vendorSttlementEndDate,
-      },
-    });
-    let venodrSettlementSum = 0;
-    vendorSettlementsInfo.forEach((info) => {
-      venodrSettlementSum += info.net_settlement_amount;
-    });
-    // console.log(refundDetails,'ven');
-    // console.log({  duration_transactions: durationTransactions,});
+      });
 
+      let vendorSettlementUtr: any = [];
+      vendorSettlementsInfo = await this.vendorsSettlementModel.find({
+        school_id: new Types.ObjectId(school_id),
+        // trustee_id: new Types.ObjectId(trustee_id),
+        settled_on: {
+          $gte: vendorSttlementStartDate,
+          $lte: vendorSttlementEndDate,
+        },
+      });
+
+      vendorSettlementsInfo.forEach((info) => {
+        venodrSettlementSum += info.net_settlement_amount;
+        vendorSettlementUtr.push(info.utr);
+      });
+      console.log(
+        vendorSettlementUtr,
+        'venodrSettlementSumvenodrSettlementSum',
+      );
+
+      if (vendorSettlementUtr.length > 0) {
+        const vendorToken = this.jwtService.sign(
+          { trustee_id },
+          { secret: process.env.PAYMENTS_SERVICE_SECRET },
+        );
+        const vendorReconPayload = {
+          trustee_id: trustee_id,
+          token: vendorToken,
+          client_id: schoolInfo.client_id,
+          start_date: vendorSttlementStartDate.toISOString().split('T')[0],
+          end_date: vendorSttlementEndDate.toISOString().split('T')[0],
+          utrNumber: vendorSettlementUtr,
+          cursor: null,
+        };
+        console.log(vendorReconPayload, 'vendorReconPayload');
+
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/vendors-settlement-recon`,
+          headers: {
+            accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          data: vendorReconPayload,
+        };
+
+        const vendorReconInfo = await axios.request(config);
+
+        const vendorSettlementsRecons = vendorReconInfo.data.data;
+        // vendorRefunds=vendorSettlementsRecons
+
+        await Promise.all(
+          vendorSettlementsRecons.map(async (data) => {
+            if (data.type === 'REFUND') {
+              const vendorData = await this.vendorsModel.findOne({
+                vendor_id: data.merchant_vendor_id,
+              });
+              if (vendorData) {
+                const refundAmt = Number(data.debit) || data.amount;
+                const venRefundInfo = {
+                  vendor_id: vendorData.vendor_id,
+                  vendor_name: vendorData.name,
+                  split_amount: data.amount,
+                  collect_id: data.merchant_order_id,
+                  refund_amount: refundAmt,
+                };
+                vendorRefunds.push(venRefundInfo);
+                VendorRefundSum += refundAmt;
+              }
+            }
+          }),
+        );
+
+        console.log(VendorRefundSum, 'VendorRefundSum2');
+      }
+
+      console.log(VendorRefundSum, 'VendorRefundSum3');
+      // console.log(refundDetails,'ven');
+      // console.log({  duration_transactions: durationTransactions,});
+    }
     const discrepancies = {
       result: { earliestDate, latestDate },
+      VendorRefundSum,
+      vendorRefunds,
       utr: settlements[0].utrNumber,
       duration_transactions: durationTransactions,
       settlements_transactions: allTransactions,
@@ -2100,11 +2188,10 @@ export class TrusteeService {
       extraInSettlementTransactions,
       extraInDurationTransactions,
       refundDetails,
+      payment_service_tax,
+      payment_service_charge,
     };
 
-    const schoolInfo = await this.trusteeSchoolModel.findOne({
-      school_id: new Types.ObjectId(school_id),
-    });
     try {
       const records = await new this.ReconciliationModel({
         fromDate: new Date(transaction_start_date),
@@ -2117,7 +2204,7 @@ export class TrusteeService {
         splitSettlementAmount: venodrSettlementSum,
         vendors_transactions: vendorTransactions,
         refundSum: refundSum,
-        extraInSettlement: extraInSettlementTransactions, 
+        extraInSettlement: extraInSettlementTransactions,
         extraInTransaction: extraInDurationTransactions,
         refunds: refundDetails,
         trustee: new Types.ObjectId(trustee_id),
@@ -2126,8 +2213,12 @@ export class TrusteeService {
         settlements_transactions: allTransactions,
         utrNumber: settlements[0].utrNumber,
         other_adjustments: otherAdjustments,
-        merchantOtherAdjustment:sumOtherAdjustments,
+        merchantOtherAdjustment: sumOtherAdjustments,
         duration_transactions: durationTransactions,
+        vendors_refunds: vendorRefunds,
+        vendor_refund_sum: VendorRefundSum,
+        payment_service_tax,
+        payment_service_charge,
       }).save();
     } catch (e) {
       console.log(e);
@@ -2163,20 +2254,30 @@ export class TrusteeService {
       const response = await axios.request(config);
       // return data
       const data = response.data;
+      console.log(data, 'vdata');
 
-      // console.log(data,'Vendor settlement',order_id);
       if (
-        data.data.length > 1 &&
-        data.data[1].vendor_settlement_eligibility_time
+        data.data.length > 1
+        // data.data[0].vendor_settlement_eligibility_time
       ) {
-        const date = data.data[1].vendor_settlement_eligibility_time;
-        const vendorutr = data.data[1].vendor_settlement_utr;
-        console.log(date, vendorutr);
+        const vendorData = await Promise.all(
+          data.data.map(async (info) => {
+            if (info.vendor_settlement_eligibility_time) {
+              return {
+                vendorSettlementDate: info.vendor_settlement_eligibility_time,
+                vendorSettlementUtr: info.vendor_settlement_utr,
+              };
+            }
+            // Explicitly return null or skip undefined values
+            return null;
+          }),
+        );
 
-        return {
-          vendorSettlementDate: date,
-          vendorSettlementUtr: vendorutr,
-        };
+        // Filter out null values if needed
+        const filteredVendorData = vendorData.filter((item) => item !== null);
+        console.log(filteredVendorData);
+
+        return filteredVendorData[0];
       }
     } catch (e) {
       console.log(e);

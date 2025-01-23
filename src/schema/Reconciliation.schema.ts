@@ -199,6 +199,24 @@ export class DurationTransactions {
 }
 
 @ObjectType()
+export class VendorRefunds {
+  @Field(() => String, { nullable: true })
+  collect_id: string;
+
+  @Field(() => String, { nullable: true })
+  vendor_id: string;
+
+  @Field(() => String, { nullable: true })
+  vendor_name: string;
+
+  @Field(() => Number, { nullable: true })
+  refund_amount: number;
+
+  @Field(() => Number, { nullable: true })
+  split_amount: number;
+}
+
+@ObjectType()
 @Schema({ timestamps: true })
 export class Reconciliation {
   @Prop({ required: true, type: Date })
@@ -237,6 +255,18 @@ export class Reconciliation {
   @Field(() => Number)
   refundSum: number;
 
+  @Prop({ required: true, type: Number })
+  @Field(() => Number)
+  vendor_refund_sum: number;
+
+  @Prop()
+  @Field(() => Number,{ nullable: true })
+  payment_service_tax: number;
+
+  @Prop()
+  @Field(() => Number,{ nullable: true })
+  payment_service_charge: number;
+
   @Prop()
   @Field(() => [ReconTransactionInfo], { defaultValue: [] })
   extraInSettlement: ReconTransactionInfo[];
@@ -248,6 +278,10 @@ export class Reconciliation {
   @Prop()
   @Field(() => [ReconRefundInfo], { defaultValue: [] })
   refunds: ReconRefundInfo[];
+
+  @Prop()
+  @Field(() => [VendorRefunds], { defaultValue: [] })
+  vendors_refunds: VendorRefunds[];
 
   @Prop()
   @Field(() => [vendorTransactionReconInfo], { defaultValue: [] })

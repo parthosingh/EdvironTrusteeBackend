@@ -1744,9 +1744,9 @@ export class ErpController {
     }
   }
 
-  @Get('/test-cron')
+  @Get('/test-cron') 
   async checkSettlement() {
-    const settlementDate = new Date('2025-01-13T23:59:59.695Z');
+    const settlementDate = new Date('2025-01-21T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
     // console.log(date, 'DATE');
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
