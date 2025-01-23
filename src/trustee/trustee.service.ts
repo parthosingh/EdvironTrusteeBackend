@@ -1383,20 +1383,20 @@ export class TrusteeService {
     chequeBase64: string,
     chequeExtension: string,
   ) {
-    const checkVendors = await this.vendorsModel.findOne({
-      email: vendor_info.email,
-    });
-    if (checkVendors) {
-      throw new BadRequestException('Vendor already exists with this email');
-    }
-    const checkVendorNumber = await this.vendorsModel.findOne({
-      phone: vendor_info.phone,
-    });
-    if (checkVendorNumber) {
-      throw new BadRequestException(
-        'Vendor already exists with this phone number',
-      );
-    }
+    // const checkVendors = await this.vendorsModel.findOne({
+    //   email: vendor_info.email,
+    // });
+    // if (checkVendors) {
+    //   throw new BadRequestException('Vendor already exists with this email');
+    // }
+    // const checkVendorNumber = await this.vendorsModel.findOne({
+    //   phone: vendor_info.phone,
+    // });
+    // if (checkVendorNumber) {
+    //   throw new BadRequestException(
+    //     'Vendor already exists with this phone number',
+    //   );
+    // }
     try {
       const newVendor = await new this.vendorsModel({
         school_id: new Types.ObjectId(school_id),
