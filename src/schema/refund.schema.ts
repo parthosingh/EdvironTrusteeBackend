@@ -12,7 +12,7 @@ export enum refund_status {
   AUTO_REFUND_INITIATED = 'AUTO_REFUND_INITIATED',
 }
 @ObjectType()
-class SplitRefundsDetails {
+export class SplitRefundsDetails {
   @Field()
   vendor_id: string;
 

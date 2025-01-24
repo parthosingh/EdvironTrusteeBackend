@@ -42,7 +42,11 @@ import { Access } from '../schema/merchant.member.schema';
 import { Trustee } from 'src/schema/trustee.schema';
 import { TransactionInfo } from 'src/schema/transaction.info.schema';
 import { TrusteeService } from 'src/trustee/trustee.service';
-import { refund_status, RefundRequest } from 'src/schema/refund.schema';
+import {
+  refund_status,
+  RefundRequest,
+  SplitRefundsDetails,
+} from 'src/schema/refund.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { EmailService } from 'src/email/email.service';
 
@@ -125,8 +129,8 @@ export class MerchantResolver {
         trustee_logo: userMerchant.trustee_logo,
         school_id: userMerchant.school_id,
       };
-      console.log(user,'userrr');
-      
+      console.log(user, 'userrr');
+
       return user;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -210,7 +214,7 @@ export class MerchantResolver {
         context.req.merchant,
       );
       if (!merchant) throw new NotFoundException('User not found');
-      const school_id=merchant.school_id.toString();
+      const school_id = merchant.school_id.toString();
       console.log(school_id);
       if (searchFilter === 'order_id') {
         const checkId = mongoose.Types.ObjectId.isValid(searchParams);
@@ -298,11 +302,10 @@ export class MerchantResolver {
       };
 
       console.time('fetching all transaction');
-      console.log(config,'opopo');
-      
+      console.log(config, 'opopo');
+
       const response = await axios.request(config);
-    
-      
+
       let transactionLimit = Number(limit) || 100;
       let transactionPage = Number(page) || 1;
       let total_pages = response.data.totalTransactions / transactionLimit;
@@ -317,8 +320,7 @@ export class MerchantResolver {
 
           return {
             ...item,
-            merchant_name:
-              merchant.school_name,
+            merchant_name: merchant.school_name,
             student_id:
               JSON.parse(item?.additional_data).student_details?.student_id ||
               '',
@@ -337,8 +339,7 @@ export class MerchantResolver {
               JSON.parse(item?.additional_data).additional_fields || '',
             currency: 'INR',
             school_id: item.merchant_id,
-            school_name:
-              merchant.school_name,
+            school_name: merchant.school_name,
             remarks: remark,
             // commission: commissionAmount,
             custom_order_id: item?.custom_order_id || null,
@@ -836,6 +837,7 @@ export class MerchantResolver {
     const checkRefundRequest = await this.refundRequestModel
       .findOne({
         order_id: new Types.ObjectId(order_id),
+        isSplitRedund:{ $ne: true}
       })
       .sort({ createdAt: -1 });
 
@@ -948,6 +950,8 @@ export class MerchantResolver {
   async getRefundRequestMerchant(@Args('order_id') order_id: string) {
     const refundRequests =
       await this.merchantService.getRefundRequest(order_id);
+    console.log(refundRequests);
+
     if (!refundRequests) {
       return {
         trustee_id: null,
@@ -1134,8 +1138,15 @@ export class MerchantResolver {
       throw new Error('Refund amount cannot be more than order amount');
     }
 
-    if (checkRefundRequest?.status === refund_status.INITIATED) {
-      throw new Error('Refund request already initiated for this order');
+    if (
+      checkRefundRequest &&
+      checkRefundRequest.split_refund_details[0]?.vendor_id ===
+        split_refund_details[0].vendor_id &&
+      checkRefundRequest.status === refund_status.INITIATED
+    ) {
+      throw new ConflictException(
+        'Refund request already initiated for this vendor',
+      );
     }
 
     let pgConfig = {
@@ -1249,6 +1260,9 @@ export class MerchantRefundRequestRes {
 
   @Field({ nullable: true })
   custom_id: string;
+
+  @Field(() => [SplitRefundsDetails], { nullable: true })
+  split_refund_details: SplitRefundsDetails[];
 }
 
 @ObjectType()
