@@ -381,25 +381,64 @@ export class ErpController {
         updatedVendorsInfo.push(updatedVendor);
       }
 
+      // console.log(school,'school');
       const adjustedAmount = school.adjustedAmount || 0;
       // console.log(school,'school');
       if (
         school.isAdjustment &&
-        Number(amount) >= school.minAdjustmnentAmount &&
-        amount <= school.maxAdjustmnentAmount &&
-        adjustedAmount + Number(amount) <= school.targetAdjustmnentAmount
+        Number(amount) >= school.minAdjustmnentAmount
       ) {
-        const updatedVendor = {
-          vendor_id: school.adjustment_vendor_id,
-          percentage: 100,
-          name: school.school_name,
-        };
-        splitPay = true;
-        updatedVendorsInfo.push(updatedVendor);
-        school.adjustedAmount = school.adjustedAmount + Number(amount);
-        await school.save();
+        console.log(`Adujstment true`);
+
+        if (school.advanceAdjustment) {
+          console.log(`Adnace adjustment true`);
+
+          const advanceAdjustementAmount =
+            school.targetAdjustmnentAmount - adjustedAmount;
+          // if order amt is greater than targetAdjustmentAmount
+          if (amount > advanceAdjustementAmount) {
+            console.log(`Amount is greater than targetAdjustmentAmount`);
+
+            const splitAmount = advanceAdjustementAmount;
+            const updatedVendor = {
+              vendor_id: school.adjustment_vendor_id,
+              amount: splitAmount,
+              name: school.school_name,
+            };
+            splitPay = true;
+            updatedVendorsInfo.push(updatedVendor);
+            school.adjustedAmount = school.adjustedAmount + splitAmount;
+            school.advanceAdjustment = false;
+            await school.save();
+          } else if (
+            amount <= school.maxAdjustmnentAmount &&
+            adjustedAmount + Number(amount) < school.targetAdjustmnentAmount
+          ) {
+            const updatedVendor = {
+              vendor_id: school.adjustment_vendor_id,
+              percentage: 100,
+              name: school.school_name,
+            };
+            splitPay = true;
+            updatedVendorsInfo.push(updatedVendor);
+            school.adjustedAmount = school.adjustedAmount + Number(amount);
+            await school.save();
+          }
+        } else if (
+          amount <= school.maxAdjustmnentAmount &&
+          adjustedAmount + Number(amount) <= school.targetAdjustmnentAmount
+        ) {
+          const updatedVendor = {
+            vendor_id: school.adjustment_vendor_id,
+            percentage: 100,
+            name: school.school_name,
+          };
+          splitPay = true;
+          updatedVendorsInfo.push(updatedVendor);
+          school.adjustedAmount = school.adjustedAmount + Number(amount);
+          await school.save();
+        }
       }
-      console.log(splitPay, updatedVendorsInfo);
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       if (
@@ -1744,7 +1783,7 @@ export class ErpController {
     }
   }
 
-  @Get('/test-cron') 
+  @Get('/test-cron')
   async checkSettlement() {
     const settlementDate = new Date('2025-01-21T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());

@@ -192,6 +192,10 @@ export class TrusteeSchool {
   adjustment_vendor_id: string;
 
   @Prop({})
+  @Field(() => Boolean,{defaultValue:false})
+  advanceAdjustment: boolean;
+
+  @Prop({})
   @Field(() => String)
   super_admin_name: string;
   createdAt?: Date;
