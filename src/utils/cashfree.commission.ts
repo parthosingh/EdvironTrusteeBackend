@@ -138,3 +138,49 @@ const cf_commision = [
 ];
 
 export default cf_commision;
+
+const test = {
+  customer_details: {
+    customer_email: null,
+    customer_id: '7112AAA812234',
+    customer_name: null,
+    customer_phone: '9898989898',
+  },
+  order: {
+    order_amount: 6910,
+    order_currency: 'INR',
+    order_id: '67975144feaa963855f2ce8c',
+    order_tags: null,
+  },
+  payment: {
+    auth_id: '006429',
+    bank_reference: '502721032474',
+    cf_payment_id: 3452636893,
+    payment_amount: 6962.99,
+    payment_currency: 'INR',
+    payment_group: 'debit_card',
+    payment_message: 'SUCCESS',
+    payment_method: {
+      card: {
+        card_bank_name: 'THE FEDERAL BANK',
+        card_country: 'IN',
+        card_network: 'visa',
+        card_number: 'XXXXXXXXXXXX0184',
+        card_sub_type: 'R',
+        card_type: 'debit_card',
+        channel: null,
+      },
+    },
+    payment_status: 'SUCCESS',
+    payment_time: '2025-01-27T14:57:56+05:30',
+  },
+  payment_gateway_details: {
+    gateway_name: 'CASHFREE',
+    gateway_order_id: '3723035096',
+    gateway_order_reference_id: 'null',
+    gateway_payment_id: '3452636893',
+    gateway_settlement: 'CASHFREE',
+    gateway_status_code: null,
+  },
+  payment_offers: null,
+};

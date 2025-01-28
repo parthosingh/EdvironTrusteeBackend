@@ -352,11 +352,9 @@ export class MainBackendService {
   ) {
     // Convert the input date to the start and end of the day in UTC
     const targetDate = new Date(settlement_date);
-
+    
     const startOfDayIST = new Date(targetDate.setHours(0, 0, 0, 0));
-    // Convert to UTC
-    console.log(targetDate, 'date');
-    console.log(startOfDayIST, 'startOfDayIST');
+  
 
     const startOfDayUTC = new Date(
       startOfDayIST.getTime() - 5.5 * 60 * 60 * 1000,
@@ -365,19 +363,22 @@ export class MainBackendService {
     // End of day in IST
     const endOfDayIST = new Date(targetDate.setHours(23, 59, 59, 999));
     // Convert to UTC
-    const endOfDayUTC = new Date(endOfDayIST.getTime() - 5.5 * 60 * 60 * 1000);
+    // const endOfDayUTC = new Date(endOfDayIST.getTime() - 5.5 * 60 * 60 * 1000);
     console.log({
       $gte: startOfDayIST,
-      $lt: endOfDayUTC,
+      $lt: endOfDayIST,
     });
-    console.log(school_id);
+    console.log(  {
+      $gte: startOfDayIST,
+      $lt: endOfDayIST,
+    },`settlement date`);
 
     // Query to find settlements for the specific day
     const settlements = await this.settlementReportModel.find({
       schoolId: new Types.ObjectId(school_id), // Match the school_id
       settlementDate: {
         $gte: startOfDayIST,
-        $lt: endOfDayUTC,
+        $lt: endOfDayIST,
       },
     });
 
