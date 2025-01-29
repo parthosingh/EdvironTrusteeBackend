@@ -56,6 +56,7 @@ import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { MerchantRefundRequestRes } from 'src/merchant/merchant.resolver';
 import { Disputes } from 'src/schema/disputes.schema';
 import { Reconciliation } from 'src/schema/Reconciliation.schema';
+import { TempSettlementReport } from 'src/schema/tempSettlements.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -178,6 +179,8 @@ export class TrusteeResolver {
     private refundRequestModel: mongoose.Model<RefundRequest>,
     @InjectModel(VendorsSettlement.name)
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
+    @InjectModel(TempSettlementReport.name)
+    private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -394,6 +397,18 @@ export class TrusteeResolver {
 
     let settlementReports = [];
     settlementReports = await this.settlementReportModel
+      .find({ trustee: id })
+      .sort({ createdAt: -1 });
+    return settlementReports;
+  }
+
+  @Query(() => [TempSettlementReport])
+  @UseGuards(TrusteeGuard)
+  async getSettlementReportsQa(@Context() context) {
+    let id = context.req.trustee;
+
+    let settlementReports = [];
+    settlementReports = await this.TempSettlementReportModel
       .find({ trustee: id })
       .sort({ createdAt: -1 });
     return settlementReports;

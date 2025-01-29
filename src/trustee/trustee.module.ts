@@ -40,6 +40,7 @@ import {
 } from 'src/schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
 import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
+import { TempSettlementReport, TempSettlementReportSchema } from 'src/schema/tempSettlements.schema';
 config();
 
 @Module({
@@ -87,6 +88,9 @@ config();
     ]),
     MongooseModule.forFeature([
       { name: Reconciliation.name, schema: ReconciliationSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: TempSettlementReport.name, schema: TempSettlementReportSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({
