@@ -650,7 +650,9 @@ export class TrusteeResolver {
           },
         },
       ]);
-      console.log(sumCommision);
+      if(sumCommision.length==0){
+        return {totalCommission:0}
+      }
 
       // console.log(commissions.length);
       return sumCommision[0];
