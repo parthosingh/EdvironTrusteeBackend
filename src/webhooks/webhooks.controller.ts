@@ -19,6 +19,7 @@ import axios, { AxiosError } from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { Disputes } from 'src/schema/disputes.schema';
 import { TempSettlementReport } from 'src/schema/tempSettlements.schema';
+import { SettlementReport } from 'src/schema/settlement.schema';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -44,6 +45,8 @@ export class WebhooksController {
     private DisputesModel: mongoose.Model<Disputes>,
     @InjectModel(TempSettlementReport.name)
     private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
+    @InjectModel(SettlementReport.name)
+    private SettlementReportModel: mongoose.Model<SettlementReport>,
   ) {}
 
   demoData = {
@@ -373,7 +376,7 @@ export class WebhooksController {
       }
       const webhook_urls = trustee.settlement_webhook_url;
       
-      const saveSettlements=await this.TempSettlementReportModel.findOneAndUpdate(
+      const saveSettlements=await this.SettlementReportModel.findOneAndUpdate(
         {utrNumber: utr},
         {
           $set: {
@@ -385,7 +388,7 @@ export class WebhooksController {
             status: status,
             utrNumber: utr,
             settlementDate: new Date(settled_on),
-            clientId: merchant_id,
+            clientId: merchant_id || 'NA',
             trustee: merchant.trustee_id,
             schoolId: merchant.school_id,
 
