@@ -380,9 +380,9 @@ export class WebhooksController {
         {utrNumber: utr},
         {
           $set: {
-            settlementAmount: settlement_amount,
+            settlementAmount: payment_amount,
             adjustment: adjustment,
-            netSettlementAmount: payment_amount,
+            netSettlementAmount: amount_settled,
             fromDate: new Date(payment_from),
             tillDate: new Date(payment_till),
             status: status,
