@@ -391,7 +391,6 @@ export class WebhooksController {
             clientId: merchant_id || 'NA',
             trustee: merchant.trustee_id,
             schoolId: merchant.school_id,
-
           }
         }, 
         {

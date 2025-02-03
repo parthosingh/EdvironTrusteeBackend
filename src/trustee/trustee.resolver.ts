@@ -408,9 +408,9 @@ export class TrusteeResolver {
     let id = context.req.trustee;
 
     let settlementReports = [];
-    settlementReports = await this.TempSettlementReportModel
-      .find({ trustee: id })
-      .sort({ createdAt: -1 });
+    settlementReports = await this.TempSettlementReportModel.find({
+      trustee: id,
+    }).sort({ createdAt: -1 });
     return settlementReports;
   }
 
@@ -621,8 +621,10 @@ export class TrusteeResolver {
 
         const end_date = new Date(endDate);
         end_date.setHours(23, 59, 59, 999);
-        const utcStartDate= new Date(start_date.getTime()-(5.5 * 60 * 60 * 1000))
-        const utcEndDate= new Date(end_date.getTime()-(5.5 * 60 * 60 * 1000))
+        const utcStartDate = new Date(
+          start_date.getTime() - 5.5 * 60 * 60 * 1000,
+        );
+        const utcEndDate = new Date(end_date.getTime() - 5.5 * 60 * 60 * 1000);
         query = {
           trustee_id: id.toString(),
           createdAt: {
@@ -632,7 +634,7 @@ export class TrusteeResolver {
         };
       }
       console.log(query);
-      
+
       const sumCommision = await this.commissionModel.aggregate([
         {
           $match: query,
@@ -650,8 +652,8 @@ export class TrusteeResolver {
           },
         },
       ]);
-      if(sumCommision.length==0){
-        return {totalCommission:0}
+      if (sumCommision.length == 0) {
+        return { totalCommission: 0 };
       }
 
       // console.log(commissions.length);
@@ -2496,6 +2498,52 @@ export class TrusteeResolver {
       school_id,
     );
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => commisonStatsRes)
+  async getCommissionDetails(
+    @Args('month', { type: () => String }) month: string,
+    @Args('year', { type: () => String }) year: string,
+    @Context() context: any,
+  ) {
+   
+
+    const startDate = new Date(`${year}-${month}-01`);
+    console.log(startDate);
+    
+    const endDate = new Date(`${year}-${month}-31`);;
+    const endOfDay = new Date(endDate); // Create a new Date object from endDate
+    endOfDay.setHours(23, 59, 59, 999);
+    console.log({
+      trustee_id: context.req.trustee,
+      createdAt: { $gte: startDate, $lte: endOfDay },
+    });
+
+    const commissionsInfo = await this.commissionModel.aggregate([
+      {
+        $match: {
+          trustee_id: context.req.trustee.toString(),
+          createdAt: { $gte: startDate, $lte: endOfDay },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalCommission: { $sum: '$commission_amount' },
+        },
+      },
+    ]);
+    console.log(commissionsInfo, 'commissionsInfo');
+    if(commissionsInfo.length === 0) return { totalCommission: 0 };
+
+    return { totalCommission: commissionsInfo[0].totalCommission };
+  }
+}
+
+@ObjectType()
+export class commisonStatsRes {
+  @Field(() => Number, { nullable: true })
+  totalCommission: number;
 }
 
 @ObjectType()
