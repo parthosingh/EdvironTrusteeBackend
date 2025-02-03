@@ -219,43 +219,43 @@ export class VendorRefunds {
 @ObjectType()
 @Schema({ timestamps: true })
 export class Reconciliation {
-  @Prop({ required: true, type: Date })
+  @Prop({ nullable: true, type: Date })
   @Field(() => Date)
   fromDate: Date;
 
-  @Prop({ required: true, type: Date })
+  @Prop({ nullable: true, type: Date })
   @Field(() => Date)
   tillDate: Date;
 
-  @Prop({ required: true, type: Number })
+  @Prop({ nullable: true, type: Number })
   @Field(() => Number)
   settlementAmount: number;
 
-  @Prop({ required: true, type: Number })
+  @Prop({ nullable: true, type: Number })
   @Field(() => Number)
   totaltransactionAmount: number;
 
-  @Prop({ required: true, type: Number })
+  @Prop({ nullable: true, type: Number })
   @Field(() => Number)
   merchantOtherAdjustment: number;
 
-  @Prop({ required: true, type: Number })
+  @Prop({ nullable: true, type: Number })
   @Field(() => Number)
   merchantAdjustment: number;
 
-  @Prop({ required: true, type: Number })
+  @Prop({ nullable: true, type: Number })
   @Field(() => Number)
   splitTransactionAmount: number;
 
-  @Prop({ required: true, type: Number })
+  @Prop({ nullable: true, type: Number })
   @Field(() => Number)
   splitSettlementAmount: number;
 
-  @Prop({ required: true, type: Number })
+  @Prop({ nullable: true, type: Number })
   @Field(() => Number)
   refundSum: number;
 
-  @Prop({ required: true, type: Number })
+  @Prop({ nullable: true, type: Number })
   @Field(() => Number)
   vendor_refund_sum: number;
 
