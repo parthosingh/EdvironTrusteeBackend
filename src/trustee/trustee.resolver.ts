@@ -1913,6 +1913,15 @@ export class TrusteeResolver {
         throw new NotFoundException('Merchant Not Found');
       }
 
+      const checkDuration = await this.invoiceModel.findOne({
+        duration: duration,
+        trustee_id: context.req.trustee,
+        invoice_status: invoice_status.APPROVED,
+      });
+      if (checkDuration) {
+        throw new ConflictException(`Invoice Already Exists For This Duration`);
+      }
+
       const invoice = await this.invoiceModel.findOne({
         invoice_no,
         trustee_id: context.req.trustee,
@@ -2506,12 +2515,10 @@ export class TrusteeResolver {
     @Args('year', { type: () => String }) year: string,
     @Context() context: any,
   ) {
-   
-
     const startDate = new Date(`${year}-${month}-01`);
     console.log(startDate);
-    
-    const endDate = new Date(`${year}-${month}-31`);;
+
+    const endDate = new Date(`${year}-${month}-31`);
     const endOfDay = new Date(endDate); // Create a new Date object from endDate
     endOfDay.setHours(23, 59, 59, 999);
     console.log({
@@ -2534,7 +2541,7 @@ export class TrusteeResolver {
       },
     ]);
     console.log(commissionsInfo, 'commissionsInfo');
-    if(commissionsInfo.length === 0) return { totalCommission: 0 };
+    if (commissionsInfo.length === 0) return { totalCommission: 0 };
 
     return { totalCommission: commissionsInfo[0].totalCommission };
   }
