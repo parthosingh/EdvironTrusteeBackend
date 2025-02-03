@@ -3254,6 +3254,8 @@ class TransactionReport {
   payment_time?: string;
   @Field(() => [Vendor], { nullable: true })
   vendors_info?: [Vendor];
+  @Field({ nullable: true })
+  reason?: string;
 }
 
 @ObjectType()
