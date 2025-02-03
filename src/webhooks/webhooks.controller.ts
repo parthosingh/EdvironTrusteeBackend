@@ -382,7 +382,7 @@ export class WebhooksController {
           $set: {
             settlementAmount: settlement_amount,
             adjustment: adjustment,
-            netSettlementAmount: amount_settled,
+            netSettlementAmount: payment_amount,
             fromDate: new Date(payment_from),
             tillDate: new Date(payment_till),
             status: status,
