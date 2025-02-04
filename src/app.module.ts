@@ -24,6 +24,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 // import { OnboardingController } from './onboarding/onboarding.controller';
 import { OnboardingResolver } from './onboarding/onboarding.resolver';
 import { OnboardingModule } from './onboarding/onboarding.module';
+import { BusinessAlarmModule } from './business-alarm/business-alarm.module';
 config();
 
 @Module({
@@ -50,6 +51,7 @@ config();
     CashfreeModule,
     WebhooksModule,
     OnboardingModule,
+    BusinessAlarmModule,
   ],
 
   controllers: [AppController],

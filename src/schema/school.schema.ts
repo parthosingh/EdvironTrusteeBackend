@@ -8,25 +8,24 @@ export enum charge_type {
   PERCENT = 'PERCENT',
 }
 
-
 export enum MinKycStatus {
-  MIN_KYC_APPROVED  = 'MIN_KYC_APPROVED',
+  MIN_KYC_APPROVED = 'MIN_KYC_APPROVED',
   MIN_KYC_PENDING = 'MIN_KYC_PENDING',
   MIN_KYC_REJECTED = 'MIN_KYC_REJECTED',
 }
 
 export enum FullKycStatus {
-  FULL_KYC_APPROVED  = 'FULL_KYC_APPROVED',
+  FULL_KYC_APPROVED = 'FULL_KYC_APPROVED',
   FULL_KYC_PENDING = 'FULL_KYC_PENDING',
   FULL_KYC_REJECTED = 'FULL_KYC_PENDING',
 }
 
 export enum MerchantStatus {
-  NOT_INITIATED  = 'Not Initiated',
+  NOT_INITIATED = 'Not Initiated',
   DOCUMENTS_UNDER_REVIEW = 'Documents under review',
   DOCUMENTS_REJECTED = 'Documents Rejected',
   DOCUMENTS_UPLOADED = 'Documents Uploaded',
-  KYC_APPROVED = 'KYC Approved'
+  KYC_APPROVED = 'KYC Approved',
 }
 
 registerEnumType(MinKycStatus, {
@@ -41,8 +40,6 @@ registerEnumType(MerchantStatus, {
   name: 'MerchantStatus',
   description: 'Status of Merchant',
 });
-
-
 
 @ObjectType()
 export class rangeCharge {
@@ -107,15 +104,15 @@ export class TrusteeSchool {
   @Field(() => String)
   merchantEmail: string;
 
-  @Prop({enum:MerchantStatus,default:MerchantStatus.NOT_INITIATED})
+  @Prop({ enum: MerchantStatus, default: MerchantStatus.NOT_INITIATED })
   @Field(() => MerchantStatus)
   merchantStatus: MerchantStatus;
 
-  @Prop({enum:MinKycStatus, default:MinKycStatus.MIN_KYC_PENDING})
+  @Prop({ enum: MinKycStatus, default: MinKycStatus.MIN_KYC_PENDING })
   @Field(() => MinKycStatus)
   pgMinKYC: MinKycStatus;
 
-  @Prop({enum:FullKycStatus, default:FullKycStatus.FULL_KYC_PENDING})
+  @Prop({ enum: FullKycStatus, default: FullKycStatus.FULL_KYC_PENDING })
   @Field(() => FullKycStatus)
   pgFullKYC: FullKycStatus;
 
@@ -160,15 +157,15 @@ export class TrusteeSchool {
   ccavenue_working_key: string;
 
   @Prop({})
-  @Field(() => Boolean,{defaultValue:false})
+  @Field(() => Boolean, { defaultValue: false })
   isCcavenue: boolean;
-  
+
   @Prop({})
-  @Field(() => Boolean,{defaultValue:false})
+  @Field(() => Boolean, { defaultValue: false })
   isVendor: boolean;
 
   @Prop({})
-  @Field(() => Boolean,{defaultValue:false})
+  @Field(() => Boolean, { defaultValue: false })
   isAdjustment: boolean;
 
   @Prop({})
@@ -184,7 +181,7 @@ export class TrusteeSchool {
   targetAdjustmnentAmount: number;
 
   @Prop({})
-  @Field(() => Number,{defaultValue:0})
+  @Field(() => Number, { defaultValue: 0 })
   adjustedAmount: number;
 
   @Prop({})

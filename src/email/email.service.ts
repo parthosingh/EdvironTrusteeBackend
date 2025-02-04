@@ -3,7 +3,9 @@ import { createTransport } from 'nodemailer';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
+import { htmlToSend } from 'src/business-alarm/templates/htmlToSend.format';
 import { SETTLEMENT_ERROR_EMAIL } from 'src/utils/email.group';
+
 @Injectable()
 export class EmailService {
   transporter: any;
@@ -121,7 +123,6 @@ export class EmailService {
       console.error('Error sending email:', error);
     }
   }
-
   sendErrorMail(subject: string, body: string) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -134,6 +135,23 @@ export class EmailService {
         console.log(error.message);
       } else {
         console.log(info.response);
+      }
+    });
+  }
+  sendAlert(emailBody: string, sub: string) {
+    // const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: SETTLEMENT_ERROR_EMAIL,
+      subject: sub,
+      html: emailBody,
+    };
+
+    this.transporter.sendMail(mailOptions, (err) => {
+      if (err) {
+        console.error('Error sending  alert email:');
+      } else {
+        console.log('alert email sent successfully.');
       }
     });
   }
