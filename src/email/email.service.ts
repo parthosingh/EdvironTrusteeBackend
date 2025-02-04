@@ -3,6 +3,7 @@ import { createTransport } from 'nodemailer';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
+import { SETTLEMENT_ERROR_EMAIL } from 'src/utils/email.group';
 @Injectable()
 export class EmailService {
   transporter: any;
@@ -121,4 +122,19 @@ export class EmailService {
     }
   }
 
+  sendErrorMail(subject: string, body: string) {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: SETTLEMENT_ERROR_EMAIL,
+      subject: subject,
+      html: body,
+    };
+    this.transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error.message);
+      } else {
+        console.log(info.response);
+      }
+    });
+  }
 }

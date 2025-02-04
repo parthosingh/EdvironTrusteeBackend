@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  InternalServerErrorException,
   NotFoundException,
   Post,
   Res,
@@ -20,6 +21,8 @@ import * as jwt from 'jsonwebtoken';
 import { Disputes } from 'src/schema/disputes.schema';
 import { TempSettlementReport } from 'src/schema/tempSettlements.schema';
 import { SettlementReport } from 'src/schema/settlement.schema';
+import { EmailService } from 'src/email/email.service';
+import { generateErrorEmailTemplate } from 'src/email/templates/error.template';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -47,6 +50,7 @@ export class WebhooksController {
     private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
     @InjectModel(SettlementReport.name)
     private SettlementReportModel: mongoose.Model<SettlementReport>,
+    private emailService: EmailService,
   ) {}
 
   demoData = {
@@ -78,217 +82,257 @@ export class WebhooksController {
   };
   @Post('/easebuzz/refund')
   async easebuzzRefundWebhook(@Body() body: any, @Res() res: any) {
-    const {
-      txnid,
-      easepayid,
-      refund_id,
-      refund_amount,
-      transaction_date,
-      transaction_type,
-      merchant_refund_id,
-      chargeback_description,
-    } = body.data;
-
-    let collect_id = txnid;
-    await new this.webhooksLogsModel({
-      type: 'Refund Webhook',
-      order_id: collect_id || 'ezbcalled',
-      status: 'CALLED',
-      gateway: 'EASEBUZZ',
-      type_id: refund_id,
-      body: JSON.stringify(body),
-    }).save();
-
-    if (collect_id.startsWith('upi_')) {
-      collect_id = collect_id.replace('upi_', '');
-    }
-    const details = JSON.stringify(body.data);
-    const easebuzz_refund_status = body.data.refund_status;
-    await new this.webhooksLogsModel({
-      type: 'Refund Webhook',
-      order_id: collect_id,
-      gateway: 'EASEBUZZ',
-      type_id: refund_id,
-      body: details,
-      status: 'SUCCESS',
-    }).save();
-
     try {
-      const refundRequest =
-        await this.refundRequestModel.findById(merchant_refund_id);
-      if (!refundRequest) {
-        console.log(`Refund request not Found`);
-      }
-      let status = refund_status.INITIATED;
-      if (
-        easebuzz_refund_status === 'accepted' ||
-        easebuzz_refund_status === 'refunded'
-      ) {
-        status = refund_status.APPROVED;
-      }
-      refundRequest.status = status;
-      refundRequest.gateway = 'EASEBUZZ';
-      refundRequest.gatway_refund_id = refund_id;
-      refundRequest.additonalInfo = easebuzz_refund_status;
-      await refundRequest.save();
+      const {
+        txnid,
+        easepayid,
+        refund_id,
+        refund_amount,
+        transaction_date,
+        transaction_type,
+        merchant_refund_id,
+        chargeback_description,
+      } = body.data;
 
-      try {
-        const trustee_id = refundRequest.trustee_id;
-        const trustee = await this.TrusteeModel.findById(trustee_id);
-        if (!trustee) {
-          throw new BadRequestException('Trustee not found');
-        }
-        const refundWebhookUrl = trustee.refund_webhook_url;
-        if (!refundWebhookUrl) {
-          res.status(200).send('OK');
-        }
-        const payload = {
-          refund_id,
-          refund_amount,
-          status_description: chargeback_description,
-          school_id: refundRequest.school_id.toString(),
-          order_id: refundRequest.order_id.toString(),
-        };
-        const config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: refundWebhookUrl,
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
-          data: payload,
-        };
-        try {
-          const response = await axios.request(config);
-          const res = JSON.stringify(response.data) || 'NA';
-          await this.webhooksLogsModel.create({
-            type: 'ERP_REFUND_WEBHOOK_SUCCESS',
-            gateway: 'EAZEBUZZ',
-            status: 'SUCCESS',
-            res,
-            trustee_id: refundRequest.trustee_id,
-            school_id: refundRequest.school_id,
-          });
-        } catch (e) {
-          await this.webhooksLogsModel.create({
-            type: 'ERP_REFUND_WEBHOOK_ERROR',
-            error: e.message,
-            status: 'FAILED',
-            gateway: 'EAZEBUZZ',
-            trustee_id: refundRequest.trustee_id,
-            school_id: refundRequest.school_id,
-          });
-        }
-        return res.status(200).send('OK');
-      } catch (err) {
-        console.log('Error sending ERP webhooks', err);
-      }
-
-      res.status(200).send('OK');
-    } catch (e) {
+      let collect_id = txnid;
       await new this.webhooksLogsModel({
         type: 'Refund Webhook',
         order_id: collect_id || 'ezbcalled',
-        status: 'Failed to save webhook',
+        status: 'CALLED',
+        gateway: 'EASEBUZZ',
+        type_id: refund_id,
+        body: JSON.stringify(body),
       }).save();
-      console.log(e.message);
+
+      if (collect_id.startsWith('upi_')) {
+        collect_id = collect_id.replace('upi_', '');
+      }
+      const details = JSON.stringify(body.data);
+      const easebuzz_refund_status = body.data.refund_status;
+      await new this.webhooksLogsModel({
+        type: 'Refund Webhook',
+        order_id: collect_id,
+        gateway: 'EASEBUZZ',
+        type_id: refund_id,
+        body: details,
+        status: 'SUCCESS',
+      }).save();
+
+      try {
+        const refundRequest =
+          await this.refundRequestModel.findById(merchant_refund_id);
+        if (!refundRequest) {
+          console.log(`Refund request not Found`);
+        }
+        let status = refund_status.INITIATED;
+        if (
+          easebuzz_refund_status === 'accepted' ||
+          easebuzz_refund_status === 'refunded'
+        ) {
+          status = refund_status.APPROVED;
+        }
+        refundRequest.status = status;
+        refundRequest.gateway = 'EASEBUZZ';
+        refundRequest.gatway_refund_id = refund_id;
+        refundRequest.additonalInfo = easebuzz_refund_status;
+        await refundRequest.save();
+
+        try {
+          const trustee_id = refundRequest.trustee_id;
+          const trustee = await this.TrusteeModel.findById(trustee_id);
+          if (!trustee) {
+            throw new BadRequestException('Trustee not found');
+          }
+          const refundWebhookUrl = trustee.refund_webhook_url;
+          if (!refundWebhookUrl) {
+            res.status(200).send('OK');
+          }
+          const payload = {
+            refund_id,
+            refund_amount,
+            status_description: chargeback_description,
+            school_id: refundRequest.school_id.toString(),
+            order_id: refundRequest.order_id.toString(),
+          };
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: refundWebhookUrl,
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            data: payload,
+          };
+          try {
+            const response = await axios.request(config);
+            const res = JSON.stringify(response.data) || 'NA';
+            await this.webhooksLogsModel.create({
+              type: 'ERP_REFUND_WEBHOOK_SUCCESS',
+              gateway: 'EAZEBUZZ',
+              status: 'SUCCESS',
+              res,
+              trustee_id: refundRequest.trustee_id,
+              school_id: refundRequest.school_id,
+            });
+          } catch (e) {
+            await this.webhooksLogsModel.create({
+              type: 'ERP_REFUND_WEBHOOK_ERROR',
+              error: e.message,
+              status: 'FAILED',
+              gateway: 'EAZEBUZZ',
+              trustee_id: refundRequest.trustee_id,
+              school_id: refundRequest.school_id,
+            });
+          }
+          return res.status(200).send('OK');
+        } catch (err) {
+          console.log('Error sending ERP webhooks', err);
+        }
+
+        res.status(200).send('OK');
+      } catch (e) {
+        await new this.webhooksLogsModel({
+          type: 'Refund Webhook',
+          order_id: collect_id || 'ezbcalled',
+          status: 'Failed to save webhook',
+        }).save();
+        console.log(e.message);
+      }
+    } catch (e) {
+      const emailSubject = `Error in EASEBUZZ REFUND WEBHOOK "@Post('easebuzz/refund')"`;
+      const errorDetails = {
+        environment: process.env.NODE_ENV || 'PRODUCTION',
+        service: 'EASEBUZZ',
+        data: body,
+        timestamp: new Date().toISOString(),
+      };
+      const emailBody = generateErrorEmailTemplate(
+        e,
+        errorDetails,
+        emailSubject,
+      );
+      this.emailService.sendErrorMail(emailSubject, emailBody);
+      console.error('Error saving webhook logs', e);
+      throw new InternalServerErrorException(
+        e.message || 'Something Went Wrong',
+      );
     }
   }
 
   @Post('/cashfree/refund')
   async cashfreeRefundWebhook(@Body() body: any, @Res() res: any) {
-    const {
-      refund_id,
-      order_id,
-      refund_amount,
-      status_description,
-      cf_refund_id,
-    } = body.data.refund;
-
-    const cf_refund_status = body.data.refund.refund_status;
-    const details = JSON.stringify(body);
-    await new this.webhooksLogsModel({
-      type: 'Refund Webhook',
-      order_id: order_id,
-      gateway: 'CASHFREE',
-      type_id: refund_id,
-      body: details,
-      status: 'SUCCESS',
-    }).save();
-
     try {
-      const refundRequest = await this.refundRequestModel.findById(refund_id);
-      if (!refundRequest) {
-        console.log(`Refund request not Found`);
-      }
-      let status = refund_status.INITIATED;
-      if (cf_refund_status === 'SUCCESS') {
-        status = refund_status.APPROVED;
-      }
-      refundRequest.status = status;
-      refundRequest.gateway = 'CASHFREE';
-      refundRequest.gatway_refund_id = cf_refund_id;
-      refundRequest.additonalInfo = status_description;
-      await refundRequest.save();
+      const {
+        refund_id,
+        order_id,
+        refund_amount,
+        status_description,
+        cf_refund_id,
+      } = body.data.refund;
 
-      // Sending ERP webhooks
+      const cf_refund_status = body.data.refund.refund_status;
+      const details = JSON.stringify(body);
+      await new this.webhooksLogsModel({
+        type: 'Refund Webhook',
+        order_id: order_id,
+        gateway: 'CASHFREE',
+        type_id: refund_id,
+        body: details,
+        status: 'SUCCESS',
+      }).save();
+
       try {
-        const trustee_id = refundRequest.trustee_id;
-        const trustee = await this.TrusteeModel.findById(trustee_id);
-        if (!trustee) {
-          throw new BadRequestException('Trustee not found');
+        const refundRequest = await this.refundRequestModel.findById(refund_id);
+        if (!refundRequest) {
+          console.log(`Refund request not Found`);
         }
-        const refundWebhookUrl = trustee.refund_webhook_url;
-        if (!refundWebhookUrl) {
-          res.status(200).send('OK');
+        let status = refund_status.INITIATED;
+        if (cf_refund_status === 'SUCCESS') {
+          status = refund_status.APPROVED;
         }
-        const payload = {
-          refund_id,
-          refund_amount,
-          status_description,
-          school_id: refundRequest.school_id.toString(),
-          order_id: refundRequest.order_id.toString(),
-        };
-        const config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: refundWebhookUrl,
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
-          data: payload,
-        };
-        try {
-          const response = await axios.request(config);
-          const res = JSON.stringify(response.data) || 'NA';
-          await this.webhooksLogsModel.create({
-            type: 'ERP_REFUND_WEBHOOK_SUCCESS',
-            gateway: 'CASHFREE',
-            status: 'SUCCESS',
-            res,
-            trustee_id: refundRequest.trustee_id,
-            school_id: refundRequest.school_id,
-          });
-        } catch (e) {
-          await this.webhooksLogsModel.create({
-            type: 'ERP_REFUND_WEBHOOK_ERROR',
-            error: e.message,
-            status: 'FAILED',
-            gateway: 'CASHFREE',
-            trustee_id: refundRequest.trustee_id,
-            school_id: refundRequest.school_id,
-          });
-        }
-        return res.status(200).send('OK');
-      } catch (e) {
-        console.log('Error sending ERP webhooks', e);
-      }
+        refundRequest.status = status;
+        refundRequest.gateway = 'CASHFREE';
+        refundRequest.gatway_refund_id = cf_refund_id;
+        refundRequest.additonalInfo = status_description;
+        await refundRequest.save();
 
-      res.status(200).send('OK');
+        // Sending ERP webhooks
+        try {
+          const trustee_id = refundRequest.trustee_id;
+          const trustee = await this.TrusteeModel.findById(trustee_id);
+          if (!trustee) {
+            throw new BadRequestException('Trustee not found');
+          }
+          const refundWebhookUrl = trustee.refund_webhook_url;
+          if (!refundWebhookUrl) {
+            res.status(200).send('OK');
+          }
+          const payload = {
+            refund_id,
+            refund_amount,
+            status_description,
+            school_id: refundRequest.school_id.toString(),
+            order_id: refundRequest.order_id.toString(),
+          };
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: refundWebhookUrl,
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            data: payload,
+          };
+          try {
+            const response = await axios.request(config);
+            const res = JSON.stringify(response.data) || 'NA';
+            await this.webhooksLogsModel.create({
+              type: 'ERP_REFUND_WEBHOOK_SUCCESS',
+              gateway: 'CASHFREE',
+              status: 'SUCCESS',
+              res,
+              trustee_id: refundRequest.trustee_id,
+              school_id: refundRequest.school_id,
+            });
+          } catch (e) {
+            await this.webhooksLogsModel.create({
+              type: 'ERP_REFUND_WEBHOOK_ERROR',
+              error: e.message,
+              status: 'FAILED',
+              gateway: 'CASHFREE',
+              trustee_id: refundRequest.trustee_id,
+              school_id: refundRequest.school_id,
+            });
+          }
+          return res.status(200).send('OK');
+        } catch (e) {
+          console.log('Error sending ERP webhooks', e);
+        }
+
+        res.status(200).send('OK');
+      } catch (e) {
+        console.error('Error saving webhook logs', e);
+      }
     } catch (e) {
+      const emailSubject = `Error in CASHFREE REFUND WEBHOOK "@Post('cashfree/refund')"`;
+      const errorDetails = {
+        environment: process.env.NODE_ENV || 'PRODUCTION',
+        service: 'CASHFREE',
+        data: body,
+        timestamp: new Date().toISOString(),
+      };
+      const emailBody = generateErrorEmailTemplate(
+        e,
+        errorDetails,
+        emailSubject,
+      );
+      this.emailService.sendErrorMail(emailSubject, emailBody);
       console.error('Error saving webhook logs', e);
+      throw new InternalServerErrorException(
+        e.message || 'Something Went Wrong',
+      );
     }
   }
 
@@ -307,9 +351,25 @@ export class WebhooksController {
       console.log('called');
       res.status(200).send('OK');
     } catch (e) {
+      const emailSubject = `Error in EASEBUZZ SETTLEMENT WEBHOOK "@Post('easebuzz/settlements')"`;
+      const errorDetails = {
+        environment: process.env.NODE_ENV || 'PRODUCTION',
+        service: 'EASEBUZZ',
+        data: body,
+        timestamp: new Date().toISOString(),
+      };
+      const emailBody = generateErrorEmailTemplate(
+        e,
+        errorDetails,
+        emailSubject,
+      );
+      this.emailService.sendErrorMail(emailSubject, emailBody);
       console.error('Error saving webhook logs', e);
+      throw new InternalServerErrorException(
+        e.message || 'Something Went Wrong',
+      );
     }
-  } 
+  }
   @Post('cashfree/settlements')
   async cashfreeSettlements(@Body() body: any, @Res() res: any) {
     try {
@@ -361,7 +421,7 @@ export class WebhooksController {
         utr,
       };
       console.log(body.merchant);
-      
+
       const merchant_id = body.merchant.merchant_id;
       const merchant = await this.TrusteeSchoolmodel.findOne({
         client_id: merchant_id,
@@ -375,9 +435,9 @@ export class WebhooksController {
         throw new Error('Trustee not Found');
       }
       const webhook_urls = trustee.settlement_webhook_url;
-      
-      const saveSettlements=await this.SettlementReportModel.findOneAndUpdate(
-        {utrNumber: utr},
+
+      const saveSettlements = await this.SettlementReportModel.findOneAndUpdate(
+        { utrNumber: utr },
         {
           $set: {
             settlementAmount: payment_amount,
@@ -391,13 +451,13 @@ export class WebhooksController {
             clientId: merchant_id || 'NA',
             trustee: merchant.trustee_id,
             schoolId: merchant.school_id,
-          }
-        }, 
+          },
+        },
         {
           upsert: true,
           new: true,
         },
-      )
+      );
       console.log(saveSettlements);
       if (!webhook_urls) {
         return res.status(200).send('OK');
@@ -432,10 +492,26 @@ export class WebhooksController {
           trustee_id: merchant.trustee_id,
           school_id: merchant.school_id,
         });
-      } 
+      }
       return res.status(200).send('OK');
     } catch (e) {
+      const emailSubject = `Error in CASHFREE SETTLEMENT WEBHOOK "@Post('cashfree/settlements')"`;
+      const errorDetails = {
+        environment: process.env.NODE_ENV || 'PRODUCTION',
+        service: 'CASHFREE',
+        data: body,
+        timestamp: new Date().toISOString(),
+      };
+      const emailBody = generateErrorEmailTemplate(
+        e,
+        errorDetails,
+        emailSubject,
+      );
+      this.emailService.sendErrorMail(emailSubject, emailBody);
       console.error('Error saving webhook logs', e);
+      throw new InternalServerErrorException(
+        e.message || 'Something Went Wrong',
+      );
     }
   }
 
@@ -525,7 +601,23 @@ export class WebhooksController {
 
       res.status(200).send('OK');
     } catch (e) {
+      const emailSubject = `Error in CASHFREE VENDOR SETTLEMENT WEBHOOK "@Post('cashfree/vendor-settlements')"`;
+      const errorDetails = {
+        environment: process.env.NODE_ENV || 'PRODUCTION',
+        service: 'CASHFREE',
+        data: body,
+        timestamp: new Date().toISOString(),
+      };
+      const emailBody = generateErrorEmailTemplate(
+        e,
+        errorDetails,
+        emailSubject,
+      );
+      this.emailService.sendErrorMail(emailSubject, emailBody);
       console.error('Error saving webhook logs', e);
+      throw new InternalServerErrorException(
+        e.message || 'Something Went Wrong',
+      );
     }
   }
 
@@ -541,7 +633,7 @@ export class WebhooksController {
         status: 'SUCCESS',
       }).save();
 
-      // const 
+      // const
 
       res.status(200).send('OK');
     } catch (e) {
@@ -583,7 +675,6 @@ export class WebhooksController {
     const details = JSON.stringify(body);
     const webhooklogs = await new this.webhooksLogsModel({
       body: details,
-      
     }).save();
     try {
       const {
