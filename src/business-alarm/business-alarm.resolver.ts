@@ -5,6 +5,7 @@ import { Cron } from '@nestjs/schedule';
 import { EmailService } from 'src/email/email.service';
 import {
   htmlToSend,
+  Pg_keyMismatchTemplate,
   refundAmountAndTransactionAmountMismatchTemplate,
 } from './templates/htmlToSend.format';
 
@@ -81,5 +82,29 @@ export class BusinessAlarmResolver {
       console.log('No Mismatch Found Between Refund and Order Amounts.');
       return false;
     }
+  }
+
+  @Cron('0 0 2 * * *')
+  @Query(() => Boolean)
+  async findDuplicateTrusteesPGKey() {
+    console.log(`Checking Duplicate pg keys`);
+    const data = await this.businessServices.findDuplicateTrusteesPgKey()
+    
+    if (data.length > 0) {
+      console.log(`duplicate pg key found`);
+      
+      const formatEmail = Pg_keyMismatchTemplate(data);
+
+      this.emailService.sendAlert(
+        formatEmail,
+        'Alert: Mismatch Found PG_KEY',
+      );
+      return true;
+    } else {
+      console.log('No Mismatch Found PG_KEY.');
+      return false;
+    }
+
+
   }
 }

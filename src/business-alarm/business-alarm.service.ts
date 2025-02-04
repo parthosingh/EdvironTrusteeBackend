@@ -122,4 +122,47 @@ export class BusinessAlarmService {
 
     return data;
   }
+
+  async findDuplicateTrusteesPgKey() {
+    const data = this.trusteeSchoolModel.aggregate([
+        {
+            $match: {
+                pg_key: { $ne: null }
+            }
+        },
+        {
+            $group: {
+                _id: "$pg_key",
+                count: { $sum: 1 },
+                docs: { $push: "$$ROOT" }
+            }
+        },
+        {
+            $match: {
+                count: { $gt: 1 }
+            }
+        },
+        {
+            $unwind : {
+                path : "$docs"
+            }
+        },
+        {
+            $replaceRoot : {
+                newRoot : "$docs"
+            }
+        },
+        {
+            $project : {
+                _id: 0,
+                school_id: 1, 
+                school_name: 1, 
+                pg_key: 1,
+                trustee_id: 1,
+            }
+        }
+    ]);
+
+    return data
+}
 }

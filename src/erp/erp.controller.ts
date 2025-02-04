@@ -618,7 +618,7 @@ export class ErpController {
         PaymnetWebhookUrl = JSON.parse(decodeWebhookUrl);
       }
       let splitPay = split_payments;
-      if (!school_id) { 
+      if (!school_id) {
         throw new BadRequestException('School id is required');
       }
       if (!amount) {
@@ -2619,38 +2619,55 @@ export class ErpController {
       throw new BadRequestException(e.message);
     }
   }
-}
 
-const captureData = {
-  cf_payment_id: '12376123',
-  order_id: 'order_8123',
-  entity: 'payment',
-  payment_currency: 'INR',
-  error_details: null,
-  order_amount: 10.01,
-  is_captured: true,
-  payment_group: 'upi',
-  authorization: {
-    action: 'CAPTURE',
-    status: 'PENDING',
-    captured_amount: 100,
-    start_time: '2022-02-09T18:04:34+05:30',
-    end_time: '2022-02-19T18:04:34+05:30',
-    approve_by: '2022-02-09T18:04:34+05:30',
-    action_reference: '6595231908096894505959',
-    action_time: '2022-08-03T16:09:51',
-  },
-  payment_method: {
-    upi: {
-      channel: 'collect',
-      upi_id: 'rohit@xcxcx',
-    },
-  },
-  payment_amount: 10.01,
-  payment_time: '2021-07-23T12:15:06+05:30',
-  payment_completion_time: '2021-07-23T12:18:59+05:30',
-  payment_status: 'SUCCESS',
-  payment_message: 'Transaction successful',
-  bank_reference: 'P78112898712',
-  auth_id: 'A898101',
-};
+  @UseGuards(ErpGuard)
+  @Get('/v2/check-status')
+  async checkPaymentStatus(
+    @Query('sign') sign: string,
+    @Query('school_id') school_id: string,
+    @Query('collect_id') collect_id?: string,
+    @Query('custom_order_id') custom_order_id?: string,
+  ) {
+    try {
+      if (collect_id && custom_order_id) {
+        throw new BadRequestException(
+          'Either collect_id or custom_order_id should be provided',
+        );
+      }
+      if (!collect_id && !custom_order_id) {
+        throw new BadRequestException(
+          'Either collect_id or custom_order_id should be provided',
+        );
+      }
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('Invalid School Id');
+      }
+
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      let query: any = {};
+      if (collect_id) {
+        if(decoded.collect_id !== collect_id){
+          throw new BadRequestException('Sign fordge');
+        } 
+        query = {
+          _id: new Types.ObjectId(collect_id),
+        };
+      } else if (custom_order_id) {
+        if(decoded.custom_order_id !== custom_order_id){
+          throw new BadRequestException('Sign fordge');
+        } 
+        query = {
+          custom_order_id,
+        };
+      }
+
+      throw new NotFoundException('Payment Status Not Found');
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+}
