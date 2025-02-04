@@ -23,6 +23,8 @@ import { TempSettlementReport } from 'src/schema/tempSettlements.schema';
 import { SettlementReport } from 'src/schema/settlement.schema';
 import { EmailService } from 'src/email/email.service';
 import { generateErrorEmailTemplate } from 'src/email/templates/error.template';
+import { TrusteeService } from 'src/trustee/trustee.service';
+import { error } from 'console';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -51,6 +53,7 @@ export class WebhooksController {
     @InjectModel(SettlementReport.name)
     private SettlementReportModel: mongoose.Model<SettlementReport>,
     private emailService: EmailService,
+    private trusteeService: TrusteeService,
   ) {}
 
   demoData = {
@@ -493,6 +496,29 @@ export class WebhooksController {
           school_id: merchant.school_id,
         });
       }
+      try {
+        console.log({
+          settled_on,
+          payment_from,
+          payment_till,
+        });
+        const settlementDate=await this.formatDate(settled_on)
+        const paymentFromDate=await this.formatDate(payment_from)
+        const paymentTillDate=await this.formatDate(payment_till)
+        await this.trusteeService.reconSettlementAndTransaction(
+          merchant.trustee_id.toString(),
+          merchant.school_id.toString(),
+          settlementDate,
+          paymentFromDate,
+          paymentTillDate,
+        );
+      } catch (e) {
+        console.log(e);
+        
+        console.log('error in recon save');
+        
+        // console.log(e);
+      }
       return res.status(200).send('OK');
     } catch (e) {
       const emailSubject = `Error in CASHFREE SETTLEMENT WEBHOOK "@Post('cashfree/settlements')"`;
@@ -514,6 +540,11 @@ export class WebhooksController {
       );
     }
   }
+
+  async formatDate(dateString:string){
+    return new Date(dateString).toISOString().split('T')[0];
+  };
+  
 
   @Post('cashfree/vendor-settlements')
   async cashfreeVendorSettlements(@Body() body: any, @Res() res: any) {

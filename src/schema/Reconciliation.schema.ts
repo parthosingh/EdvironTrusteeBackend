@@ -228,35 +228,35 @@ export class Reconciliation {
   tillDate: Date;
 
   @Prop({ nullable: true, type: Number })
-  @Field(() => Number)
+   @Field(() => Number, { nullable: true })
   settlementAmount: number;
 
   @Prop({ nullable: true, type: Number })
-  @Field(() => Number)
+   @Field(() => Number, { nullable: true })
   totaltransactionAmount: number;
 
   @Prop({ nullable: true, type: Number })
-  @Field(() => Number)
+   @Field(() => Number, { nullable: true })
   merchantOtherAdjustment: number;
 
   @Prop({ nullable: true, type: Number })
-  @Field(() => Number)
+   @Field(() => Number, { nullable: true })
   merchantAdjustment: number;
 
   @Prop({ nullable: true, type: Number })
-  @Field(() => Number)
+   @Field(() => Number, { nullable: true })
   splitTransactionAmount: number;
 
   @Prop({ nullable: true, type: Number })
-  @Field(() => Number)
+   @Field(() => Number, { nullable: true })
   splitSettlementAmount: number;
 
   @Prop({ nullable: true, type: Number })
-  @Field(() => Number)
+   @Field(() => Number, { nullable: true })
   refundSum: number;
 
   @Prop({ nullable: true, type: Number })
-  @Field(() => Number)
+  @Field(() => Number, { nullable: true })
   vendor_refund_sum: number;
 
   @Prop()
