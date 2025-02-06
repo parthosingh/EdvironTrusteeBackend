@@ -1881,6 +1881,9 @@ export class TrusteeService {
     settlement_date: string,
     transaction_start_date: string,
     transaction_end_date: string,
+    isoTransactionFrom?: string,
+    isoTransactionTill?: string,
+    isoSettlementDate?: number,
   ) {
     const settlements = await this.fetchSettlementInfo(
       settlement_date,
@@ -1899,6 +1902,7 @@ export class TrusteeService {
     let sumSettlement = 0;
     let otherAdjustments: any = [];
     let sumOtherAdjustments = 0;
+    let chargeBacks:any=[]
 
     await Promise.all(
       settlements.map(async (settlement: any) => {
@@ -1914,8 +1918,9 @@ export class TrusteeService {
         console.log(settlements_transactions.length);
 
         if (Array.isArray(settlements_transactions)) {
+          await Promise.all(
           settlements_transactions = settlements_transactions.map(
-            (transaction: any) => {
+            async(transaction: any) => {
               const formattedTransaction = {
                 collect_id: transaction.order_id,
                 order_amount: transaction.order_amount,
@@ -1925,7 +1930,7 @@ export class TrusteeService {
                 student_email: transaction.student_email,
                 student_phone_no: transaction.student_phone_no,
                 payment_group: transaction.payment_group,
-                payment_time: transaction.event_amount,
+                payment_time: transaction.event_time || 'na',
               };
               payment_service_charge += transaction.payment_service_charge;
               payment_service_tax += transaction.payment_service_tax;
@@ -1934,17 +1939,57 @@ export class TrusteeService {
               }
               // Check if the event_type is 'refund' and push to refunds array
               if (transaction.event_type === 'REFUND') {
-                refunds.push(formattedTransaction);
+                const config = {
+                  method: 'get',
+                  maxBodyLength: Infinity,
+                  url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/settlement-status?collect_id=${transaction.order_id}`,
+                  headers: {
+                    accept: 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                };
+                const {data:refundData} = await axios.request(config);
+                console.log(refundData,'Refund data');
+                
+                refunds.push({ ...formattedTransaction, utr: refundData.transfer_utr });
+                console.log(refunds,'refund');
+                
+
+              }
+              if(transaction.event_time==='DISPUTE'){
+                const config = {
+                  method: 'get',
+                  maxBodyLength: Infinity,
+                  url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/settlement-status?collect_id=${transaction.order_id}`,
+                  headers: {
+                    accept: 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                };
+                const {data:refundData} = await axios.request(config);
+                chargeBacks.push({ ...formattedTransaction, utr: refundData.transfer_utr });
+                
+                
               }
 
               if (transaction.event_type === 'OTHER_ADJUSTMENT') {
                 sumOtherAdjustments += transaction.event_amount;
-                otherAdjustments.push(transaction);
+                const config = {
+                  method: 'get',
+                  maxBodyLength: Infinity,
+                  url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/settlement-status?collect_id=${transaction.order_id}`,
+                  headers: {
+                    accept: 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                };
+                const {data:refundData} = await axios.request(config);
+                otherAdjustments.push({ ...formattedTransaction, utr: refundData.transfer_utr });
               }
-
               return formattedTransaction;
             },
-          );
+          )
+        )
 
           // console.log(settlements_transactions, 'transactions');
           allTransactions.push(...settlements_transactions);
@@ -1989,6 +2034,7 @@ export class TrusteeService {
           refund_amount: refundInfo.refund_amount,
           isSplitRefund: refundInfo.isSplitRefund || false,
           inSettlements,
+          utr:refund.utr,
         };
       }),
     );
@@ -2194,9 +2240,9 @@ export class TrusteeService {
 
     try {
       const records = await new this.ReconciliationModel({
-        fromDate: new Date(transaction_start_date),
-        tillDate: new Date(transaction_end_date),
-        settlementDate: new Date(settlement_date),
+        fromDate: new Date(isoTransactionFrom) || new Date(transaction_start_date),
+        tillDate: new Date(isoTransactionTill) || new Date(transaction_end_date),
+        settlementDate: new Date(isoSettlementDate) || new Date(settlement_date),
         settlementAmount: sumSettlement,
         totaltransactionAmount: toalDurationTransaction,
         merchantAdjustment: sumSettlement - toalDurationTransaction,
@@ -2224,9 +2270,6 @@ export class TrusteeService {
       console.log(e);
     }
 
-    // console.log('Extra in allTransactions:', extraInAllTransactions);
-    // console.log('Extra in durationTransactions:', extraInDurationTransactions);
-    // console.log(allTransactions.length);
 
     return discrepancies;
   }

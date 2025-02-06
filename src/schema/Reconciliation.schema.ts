@@ -107,6 +107,10 @@ export class ReconRefundInfo {
 
   @Field(() => Boolean, { nullable: true })
   isSplitRefund: boolean;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  utr: string;
 }
 
 @ObjectType()

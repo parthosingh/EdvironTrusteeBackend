@@ -376,7 +376,10 @@ export class WebhooksController {
   @Post('cashfree/settlements')
   async cashfreeSettlements(@Body() body: any, @Res() res: any) {
     try {
+      console.log('cashfree settlement');
+
       const details = JSON.stringify(body);
+    //  saving logs
       await new this.webhooksLogsModel({
         type: 'SETTLEMENTS',
         gateway: 'CASHFREE',
@@ -423,7 +426,7 @@ export class WebhooksController {
         status,
         utr,
       };
-      console.log(body.merchant);
+      // console.log(body.merchant);
 
       const merchant_id = body.merchant.merchant_id;
       const merchant = await this.TrusteeSchoolmodel.findOne({
@@ -461,63 +464,61 @@ export class WebhooksController {
           new: true,
         },
       );
-      console.log(saveSettlements);
-      if (!webhook_urls) {
-        return res.status(200).send('OK');
+
+      if (webhook_urls) {
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: webhook_urls,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          data: payload,
+        };
+        try {
+          const response = await axios.request(config);
+          const res = JSON.stringify(response.data) || 'NA';
+          await this.webhooksLogsModel.create({
+            type: 'ERP_SETTLEMENTS_WEBHOOK_SUCCESS',
+            gateway: 'CASHFREE',
+            status: 'SUCCESS',
+            res,
+            trustee_id: merchant.trustee_id,
+            school_id: merchant.school_id,
+          });
+          //  Save ERP WEbhooks LOgs in Payments backend here.
+        } catch (e) {
+          await this.webhooksLogsModel.create({
+            type: 'ERP_SETTLEMENTS_WEBHOOK_ERROR',
+            error: e.message,
+            status: 'FAILED',
+            gateway: 'CASHFREE',
+            trustee_id: merchant.trustee_id,
+            school_id: merchant.school_id,
+          });
+        }
       }
-      const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: webhook_urls,
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-        },
-        data: payload,
-      };
+      
+      // saving reconcilation data
       try {
-        const response = await axios.request(config);
-        const res = JSON.stringify(response.data) || 'NA';
-        await this.webhooksLogsModel.create({
-          type: 'ERP_SETTLEMENTS_WEBHOOK_SUCCESS',
-          gateway: 'CASHFREE',
-          status: 'SUCCESS',
-          res,
-          trustee_id: merchant.trustee_id,
-          school_id: merchant.school_id,
-        });
-      } catch (e) {
-        await this.webhooksLogsModel.create({
-          type: 'ERP_SETTLEMENTS_WEBHOOK_ERROR',
-          error: e.message,
-          status: 'FAILED',
-          gateway: 'CASHFREE',
-          trustee_id: merchant.trustee_id,
-          school_id: merchant.school_id,
-        });
-      }
-      try {
-        console.log({
-          settled_on,
-          payment_from,
-          payment_till,
-        });
-        const settlementDate=await this.formatDate(settled_on)
-        const paymentFromDate=await this.formatDate(payment_from)
-        const paymentTillDate=await this.formatDate(payment_till)
+        const settlementDate = await this.formatDate(settled_on);
+        const paymentFromDate = await this.formatDate(payment_from);
+        const paymentTillDate = await this.formatDate(payment_till);
         await this.trusteeService.reconSettlementAndTransaction(
           merchant.trustee_id.toString(),
           merchant.school_id.toString(),
           settlementDate,
           paymentFromDate,
           paymentTillDate,
+          payment_from,
+          paymentTillDate,
+          settled_on,
         );
       } catch (e) {
         console.log(e);
-        
         console.log('error in recon save');
-        
-        // console.log(e);
+        // ADD mailer here
       }
       return res.status(200).send('OK');
     } catch (e) {
@@ -541,10 +542,9 @@ export class WebhooksController {
     }
   }
 
-  async formatDate(dateString:string){
-    return new Date(dateString).toISOString().split('T')[0];
-  };
-  
+  async formatDate(dateString: string) {
+    return dateString.split('T')[0];
+  }
 
   @Post('cashfree/vendor-settlements')
   async cashfreeVendorSettlements(@Body() body: any, @Res() res: any) {
