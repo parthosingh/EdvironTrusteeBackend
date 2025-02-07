@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { htmlToSend } from 'src/business-alarm/templates/htmlToSend.format';
 import { SETTLEMENT_ERROR_EMAIL } from 'src/utils/email.group';
+import { sendEnablePgInfotemp } from './templates/enable.pg.template';
 
 @Injectable()
 export class EmailService {
@@ -154,5 +155,28 @@ export class EmailService {
         console.log('alert email sent successfully.');
       }
     });
+  }
+
+
+ async sendEnablePgInfo( data) {
+  // const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
+  const emailRecipients = ['manish.verma@edviron.com'];
+
+  const template = await sendEnablePgInfotemp(data)
+
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER, // Sender email
+    to: emailRecipients.join(','), // Join multiple recipients with commas
+    // cc: ccRecipients.join(','), // Join multiple CC recipients with commas
+    subject: data.status,
+    html: template,
+  };
+  try {
+    await this.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
   }
 }

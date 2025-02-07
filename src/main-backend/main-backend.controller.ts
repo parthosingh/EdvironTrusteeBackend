@@ -26,6 +26,8 @@ import { Parser } from 'json2csv';
 import { Response } from 'express';
 import axios from 'axios';
 import { Invoice, invoice_status } from 'src/schema/invoice.schema';
+import { Args } from '@nestjs/graphql';
+import { EmailService } from 'src/email/email.service';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -43,6 +45,7 @@ export class MainBackendController {
     private refundRequestModel: mongoose.Model<RefundRequest>,
     @InjectModel(Invoice.name)
     private readonly invoiceModel: mongoose.Model<Invoice>,
+    private readonly emailService:EmailService,
   ) {}
 
   @Post('create-trustee')
@@ -149,6 +152,15 @@ export class MainBackendController {
     } catch (error) {
       throw new BadRequestException(error.message);
     }
+  }
+
+  @Post('enable-pg')
+  async enablePgAndSendEmail(
+    @Args('school_id') school_id: string,
+  ){
+    const data = await this.mainBackendService.enablePgAndSendEmail(school_id);
+    await this.emailService.sendEnablePgInfo( data)
+    return data;
   }
 
   @Post('assign-school')

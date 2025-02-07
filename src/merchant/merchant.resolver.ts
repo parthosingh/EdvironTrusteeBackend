@@ -1091,19 +1091,44 @@ export class MerchantResolver {
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
     @Context() context: any,
+    @Args('start_date', { type: () => String, nullable: true })
+    start_date?: string,
+    @Args('end_date', { type: () => String, nullable: true }) end_date?: string,
+    @Args('utr', { type: () => String, nullable: true })
+    utr?: string,
+    @Args('vendor_id', { type: () => String, nullable: true })
+    vendor_id?: string,
   ) {
-    const merchant_id = context.req.merchant;
-    const school = await this.trusteeSchoolModel.findById(merchant_id);
-    if (!school) throw new NotFoundException('School not found');
-    const totalCount = await this.vendorsSettlementModel.countDocuments({
-      school_id: school.school_id,
-    });
+    const schoolId = context.req.merchant;
+
+    const school = await this.trusteeSchoolModel.findById(schoolId);
+    const school_id = school.school_id;
+
+
+    const query = {
+      school_id,
+      ...(vendor_id && { vendor_id: new Types.ObjectId(vendor_id) }),
+      ...(utr && { utr: utr }),
+      ...(start_date &&
+        end_date && {
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
+    };
+
+    const totalCount = await this.vendorsSettlementModel.countDocuments(query);
+    // Calculate total pages
     const totalPages = Math.ceil(totalCount / limit);
+
+    // Fetch paginated data
     const vendor_settlements = await this.vendorsSettlementModel
-      .find({ school_id: school.school_id })
+      .find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .exec();
 
     return {
       vendor_settlements,

@@ -60,7 +60,7 @@ import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.
       }),
     }),
   ],
-  providers: [MainBackendService, TrusteeService, EmailService,AwsS3Service],
+  providers: [MainBackendService, TrusteeService, EmailService, AwsS3Service],
   controllers: [MainBackendController],
 })
 export class MainBackendModule {}
