@@ -284,6 +284,10 @@ export class Reconciliation {
   refunds: ReconRefundInfo[];
 
   @Prop()
+  @Field(() => [ReconRefundInfo], { defaultValue: [] })
+  chargeBacks: ReconRefundInfo[];
+
+  @Prop()
   @Field(() => [VendorRefunds], { defaultValue: [] })
   vendors_refunds: VendorRefunds[];
 
@@ -322,6 +326,10 @@ export class Reconciliation {
   @Field(() => String, { nullable: true })
   @Prop({ required: true, type: String })
   utrNumber: string;
+  
+  @Prop({ type: String })
+  @Field(() => String,{ nullable: true })
+  remarks: string;
 }
 
 export const ReconciliationSchema =

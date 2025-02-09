@@ -43,6 +43,10 @@ export class SettlementReport {
   @Field(() => String)
   clientId: string;
 
+  @Prop({ type: String })
+  @Field(() => String, { nullable: true })
+  remarks: string;
+
   @Prop({ required: true, type: Types.ObjectId, ref: 'Trustee' })
   @Field(() => ID)
   trustee: ObjectId;
@@ -53,3 +57,32 @@ export class SettlementReport {
 }
 
 export const SettlementSchema = SchemaFactory.createForClass(SettlementReport);
+
+const t = {
+  data: {
+    settlement: {
+      adjustment: -1,
+      amount_settled: 0,
+      payment_amount: 1,
+      payment_from: '2025-02-06T09:47:10+05:30',
+      payment_till: '2025-02-06T09:47:10+05:30',
+      reason: null,
+      remarks:
+        'Insufficient amount to settle. Eligible amount to initiate the settlement is greater than Rs 1.',
+      service_charge: 0,
+      service_tax: 0,
+      settled_on: '2025-02-07T18:24:23+05:30',
+      settlement_amount: 1,
+      settlement_charge: 0,
+      settlement_id: 124531763,
+      settlement_initiated_on: null,
+      settlement_tax: 0,
+      settlement_type: 'NORMAL_SETTLEMENT',
+      status: 'SUCCESS',
+      utr: 'PGZ124531763',
+    },
+  },
+  event_time: '2025-02-07T18:24:23+05:30',
+  merchant: { merchant_id: 'CF_535ad4a4-2c80-4e6c-b3f5-d21bb0f2125b' },
+  type: 'SETTLEMENT_SUCCESS',
+};

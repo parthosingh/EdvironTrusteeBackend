@@ -2236,6 +2236,7 @@ export class TrusteeService {
       refundDetails,
       payment_service_tax,
       payment_service_charge,
+      chargeBacks
     };
 
     try {
@@ -2258,6 +2259,7 @@ export class TrusteeService {
         school_name: schoolInfo.school_name || 'NA',
         settlements_transactions: allTransactions,
         utrNumber: settlements[0].utrNumber,
+        remarks: settlements[0].remarks || 'NA',
         other_adjustments: otherAdjustments,
         merchantOtherAdjustment: sumOtherAdjustments,
         duration_transactions: durationTransactions,
