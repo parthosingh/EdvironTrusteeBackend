@@ -27,6 +27,10 @@ export class SettlementReport {
   @Field(() => Date)
   tillDate: Date;
 
+  @Prop({ required: false, type: Date })
+  @Field(() => Date,{nullable: true})
+  settlement_initiated_on: Date;
+
   @Prop({ required: true, type: String })
   @Field(() => String)
   status: string;

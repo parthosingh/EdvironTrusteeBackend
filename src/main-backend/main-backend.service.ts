@@ -20,6 +20,7 @@ import { TrusteeMember } from '../schema/partner.member.schema';
 import axios from 'axios';
 import { SettlementReport } from 'src/schema/settlement.schema';
 import { error } from 'console';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class MainBackendService {
@@ -33,7 +34,7 @@ export class MainBackendService {
     @InjectModel(SettlementReport.name)
     private settlementReportModel: mongoose.Model<SettlementReport>,
     // private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   async createTrustee(info) {
     const { name, email, password, school_limit, phone_number } = info;
@@ -140,19 +141,18 @@ export class MainBackendService {
     }
   }
 
-
   async enablePgAndSendEmail(school_id) {
     try {
       const school = await this.trusteeSchoolModel.findById(school_id);
-      let data = null
-      if (school.pg_key && school.pg_key !== null ) {
+      let data = null;
+      if (school.pg_key && school.pg_key !== null) {
         data = {
           status: 'PG already enabled',
           trustee_id: school.trustee_id,
           school_id: school.school_id,
           pg_key: school.pg_key,
           school_name: school.school_name,
-        }
+        };
       } else {
         const pg_key = await this.generateKey();
         const update = {
@@ -167,14 +167,13 @@ export class MainBackendService {
           school_id: school.school_id,
           pg_key: pg_key,
           school_name: school.school_name,
-        }
+        };
       }
       return data;
     } catch (error) {
       console.log('Error enabling PG:', error);
     }
   }
-
 
   async updateSchoolInfo(info: {
     school_id: string;
@@ -393,7 +392,6 @@ export class MainBackendService {
 
     const startOfDayIST = new Date(targetDate.setHours(0, 0, 0, 0));
 
-
     const startOfDayUTC = new Date(
       startOfDayIST.getTime() - 5.5 * 60 * 60 * 1000,
     );
@@ -414,7 +412,6 @@ export class MainBackendService {
       },
       `settlement date`,
     );
-
 
     // Query to find settlements for the specific day
     const settlements = await this.settlementReportModel.find({
@@ -476,5 +473,69 @@ export class MainBackendService {
       diff: transaction_sum - totalSettlementAmount,
       school_name,
     };
+  }
+
+  async checkTransactionDataAlram(
+    startDate: string,
+    endDate: string,
+    school_id: string,
+    trustee_id: string,
+  ) {
+    let token = jwt.sign(
+      { trustee_id: trustee_id },
+      process.env.PAYMENTS_SERVICE_SECRET,
+    );
+    try {
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report?startDate=${startDate}&endDate=${endDate}&status=SUCCESS&school_id=${school_id}&limit=500000`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: {
+          trustee_id: trustee_id,
+          token,
+        },
+      };
+   
+      const amountConfig= {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-transaction-report-batched`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: {
+          end_date:endDate,
+          start_date:startDate,
+          school_id:school_id,
+          trustee_id: trustee_id,
+          status: 'SUCCESS',
+        },
+      };
+
+      const { data: response } = await axios.request(config);
+      const {data:amountResponse}=await axios.request(amountConfig);
+      console.log(response);
+      const totalorderAmount = response.transactions.reduce(
+        (sum, transaction) => sum + (transaction.order_amount || 0),
+        0,
+      );
+      return {
+        totalorderAmount,
+        test:amountResponse.transactions[0].totalOrderAmount,
+        amountResponse
+      }
+      if(totalorderAmount===amountResponse.transactions[0].totalOrderAmount){
+        return true
+      }
+      // add mailer here
+    } catch (e) {
+      console.log(e, 'error');
+      throw new Error(e.message);
+    }
   }
 }

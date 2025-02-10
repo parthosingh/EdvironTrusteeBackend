@@ -1967,7 +1967,7 @@ export class TrusteeService {
                   },
                 };
                 const {data:refundData} = await axios.request(config);
-                chargeBacks.push({ ...formattedTransaction, utr: refundData.transfer_utr });
+                chargeBacks.push({ ...formattedTransaction, utr: refundData.transfer_utr,isChargeBack:true });
                 
                 
               }

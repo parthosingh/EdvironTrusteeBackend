@@ -45,7 +45,7 @@ export class MainBackendController {
     private refundRequestModel: mongoose.Model<RefundRequest>,
     @InjectModel(Invoice.name)
     private readonly invoiceModel: mongoose.Model<Invoice>,
-    private readonly emailService:EmailService,
+    private readonly emailService: EmailService,
   ) {}
 
   @Post('create-trustee')
@@ -155,11 +155,9 @@ export class MainBackendController {
   }
 
   @Post('enable-pg')
-  async enablePgAndSendEmail(
-    @Args('school_id') school_id: string,
-  ){
+  async enablePgAndSendEmail(@Args('school_id') school_id: string) {
     const data = await this.mainBackendService.enablePgAndSendEmail(school_id);
-    await this.emailService.sendEnablePgInfo( data)
+    await this.emailService.sendEnablePgInfo(data);
     return data;
   }
 
@@ -711,7 +709,10 @@ export class MainBackendController {
         throw new BadRequestException('Invalid Token');
       }
 
-      const vendors = await this.trusteeService.getVenodrInfo(body.vendor_id,body.school_id);
+      const vendors = await this.trusteeService.getVenodrInfo(
+        body.vendor_id,
+        body.school_id,
+      );
 
       const vendor_info = {
         vendor_id: body.vendor_id,
@@ -754,12 +755,19 @@ export class MainBackendController {
       reason: string;
     },
   ) {
-    const {refund_amount,collect_id,school_id,trustee_id,custom_id,gateway,reason}=body
-    try{
-
-      const refunds=await this.refundRequestModel.create({
-        trustee_id:new Types.ObjectId(trustee_id),
-        school_id:new Types.ObjectId(school_id),
+    const {
+      refund_amount,
+      collect_id,
+      school_id,
+      trustee_id,
+      custom_id,
+      gateway,
+      reason,
+    } = body;
+    try {
+      const refunds = await this.refundRequestModel.create({
+        trustee_id: new Types.ObjectId(trustee_id),
+        school_id: new Types.ObjectId(school_id),
         order_id: new Types.ObjectId(collect_id),
         status: refund_status.AUTO_REFUND_INITIATED,
         refund_amount,
@@ -768,10 +776,10 @@ export class MainBackendController {
         reason,
         gateway,
         custom_id,
-      })
-      return refunds
-    }catch(e){
-      throw new BadRequestException(e.message)
+      });
+      return refunds;
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
   }
 
@@ -779,14 +787,14 @@ export class MainBackendController {
   async getRefundInfo(
     @Query('refund_id') refund_id: string,
     @Query('token') token: string,
-  ){
-    try{
-      const refund=await this.refundRequestModel.findById(refund_id)
-      if(!refund){
-        throw new NotFoundException('refund not found')
+  ) {
+    try {
+      const refund = await this.refundRequestModel.findById(refund_id);
+      if (!refund) {
+        throw new NotFoundException('refund not found');
       }
-      return refund
-    }catch(e){}
+      return refund;
+    } catch (e) {}
   }
 
   @Post('get-settlement-reco')
@@ -879,12 +887,27 @@ export class MainBackendController {
   }
 
   @Post('get-vendors-transactions-settlement')
-  async getVendorsTransactionsSettlement(
-    @Body() body:{
-      collect_id: string;
-    }
-  ){
-    return await this.trusteeService.vendorSettlementInfo(body.collect_id)
+  async getVendorsTransactionsSettlement(@Body() body: { collect_id: string }) {
+    return await this.trusteeService.vendorSettlementInfo(body.collect_id);
   }
 
+  @Post('test-alram')
+  async testAlarm(
+    @Body()
+    body: {
+      trustee_id: string;
+      school_id: string;
+      token: string;
+      startDate: string;
+      endDate: string;
+    },
+  ) {
+    const {startDate, endDate, token, trustee_id, school_id} = body
+    return this.mainBackendService.checkTransactionDataAlram(
+      startDate,
+      endDate,
+      school_id,
+      trustee_id,
+    );
+  }
 }

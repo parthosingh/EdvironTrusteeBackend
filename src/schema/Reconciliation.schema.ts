@@ -100,7 +100,7 @@ export class ReconRefundInfo {
   @Prop()
   @Field(() => Number, { nullable: true })
   refund_amount: number;
-
+ 
   @Prop()
   @Field(() => Boolean, { nullable: true })
   inSettlements: boolean;
@@ -111,6 +111,9 @@ export class ReconRefundInfo {
   @Prop()
   @Field(() => String, { nullable: true })
   utr: string;
+
+  @Field(() => Boolean, { nullable: true })
+  isChargeBack: boolean;
 }
 
 @ObjectType()

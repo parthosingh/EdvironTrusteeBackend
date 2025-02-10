@@ -1,4 +1,4 @@
-import { Query, Resolver } from '@nestjs/graphql';
+import { ObjectType, Query, Resolver } from '@nestjs/graphql';
 import { BusinessAlarmService } from './business-alarm.service';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import { Cron } from '@nestjs/schedule';
@@ -88,23 +88,30 @@ export class BusinessAlarmResolver {
   @Query(() => Boolean)
   async findDuplicateTrusteesPGKey() {
     console.log(`Checking Duplicate pg keys`);
-    const data = await this.businessServices.findDuplicateTrusteesPgKey()
-    
+    const data = await this.businessServices.findDuplicateTrusteesPgKey();
+
     if (data.length > 0) {
       console.log(`duplicate pg key found`);
-      
+
       const formatEmail = Pg_keyMismatchTemplate(data);
 
-      this.emailService.sendAlert(
-        formatEmail,
-        'Alert: Mismatch Found PG_KEY',
-      );
+      this.emailService.sendAlert(formatEmail, 'Alert: Mismatch Found PG_KEY');
       return true;
     } else {
       console.log('No Mismatch Found PG_KEY.');
       return false;
     }
-
-
   }
+
+  @Cron('0 0 2 * * *')
+  @Query(() => Boolean)
+  async checkOrderAmount() {
+    const missMatched = await this.businessServices.reconOrderAmount();
+    console.log(missMatched,'missmatched');
+    
+    return true;
+   
+  } 
 }
+
+// @ObjectType
