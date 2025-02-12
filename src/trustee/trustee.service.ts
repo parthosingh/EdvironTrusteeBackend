@@ -1918,9 +1918,8 @@ export class TrusteeService {
         console.log(settlements_transactions.length);
 
         if (Array.isArray(settlements_transactions)) {
-          await Promise.all(
-          settlements_transactions = settlements_transactions.map(
-            async(transaction: any) => {
+          settlements_transactions = await Promise.all(
+            settlements_transactions.map(async (transaction: any) => {
               const formattedTransaction = {
                 collect_id: transaction.order_id,
                 order_amount: transaction.order_amount,
@@ -1932,12 +1931,15 @@ export class TrusteeService {
                 payment_group: transaction.payment_group,
                 payment_time: transaction.event_time || 'na',
               };
+
               payment_service_charge += transaction.payment_service_charge;
               payment_service_tax += transaction.payment_service_tax;
+
               if (transaction.event_type !== 'REFUND') {
                 settlementTransactions += transaction.order_amount;
               }
-              // Check if the event_type is 'refund' and push to refunds array
+
+              // Fetch refund UTR if event_type is 'REFUND'
               if (transaction.event_type === 'REFUND') {
                 const config = {
                   method: 'get',
@@ -1948,15 +1950,15 @@ export class TrusteeService {
                     'Content-Type': 'application/json',
                   },
                 };
-                const {data:refundData} = await axios.request(config);
-                console.log(refundData,'Refund data');
-                
-                refunds.push({ ...formattedTransaction, utr: refundData.transfer_utr });
-                console.log(refunds,'refund');
-                
-
+                const { data: refundData } = await axios.request(config);
+                refunds.push({
+                  ...formattedTransaction,
+                  utr: refundData.transfer_utr,
+                });
               }
-              if(transaction.event_time==='DISPUTE'){
+
+              // Handle DISPUTE transactions
+              if (transaction.event_type === 'DISPUTE') {
                 const config = {
                   method: 'get',
                   maxBodyLength: Infinity,
@@ -1966,12 +1968,14 @@ export class TrusteeService {
                     'Content-Type': 'application/json',
                   },
                 };
-                const {data:refundData} = await axios.request(config);
-                chargeBacks.push({ ...formattedTransaction, utr: refundData.transfer_utr,isChargeBack:true });
-                
-                
+                const { data: refundData } = await axios.request(config);
+                chargeBacks.push({
+                  ...formattedTransaction,
+                  utr: refundData.transfer_utr,
+                });
               }
 
+              // Handle OTHER_ADJUSTMENT transactions
               if (transaction.event_type === 'OTHER_ADJUSTMENT') {
                 sumOtherAdjustments += transaction.event_amount;
                 const config = {
@@ -1983,15 +1987,17 @@ export class TrusteeService {
                     'Content-Type': 'application/json',
                   },
                 };
-                const {data:refundData} = await axios.request(config);
-                otherAdjustments.push({ ...formattedTransaction, utr: refundData.transfer_utr });
+                const { data: refundData } = await axios.request(config);
+                otherAdjustments.push({
+                  ...formattedTransaction,
+                  utr: refundData.transfer_utr,
+                });
               }
-              return formattedTransaction;
-            },
-          )
-        )
 
-          // console.log(settlements_transactions, 'transactions');
+              return formattedTransaction;
+            }),
+          );
+
           allTransactions.push(...settlements_transactions);
         }
       }),

@@ -54,7 +54,7 @@ export class WebhooksController {
     private SettlementReportModel: mongoose.Model<SettlementReport>,
     private emailService: EmailService,
     private trusteeService: TrusteeService,
-  ) { }
+  ) {}
 
   demoData = {
     data: {
@@ -432,7 +432,6 @@ export class WebhooksController {
         client_id: merchant_id,
       });
 
-     
       if (!merchant) {
         throw new Error('Merchnat not Found');
       }
@@ -468,7 +467,6 @@ export class WebhooksController {
         },
       );
 
-      
       if (webhook_urls) {
         const config = {
           method: 'post',
@@ -505,24 +503,26 @@ export class WebhooksController {
       }
 
       // saving reconcilation data
-      try {
-        const settlementDate = await this.formatDate(settled_on);
-        const paymentFromDate = await this.formatDate(payment_from);
-        const paymentTillDate = await this.formatDate(payment_till);
-        await this.trusteeService.reconSettlementAndTransaction(
-          merchant.trustee_id.toString(),
-          merchant.school_id.toString(),
-          settlementDate,
-          paymentFromDate,
-          paymentTillDate,
-          payment_from,
-          paymentTillDate,
-          settled_on,
-        );
-      } catch (e) {
-        console.log(e.message);
-        console.log('error in recon save');
-        // ADD mailer here
+      if (status === 'SUCCESS') {
+        try {
+          const settlementDate = await this.formatDate(settled_on);
+          const paymentFromDate = await this.formatDate(payment_from);
+          const paymentTillDate = await this.formatDate(payment_till);
+          await this.trusteeService.reconSettlementAndTransaction(
+            merchant.trustee_id.toString(),
+            merchant.school_id.toString(),
+            settlementDate,
+            paymentFromDate,
+            paymentTillDate,
+            payment_from,
+            paymentTillDate,
+            settled_on,
+          );
+        } catch (e) {
+          console.log(e.message);
+          console.log('error in recon save');
+          // ADD mailer here
+        }
       }
       return res.status(200).send('OK');
     } catch (e) {
