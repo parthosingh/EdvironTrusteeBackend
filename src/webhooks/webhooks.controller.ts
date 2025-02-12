@@ -54,7 +54,7 @@ export class WebhooksController {
     private SettlementReportModel: mongoose.Model<SettlementReport>,
     private emailService: EmailService,
     private trusteeService: TrusteeService,
-  ) {}
+  ) { }
 
   demoData = {
     data: {
@@ -377,9 +377,8 @@ export class WebhooksController {
   async cashfreeSettlements(@Body() body: any, @Res() res: any) {
     try {
       console.log('cashfree settlement');
-
       const details = JSON.stringify(body);
-    //  saving logs
+      //  saving logs
       await new this.webhooksLogsModel({
         type: 'SETTLEMENTS',
         gateway: 'CASHFREE',
@@ -432,6 +431,8 @@ export class WebhooksController {
       const merchant = await this.TrusteeSchoolmodel.findOne({
         client_id: merchant_id,
       });
+
+     
       if (!merchant) {
         throw new Error('Merchnat not Found');
       }
@@ -451,6 +452,7 @@ export class WebhooksController {
             netSettlementAmount: amount_settled,
             fromDate: new Date(payment_from),
             tillDate: new Date(payment_till),
+            settlementInitiatedOn: new Date(settlement_initiated_on),
             status: status,
             utrNumber: utr,
             settlementDate: new Date(settled_on),
@@ -466,6 +468,7 @@ export class WebhooksController {
         },
       );
 
+      
       if (webhook_urls) {
         const config = {
           method: 'post',
@@ -500,7 +503,7 @@ export class WebhooksController {
           });
         }
       }
-      
+
       // saving reconcilation data
       try {
         const settlementDate = await this.formatDate(settled_on);
@@ -517,7 +520,7 @@ export class WebhooksController {
           settled_on,
         );
       } catch (e) {
-        console.log(e);
+        console.log(e.message);
         console.log('error in recon save');
         // ADD mailer here
       }
