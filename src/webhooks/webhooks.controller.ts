@@ -515,7 +515,7 @@ export class WebhooksController {
             paymentFromDate,
             paymentTillDate,
             payment_from,
-            paymentTillDate,
+            payment_till,
             settled_on,
           );
         } catch (e) {

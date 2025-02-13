@@ -2108,10 +2108,11 @@ export class TrusteeService {
     // console.log('Duration Transactions:', durationTransactions);
     const extraInSettlementTransactions = allTransactions.filter(
       (transaction) =>
+        transaction.event_type !== "REFUND" && // Exclude refund transactions
         !durationTransactions.some(
           (durationTransaction) =>
-            durationTransaction.collect_id === transaction.collect_id,
-        ),
+            durationTransaction.collect_id === transaction.collect_id
+        )
     );
 
     const extraInDurationTransactions = durationTransactions.filter(
