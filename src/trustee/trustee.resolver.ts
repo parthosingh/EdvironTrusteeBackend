@@ -874,7 +874,7 @@ export class TrusteeResolver {
       throw new Error('One or more required fields are missing.');
     }
 
-    if (!['admin', 'management', 'finance_team'].includes(access)) {
+    if (!['admin', 'management', 'finance_team','developer'].includes(access)) {
       throw new Error('Invalid access level provided.');
     }
 
@@ -1180,7 +1180,9 @@ export class TrusteeResolver {
         'You are not Authorized to update this user',
       );
     }
-    if (!['admin', 'management', 'finance_team','developer'].includes(access)) {
+    if (
+      !['admin', 'management', 'finance_team', 'developer'].includes(access)
+    ) {
       throw new Error('Invalid access level provided.');
     }
 
@@ -3473,3 +3475,29 @@ export class Commissionres {
   @Field({ nullable: true })
   totalCommission: number;
 }
+
+const test = {
+  status: '1',
+  data: {
+    hash: 'ee41f254f93f20709e5e7ac798426981e0d7c8f1c2b82509fa8d1756ccd530ac46ec22b986413e2504d82219c3825d9c9aca7722f798451460bd5a4215483e13',
+    udf1: null,
+    udf2: null,
+    udf3: null,
+    udf4: null,
+    udf5: null,
+    udf6: null,
+    udf7: null,
+    txnid: 'upi_67adc37c944c98402d6d112d',
+    easepayid: 'E2502130D7XCF3',
+    refund_id: 'RU6W1MGG64',
+    arn_number: '504542487412',
+    refund_amount: 1.0,
+    refund_status: 'accepted',
+    transaction_date: '2025-02-13 15:33:40.000000',
+    transaction_type: 'UPI',
+    merchant_refund_id: 'E2502130D7XCF3-17394414',
+    transaction_amount: 1.0,
+    refund_request_date: '2025-02-13 15:40:50.308912',
+    chargeback_description: '',
+  },
+};

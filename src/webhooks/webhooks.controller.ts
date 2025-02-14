@@ -86,6 +86,7 @@ export class WebhooksController {
   @Post('/easebuzz/refund')
   async easebuzzRefundWebhook(@Body() body: any, @Res() res: any) {
     try {
+      const data=JSON.parse(body.data);
       const {
         txnid,
         easepayid,
@@ -95,9 +96,12 @@ export class WebhooksController {
         transaction_type,
         merchant_refund_id,
         chargeback_description,
-      } = body.data;
-
+      } = data;
+      
+      
       let collect_id = txnid;
+      console.log(data);
+      
       await new this.webhooksLogsModel({
         type: 'Refund Webhook',
         order_id: collect_id || 'ezbcalled',
@@ -110,6 +114,9 @@ export class WebhooksController {
       if (collect_id.startsWith('upi_')) {
         collect_id = collect_id.replace('upi_', '');
       }
+
+      console.log('updated collect id: ' + collect_id);
+      
       const details = JSON.stringify(body.data);
       const easebuzz_refund_status = body.data.refund_status;
       await new this.webhooksLogsModel({
