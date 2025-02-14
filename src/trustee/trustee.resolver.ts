@@ -1180,7 +1180,7 @@ export class TrusteeResolver {
         'You are not Authorized to update this user',
       );
     }
-    if (!['admin', 'management', 'finance_team'].includes(access)) {
+    if (!['admin', 'management', 'finance_team','developer'].includes(access)) {
       throw new Error('Invalid access level provided.');
     }
 
