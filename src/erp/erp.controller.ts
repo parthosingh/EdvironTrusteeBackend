@@ -2488,7 +2488,6 @@ export class ErpController {
       if (!school) {
         throw new BadRequestException('Invalid School Id');
       }
-      console.log(school);
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       if (decoded.collect_id === !collect_id) {
@@ -2521,41 +2520,58 @@ export class ErpController {
 
       const response = await axios.request(config);
       const data = response.data;
-      console.log(data);
+      // console.log(data,'response');
 
-      const { captureInfo, paymentInfo } = data;
+      // const { captureInfo, paymentInfo } = data;
 
-      const captureData = await this.CapturetModel.findOneAndUpdate(
-        { collect_id: collect_id },
-        {
-          $set: {
-            school_id: new Types.ObjectId(school_id),
-            trustee_id: school.trustee_id,
-            collect_id: collect_id,
-            custom_order_id: paymentInfo.custom_order_id,
-            order_amount: paymentInfo.order_amount,
-            payment_amount: paymentInfo.payment_amount,
-            action: captureInfo.authorization.action,
-            capture_status: captureInfo.authorization.status,
-            capture_start_date: new Date(captureInfo.authorization.start_time),
-            capture_end_date: new Date(captureInfo.authorization.end_time),
-            approve_by: new Date(captureInfo.authorization.approve_by),
-            action_reference: captureInfo.authorization.action_reference,
-            capture_amount: captureInfo.authorization.captured_amount,
-            is_captured: captureInfo.is_captured,
-            error_details: captureInfo.error_details,
-            auth_id: captureInfo.auth_id,
-            bank_reference: captureInfo.bank_reference,
-          },
-        },
-        { upsert: true, new: true },
-      );
+      // const captureData = await this.CapturetModel.findOneAndUpdate(
+      //   { collect_id: collect_id },
+      //   {
+      //     $set: {
+      //       school_id: new Types.ObjectId(school_id),
+      //       trustee_id: school.trustee_id,
+      //       collect_id: collect_id,
+      //       custom_order_id: paymentInfo.custom_order_id,
+      //       order_amount: paymentInfo.order_amount,
+      //       payment_amount: paymentInfo.payment_amount,
+      //       action: captureInfo.authorization.action,
+      //       capture_status: captureInfo.authorization.status,
+      //       capture_start_date: new Date(captureInfo.authorization.start_time),
+      //       capture_end_date: new Date(captureInfo.authorization.end_time),
+      //       approve_by: new Date(captureInfo.authorization.approve_by),
+      //       action_reference: captureInfo.authorization.action_reference,
+      //       capture_amount: captureInfo.authorization.captured_amount,
+      //       is_captured: captureInfo.is_captured,
+      //       error_details: captureInfo.error_details,
+      //       auth_id: captureInfo.auth_id,
+      //       bank_reference: captureInfo.bank_reference,
+      //     },
+      //   },
+      //   { upsert: true, new: true },
+      // );
       const res = {
-        auth_id: captureData.auth_id,
-        captured_amount: captureData.capture_amount,
-        capture_status: captureData.capture_status,
-        action: captureData.action,
-        is_captured: captureData.is_captured,
+        auth_id: data.auth_id,
+        authorization:{
+          action:data.authorization.action,
+          status:data.authorization.status,
+          captured_amount:data.authorization.captured_amount,
+          start_time:data.authorization.start_time,
+          end_time:data.authorization.end_time,
+          action_reference:data.authorization.action_reference,
+          approve_by:data.authorization.approve_by,
+          action_time: data.authorization.action_time,
+        },
+        order_id: data.order_id,
+        bank_reference: data.bank_reference,
+        order_amount: data.order_amount,
+        payment_amount: data.payment_amount,
+        payment_completion_time: data.payment_completion_time,
+        payment_currency: data.payment_currency,
+        payment_group: data.payment_group,
+        payment_method: data.payment_method,
+        payment_status: data.payment_status,
+        payment_type: data.payment_type,
+        
       };
       return res;
     } catch (e) {
