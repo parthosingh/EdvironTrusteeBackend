@@ -504,6 +504,10 @@ export class WebhooksController {
 
       // saving reconcilation data
       if (status === 'SUCCESS') {
+        console.log('Success');
+        
+        setTimeout(async()=>{
+          console.log('40 min delay');
         try {
           const settlementDate = await this.formatDate(settled_on);
           const paymentFromDate = await this.formatDate(payment_from);
@@ -523,7 +527,10 @@ export class WebhooksController {
           console.log('error in recon save');
           // ADD mailer here
         }
+      },40*60*1000) // 40 min delay
       }
+      console.log('returning transaction');
+      
       return res.status(200).send('OK');
     } catch (e) {
       const emailSubject = `Error in CASHFREE SETTLEMENT WEBHOOK "@Post('cashfree/settlements')"`;
