@@ -16,6 +16,7 @@ import {
   UseGuards,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
 import {
@@ -601,6 +602,57 @@ export class TrusteeResolver {
     }
   }
 
+  @Query(() => [TransactionReport])
+  @UseGuards(TrusteeGuard)
+  async getSingleTransactionReport(
+    @Context() context,
+    @Args('collect_id') collect_id: string,
+    @Args('school_id') school_id: string,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const token = this.jwtService.sign(
+        { trustee_id, collect_id, school_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const data = await this.trusteeService.getSingleTransaction(
+        trustee_id,
+        collect_id,
+        school_id,
+        token,
+      );
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      return data.map((item: any) => {
+        const remark = null;
+        const parsedData = item?.additional_data
+          ? JSON.parse(item?.additional_data)
+          : {};
+        return {
+          ...item,
+          student_id: parsedData.student_details?.student_id || '',
+          student_name: parsedData.student_details?.student_name || '',
+          student_email: parsedData.student_details?.student_email || '',
+          student_phone: parsedData.student_details?.student_phone_no || '',
+          receipt: parsedData.student_details?.receipt || '',
+          additional_data: parsedData.additional_fields || '',
+          currency: 'INR',
+          school_id: item?.school_id,
+          school_name: school?.school_name,
+          remarks: remark,
+          custom_order_id: item?.custom_order_id || null,
+        };
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Something went wrong',
+      );
+    }
+  }
+
   @Query(() => Commissionres)
   @UseGuards(TrusteeGuard)
   async fetchAllCommission(
@@ -874,7 +926,9 @@ export class TrusteeResolver {
       throw new Error('One or more required fields are missing.');
     }
 
-    if (!['admin', 'management', 'finance_team','developer'].includes(access)) {
+    if (
+      !['admin', 'management', 'finance_team', 'developer'].includes(access)
+    ) {
       throw new Error('Invalid access level provided.');
     }
 

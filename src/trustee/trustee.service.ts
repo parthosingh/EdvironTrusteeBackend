@@ -1875,6 +1875,31 @@ export class TrusteeService {
     return transactions.data;
   }
 
+  async getSingleTransaction(
+    trustee_id: string,
+    collect_id: string,
+    school_id: string,
+    token: string,
+  ) {
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/single-transaction-report`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: {
+        collect_id,
+        trustee_id,
+        token,
+        school_id,
+      },
+    };
+    const { data: transaction } = await axios.request(config);
+    return transaction;
+  }
+
   async reconSettlementAndTransaction(
     trustee_id: string,
     school_id: string,
@@ -1902,7 +1927,7 @@ export class TrusteeService {
     let sumSettlement = 0;
     let otherAdjustments: any = [];
     let sumOtherAdjustments = 0;
-    let chargeBacks:any=[]
+    let chargeBacks: any = [];
 
     await Promise.all(
       settlements.map(async (settlement: any) => {
@@ -2040,7 +2065,7 @@ export class TrusteeService {
           refund_amount: refundInfo.refund_amount,
           isSplitRefund: refundInfo.isSplitRefund || false,
           inSettlements,
-          utr:refund.utr,
+          utr: refund.utr,
         };
       }),
     );
@@ -2108,11 +2133,11 @@ export class TrusteeService {
     // console.log('Duration Transactions:', durationTransactions);
     const extraInSettlementTransactions = allTransactions.filter(
       (transaction) =>
-        transaction.event_type !== "REFUND" && // Exclude refund transactions
+        transaction.event_type !== 'REFUND' && // Exclude refund transactions
         !durationTransactions.some(
           (durationTransaction) =>
-            durationTransaction.collect_id === transaction.collect_id
-        )
+            durationTransaction.collect_id === transaction.collect_id,
+        ),
     );
 
     const extraInDurationTransactions = durationTransactions.filter(
@@ -2243,14 +2268,17 @@ export class TrusteeService {
       refundDetails,
       payment_service_tax,
       payment_service_charge,
-      chargeBacks
+      chargeBacks,
     };
 
     try {
       const records = await new this.ReconciliationModel({
-        fromDate: new Date(isoTransactionFrom) || new Date(transaction_start_date),
-        tillDate: new Date(isoTransactionTill) || new Date(transaction_end_date),
-        settlementDate: new Date(isoSettlementDate) || new Date(settlement_date),
+        fromDate:
+          new Date(isoTransactionFrom) || new Date(transaction_start_date),
+        tillDate:
+          new Date(isoTransactionTill) || new Date(transaction_end_date),
+        settlementDate:
+          new Date(isoSettlementDate) || new Date(settlement_date),
         settlementAmount: sumSettlement,
         totaltransactionAmount: toalDurationTransaction,
         merchantAdjustment: sumSettlement - toalDurationTransaction,
@@ -2278,7 +2306,6 @@ export class TrusteeService {
     } catch (e) {
       console.log(e);
     }
-
 
     return discrepancies;
   }
