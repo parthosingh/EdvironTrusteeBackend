@@ -6,6 +6,7 @@ import * as path from 'path';
 import { htmlToSend } from 'src/business-alarm/templates/htmlToSend.format';
 import { SETTLEMENT_ERROR_EMAIL } from 'src/utils/email.group';
 import { sendEnablePgInfotemp } from './templates/enable.pg.template';
+import { sendQueryErrortemplate } from './templates/error.template';
 
 @Injectable()
 export class EmailService {
@@ -179,4 +180,8 @@ export class EmailService {
     console.error('Error sending email:', error);
   }
   }
+
+
+  
+
 }

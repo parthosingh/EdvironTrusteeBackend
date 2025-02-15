@@ -28,6 +28,7 @@ import axios from 'axios';
 import { Invoice, invoice_status } from 'src/schema/invoice.schema';
 import { Args } from '@nestjs/graphql';
 import { EmailService } from 'src/email/email.service';
+import { sendQueryErrortemplate } from 'src/email/templates/error.template';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -910,4 +911,43 @@ export class MainBackendController {
       trustee_id,
     );
   }
+
+  @Post('send-queryError-mail')
+  async sendError(
+    @Body()
+    body: {
+      queryName: string;
+      error: string;
+      message: string;
+      timestamp: string;
+      token?: string;
+      merchentToken?: string;
+    },
+  ): Promise<any> {
+    const { queryName, error, message, token, merchentToken, timestamp } = body;
+    let trustee, merchant;
+    if (token) {
+      trustee = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
+      });
+    }
+    if (merchentToken) {
+      merchant = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
+      });
+    }
+    const user = merchant ? merchant : trustee;
+
+    const mailSub = `Query Error: ${queryName}`;
+    const mailTemp = sendQueryErrortemplate(
+      queryName,
+      error,
+      message,
+      timestamp,
+      user,
+    );
+    this.emailService.sendErrorMail(mailSub, mailTemp);
+    return `An alert email has been sent to developer team.`;
+  }
+
 }
