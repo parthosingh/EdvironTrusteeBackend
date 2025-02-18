@@ -36,6 +36,8 @@ export class MainBackendService {
     // private readonly emailService: EmailService,
   ) {}
 
+  private debounceMap = new Map<string, NodeJS.Timeout>();
+
   async createTrustee(info) {
     const { name, email, password, school_limit, phone_number } = info;
     try {
@@ -537,5 +539,22 @@ export class MainBackendService {
       console.log(e, 'error');
       throw new Error(e.message);
     }
+  }
+
+  
+ async getDebounceRequest(key: string): Promise<boolean> {
+    return this.debounceMap.has(key);  
+  }
+
+ 
+  async saveDebounceRequest(key: string, ttl: number): Promise<void> {
+    if (this.debounceMap.has(key)) return; 
+
+    this.debounceMap.set(
+      key,
+      setTimeout(() => {
+        this.debounceMap.delete(key); 
+      }, ttl),
+    );
   }
 }

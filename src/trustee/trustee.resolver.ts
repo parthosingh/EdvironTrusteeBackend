@@ -447,6 +447,10 @@ export class TrusteeResolver {
       //   const checkId = mongoose.Types.ObjectId.isValid(searchFilter);
       //   if (!checkId) throw new BadRequestException('Invalid order id');
       // }
+      // checking for debouncing
+      // if(true){
+      //   throw new Error("debounceKey check")
+      // }
       let id = context.req.trustee;
       console.time('mapping merchant transaction');
       const merchants = await this.trusteeSchoolModel.find({
