@@ -2274,6 +2274,26 @@ export class TrusteeResolver {
     );
     return vendors;
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => VendorSingleTransaction)
+  async getSingleVendorTransaction(
+    @Args('order_id', { type: () => String }) order_id: string,
+    @Context() context: any,
+  ) {
+    // console.log('test');
+    const trustee_id = context.req.trustee;
+    if(!trustee_id){
+      throw new NotFoundException('trustee id not found ');
+    }
+    const transactions = this.trusteeService.getVendonrSingleTransactions(
+      order_id,
+      trustee_id.toString(),
+    );
+    return transactions;
+  }
+
+
   @UseGuards(TrusteeGuard)
   @Query(() => VendorsTransactionPaginatedResponse)
   async getVendorTransaction(
@@ -2865,6 +2885,9 @@ export class VendorsSettlementReport {
   updatedAt: Date;
 }
 
+
+
+
 @ObjectType()
 export class VendorsTransactionPaginatedResponse {
   @Field(() => [VendorTransaction], { nullable: true })
@@ -2882,6 +2905,61 @@ export class VendorsTransactionPaginatedResponse {
   @Field({ nullable: true })
   limit: number;
 }
+
+@ObjectType()
+export class VendorSingleTransaction {
+  @Field({ nullable: true })
+  _id: string;
+
+  @Field({ nullable: true })
+  collect_id: string;
+
+  @Field({ nullable: true })
+  custom_id: string;
+
+  @Field({ nullable: true })
+  name: string;
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  status: string;
+
+  @Field({ nullable: true })
+  amount: number;
+
+  @Field({ nullable: true })
+  createdAt: string;
+
+  @Field({ nullable: true })
+  updatedAt: string;
+
+  @Field({ nullable: true })
+  gateway: string;
+
+  @Field({ nullable: true })
+  additional_data: string;
+
+  @Field({ nullable: true })
+  trustee_id: string;
+
+  @Field({ nullable: true })
+  custom_order_id: string;
+
+  @Field({ nullable: true })
+  payment_method: string;
+
+  @Field({ nullable: true })
+  bank_reference: string;
+
+  @Field({ nullable: true })
+  transaction_amount: string;
+
+  @Field({ nullable: true })
+  payment_detail: string;
+}
+
 
 @ObjectType()
 export class VendorTransaction {

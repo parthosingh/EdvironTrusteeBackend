@@ -1629,6 +1629,38 @@ export class TrusteeService {
     return vendor;
   }
 
+
+  async getVendonrSingleTransactions(
+    order_id: string,
+    trustee_id: string,
+  ){
+    if (!order_id) throw new NotFoundException('Order id not found ');
+    
+
+    const token = this.jwtService.sign({
+      order_id
+    },
+    {secret:process.env.PAYMENTS_SERVICE_SECRET}
+  )
+
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-single-transaction`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: { order_id, trustee_id, token },
+    };
+
+    const { data: transactions } = await axios.request(config);
+    // console.log(transactions);
+
+    return transactions;
+
+  }
+
   async getVendorTransactions(
     vendor_id: string,
     trustee_id: string,
