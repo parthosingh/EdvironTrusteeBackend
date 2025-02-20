@@ -2002,7 +2002,7 @@ export class TrusteeResolver {
 
       if (existingInvoice) {
         throw new ConflictException(
-          `An invoice for ${targetMonthYear} already exists.`,
+          `An invoice for ${duration} already exists.`,
         );
       }
 
