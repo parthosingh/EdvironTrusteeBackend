@@ -2283,7 +2283,7 @@ export class TrusteeResolver {
   ) {
     // console.log('test');
     const trustee_id = context.req.trustee;
-    if(!trustee_id){
+    if (!trustee_id) {
       throw new NotFoundException('trustee id not found ');
     }
     const transactions = this.trusteeService.getVendonrSingleTransactions(
@@ -2292,7 +2292,6 @@ export class TrusteeResolver {
     );
     return transactions;
   }
-
 
   @UseGuards(TrusteeGuard)
   @Query(() => VendorsTransactionPaginatedResponse)
@@ -2597,20 +2596,23 @@ export class TrusteeResolver {
   ) {
     const startDate = new Date(`${year}-${month}-01`);
     console.log(startDate);
+    // startDate.setHours(18, 30, 0, 0);
+    console.log(startDate,'start');
+    const yearNum = parseInt(year, 10);
+    const monthNum = parseInt(month, 10);
 
-    const endDate = new Date(`${year}-${month}-31`);
-    const endOfDay = new Date(endDate); // Create a new Date object from endDate
-    endOfDay.setHours(23, 59, 59, 999);
-    console.log({
-      trustee_id: context.req.trustee,
-      createdAt: { $gte: startDate, $lte: endOfDay },
-    });
+    // Get last day of the month correctly
+    const lastDay = new Date(yearNum, monthNum, 0).getDate(); // Get last day as a number
 
+    const endDate = new Date(`${year}-${month}-${lastDay}`);
+    endDate.setUTCHours(18, 29, 59, 999);
+    console.log( { $gte: startDate, $lte: endDate });
+    
     const commissionsInfo = await this.commissionModel.aggregate([
       {
         $match: {
           trustee_id: context.req.trustee.toString(),
-          createdAt: { $gte: startDate, $lte: endOfDay },
+          createdAt: { $gte: startDate, $lte: endDate },
         },
       },
       {
@@ -2885,9 +2887,6 @@ export class VendorsSettlementReport {
   updatedAt: Date;
 }
 
-
-
-
 @ObjectType()
 export class VendorsTransactionPaginatedResponse {
   @Field(() => [VendorTransaction], { nullable: true })
@@ -2959,7 +2958,6 @@ export class VendorSingleTransaction {
   @Field({ nullable: true })
   payment_detail: string;
 }
-
 
 @ObjectType()
 export class VendorTransaction {
