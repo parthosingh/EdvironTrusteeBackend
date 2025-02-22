@@ -58,7 +58,7 @@ export class ErpController {
     @InjectModel(Capture.name)
     private CapturetModel: mongoose.Model<Capture>,
     @InjectModel(WebhookLogs.name)
-        private webhooksLogsModel: mongoose.Model<WebhookLogs>,
+    private webhooksLogsModel: mongoose.Model<WebhookLogs>,
   ) {}
 
   @Get('payment-link')
@@ -217,12 +217,16 @@ export class ErpController {
   ) {
     try {
       const trustee_id = req.userTrustee.id;
-      await new this.webhooksLogsModel({
-        type: 'COLLECT REQUEST',
-        order_id: trustee_id.toString(),
-        status: 'CALLED',
-        body: JSON.stringify(body),
-      }).save();
+      try {
+        await new this.webhooksLogsModel({
+          type: 'COLLECT REQUEST',
+          order_id: trustee_id.toString(),
+          status: 'CALLED',
+          body: JSON.stringify(body),
+        }).save();
+      } catch(e) {
+        console.log(e.message);
+      }
       const {
         school_id,
         amount,
@@ -620,7 +624,7 @@ export class ErpController {
         split_payments,
         vendors_info,
       } = body;
-     
+
       let PaymnetWebhookUrl: any = req_webhook_urls;
       if (req_webhook_urls && !Array.isArray(req_webhook_urls)) {
         const decodeWebhookUrl = decodeURIComponent(req.body.req_webhook_urls);
@@ -2561,14 +2565,14 @@ export class ErpController {
       // );
       const res = {
         auth_id: data.auth_id,
-        authorization:{
-          action:data.authorization.action,
-          status:data.authorization.status,
-          captured_amount:data.authorization.captured_amount,
-          start_time:data.authorization.start_time,
-          end_time:data.authorization.end_time,
-          action_reference:data.authorization.action_reference,
-          approve_by:data.authorization.approve_by,
+        authorization: {
+          action: data.authorization.action,
+          status: data.authorization.status,
+          captured_amount: data.authorization.captured_amount,
+          start_time: data.authorization.start_time,
+          end_time: data.authorization.end_time,
+          action_reference: data.authorization.action_reference,
+          approve_by: data.authorization.approve_by,
           action_time: data.authorization.action_time,
         },
         order_id: data.order_id,
@@ -2581,7 +2585,6 @@ export class ErpController {
         payment_method: data.payment_method,
         payment_status: data.payment_status,
         payment_type: data.payment_type,
-        
       };
       return res;
     } catch (e) {
@@ -2676,16 +2679,16 @@ export class ErpController {
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       let query: any = {};
       if (collect_id) {
-        if(decoded.collect_id !== collect_id){
+        if (decoded.collect_id !== collect_id) {
           throw new BadRequestException('Sign fordge');
-        } 
+        }
         query = {
           _id: new Types.ObjectId(collect_id),
         };
       } else if (custom_order_id) {
-        if(decoded.custom_order_id !== custom_order_id){
+        if (decoded.custom_order_id !== custom_order_id) {
           throw new BadRequestException('Sign fordge');
-        } 
+        }
         query = {
           custom_order_id,
         };
