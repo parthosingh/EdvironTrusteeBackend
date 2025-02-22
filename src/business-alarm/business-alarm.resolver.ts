@@ -114,4 +114,4 @@ export class BusinessAlarmResolver {
   } 
 }
 
-// @ObjectType
+

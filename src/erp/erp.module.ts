@@ -34,6 +34,7 @@ import {
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
 import { Capture, CaptureSchema } from 'src/schema/capture.schema';
 import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
+import { WebhookLogs, WebhookLogsSchema } from 'src/schema/webhook.schema';
 
 @Module({
   imports: [
@@ -88,6 +89,9 @@ import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.
     MongooseModule.forFeature([
       { name: Capture.name, schema: CaptureSchema },
     ]),
+    MongooseModule.forFeature([
+          { name: WebhookLogs.name, schema: WebhookLogsSchema },
+        ]),
   ],
   providers: [
     ErpService,

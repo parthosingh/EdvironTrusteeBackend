@@ -34,6 +34,7 @@ import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { Capture } from 'src/schema/capture.schema';
 // import cf_commision from 'src/utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
 import * as qs from 'qs';
+import { WebhookLogs } from 'src/schema/webhook.schema';
 @Controller('erp')
 export class ErpController {
   constructor(
@@ -56,6 +57,8 @@ export class ErpController {
     private refundRequestModel: mongoose.Model<RefundRequest>,
     @InjectModel(Capture.name)
     private CapturetModel: mongoose.Model<Capture>,
+    @InjectModel(WebhookLogs.name)
+        private webhooksLogsModel: mongoose.Model<WebhookLogs>,
   ) {}
 
   @Get('payment-link')
@@ -214,6 +217,12 @@ export class ErpController {
   ) {
     try {
       const trustee_id = req.userTrustee.id;
+      await new this.webhooksLogsModel({
+        type: 'COLLECT REQUEST',
+        order_id: trustee_id.toString(),
+        status: 'CALLED',
+        body: JSON.stringify(body),
+      }).save();
       const {
         school_id,
         amount,
@@ -611,6 +620,7 @@ export class ErpController {
         split_payments,
         vendors_info,
       } = body;
+     
       let PaymnetWebhookUrl: any = req_webhook_urls;
       if (req_webhook_urls && !Array.isArray(req_webhook_urls)) {
         const decodeWebhookUrl = decodeURIComponent(req.body.req_webhook_urls);
