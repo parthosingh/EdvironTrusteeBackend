@@ -217,16 +217,16 @@ export class ErpController {
   ) {
     try {
       const trustee_id = req.userTrustee.id;
-      try {
-        await new this.webhooksLogsModel({
-          type: 'COLLECT REQUEST',
-          order_id: trustee_id.toString(),
-          status: 'CALLED',
-          body: JSON.stringify(body),
-        }).save();
-      } catch(e) {
-        console.log(e.message);
-      }
+      // try {
+      //   await new this.webhooksLogsModel({
+      //     type: 'COLLECT REQUEST',
+      //     order_id: trustee_id.toString(),
+      //     status: 'CALLED',
+      //     body: JSON.stringify(body),
+      //   }).save();
+      // } catch(e) {
+      //   console.log(e.message);
+      // }
       const {
         school_id,
         amount,
