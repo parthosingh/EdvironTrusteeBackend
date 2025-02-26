@@ -180,7 +180,7 @@ export class MerchantResolver {
     let settlementReports = [];
 
     settlementReports = await this.settlementReportModel
-      .find({ clientId: merchant.client_id })
+      .find({ schoolId: merchant.school_id })
       .sort({ createdAt: -1 });
     return settlementReports;
   }
