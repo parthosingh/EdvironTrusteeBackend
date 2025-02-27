@@ -1639,20 +1639,21 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Query(() => SchoolMDRINFO)
-  async getSchoolMdrData( @Args('school_id') school_id: string,
-  @Context() context,){
+  async getSchoolMdrData(
+    @Args('school_id') school_id: string,
+    @Context() context,
+  ) {
     const trustee_id = context.req.trustee;
     let school: SchoolMdrInfo = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });
-    if(!school){
+    if (!school) {
       throw new NotFoundException('School not found');
     }
     return await this.trusteeService.schoolMdrInforData(
       school_id,
       trustee_id.toString(),
-    )
-
+    );
   }
 
   @UseGuards(TrusteeGuard)
@@ -2615,7 +2616,7 @@ export class TrusteeResolver {
     const startDate = new Date(`${year}-${month}-01`);
     console.log(startDate);
     // startDate.setHours(18, 30, 0, 0);
-    console.log(startDate,'start');
+    console.log(startDate, 'start');
     const yearNum = parseInt(year, 10);
     const monthNum = parseInt(month, 10);
 
@@ -2624,8 +2625,8 @@ export class TrusteeResolver {
 
     const endDate = new Date(`${year}-${month}-${lastDay}`);
     endDate.setUTCHours(18, 29, 59, 999);
-    console.log( { $gte: startDate, $lte: endDate });
-    
+    console.log({ $gte: startDate, $lte: endDate });
+
     const commissionsInfo = await this.commissionModel.aggregate([
       {
         $match: {
@@ -3531,11 +3532,14 @@ class commisonRange {
   @Field(() => String, { nullable: true })
   charge_type: charge_type;
 
+  @Field(() => String, { nullable: true })
+  base_charge_type: charge_type;
+
   @Field(() => Number, { nullable: true })
   base_charge: number;
 
-  @Field(() => Number, { nullable: true })
-  commission: number;
+  @Field(() => String, { nullable: true })
+  commission: string;
 
   @Field(() => Number, { nullable: true })
   charge: number;
@@ -3629,8 +3633,7 @@ export class Commissionres {
 }
 
 @ObjectType()
-class SchoolMDRINFO{
-
+class SchoolMDRINFO {
   @Field({ nullable: true })
   school_id: string;
 
