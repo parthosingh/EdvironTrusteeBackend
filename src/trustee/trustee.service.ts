@@ -947,6 +947,14 @@ export class TrusteeService {
     return await this.baseMdrModel.findOne({ trustee_id: trusteeId });
   }
 
+  
+  async getTrusteeBaseMdrData(trustee_id: string) {
+    const trusteeId = new Types.ObjectId(trustee_id);
+    const baseMdr= await this.baseMdrModel.findOne({ trustee_id: trusteeId });
+    if (!baseMdr) throw new NotFoundException('Base MDR not set for Trustee');
+    return baseMdr.platform_charges
+  }
+
   async toogleDisable(mode: string, school_id: string) {
     const school = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
@@ -1629,19 +1637,15 @@ export class TrusteeService {
     return vendor;
   }
 
-
-  async getVendonrSingleTransactions(
-    order_id: string,
-    trustee_id: string,
-  ){
+  async getVendonrSingleTransactions(order_id: string, trustee_id: string) {
     if (!order_id) throw new NotFoundException('Order id not found ');
-    
 
-    const token = this.jwtService.sign({
-      order_id
-    },
-    {secret:process.env.PAYMENTS_SERVICE_SECRET}
-  )
+    const token = this.jwtService.sign(
+      {
+        order_id,
+      },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
 
     const config = {
       method: 'post',
@@ -1658,7 +1662,6 @@ export class TrusteeService {
     // console.log(transactions);
 
     return transactions;
-
   }
 
   async getVendorTransactions(
@@ -2508,6 +2511,31 @@ export class TrusteeService {
       const transactionInfo = await axios.request(transactionDetailsConfig);
       console.log(transactionInfo.data, 'refundinfo');
       return transactionInfo.data[0];
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  async schoolMdrInforData(school_id: string, trustee_id: string) {
+    try {
+      let school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if(!school){
+        throw new NotFoundException('School not found');
+      }
+      const baseMdr = await this.getTrusteeBaseMdrData(trustee_id);
+      const schoolMdr=school.platform_charges
+      console.log(baseMdr);
+      
+      return {
+        school_id,
+        school_name:school.school_name,
+        requestUpdatedAt:school.updatedAt,
+        merchantStatus:school.merchantStatus,
+        baseMdr,
+        schoolMdr,
+      }
     } catch (e) {
       console.log(e);
     }

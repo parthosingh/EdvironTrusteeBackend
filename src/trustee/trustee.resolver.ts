@@ -1638,6 +1638,24 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
+  @Query(() => SchoolMDRINFO)
+  async getSchoolMdrData( @Args('school_id') school_id: string,
+  @Context() context,){
+    const trustee_id = context.req.trustee;
+    let school: SchoolMdrInfo = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    if(!school){
+      throw new NotFoundException('School not found');
+    }
+    return await this.trusteeService.schoolMdrInforData(
+      school_id,
+      trustee_id.toString(),
+    )
+
+  }
+
+  @UseGuards(TrusteeGuard)
   @Query(() => [TrusteeMDRResponse])
   async getTrusteeMDRRequest(@Context() context) {
     const trustee_id = context.req.trustee;
@@ -3608,6 +3626,28 @@ class Commissionresponse {
 export class Commissionres {
   @Field({ nullable: true })
   totalCommission: number;
+}
+
+@ObjectType()
+class SchoolMDRINFO{
+
+  @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
+  school_name: string;
+
+  @Field({ nullable: true })
+  requestUpdatedAt: string;
+
+  @Field({ nullable: true })
+  merchantStatus: string;
+
+  @Field(() => [PlatformCharge], { nullable: true })
+  baseMdr: PlatformCharge[];
+
+  @Field(() => [PlatformCharge], { nullable: true })
+  schoolMdr: PlatformCharge[];
 }
 
 const test = {
