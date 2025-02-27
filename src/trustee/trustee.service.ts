@@ -941,6 +941,11 @@ export class TrusteeService {
     return mappedData;
   }
 
+  async getTrusteeBaseMdr(trustee_id: string) {
+    const trusteeId = new Types.ObjectId(trustee_id);
+    return await this.baseMdrModel.findOne({ trustee_id: trusteeId });
+  }
+
   async getTrusteeBaseMdrData(trustee_id: string) {
     const trusteeId = new Types.ObjectId(trustee_id);
     const baseMdr = await this.baseMdrModel.findOne({ trustee_id: trusteeId });
@@ -2522,6 +2527,31 @@ export class TrusteeService {
       const transactionInfo = await axios.request(transactionDetailsConfig);
       console.log(transactionInfo.data, 'refundinfo');
       return transactionInfo.data[0];
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  async schoolMdrInforData(school_id: string, trustee_id: string) {
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      const baseMdr = await this.getTrusteeBaseMdrData(trustee_id);
+      const schoolMdr = school.platform_charges;
+      console.log(baseMdr);
+
+      return {
+        school_id,
+        school_name: school.school_name,
+        requestUpdatedAt: school.updatedAt,
+        merchantStatus: school.merchantStatus,
+        baseMdr,
+        schoolMdr,
+      };
     } catch (e) {
       console.log(e);
     }
