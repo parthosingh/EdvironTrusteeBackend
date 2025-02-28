@@ -140,6 +140,23 @@ export class EmailService {
       }
     });
   }
+
+  sendMailToTrustee(subject: string, body: string, emails: Array<string>) {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: emails,
+      subject: subject,
+      html: body,
+    };
+    this.transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error.message);
+      } else {
+        console.log(info.response);
+      }
+    });
+  }
+
   sendAlert(emailBody: string, sub: string) {
     // const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
     const mailOptions = {
@@ -158,30 +175,24 @@ export class EmailService {
     });
   }
 
+  async sendEnablePgInfo(data) {
+    // const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
+    const emailRecipients = ['manish.verma@edviron.com'];
 
- async sendEnablePgInfo( data) {
-  // const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
-  const emailRecipients = ['manish.verma@edviron.com'];
+    const template = await sendEnablePgInfotemp(data);
 
-  const template = await sendEnablePgInfotemp(data)
-
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER, // Sender email
-    to: emailRecipients.join(','), // Join multiple recipients with commas
-    // cc: ccRecipients.join(','), // Join multiple CC recipients with commas
-    subject: data.status,
-    html: template,
-  };
-  try {
-    await this.sendMail(mailOptions);
-    return true;
-  } catch (error) {
-    console.error('Error sending email:', error);
+    const mailOptions = {
+      from: process.env.EMAIL_USER, // Sender email
+      to: emailRecipients.join(','), // Join multiple recipients with commas
+      // cc: ccRecipients.join(','), // Join multiple CC recipients with commas
+      subject: data.status,
+      html: template,
+    };
+    try {
+      await this.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
   }
-  }
-
-
-  
-
 }
