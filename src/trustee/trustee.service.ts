@@ -1163,14 +1163,14 @@ export class TrusteeService {
             // Create a combined charge object
             let commission;
             if (schoolCharge.charge_type === 'PERCENT') {
-              commission = `${schoolCharge.charge}%-${
+              commission = `${schoolCharge.charge}% - ${
                 baseCharge.charge_type === 'FLAT'
                   ? `₹${baseCharge.charge}`
                   : `${baseCharge.charge}%`
               }`;
             } else {
               // If schoolCharge.charge_type is 'FLAT'
-              commission = `₹${schoolCharge.charge}- ${
+              commission = `₹${schoolCharge.charge} - ${
                 baseCharge.charge_type === 'PERCENT'
                   ? `${baseCharge.charge}%`
                   : `₹${baseCharge.charge}`
