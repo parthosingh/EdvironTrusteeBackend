@@ -2594,25 +2594,25 @@ export class TrusteeResolver {
     @Args('year', { type: () => String }) year: string,
     @Context() context: any,
   ) {
-    const startDate = new Date(`${year}-${month}-01`);
-    console.log(startDate);
-    // startDate.setHours(18, 30, 0, 0);
-    console.log(startDate,'start');
-    const yearNum = parseInt(year, 10);
     const monthNum = parseInt(month, 10);
-
-    // Get last day of the month correctly
-    const lastDay = new Date(yearNum, monthNum, 0).getDate(); // Get last day as a number
-
-    const endDate = new Date(`${year}-${month}-${lastDay}`);
-    endDate.setUTCHours(18, 29, 59, 999);
-    console.log( { $gte: startDate, $lte: endDate });
+    const yearNum = parseInt(year, 10);
+    
+    // Construct IST dates manually
+    const startDateIST = new Date(Date.UTC(yearNum, monthNum - 1, 1, 0, 0, 0)); // 1st day, 00:00 IST
+    const endDateIST = new Date(Date.UTC(yearNum, monthNum, 0, 23, 59, 59, 999)); // Last day, 23:59 IST
+    
+    // Convert IST to UTC manually
+    const startDateUTC = new Date(startDateIST.getTime() - (5.5 * 60 * 60 * 1000));
+    const endDateUTC = new Date(endDateIST.getTime() - (5.5 * 60 * 60 * 1000));
+    
+    console.log({ startDateUTC, endDateUTC });
+    
     
     const commissionsInfo = await this.commissionModel.aggregate([
       {
         $match: {
           trustee_id: context.req.trustee.toString(),
-          createdAt: { $gte: startDate, $lte: endDate },
+          createdAt: { $gte: startDateUTC, $lte: endDateUTC },
         },
       },
       {
