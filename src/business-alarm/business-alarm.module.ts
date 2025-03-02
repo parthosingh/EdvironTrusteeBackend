@@ -5,14 +5,18 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import { EmailService } from 'src/email/email.service';
 import { RefundRequest } from 'src/schema/refund.schema';
+import { SettlementReport } from 'src/schema/settlement.schema';
+import { BusinessAlarmController } from './business-alarm.controller';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: TrusteeSchool.name, schema: TrusteeSchool },
       { name: RefundRequest.name, schema: RefundRequest },
+      { name: SettlementReport.name, schema: SettlementReport },
     ]),
   ],
   providers: [BusinessAlarmResolver, BusinessAlarmService, EmailService],
+  controllers: [BusinessAlarmController],
 })
 export class BusinessAlarmModule {}

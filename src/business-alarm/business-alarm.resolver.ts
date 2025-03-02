@@ -1,20 +1,27 @@
-import { ObjectType, Query, Resolver } from '@nestjs/graphql';
+import { Field, ObjectType, Query, Resolver } from '@nestjs/graphql';
 import { BusinessAlarmService } from './business-alarm.service';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import { Cron } from '@nestjs/schedule';
 import { EmailService } from 'src/email/email.service';
 import {
+  checkMerchantSettlementnot,
+  generateSettlementFaildEmail,
   htmlToSend,
   Pg_keyMismatchTemplate,
   refundAmountAndTransactionAmountMismatchTemplate,
 } from './templates/htmlToSend.format';
+import mongoose from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import axios from 'axios';
 
 @Resolver()
 export class BusinessAlarmResolver {
   constructor(
     private readonly businessServices: BusinessAlarmService,
     private readonly emailService: EmailService,
-  ) {}
+    @InjectModel(TrusteeSchool.name)
+    private readonly trusteeSchool: mongoose.Model<TrusteeSchool>,
+  ) { }
 
   @Query(() => [TrusteeSchool])
   async findAllTrusteeDetail(): Promise<TrusteeSchool[]> {
@@ -107,11 +114,119 @@ export class BusinessAlarmResolver {
   @Query(() => Boolean)
   async checkOrderAmount() {
     const missMatched = await this.businessServices.reconOrderAmount();
-    console.log(missMatched,'missmatched');
-    
+    console.log(missMatched, 'missmatched');
+
     return true;
-   
-  } 
+
+  }
+
+  @Cron('0 11 * * *', { timeZone: 'UTC' })
+  @Query(() => [MerchantSettlement])
+  async checkMerchantSettlement(): Promise<MerchantSettlement[]> {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    // console.log(today)
+    const at5pm = new Date()
+    at5pm.setUTCHours(17, 59, 59, 999);
+    // console.log(at5pm)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const formattedDate = yesterday.toISOString().split('T')[0];
+
+    const schools = await this.trusteeSchool.aggregate([
+      {
+        $match: {
+          pg_key: { $ne: null }
+        }
+      }
+    ])
+
+    let allSchoolaftercontext : any[] = [];
+
+    const requests = schools.map(async (school) => {
+        const config = {
+            method: "post",
+            maxBodyLength: Infinity,
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-transaction-report-batched`,
+            headers: {
+                accept: "application/json",
+                "content-type": "application/json",
+            },
+            data: {
+                trustee_id: school.trustee_id.toString(),
+                school_id: school.school_id.toString(),
+                start_date: formattedDate,
+                end_date: formattedDate,
+            },
+        };
+
+        try {
+            const response = await axios.request(config);
+
+            if (response.data && response.data.length > 0) {
+                allSchoolaftercontext.push(school);
+            }
+            
+        } catch (error) {
+            console.error(`Error fetching data for school ${school.school_name}:`, error.message);
+        }
+    });
+
+    await Promise.all(requests);
+
+    console.time("check time after")
+    const missMatched = await this.businessServices.checkMerchantSettlement(today, at5pm, allSchoolaftercontext);
+
+    const formatEmail = checkMerchantSettlementnot(missMatched);
+
+    this.emailService.sendAlert(formatEmail, "Today These School Not Setteled Any Amount Yet")
+
+    return missMatched;
+  }
+
+  @Cron('0 13,17 * * *', { timeZone: 'UTC' })
+  @Query(() => Boolean)
+  async checkFailedMerchantSettlement() {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    console.log(today)
+    const atTime = new Date()
+    console.log(atTime)
+    const todaySettlement =
+      await this.businessServices.checkErrorMerchantSettlement(
+        today,
+        atTime,
+      );
+    if (todaySettlement && todaySettlement.length > 0) {
+      const subject = 'Daily Merchant Settlement Not Succeeded List';
+      const template = generateSettlementFaildEmail(
+        todaySettlement,
+        "Merchant's Settlement Not Succeeded",
+        'This report provides an overview of the vendors settlements not processed today.',
+        'error',
+      );
+      this.emailService.sendErrorMail(subject, template);
+      return true;
+    }
+    console.log('No settlements failed over the day upto 5pm');
+    return false;
+  }
+}
+
+
+@ObjectType()
+class MerchantSettlement {
+  @Field()
+  school_name: string;
+
+  @Field()
+  school_id: string;
+
+  @Field({ nullable: true })
+  email: string;
+
+  @Field({ nullable: true })
+  phone_number: string;
 }
 
 

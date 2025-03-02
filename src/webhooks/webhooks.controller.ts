@@ -4,12 +4,11 @@ import {
   Controller,
   Get,
   InternalServerErrorException,
-  NotFoundException,
   Post,
   Res,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model, ObjectId, Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { refund_status, RefundRequest } from 'src/schema/refund.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import { Trustee } from 'src/schema/trustee.schema';
@@ -18,13 +17,16 @@ import { Vendors } from 'src/schema/vendors.schema';
 import { WebhookLogs } from 'src/schema/webhook.schema';
 import axios, { AxiosError } from 'axios';
 import * as jwt from 'jsonwebtoken';
-import { Disputes } from 'src/schema/disputes.schema';
+import { DisputeGateways, Disputes } from 'src/schema/disputes.schema';
 import { TempSettlementReport } from 'src/schema/tempSettlements.schema';
 import { SettlementReport } from 'src/schema/settlement.schema';
 import { EmailService } from 'src/email/email.service';
 import { generateErrorEmailTemplate } from 'src/email/templates/error.template';
 import { TrusteeService } from 'src/trustee/trustee.service';
-import { error } from 'console';
+import {
+  getAdminEmailTemplate,
+  getCustomerEmailTemplate,
+} from 'src/email/templates/dipute.template';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -86,7 +88,7 @@ export class WebhooksController {
   @Post('/easebuzz/refund')
   async easebuzzRefundWebhook(@Body() body: any, @Res() res: any) {
     try {
-      const data=JSON.parse(body.data);
+      const data = JSON.parse(body.data);
       const {
         txnid,
         easepayid,
@@ -97,11 +99,10 @@ export class WebhooksController {
         merchant_refund_id,
         chargeback_description,
       } = data;
-      
-      
+
       let collect_id = txnid;
       console.log(data);
-      
+
       await new this.webhooksLogsModel({
         type: 'Refund Webhook',
         order_id: collect_id || 'ezbcalled',
@@ -116,7 +117,7 @@ export class WebhooksController {
       }
 
       console.log('updated collect id: ' + collect_id);
-      
+
       const details = JSON.stringify(body.data);
       const easebuzz_refund_status = body.data.refund_status;
       await new this.webhooksLogsModel({
@@ -512,32 +513,35 @@ export class WebhooksController {
       // saving reconcilation data
       if (status === 'SUCCESS') {
         console.log('Success');
-        
-        setTimeout(async()=>{
-          console.log('40 min delay');
-        try {
-          const settlementDate = await this.formatDate(settled_on);
-          const paymentFromDate = await this.formatDate(payment_from);
-          const paymentTillDate = await this.formatDate(payment_till);
-          await this.trusteeService.reconSettlementAndTransaction(
-            merchant.trustee_id.toString(),
-            merchant.school_id.toString(),
-            settlementDate,
-            paymentFromDate,
-            paymentTillDate,
-            payment_from,
-            payment_till,
-            settled_on,
-          );
-        } catch (e) {
-          console.log(e.message);
-          console.log('error in recon save');
-          // ADD mailer here
-        }
-      },40*60*1000) // 40 min delay
+
+        setTimeout(
+          async () => {
+            console.log('40 min delay');
+            try {
+              const settlementDate = await this.formatDate(settled_on);
+              const paymentFromDate = await this.formatDate(payment_from);
+              const paymentTillDate = await this.formatDate(payment_till);
+              await this.trusteeService.reconSettlementAndTransaction(
+                merchant.trustee_id.toString(),
+                merchant.school_id.toString(),
+                settlementDate,
+                paymentFromDate,
+                paymentTillDate,
+                payment_from,
+                payment_till,
+                settled_on,
+              );
+            } catch (e) {
+              console.log(e.message);
+              console.log('error in recon save');
+              // ADD mailer here
+            }
+          },
+          40 * 60 * 1000,
+        ); // 40 min delay
       }
       console.log('returning transaction');
-      
+
       return res.status(200).send('OK');
     } catch (e) {
       const emailSubject = `Error in CASHFREE SETTLEMENT WEBHOOK "@Post('cashfree/settlements')"`;
@@ -756,7 +760,6 @@ export class WebhooksController {
           'Content-Type': 'application/json',
         },
       };
-      console.log('fetching data');
 
       const { data: response } = await axios.request(orderDetailsConfig);
       const transactionInfo = response[0];
@@ -790,6 +793,7 @@ export class WebhooksController {
             // dispute_resolved_at_date: new Date(resolved_at),
             // resolved_at,
             // cf_dispute_remarks,
+            gateway: DisputeGateways.CASHFREE,
           },
         },
         { upsert: true, new: true },
@@ -801,6 +805,135 @@ export class WebhooksController {
       res.status(200).send('OK');
     } catch (e) {
       console.log(e.message);
+    }
+  }
+
+  @Post('easebuzz/dispute-webhooks')
+  async easebuzzDisputeWebhooks(@Body() body: any, @Res() res: any) {
+    try {
+      const details = JSON.stringify(body);
+      const webhooklogs = await new this.webhooksLogsModel({
+        body: details,
+      }).save();
+
+      const {
+        dispute_id,
+        dispute_type,
+        created_at,
+        updated_at,
+        Case_id,
+        dispute_amount,
+        status,
+        deadline,
+      } = body.data;
+      let { transaction_id } = body.data;
+
+      if (transaction_id.startsWith('upi_')) {
+        transaction_id = transaction_id.replace('upi_', '');
+      }
+
+      webhooklogs.collect_id = transaction_id;
+      await webhooklogs.save();
+
+      const token = jwt.sign(
+        { collect_request_id: transaction_id },
+        process.env.PAYMENTS_SERVICE_SECRET,
+      );
+
+      const orderDetailsConfig = {
+        method: 'get',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/erp-transaction-info?collect_request_id=${transaction_id}&token=${token}`,
+        headers: {
+          accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      };
+
+      const { data: response } = await axios.request(orderDetailsConfig);
+      const transactionInfo = response[0];
+      const custom_order_id = transactionInfo.custom_order_id || 'NA';
+      const school_id = transactionInfo.school_id;
+
+      const school = await this.TrusteeSchoolmodel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!school) {
+        throw new BadRequestException('School not found');
+      }
+
+      const dispute = await this.DisputesModel.findOneAndUpdate(
+        { dispute_id },
+        {
+          set: {
+            school_id: new Types.ObjectId(school_id),
+            trustee_id: school.trustee_id,
+            collect_id: transaction_id,
+            custom_order_id,
+            dispute_type,
+            reason_description: dispute_type,
+            dispute_amount,
+            case_id: Case_id,
+            order_amount: transactionInfo.order_amount,
+            payment_amount: transactionInfo.transaction_amount,
+            dispute_created_date: new Date(created_at),
+            dispute_updated_date: new Date(updated_at),
+            dispute_respond_by_date: new Date(deadline),
+            dispute_status: status,
+            dispute_remark: 'NA',
+            gateway: DisputeGateways.EASEBUZZ,
+          },
+        },
+        { upsert: true, new: true },
+      );
+      if (status === 'OPEN') {
+        // const trusteeEmail = await this.TrusteeModel.findById(
+        //   school.trustee_id,
+        // );
+        const subject = `A dispute has been raised against transaction id: ${transaction_id}`;
+        const innerMailTemp = getAdminEmailTemplate(dispute, false);
+        // const userMailTemp = getCustomerEmailTemplate(
+        //   dispute,
+        //   school.school_name,
+        //   false,
+        // );
+        this.emailService.sendErrorMail(subject, innerMailTemp);
+
+        // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+      }
+      if (status === 'CLOSED') {
+        dispute.dispute_resolved_at_date = new Date(updated_at);
+        await dispute.save();
+        // const trusteeEmail = await this.TrusteeModel.findById(
+        //   school.trustee_id,
+        // );
+        const subject = `A dispute has been resolved against transaction id: ${transaction_id}`;
+        const innerMailTemp = getAdminEmailTemplate(dispute, false);
+        // const userMailTemp = getCustomerEmailTemplate(
+        //   dispute,
+        //   school.school_name,
+        //   false,
+        // );
+        this.emailService.sendErrorMail(subject, innerMailTemp);
+
+        // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+      }
+      res.status(200).send('OK');
+    } catch (error) {
+      const emailSubject = `Error in EASEBUZZ DISPUTE WEBHOOK "@Post('easebuzz/dispute-webhooks')"`;
+      const errorDetails = {
+        environment: process.env.NODE_ENV || 'PRODUCTION',
+        service: 'EASEBUZZ',
+        data: body,
+        timestamp: new Date().toISOString(),
+      };
+      const emailBody = generateErrorEmailTemplate(
+        error,
+        errorDetails,
+        emailSubject,
+      );
+      this.emailService.sendErrorMail(emailSubject, emailBody);
+      throw new BadRequestException(error.message);
     }
   }
 }

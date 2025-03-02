@@ -5,6 +5,7 @@ import { RefundRequest } from 'src/schema/refund.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import * as jwt from 'jsonwebtoken';
 import axios, { AxiosError } from 'axios';
+import { SettlementReport } from 'src/schema/settlement.schema';
 @Injectable()
 export class BusinessAlarmService {
   constructor(
@@ -12,7 +13,9 @@ export class BusinessAlarmService {
     private readonly trusteeSchoolModel: Model<TrusteeSchool>,
     @InjectModel(RefundRequest.name)
     private readonly refundRequestSchema: Model<RefundRequest>,
-  ) {}
+    @InjectModel(SettlementReport.name)
+    private readonly settelmentReports: Model<SettlementReport>
+  ) { }
 
   async findAll() {
     const data = await this.trusteeSchoolModel.find();
@@ -172,7 +175,7 @@ export class BusinessAlarmService {
     const schools = await this.trusteeSchoolModel.find({
       pg_key: { $exists: true, $ne: null },
     });
-  
+
     const missmatchedSchools = (
       await Promise.all(
         schools.map(async (data) => {
@@ -182,7 +185,7 @@ export class BusinessAlarmService {
             data.school_id.toString(),
             data.trustee_id.toString(),
           );
-  
+
           if (missMatched?.missmatched) {
             return missMatched;
           }
@@ -190,10 +193,10 @@ export class BusinessAlarmService {
         })
       )
     ).filter(Boolean); // Remove null/undefined entries
-  
+
     return missmatchedSchools;
   }
-  
+
 
   async checkTransactionDataAlram(
     startDate: string,
@@ -292,4 +295,193 @@ export class BusinessAlarmService {
       throw new Error(e.message);
     }
   }
+
+
+  async checkMerchantSettlement(today: Date, endtime: Date, remainingSchools: Array<any>) {
+
+    const dataConvert = new Date(today)
+    const at5pmconvert = new Date(endtime)
+    at5pmconvert.setUTCHours(17, 59, 59, 999);
+
+    const yesterdaySchoolIdsSet = new Set(remainingSchools.map(school => school.school_id));
+
+
+    // console.log(yesterdaySchoolIdsSet, "yesterdaySchoolIdsSet")
+
+    //this will return school  not collect request previous day
+    // const removePreviousCollectSchools = allSchools.filter(
+    //   school => !yesterdaySchoolIdsSet.has(school.school_id)
+    // );
+
+    // console.log(removePreviousCollectSchools, "removePreviousCollectSchools")
+
+    const checkschoolsinschool = await this.settelmentReports.aggregate([
+      {
+        $match: {
+          settlementDate: { $gte: dataConvert, $lte: at5pmconvert },
+          // status: { $nin: ["SUCCESS"] }
+          schoolId : {$nin : [yesterdaySchoolIdsSet]}
+        },
+      },
+      {
+        $group: {
+          _id: "$schoolId",
+          count: { $sum: 1 },
+          settlements: { $push: "$$ROOT" }
+        }
+      },
+      {
+        $lookup: {
+          from: "trusteeschools",
+          localField: "_id",
+          foreignField: "school_id",
+          as: "school"
+        }
+      },
+      {
+        $unwind: {
+          path: "$school"
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          school_id: '$_id',
+          count: 1,
+          school_name: '$school.school_name',
+          school_email: '$school.email',
+          school_phone_number: '$school.phone_number',
+          client_id: '$school.client_id',
+          // settlements: {
+          //   $map: {
+          //     input: '$settlements',
+          //     as: 'settlement',
+          //     in: {
+          //       settlement_id: '$$settlement._id',
+          //       settled_on: '$$settlement.settlementDate',
+          //       utr: '$$settlement.utrNumber',
+          //       adjustment: '$$settlement.adjustment',
+          //       settelement_transaction_amount:
+          //         '$$settlement.settlementAmount',
+          //       net_settlement_amount: '$$settlement.netSettlementAmount',
+          //       status: '$$settlement.status',
+          //       payment_from: '$$settlement.fromDate',
+          //       payment_till: '$$settlement.tillDate',
+          //     },
+          //   },
+          // },
+        }
+      }
+    ])
+
+    // console.log(checkschoolsinschool, "checkschoolsinschool", checkschoolsinschool.length )
+
+    // remove all today settelment report from all schools
+    const filteredSchools = remainingSchools.filter(
+      school => !checkschoolsinschool.some(s => s.school_id.toString() === school.school_id.toString())
+    );
+
+ 
+    // console.log(newSet, "newSet");
+
+    const result = filteredSchools
+      .map(school => ({
+      school_name: school.school_name,
+      school_id: school.school_id,
+      email: school.email,
+      phone_number: school.phone_number,
+      trustee_id: school.trustee_id,
+      }));
+
+      // console.log(result, "result")
+
+    // const filteredSchools = allSchools.filter(
+    //   school => !yesterdaySchoolIdsSet.has(school.school_id) && !checkschoolsinschool.some(s => s.school_id === school.school_id)
+    // );
+    
+    // const result = removePreviousCollectSchools.map(school => ({
+    //   school_name: school.school_name,
+    //   school_id: school.school_id,
+    //   email: school.email,
+    //   phone_number: school.phone_number,
+    //   trustee_id: school.trustee_id,
+    // }));
+
+    return result;
+
+
+  }
+
+
+
+
+
+  async checkErrorMerchantSettlement(today, endtime) {
+
+    const checkaggregation = await this.settelmentReports.aggregate([
+      {
+        $match: {
+          settlementDate: { $gte: today, $lte: endtime },
+          status: { $nin: ["SUCCESS", "Settled"] }
+        },
+      },
+      {
+        $group: {
+          _id: "$schoolId",
+          count: { $sum: 1 },
+          settlements: { $push: "$$ROOT" }
+        }
+      },
+      {
+        $lookup: {
+          from: "trusteeschools",
+          localField: "_id",
+          foreignField: "school_id",
+          as: "school"
+        }
+      },
+      {
+        $unwind: {
+          path: "$school"
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          school_id: '$_id',
+          count: 1,
+          school_name: '$school.school_name',
+          school_email: '$school.email',
+          school_phone_number: '$school.phone_number',
+          client_id: '$school.client_id',
+          settlements: {
+            $map: {
+              input: '$settlements',
+              as: 'settlement',
+              in: {
+                settlement_id: '$$settlement._id',
+                settled_on: '$$settlement.settlementDate',
+                utr: '$$settlement.utrNumber',
+                adjustment: '$$settlement.adjustment',
+                settelement_transaction_amount:
+                  '$$settlement.settlementAmount',
+                net_settlement_amount: '$$settlement.netSettlementAmount',
+                status: '$$settlement.status',
+                payment_from: '$$settlement.fromDate',
+                payment_till: '$$settlement.tillDate',
+              },
+            },
+          },
+        }
+      }
+    ])
+
+
+
+    // console.log(checkaggregation);
+
+    return checkaggregation;
+  }
+
 }
+

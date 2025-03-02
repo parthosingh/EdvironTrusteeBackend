@@ -229,3 +229,185 @@ export function Pg_keyMismatchTemplate(
     </html>
   `;
 }
+
+
+
+
+export function generateSettlementFaildEmail(
+  schools: {
+    school_id: string;
+    school_name: string;
+    school_email: string;
+    school_phone_number: string;
+    client_id: string;
+    settlements: {
+      _id: string;
+      vendor_id: string;
+      vendor_name: string;
+      settlement_id: string;
+      settled_on: string;
+      utr: string;
+      adjustment: number;
+      vendor_transaction_amount: number;
+      net_settlement_amount: number;
+      status: string;
+      payment_from: Date;
+      payment_till: Date;
+    }[];
+  }[],
+  title: string,
+  subTitle: string,
+  color_scheme: string,
+): string {
+  const headerColor = color_scheme === 'error' ? '#e74c3c' : '#2c3e50';
+  return `
+    <html>
+      <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px;">
+        <div style="max-width: 100%; margin: auto; padding: 20px;">
+          <h2 style="color: ${headerColor}; text-align: center;">${title}</h2>
+          <p style="text-align: center; font-size: 14px; color: #555;">${subTitle}</p>
+          ${schools
+      .map(
+        (school) => `
+            <div style="padding: 10px; margin: 10px 0; border-bottom: 2px solid #ccc;">
+              <h3 style="color: ${headerColor};">School Name: ${school.school_name
+          }</h3>
+              <p style="color: #555;">Email: ${school.school_email} | Phone: ${school.school_phone_number
+          } | Client ID: ${school.client_id} | School ID: ${school.school_id
+          }</p>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 800px;">
+                  <thead>
+                    <tr style="background-color: ${headerColor}; color: white;">
+                      <th style="padding: 8px; border: 1px solid #ddd;">Vendor Name</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">Settlement ID</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">Settled On</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">Status</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">UTR</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">Vendor Transaction Amount</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">Net Settlement Amount</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">Adjustment</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">Payment From</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">Payment Till</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${school.settlements
+            .map(
+              (settlement) => `
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.vendor_name || 'N/A'
+                }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.settlement_id || 'N/A'
+                }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.settled_on).toLocaleString(
+                  'en-US',
+                  {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  },
+                ) || 'N/A'
+                }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.status || 'N/A'
+                }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.utr || 'N/A'
+                }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.vendor_transaction_amount || 'N/A'
+                }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.net_settlement_amount || 'N/A'
+                }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.adjustment || 'N/A'
+                }</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.payment_from).toLocaleString(
+                  'en-US',
+                  {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  },
+                ) || 'N/A'
+                }</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.payment_till).toLocaleString(
+                  'en-US',
+                  {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  },
+                ) || 'N/A'
+                } </td>
+                      </tr>
+                    `,
+            )
+            .join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `,
+      )
+      .join('')}
+          <p style="text-align: center; font-size: 14px; color: #555; margin-top: 20px;">
+            This email was auto-generated. Please review the records and take necessary actions.
+          </p>
+        </div>
+      </body>
+    </html>`;
+}
+
+
+export function checkMerchantSettlementnot(
+  missMatched
+) {
+  // console.log(missMatched)
+  return `
+  <html>
+<head>
+  <meta charset="UTF-8">
+  <title>Merchant Settlement Report</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 20px;">
+
+  <div style=" margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h2 style="text-align: center; color: #2563eb;">📊 Merchant Settlement Report</h2>
+    <p style="font-size: 16px; color: #333333; text-align: center; margin-bottom: 20px;">
+      <strong>Total School : ${missMatched.length}</strong>
+    </p>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+      <thead>
+        <tr style="background-color: #2563eb; color: white;">
+          <th style="padding: 10px; border: 1px solid #e5e7eb; width: 10%;">Sr. No</th>
+          <th style="padding: 10px; border: 1px solid #e5e7eb; width: 40%; ">School Name</th>
+          <th style="padding: 10px; border: 1px solid #e5e7eb;" width: 20%; >School ID</th>
+          <th style="padding: 10px; border: 1px solid #e5e7eb;" width: 20%; >Email</th>
+        </tr>
+      </thead>
+      <tbody>
+            ${missMatched.map(school => `
+          <tr style="background-color: #f9fafb; color: #1f2937;">
+            <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center;">${missMatched.indexOf(school) + 1}</td>
+            <td style="padding: 10px; border: 1px solid #e5e7eb; white-space: normal;">${school.school_name}</td>
+            <td style="padding: 10px; border: 1px solid #e5e7eb;">${school.school_id}</td>
+            <td style="padding: 10px; border: 1px solid #e5e7eb;">${school.email || "N/A"}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+
+    <p style="margin-top: 20px; font-size: 14px; color: #4b5563;">This is an automated report generated for merchant settlements.</p>
+  </div>
+
+</body>
+</html>
+  `
+}
