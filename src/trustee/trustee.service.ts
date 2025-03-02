@@ -930,7 +930,6 @@ export class TrusteeService {
     console.log(mdrReqs.length);
 
     // return await this.requestMDRModel.find({ trustee_id: trusteeId });
-
     const mappedData = (
       await Promise.all(
         mdrReqs.map(async (mdrReq) => {
@@ -945,6 +944,13 @@ export class TrusteeService {
   async getTrusteeBaseMdr(trustee_id: string) {
     const trusteeId = new Types.ObjectId(trustee_id);
     return await this.baseMdrModel.findOne({ trustee_id: trusteeId });
+  }
+
+  async getTrusteeBaseMdrData(trustee_id: string) {
+    const trusteeId = new Types.ObjectId(trustee_id);
+    const baseMdr = await this.baseMdrModel.findOne({ trustee_id: trusteeId });
+    if (!baseMdr) throw new NotFoundException('Base MDR not set for Trustee');
+    return baseMdr.platform_charges;
   }
 
   async toogleDisable(mode: string, school_id: string) {
@@ -1101,6 +1107,7 @@ export class TrusteeService {
               upto: baseCharge.upto,
               charge_type: baseCharge.charge_type,
               base_charge: baseCharge.charge,
+              base_charge_type: baseCharge.charge_type,
               charge: schoolCharge.charge,
               commission: commission,
             };
@@ -1154,11 +1161,28 @@ export class TrusteeService {
 
           if (schoolCharge) {
             // Create a combined charge object
-            const commission = schoolCharge.charge - baseCharge.charge;
+            let commission;
+            if (schoolCharge.charge_type === 'PERCENT') {
+              commission = `${schoolCharge.charge}% - ${
+                baseCharge.charge_type === 'FLAT'
+                  ? `₹${baseCharge.charge}`
+                  : `${baseCharge.charge}%`
+              }`;
+            } else {
+              // If schoolCharge.charge_type is 'FLAT'
+              commission = `₹${schoolCharge.charge} - ${
+                baseCharge.charge_type === 'PERCENT'
+                  ? `${baseCharge.charge}%`
+                  : `₹${baseCharge.charge}`
+              }`;
+            }
+
+            // const commission = schoolCharge.charge - baseCharge.charge;
             const combinedCharge = {
               upto: baseCharge.upto,
-              charge_type: baseCharge.charge_type,
+              charge_type: schoolCharge.charge_type,
               base_charge: baseCharge.charge,
+              base_charge_type: baseCharge.charge_type,
               charge: schoolCharge.charge,
               commission: commission,
             };
@@ -1629,19 +1653,15 @@ export class TrusteeService {
     return vendor;
   }
 
-
-  async getVendonrSingleTransactions(
-    order_id: string,
-    trustee_id: string,
-  ){
+  async getVendonrSingleTransactions(order_id: string, trustee_id: string) {
     if (!order_id) throw new NotFoundException('Order id not found ');
-    
 
-    const token = this.jwtService.sign({
-      order_id
-    },
-    {secret:process.env.PAYMENTS_SERVICE_SECRET}
-  )
+    const token = this.jwtService.sign(
+      {
+        order_id,
+      },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
 
     const config = {
       method: 'post',
@@ -1658,7 +1678,6 @@ export class TrusteeService {
     // console.log(transactions);
 
     return transactions;
-
   }
 
   async getVendorTransactions(
@@ -2508,6 +2527,31 @@ export class TrusteeService {
       const transactionInfo = await axios.request(transactionDetailsConfig);
       console.log(transactionInfo.data, 'refundinfo');
       return transactionInfo.data[0];
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  async schoolMdrInforData(school_id: string, trustee_id: string) {
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      const baseMdr = await this.getTrusteeBaseMdrData(trustee_id);
+      const schoolMdr = school.platform_charges;
+      console.log(baseMdr);
+
+      return {
+        school_id,
+        school_name: school.school_name,
+        requestUpdatedAt: school.updatedAt,
+        merchantStatus: school.merchantStatus,
+        baseMdr,
+        schoolMdr,
+      };
     } catch (e) {
       console.log(e);
     }
