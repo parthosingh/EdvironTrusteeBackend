@@ -82,6 +82,10 @@ export class RefundRequest  {
   @Prop()
   @Field(() => String, { nullable: true })
   additonalInfo: string;
+
+  @Prop()
+  @Field(() => Boolean, { defaultValue: false, nullable: true })
+  isAutoRedund: boolean;
 }
 
 export const RefundRequestSchema = SchemaFactory.createForClass(RefundRequest);

@@ -104,7 +104,7 @@ export class EmailService {
     amount: number,
     collect_id:string
   ) {
-    const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com']; // List of primary recipients
+    const emailRecipients = ['raj.barmaiya@edviron.com']; // List of primary recipients
     const ccRecipients = ['cc1@example.com', 'cc2@example.com']; // List of CC recipients
 
     const htmlToSend = `

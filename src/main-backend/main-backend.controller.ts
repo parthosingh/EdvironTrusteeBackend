@@ -768,19 +768,25 @@ export class MainBackendController {
       if (!school) {
         throw new NotFoundException('School not found');
       }
+      const checkrefund=await this.refundRequestModel.findOne({ order_id: new Types.ObjectId(collect_id)})
+      if(checkrefund){
+        throw new BadRequestException('Refund request already initiated for this order');
+      }
       const refunds = await this.refundRequestModel.create({
         trustee_id: new Types.ObjectId(trustee_id),
         school_id: new Types.ObjectId(school_id),
         order_id: new Types.ObjectId(collect_id),
-        status: refund_status.AUTO_REFUND_INITIATED,
+        status: refund_status.INITIATED,
         refund_amount,
         order_amount: refund_amount,
         transaction_amount: refund_amount,
         reason,
         gateway,
         custom_id,
+        isAutoRedund:true,
       });
-      await this.emailService.sendAutoRefundInitiatedAlert(
+      // mail for autorefund
+      this.emailService.sendAutoRefundInitiatedAlert(
         school.school_name,
         refunds._id.toString(),
         refund_amount,
