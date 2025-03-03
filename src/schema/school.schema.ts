@@ -192,6 +192,10 @@ export class TrusteeSchool {
   @Field(() => Boolean, { defaultValue: false })
   advanceAdjustment: boolean;
 
+  @Field({ nullable: true })
+  @Prop()
+  logo: string;
+
   @Prop({})
   @Field(() => String)
   super_admin_name: string;

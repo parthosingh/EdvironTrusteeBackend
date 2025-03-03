@@ -2699,4 +2699,22 @@ export class ErpController {
       throw new BadRequestException(e.message);
     }
   }
+
+  @Get('school-logo')
+  async getSchoolLogo(@Query('school_id') school_id: string) {
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new NotFoundException('school not found');
+      }
+      if (school.logo) {
+        return { logo: true, url: school.logo };
+      }
+      return { logo: false, url: null };
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
 }
