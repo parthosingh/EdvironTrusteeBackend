@@ -31,7 +31,7 @@ import { Vendors } from '../schema/vendors.schema';
 import { AwsS3Service } from '../aws.s3/aws.s3.service';
 import QRCode from 'qrcode';
 import { SettlementReport } from '../schema/settlement.schema';
-import { RefundRequest } from '../schema/refund.schema';
+import { refund_status, RefundRequest } from '../schema/refund.schema';
 import { VendorsSettlement } from '../schema/vendor.settlements.schema';
 import { Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
@@ -2556,6 +2556,7 @@ export class TrusteeService {
       console.log(e);
     }
   }
+
 }
 
 const transaction = {

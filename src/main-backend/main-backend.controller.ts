@@ -764,6 +764,10 @@ export class MainBackendController {
       reason,
     } = body;
     try {
+      const school = await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
       const refunds = await this.refundRequestModel.create({
         trustee_id: new Types.ObjectId(trustee_id),
         school_id: new Types.ObjectId(school_id),
@@ -776,6 +780,12 @@ export class MainBackendController {
         gateway,
         custom_id,
       });
+      await this.emailService.sendAutoRefundInitiatedAlert(
+        school.school_name,
+        refunds._id.toString(),
+        refund_amount,
+        collect_id
+      );
       return refunds;
     } catch (e) {
       throw new BadRequestException(e.message);

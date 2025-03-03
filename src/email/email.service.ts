@@ -98,6 +98,42 @@ export class EmailService {
     }
   }
 
+  async sendAutoRefundInitiatedAlert(
+    school_name: string,
+    refund_id: string,
+    amount: number,
+    collect_id:string
+  ) {
+    const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com']; // List of primary recipients
+    const ccRecipients = ['cc1@example.com', 'cc2@example.com']; // List of CC recipients
+
+    const htmlToSend = `
+      <html>
+        <body>
+        <p>An Auto refund has been initiated for <strong> ${school_name}</strong></p>
+        <p><strong>Refund Amount:</strong> ₹ ${amount}</p>
+                <p><strong>Refund Order:</strong> ₹ ${collect_id}</p>
+    <p><strong>Refund ID:</strong>  ${refund_id} </p>
+    </body>
+    </html>
+    `;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER, // Sender email
+      to: emailRecipients.join(','), // Join multiple recipients with commas
+      // cc: ccRecipients.join(','), // Join multiple CC recipients with commas
+      subject: 'Refund Initiated',
+      html: htmlToSend,
+    };
+
+    try {
+      await this.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  }
+
   async errorAlert(error: string) {
     const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
     const htmlToSend = `
