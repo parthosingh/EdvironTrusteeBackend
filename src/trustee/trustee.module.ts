@@ -14,33 +14,33 @@ import { MainBackendService } from '../main-backend/main-backend.service';
 import { SettlementSchema } from '../schema/settlement.schema';
 import { TrusteeMemberSchema } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
-import { TransactionInfoSchema } from 'src/schema/transaction.info.schema';
-import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
-import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
-import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
-import { Commission, CommissionSchema } from 'src/schema/commission.schema';
+import { TransactionInfoSchema } from '../schema/transaction.info.schema';
+import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
+import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
+import { SchoolMdr, SchoolMdrSchema } from '../schema/school_mdr.schema';
+import { Commission, CommissionSchema } from '../schema/commission.schema';
 import {
   MerchantMember,
   MerchantMemberSchema,
-} from 'src/schema/merchant.member.schema';
+} from '../schema/merchant.member.schema';
 import { CashfreeService } from '../cashfree/cashfree.service';
 import { CashfreeModule } from '../cashfree/cashfree.module';
-import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
-import { MerchantService } from 'src/merchant/merchant.service';
-import { MerchantModule } from 'src/merchant/merchant.module';
+import { Invoice, InvoiceSchema } from '../schema/invoice.schema';
+import { MerchantService } from '../merchant/merchant.service';
+import { MerchantModule } from '../merchant/merchant.module';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
-import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
-import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
+import { AwsS3Service } from '../aws.s3/aws.s3.service';
+import { RefundRequest, RefundRequestSchema } from '../schema/refund.schema';
+import { Vendors, VendorsSchema } from '../schema/vendors.schema';
 import {
   VendorsSettlement,
   VendorsSettlementSchema,
-} from 'src/schema/vendor.settlements.schema';
-import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
-import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
-import { TempSettlementReport, TempSettlementReportSchema } from 'src/schema/tempSettlements.schema';
+} from '../schema/vendor.settlements.schema';
+import { Disputes, DisputesSchema } from '../schema/disputes.schema';
+import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
+import { TempSettlementReport, TempSettlementReportSchema } from '../schema/tempSettlements.schema';
 config();
 
 @Module({

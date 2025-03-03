@@ -2,8 +2,8 @@ import { Controller, Post } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import { BusinessAlarmService } from './business-alarm.service';
-import { EmailService } from 'src/email/email.service';
-import { TrusteeSchool } from 'src/schema/school.schema';
+import { EmailService } from '../email/email.service';
+import { TrusteeSchool } from '../schema/school.schema';
 import mongoose from 'mongoose';
 import { checkMerchantSettlementnot } from './templates/htmlToSend.format';
 

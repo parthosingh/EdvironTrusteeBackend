@@ -19,8 +19,8 @@ import * as fs from 'fs';
 import * as handlebars from 'handlebars';
 import { Cron } from '@nestjs/schedule';
 import { SettlementReport } from '../schema/settlement.schema';
-import { SchoolMdr } from 'src/schema/school_mdr.schema';
-import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { SchoolMdr } from '../schema/school_mdr.schema';
+import { BaseMdr } from '../schema/base.mdr.schema';
 import { CashfreeService } from '../cashfree/cashfree.service';
 import * as crypto from 'crypto';
 @Injectable()

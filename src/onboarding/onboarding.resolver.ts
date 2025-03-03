@@ -9,12 +9,12 @@ import {
 } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { OnboardingGuard } from './onboarding.guard';
-import { OnboarderERP } from 'src/schema/onboarder.schema';
+import { OnboarderERP } from '../schema/onboarder.schema';
 import { OnboardingService } from './onboarding.service';
 import { InjectModel } from '@nestjs/mongoose';
-import { bankDetails, Trustee } from 'src/schema/trustee.schema';
+import { bankDetails, Trustee } from '../schema/trustee.schema';
 import mongoose from 'mongoose';
-import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { BaseMdr } from '../schema/base.mdr.schema';
 
 @Resolver()
 export class OnboardingResolver {

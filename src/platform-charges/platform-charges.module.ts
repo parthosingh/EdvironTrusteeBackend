@@ -8,9 +8,9 @@ import { TrusteeSchema } from '../schema/trustee.schema';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { TrusteeMemberSchema } from '../schema/partner.member.schema';
 import { SchoolMdr, SchoolMdrSchema } from '../schema/school_mdr.schema';
-import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
-import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
-import { SettlementReport, SettlementSchema } from 'src/schema/settlement.schema';
+import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
+import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
+import { SettlementReport, SettlementSchema } from '../schema/settlement.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),

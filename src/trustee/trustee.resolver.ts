@@ -34,30 +34,30 @@ import { JwtService } from '@nestjs/jwt';
 import axios, { AxiosError } from 'axios';
 import { bankDetails, Trustee, WebhookUrlType } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
-import { BaseMdr } from 'src/schema/base.mdr.schema';
-import { SchoolMdr } from 'src/schema/school_mdr.schema';
-import { Commission } from 'src/schema/commission.schema';
-import { MerchantMember } from 'src/schema/merchant.member.schema';
+import { BaseMdr } from '../schema/base.mdr.schema';
+import { SchoolMdr } from '../schema/school_mdr.schema';
+import { Commission } from '../schema/commission.schema';
+import { MerchantMember } from '../schema/merchant.member.schema';
 import * as moment from 'moment';
 import {
   Invoice,
   invoice_status,
   InvoiceData,
-} from 'src/schema/invoice.schema';
+} from '../schema/invoice.schema';
 
 import * as path from 'path';
 import * as ejs from 'ejs';
 import puppeteer from 'puppeteer';
-import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
-import { MerchantService } from 'src/merchant/merchant.service';
-import { refund_status, RefundRequest } from 'src/schema/refund.schema';
-import { TransactionInfo } from 'src/schema/transaction.info.schema';
-import { kyc_details, Vendors } from 'src/schema/vendors.schema';
-import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
-import { MerchantRefundRequestRes } from 'src/merchant/merchant.resolver';
-import { Disputes } from 'src/schema/disputes.schema';
-import { Reconciliation } from 'src/schema/Reconciliation.schema';
-import { TempSettlementReport } from 'src/schema/tempSettlements.schema';
+import { AwsS3Service } from '../aws.s3/aws.s3.service';
+import { MerchantService } from '../merchant/merchant.service';
+import { refund_status, RefundRequest } from '../schema/refund.schema';
+import { TransactionInfo } from '../schema/transaction.info.schema';
+import { kyc_details, Vendors } from '../schema/vendors.schema';
+import { VendorsSettlement } from '../schema/vendor.settlements.schema';
+import { MerchantRefundRequestRes } from '../merchant/merchant.resolver';
+import { Disputes } from '../schema/disputes.schema';
+import { Reconciliation } from '../schema/Reconciliation.schema';
+import { TempSettlementReport } from '../schema/tempSettlements.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',

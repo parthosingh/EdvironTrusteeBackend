@@ -1,35 +1,35 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { WebhookLogs, WebhookLogsSchema } from 'src/schema/webhook.schema';
+import { WebhookLogs, WebhookLogsSchema } from '../schema/webhook.schema';
 import { WebhooksController } from './webhooks.controller';
-import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
+import { RefundRequest, RefundRequestSchema } from '../schema/refund.schema';
 import {
   VendorsSettlement,
   VendorsSettlementSchema,
-} from 'src/schema/vendor.settlements.schema';
-import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
-import { SchoolSchema, TrusteeSchool } from 'src/schema/school.schema';
-import { Trustee, TrusteeSchema } from 'src/schema/trustee.schema';
-import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
+} from '../schema/vendor.settlements.schema';
+import { Vendors, VendorsSchema } from '../schema/vendors.schema';
+import { SchoolSchema, TrusteeSchool } from '../schema/school.schema';
+import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
+import { Disputes, DisputesSchema } from '../schema/disputes.schema';
 import {
   TempSettlementReport,
   TempSettlementReportSchema,
-} from 'src/schema/tempSettlements.schema';
+} from '../schema/tempSettlements.schema';
 import {
   SettlementReport,
   SettlementSchema,
-} from 'src/schema/settlement.schema';
-import { EmailService } from 'src/email/email.service';
-import { TrusteeService } from 'src/trustee/trustee.service';
+} from '../schema/settlement.schema';
+import { EmailService } from '../email/email.service';
+import { TrusteeService } from '../trustee/trustee.service';
 import { JwtService } from '@nestjs/jwt';
-import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
-import { TrusteeMember, TrusteeMemberSchema } from 'src/schema/partner.member.schema';
-import { TransactionInfo, TransactionInfoSchema } from 'src/schema/transaction.info.schema';
-import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
-import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
-import { SchoolMdr } from 'src/schema/school_mdr.schema';
-import { TrusteeModule } from 'src/trustee/trustee.module';
-import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
+import { AwsS3Service } from '../aws.s3/aws.s3.service';
+import { TrusteeMember, TrusteeMemberSchema } from '../schema/partner.member.schema';
+import { TransactionInfo, TransactionInfoSchema } from '../schema/transaction.info.schema';
+import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
+import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
+import { SchoolMdr } from '../schema/school_mdr.schema';
+import { TrusteeModule } from '../trustee/trustee.module';
+import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
 
 @Module({
   imports: [

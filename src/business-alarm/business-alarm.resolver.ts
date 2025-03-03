@@ -1,8 +1,8 @@
 import { Field, ObjectType, Query, Resolver } from '@nestjs/graphql';
 import { BusinessAlarmService } from './business-alarm.service';
-import { TrusteeSchool } from 'src/schema/school.schema';
+import { TrusteeSchool } from '../schema/school.schema';
 import { Cron } from '@nestjs/schedule';
-import { EmailService } from 'src/email/email.service';
+import { EmailService } from '../email/email.service';
 import {
   checkMerchantSettlementnot,
   generateSettlementFaildEmail,
@@ -119,6 +119,7 @@ export class BusinessAlarmResolver {
     return true;
 
   }
+
 
   @Cron('0 11 * * *', { timeZone: 'UTC' })
   @Query(() => [MerchantSettlement])

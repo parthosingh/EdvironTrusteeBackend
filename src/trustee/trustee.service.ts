@@ -24,17 +24,17 @@ import * as handlebars from 'handlebars';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
 import { TransactionInfo } from '../schema/transaction.info.schema';
-import { RequestMDR, mdr_status } from 'src/schema/mdr.request.schema';
-import { BaseMdr } from 'src/schema/base.mdr.schema';
-import { SchoolMdr } from 'src/schema/school_mdr.schema';
-import { Vendors } from 'src/schema/vendors.schema';
-import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import { RequestMDR, mdr_status } from '../schema/mdr.request.schema';
+import { BaseMdr } from '../schema/base.mdr.schema';
+import { SchoolMdr } from '../schema/school_mdr.schema';
+import { Vendors } from '../schema/vendors.schema';
+import { AwsS3Service } from '../aws.s3/aws.s3.service';
 import QRCode from 'qrcode';
-import { SettlementReport } from 'src/schema/settlement.schema';
-import { RefundRequest } from 'src/schema/refund.schema';
-import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
-import { Disputes } from 'src/schema/disputes.schema';
-import { Reconciliation } from 'src/schema/Reconciliation.schema';
+import { SettlementReport } from '../schema/settlement.schema';
+import { RefundRequest } from '../schema/refund.schema';
+import { VendorsSettlement } from '../schema/vendor.settlements.schema';
+import { Disputes } from '../schema/disputes.schema';
+import { Reconciliation } from '../schema/Reconciliation.schema';
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number

@@ -11,15 +11,15 @@ import { EmailService } from '../email/email.service';
 import { TransactionInfoSchema } from '../schema/transaction.info.schema';
 import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
 import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
-import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
-import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
-import { Invoice, InvoiceSchema } from 'src/schema/invoice.schema';
-import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
-import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
-import { SettlementReport, SettlementSchema } from 'src/schema/settlement.schema';
-import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
-import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
-import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
+import { SchoolMdr, SchoolMdrSchema } from '../schema/school_mdr.schema';
+import { RefundRequest, RefundRequestSchema } from '../schema/refund.schema';
+import { Invoice, InvoiceSchema } from '../schema/invoice.schema';
+import { Vendors, VendorsSchema } from '../schema/vendors.schema';
+import { AwsS3Service } from '../aws.s3/aws.s3.service';
+import { SettlementReport, SettlementSchema } from '../schema/settlement.schema';
+import { VendorsSettlement, VendorsSettlementSchema } from '../schema/vendor.settlements.schema';
+import { Disputes, DisputesSchema } from '../schema/disputes.schema';
+import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
 
 @Module({
   imports: [

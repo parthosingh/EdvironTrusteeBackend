@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { RefundRequest } from 'src/schema/refund.schema';
-import { TrusteeSchool } from 'src/schema/school.schema';
+import { RefundRequest } from '../schema/refund.schema';
+import { TrusteeSchool } from '../schema/school.schema';
 import * as jwt from 'jsonwebtoken';
 import axios, { AxiosError } from 'axios';
-import { SettlementReport } from 'src/schema/settlement.schema';
+import { SettlementReport } from '../schema/settlement.schema';
 @Injectable()
 export class BusinessAlarmService {
   constructor(

@@ -3,9 +3,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { OnboardingController } from './onboarding.controller';
 import { OnboardingService } from './onboarding.service';
 import { OnboardingResolver } from './onboarding.resolver';
-import { Trustee, TrusteeSchema } from 'src/schema/trustee.schema';
-import { TrusteeMember, TrusteeMemberSchema } from 'src/schema/partner.member.schema';
-import { OnboarderERP, OnboarderERPSchema } from 'src/schema/onboarder.schema';
+import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
+import { TrusteeMember, TrusteeMemberSchema } from '../schema/partner.member.schema';
+import { OnboarderERP, OnboarderERPSchema } from '../schema/onboarder.schema';
 
 @Module({
     imports:[

@@ -18,7 +18,7 @@ import {
 import { Trustee } from '../schema/trustee.schema';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import axios from 'axios';
-import { SettlementReport } from 'src/schema/settlement.schema';
+import { SettlementReport } from '../schema/settlement.schema';
 import { error } from 'console';
 import * as jwt from 'jsonwebtoken';
 

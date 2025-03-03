@@ -24,17 +24,17 @@ import {
   SettlementReport,
   SettlementSchema,
 } from '../schema/settlement.schema';
-import { Trustee } from 'src/schema/trustee.schema';
-import { Commission } from 'src/schema/commission.schema';
-import { Earnings } from 'src/schema/earnings.schema';
-import { BaseMdr } from 'src/schema/base.mdr.schema';
-import { TrusteeService } from 'src/trustee/trustee.service';
+import { Trustee } from '../schema/trustee.schema';
+import { Commission } from '../schema/commission.schema';
+import { Earnings } from '../schema/earnings.schema';
+import { BaseMdr } from '../schema/base.mdr.schema';
+import { TrusteeService } from '../trustee/trustee.service';
 import QRCode from 'qrcode';
-import { refund_status, RefundRequest } from 'src/schema/refund.schema';
-import { Capture } from 'src/schema/capture.schema';
-// import cf_commision from 'src/utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
+import { refund_status, RefundRequest } from '../schema/refund.schema';
+import { Capture } from '../schema/capture.schema';
+// import cf_commision from '../utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
 import * as qs from 'qs';
-import { WebhookLogs } from 'src/schema/webhook.schema';
+import { WebhookLogs } from '../schema/webhook.schema';
 @Controller('erp')
 export class ErpController {
   constructor(

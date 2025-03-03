@@ -9,24 +9,24 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
-import { refund_status, RefundRequest } from 'src/schema/refund.schema';
-import { TrusteeSchool } from 'src/schema/school.schema';
-import { Trustee } from 'src/schema/trustee.schema';
-import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
-import { Vendors } from 'src/schema/vendors.schema';
-import { WebhookLogs } from 'src/schema/webhook.schema';
+import { refund_status, RefundRequest } from '../schema/refund.schema';
+import { TrusteeSchool } from '../schema/school.schema';
+import { Trustee } from '../schema/trustee.schema';
+import { VendorsSettlement } from '../schema/vendor.settlements.schema';
+import { Vendors } from '../schema/vendors.schema';
+import { WebhookLogs } from '../schema/webhook.schema';
 import axios, { AxiosError } from 'axios';
 import * as jwt from 'jsonwebtoken';
-import { DisputeGateways, Disputes } from 'src/schema/disputes.schema';
-import { TempSettlementReport } from 'src/schema/tempSettlements.schema';
-import { SettlementReport } from 'src/schema/settlement.schema';
-import { EmailService } from 'src/email/email.service';
-import { generateErrorEmailTemplate } from 'src/email/templates/error.template';
-import { TrusteeService } from 'src/trustee/trustee.service';
+import { DisputeGateways, Disputes } from '../schema/disputes.schema';
+import { TempSettlementReport } from '../schema/tempSettlements.schema';
+import { SettlementReport } from '../schema/settlement.schema';
+import { EmailService } from '../email/email.service';
+import { generateErrorEmailTemplate } from '../email/templates/error.template';
+import { TrusteeService } from '../trustee/trustee.service';
 import {
   getAdminEmailTemplate,
   getCustomerEmailTemplate,
-} from 'src/email/templates/dipute.template';
+} from '../email/templates/dipute.template';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',

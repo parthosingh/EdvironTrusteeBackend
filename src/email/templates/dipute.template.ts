@@ -1,4 +1,4 @@
-import { Disputes } from 'src/schema/disputes.schema';
+import { Disputes } from '../../schema/disputes.schema';
 
 export function getAdminEmailTemplate(
   dispute: Disputes,

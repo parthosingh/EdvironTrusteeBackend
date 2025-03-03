@@ -15,8 +15,8 @@ import { TrusteeSchool } from '../schema/school.schema';
 import mongoose, { Types } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Trustee } from '../schema/trustee.schema';
-import { SchoolMdr } from 'src/schema/school_mdr.schema';
-import { RequestMDR } from 'src/schema/mdr.request.schema';
+import { SchoolMdr } from '../schema/school_mdr.schema';
+import { RequestMDR } from '../schema/mdr.request.schema';
 
 @Controller('platform-charges')
 export class PlatformChargesController {

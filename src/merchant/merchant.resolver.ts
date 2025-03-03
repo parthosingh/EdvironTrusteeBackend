@@ -22,8 +22,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
-import { TrusteeSchool } from 'src/schema/school.schema';
-import { SettlementReport } from 'src/schema/settlement.schema';
+import { TrusteeSchool } from '../schema/school.schema';
+import { SettlementReport } from '../schema/settlement.schema';
 import { MerchantGuard } from './merchant.guard';
 import axios from 'axios';
 import { MerchantService } from './merchant.service';
@@ -36,19 +36,19 @@ import {
   VendorsSettlementReportPaginatedResponse,
   VendorsTransactionPaginatedResponse,
   verifyRes,
-} from 'src/trustee/trustee.resolver';
+} from '../trustee/trustee.resolver';
 import { MerchantMember } from '../schema/merchant.member.schema';
 import { Access } from '../schema/merchant.member.schema';
-import { Trustee } from 'src/schema/trustee.schema';
-import { TransactionInfo } from 'src/schema/transaction.info.schema';
-import { TrusteeService } from 'src/trustee/trustee.service';
+import { Trustee } from '../schema/trustee.schema';
+import { TransactionInfo } from '../schema/transaction.info.schema';
+import { TrusteeService } from '../trustee/trustee.service';
 import {
   refund_status,
   RefundRequest,
   SplitRefundsDetails,
-} from 'src/schema/refund.schema';
-import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
-import { EmailService } from 'src/email/email.service';
+} from '../schema/refund.schema';
+import { VendorsSettlement } from '../schema/vendor.settlements.schema';
+import { EmailService } from '../email/email.service';
 
 @InputType()
 export class SplitRefundDetails {

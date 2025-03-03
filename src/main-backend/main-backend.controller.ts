@@ -18,17 +18,17 @@ import { Trustee } from '../schema/trustee.schema';
 import mongoose, { Types } from 'mongoose';
 import { TrusteeService } from '../trustee/trustee.service';
 import { InjectModel } from '@nestjs/mongoose';
-import { RequestMDR } from 'src/schema/mdr.request.schema';
-import { SchoolMdrInfo } from 'src/trustee/trustee.resolver';
-import { TrusteeSchool } from 'src/schema/school.schema';
-import { refund_status, RefundRequest } from 'src/schema/refund.schema';
+import { RequestMDR } from '../schema/mdr.request.schema';
+import { SchoolMdrInfo } from '../trustee/trustee.resolver';
+import { TrusteeSchool } from '../schema/school.schema';
+import { refund_status, RefundRequest } from '../schema/refund.schema';
 import { Parser } from 'json2csv';
 import { Response } from 'express';
 import axios from 'axios';
-import { Invoice, invoice_status } from 'src/schema/invoice.schema';
+import { Invoice, invoice_status } from '../schema/invoice.schema';
 import { Args } from '@nestjs/graphql';
-import { EmailService } from 'src/email/email.service';
-import { sendQueryErrortemplate } from 'src/email/templates/error.template';
+import { EmailService } from '../email/email.service';
+import { sendQueryErrortemplate } from '../email/templates/error.template';
 
 @Controller('main-backend')
 export class MainBackendController {

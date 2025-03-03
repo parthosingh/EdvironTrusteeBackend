@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BusinessAlarmResolver } from './business-alarm.resolver';
 import { BusinessAlarmService } from './business-alarm.service';
-import { EmailService } from 'src/email/email.service';
+import { EmailService } from '../email/email.service';
 
 describe('BusinessAlarmResolver', () => {
   let resolver: BusinessAlarmResolver;

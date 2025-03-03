@@ -1,33 +1,33 @@
 import { Module } from '@nestjs/common';
 // import { MerchantResolver } from './merchant.resolver';
 import { MongooseModule } from '@nestjs/mongoose';
-import { SchoolSchema } from 'src/schema/school.schema';
+import { SchoolSchema } from '../schema/school.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver } from '@nestjs/apollo';
-import { SettlementSchema } from 'src/schema/settlement.schema';
+import { SettlementSchema } from '../schema/settlement.schema';
 // import { MerchantService } from './merchant.service';
-import { TrusteeService } from 'src/trustee/trustee.service';
-import { TrusteeSchema } from 'src/schema/trustee.schema';
+import { TrusteeService } from '../trustee/trustee.service';
+import { TrusteeSchema } from '../schema/trustee.schema';
 import { MerchantGuard } from './merchant.guard';
 import { MerchantResolver } from './merchant.resolver';
 import { MerchantService } from './merchant.service';
-import { MerchantMemberSchema } from 'src/schema/merchant.member.schema';
-import { EmailService } from 'src/email/email.service';
-import { TrusteeMemberSchema } from 'src/schema/partner.member.schema';
-import { TransactionInfoSchema } from 'src/schema/transaction.info.schema';
-import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
-import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
-import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
-import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
-import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
-import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import { MerchantMemberSchema } from '../schema/merchant.member.schema';
+import { EmailService } from '../email/email.service';
+import { TrusteeMemberSchema } from '../schema/partner.member.schema';
+import { TransactionInfoSchema } from '../schema/transaction.info.schema';
+import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
+import { SchoolMdr, SchoolMdrSchema } from '../schema/school_mdr.schema';
+import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
+import { RefundRequest, RefundRequestSchema } from '../schema/refund.schema';
+import { Vendors, VendorsSchema } from '../schema/vendors.schema';
+import { AwsS3Service } from '../aws.s3/aws.s3.service';
 import {
   VendorsSettlement,
   VendorsSettlementSchema,
-} from 'src/schema/vendor.settlements.schema';
-import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
-import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
+} from '../schema/vendor.settlements.schema';
+import { Disputes, DisputesSchema } from '../schema/disputes.schema';
+import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
 
 @Module({
   imports: [

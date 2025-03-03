@@ -3,8 +3,8 @@ import { createTransport } from 'nodemailer';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
-import { htmlToSend } from 'src/business-alarm/templates/htmlToSend.format';
-import { SETTLEMENT_ERROR_EMAIL } from 'src/utils/email.group';
+import { htmlToSend } from '../business-alarm/templates/htmlToSend.format';
+import { SETTLEMENT_ERROR_EMAIL } from '../utils/email.group';
 import { sendEnablePgInfotemp } from './templates/enable.pg.template';
 import { sendQueryErrortemplate } from './templates/error.template';
 

@@ -9,11 +9,11 @@ import { Mutation } from '@nestjs/graphql';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 import { Types } from 'mongoose';
-import { OnboarderERP } from 'src/schema/onboarder.schema';
+import { OnboarderERP } from '../schema/onboarder.schema';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-import { Trustee } from 'src/schema/trustee.schema';
-import { TrusteeMember } from 'src/schema/partner.member.schema';
+import { Trustee } from '../schema/trustee.schema';
+import { TrusteeMember } from '../schema/partner.member.schema';
 @Injectable()
 export class OnboardingService {
   constructor(

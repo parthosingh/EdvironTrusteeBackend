@@ -16,10 +16,10 @@ import {
     rangeCharge,
 } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
-import { SchoolMdr } from 'src/schema/school_mdr.schema';
+import { SchoolMdr } from '../schema/school_mdr.schema';
 import { platform } from 'os';
-import { RequestMDR, mdr_status } from 'src/schema/mdr.request.schema';
-import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { RequestMDR, mdr_status } from '../schema/mdr.request.schema';
+import { BaseMdr } from '../schema/base.mdr.schema';
 
 @Injectable()
 export class PlatformChargeService {
