@@ -128,6 +128,7 @@ export class MerchantResolver {
         trustee_id: userMerchant.trustee_id,
         trustee_logo: userMerchant.trustee_logo,
         school_id: userMerchant.school_id,
+        school_logo: userMerchant.school_logo,
       };
       console.log(user, 'userrr');
 
@@ -1371,6 +1372,8 @@ class MerchantUser {
   school_id?: string;
   @Field({ nullable: true })
   trustee_logo?: string;
+  @Field({ nullable: true })
+  school_logo?: string;
 }
 
 @ObjectType()
