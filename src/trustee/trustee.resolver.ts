@@ -3369,7 +3369,7 @@ class Vendor {
 }
 
 @ObjectType()
-class TransactionReport {
+export class TransactionReport {
   @Field({ nullable: true })
   collect_id: string;
   @Field({ nullable: true })

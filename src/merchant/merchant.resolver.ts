@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
   UseGuards,
@@ -30,6 +31,7 @@ import { MerchantService } from './merchant.service';
 import {
   AuthResponse,
   resetPassResponse,
+  TransactionReport,
   TransactionReportResponsePaginated,
   VendorInfoInput,
   VendorsPaginationResponse,
@@ -373,6 +375,61 @@ export class MerchantResolver {
         throw new BadRequestException(error?.response?.data?.message);
       }
       throw new BadRequestException(error.message);
+    }
+  }
+
+  @Query(() => [TransactionReport])
+  @UseGuards(MerchantGuard)
+  async getMerchantSingleTransactionReport(
+    @Context() context,
+    @Args('collect_id') collect_id: string,
+  ) {
+    try {
+      const school_id_context = context.req.merchant;
+      const school = await this.trusteeSchoolModel.findById(school_id_context);
+      if (!school) throw new NotFoundException('School not found.');
+      const school_id = school.school_id;
+      const trustee_id = school.trustee_id;
+      const token = this.jwtService.sign(
+        {
+          trustee_id: trustee_id.toString(),
+          collect_id,
+          school_id: school_id.toString(),
+        },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+
+      const data = await this.trusteeService.getSingleTransaction(
+        trustee_id.toString(),
+        collect_id,
+        school_id.toString(),
+        token,
+      );
+
+      return data.map((item: any) => {
+        const remark = null;
+        const parsedData = item?.additional_data
+          ? JSON.parse(item?.additional_data)
+          : {};
+        return {
+          ...item,
+          student_id: parsedData.student_details?.student_id || '',
+          student_name: parsedData.student_details?.student_name || '',
+          student_email: parsedData.student_details?.student_email || '',
+          student_phone: parsedData.student_details?.student_phone_no || '',
+          receipt: parsedData.student_details?.receipt || '',
+          additional_data: parsedData.additional_fields || '',
+          currency: 'INR',
+          school_id: item?.school_id,
+          school_name: school?.school_name,
+          remarks: remark,
+          custom_order_id: item?.custom_order_id || null,
+        };
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Something went wrong',
+      );
     }
   }
 
@@ -838,7 +895,7 @@ export class MerchantResolver {
     const checkRefundRequest = await this.refundRequestModel
       .findOne({
         order_id: new Types.ObjectId(order_id),
-        isSplitRedund:{ $ne: true}
+        isSplitRedund: { $ne: true },
       })
       .sort({ createdAt: -1 });
 
@@ -1105,18 +1162,17 @@ export class MerchantResolver {
     const school = await this.trusteeSchoolModel.findById(schoolId);
     const school_id = school.school_id;
 
-
     const query = {
       school_id,
       ...(vendor_id && { vendor_id: new Types.ObjectId(vendor_id) }),
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-        settled_on: {
-          $gte: new Date(start_date),
-          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-        },
-      }),
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
