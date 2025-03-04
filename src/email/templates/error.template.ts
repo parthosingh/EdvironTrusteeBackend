@@ -5,10 +5,10 @@ export function generateErrorEmailTemplate(
 ) {
   const formattedDetails = details
     ? `<pre style="background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto;">${JSON.stringify(
-      details,
-      null,
-      2,
-    )}</pre>`
+        details,
+        null,
+        2,
+      )}</pre>`
     : '<p>No additional details provided.</p>';
 
   return `
@@ -20,14 +20,16 @@ export function generateErrorEmailTemplate(
               <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
                   <tr>
                       <th style="text-align: left; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb;">Error Message</th>
-                      <td style="padding: 10px; border: 1px solid #f5c6cb; background-color: #fdf2f2;">${error.message || message
-    }</td>
+                      <td style="padding: 10px; border: 1px solid #f5c6cb; background-color: #fdf2f2;">${
+                        error.message || message
+                      }</td>
                   </tr>
                   <tr>
                       <th style="text-align: left; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb;">Stack Trace</th>
                       <td style="padding: 10px; border: 1px solid #f5c6cb; background-color: #fdf2f2;">
-                          <pre style="white-space: pre-wrap; background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto;">${error.stack
-    }</pre>
+                          <pre style="white-space: pre-wrap; background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto;">${
+                            error.stack
+                          }</pre>
                       </td>
                   </tr>
               </table>
@@ -42,7 +44,6 @@ export function generateErrorEmailTemplate(
       `;
 }
 
-
 const createTableRow = (label, value) => {
   return value ? `<tr><th>${label}</th><td>${value}</td></tr>` : '';
 };
@@ -54,13 +55,13 @@ export function sendQueryErrortemplate(
   timestamp: string,
   user?: {
     id: string;
-    role: string;
+    role?: string;
   },
 ) {
   const now = new Date(timestamp);
-  const time = `${
-    now.toISOString().split('T')[0]
-  }, ${now.toLocaleTimeString()}`;
+  const time = `${now.toISOString().split('T')[0]}, ${now.toLocaleTimeString(
+    'en-US',
+  )}`;
 
   return `
     <html>
@@ -100,7 +101,9 @@ export function sendQueryErrortemplate(
                   ? `
               <tr>
                 <td style="font-weight: bold; padding: 10px; background-color: #fbe9e7;">User Info</td>
-                <td style="padding: 10px;"><strong>ID:</strong> ${user.id} <br><strong>Role:</strong> ${user.role}</td>
+                <td style="padding: 10px;"><strong>ID:</strong> ${
+                  user.id
+                } <br><strong>Role:</strong> ${user?.role || 'N/A'}</td>
               </tr>`
                   : ''
               }

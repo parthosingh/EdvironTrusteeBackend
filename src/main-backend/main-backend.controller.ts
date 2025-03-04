@@ -47,7 +47,7 @@ export class MainBackendController {
     @InjectModel(Invoice.name)
     private readonly invoiceModel: mongoose.Model<Invoice>,
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   @Post('create-trustee')
   async createTrustee(
@@ -522,8 +522,9 @@ export class MainBackendController {
           'Platform Type': item.platform_type,
           'Payment Mode': item.payment_mode,
           Upto: charge.upto || 'infinity',
-          Charge: `${charge.charge}${charge.charge_type === 'PERCENT' ? '%' : ''
-            }`,
+          Charge: `${charge.charge}${
+            charge.charge_type === 'PERCENT' ? '%' : ''
+          }`,
         });
       });
     });
@@ -570,8 +571,9 @@ export class MainBackendController {
             'Platform Type': item.platform_type,
             'Payment Mode': item.payment_mode,
             Upto: charge.upto || 'infinity',
-            Charge: `${charge.charge}${charge.charge_type === 'PERCENT' ? '%' : ''
-              }`,
+            Charge: `${charge.charge}${
+              charge.charge_type === 'PERCENT' ? '%' : ''
+            }`,
           });
         });
       });
@@ -809,7 +811,7 @@ export class MainBackendController {
         throw new NotFoundException('refund not found');
       }
       return refund;
-    } catch (e) { }
+    } catch (e) {}
   }
 
   @Post('get-settlement-reco')
@@ -917,7 +919,7 @@ export class MainBackendController {
       endDate: string;
     },
   ) {
-    const { startDate, endDate, token, trustee_id, school_id } = body
+    const { startDate, endDate, token, trustee_id, school_id } = body;
     return this.mainBackendService.checkTransactionDataAlram(
       startDate,
       endDate,
@@ -935,34 +937,34 @@ export class MainBackendController {
       message: string;
       timestamp: string;
       token?: string;
-      merchentToken?: string;
+      merchantToken?: string;
     },
   ): Promise<any> {
-    const { queryName, error, message, token, merchentToken, timestamp } = body;
+    const { queryName, error, message, token, merchantToken, timestamp } = body;
     let trustee, merchant;
     if (token) {
       trustee = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
       });
     }
-    if (merchentToken) {
-      merchant = this.jwtService.verify(merchentToken, {
+    if (merchantToken) {
+      merchant = this.jwtService.verify(merchantToken, {
         secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
       });
     }
     const user = merchant ? merchant : trustee;
-
+ 
     const debounceKey = `sendError-${queryName}-${user.id}`;
-    const existingRequest = await this.mainBackendService.getDebounceRequest(debounceKey);
+    const existingRequest =
+      await this.mainBackendService.getDebounceRequest(debounceKey);
 
     if (existingRequest) {
-      throw new BadRequestException('Please wait before sending another request.');
+      throw new BadRequestException(
+        'Please wait before sending another request.',
+      );
     }
 
-    // console.log(existingRequest)
-
     await this.mainBackendService.saveDebounceRequest(debounceKey, 15000);
-
 
     const mailSub = `Query Error: ${queryName}`;
     const mailTemp = sendQueryErrortemplate(
@@ -975,5 +977,4 @@ export class MainBackendController {
     this.emailService.sendErrorMail(mailSub, mailTemp);
     return `An alert email has been sent to developer team.`;
   }
-
 }
