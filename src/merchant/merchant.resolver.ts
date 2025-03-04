@@ -889,6 +889,7 @@ export class MerchantResolver {
     @Args('order_amount') order_amount: number,
     @Args('transaction_amount') transaction_amount: number,
     @Context() context: any,
+    @Args('reason', { nullable: true }) reason?: string,
   ) {
     const school_id = context.req.merchant;
     const school = await this.trusteeSchoolModel.findById(school_id);
@@ -975,6 +976,7 @@ export class MerchantResolver {
       transaction_amount,
       gateway: gateway || null,
       custom_id: custom_id,
+      reason: reason || 'NA',
     }).save();
 
     await this.emailService.sendRefundInitiatedAlert(
@@ -1302,6 +1304,7 @@ export class MerchantResolver {
       custom_id: custom_id,
       isSplitRedund: true,
       split_refund_details,
+      reason,
     }).save();
 
     return `Refund Request Created`;
@@ -1345,6 +1348,9 @@ export class MerchantRefundRequestRes {
 
   @Field(() => [SplitRefundsDetails], { nullable: true })
   split_refund_details: SplitRefundsDetails[];
+
+  @Field({ nullable: true })
+  reason?: string;
 }
 
 @ObjectType()
