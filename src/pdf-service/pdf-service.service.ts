@@ -338,7 +338,7 @@ export class PdfService {
                     margin: 5,
                   },
                   {
-                    text: `₹${invoiceData.details?.amount_with_gst}`,
+                    text: `₹${invoiceData.details?.amount_without_gst}`,
                     fontSize: 8,
                     color: '#333333',
                     margin: 5,

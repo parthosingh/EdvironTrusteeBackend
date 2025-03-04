@@ -58,7 +58,7 @@ import { MerchantRefundRequestRes } from '../merchant/merchant.resolver';
 import { Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
 import { TempSettlementReport } from '../schema/tempSettlements.schema';
-import { PdfService } from 'src/pdf-service/pdf-service.service';
+import { PdfService } from '../pdf-service/pdf-service.service';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -2109,6 +2109,8 @@ export class TrusteeResolver {
 
   async generateInvoicePDF(invoiceId: string, invoiceData: any) {
     try {
+      console.log(invoiceData,'invoiceData');
+      
      const buffer=await this.pdfService.generateInvoicePdf(invoiceData)
       const pdfUrl = await this.awsS3Service.uploadToS3(
         buffer,
