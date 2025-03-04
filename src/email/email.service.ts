@@ -254,4 +254,35 @@ export class EmailService {
       console.error('Error sending email:', error);
     }
   }
+
+  async reconMissmatched(
+    utr: string,
+    school: string,
+  ) {
+    const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
+    const htmlToSend = `
+    <html>
+      <body>
+      <p>
+        Missmatched found in Settlement ${utr}
+      </p>
+      <p> School Name : ${school} </p>
+  </body>
+  </html>
+  `;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER, // Sender email
+      to: emailRecipients.join(','), // Join multiple recipients with commas
+      // cc: ccRecipients.join(','), // Join multiple CC recipients with commas
+      subject: 'Refund Initiated',
+      html: htmlToSend,
+    };
+    try {
+      await this.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  }
 }

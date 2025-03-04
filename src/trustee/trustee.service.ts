@@ -2323,6 +2323,19 @@ export class TrusteeService {
     };
 
     try {
+      try {
+        if (
+          extraInDurationTransactions.length > 0 ||
+          extraInSettlementTransactions.length > 0
+        ) {
+          await this.emailService.reconMissmatched(
+            settlements[0].utrNumber,
+            schoolInfo.school_name,
+          );
+        }
+      } catch (e) {
+        console.log(e.message);
+      }
       const records = await new this.ReconciliationModel({
         fromDate:
           new Date(isoTransactionFrom) || new Date(transaction_start_date),
@@ -2556,7 +2569,6 @@ export class TrusteeService {
       console.log(e);
     }
   }
-
 }
 
 const transaction = {
