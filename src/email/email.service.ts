@@ -102,7 +102,7 @@ export class EmailService {
     school_name: string,
     refund_id: string,
     amount: number,
-    collect_id:string
+    collect_id: string,
   ) {
     const emailRecipients = ['raj.barmaiya@edviron.com']; // List of primary recipients
     const ccRecipients = ['cc1@example.com', 'cc2@example.com']; // List of CC recipients
@@ -189,6 +189,29 @@ export class EmailService {
         console.log(error.message);
       } else {
         console.log(info.response);
+      }
+    });
+  }
+
+  sendMailWithAttachment(
+    subject: string,
+    body: string,
+    emails: Array<string>,
+    filename: string,
+    content: Buffer,
+  ) {
+    const mailOpts = {
+      from: process.env.EMAIL_USER,
+      to: emails,
+      subject: subject,
+      html: body,
+      attachments: [{ filename: filename, content }],
+    };
+    this.transporter.sendMail(mailOpts, (err) => {
+      if (err) {
+        console.error('Error sending receipt attachment');
+      } else {
+        console.log('receipt attachment sent successfully.');
       }
     });
   }

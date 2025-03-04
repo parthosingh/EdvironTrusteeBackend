@@ -25,6 +25,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { OnboardingResolver } from './onboarding/onboarding.resolver';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { BusinessAlarmModule } from './business-alarm/business-alarm.module';
+import { PdfServiceModule } from './pdf-service/pdf-service.module';
 config();
 
 @Module({
@@ -52,6 +53,7 @@ config();
     WebhooksModule,
     OnboardingModule,
     BusinessAlarmModule,
+    PdfServiceModule,
   ],
 
   controllers: [AppController],
