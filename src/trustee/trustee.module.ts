@@ -41,6 +41,7 @@ import {
 import { Disputes, DisputesSchema } from '../schema/disputes.schema';
 import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
 import { TempSettlementReport, TempSettlementReportSchema } from '../schema/tempSettlements.schema';
+import { PdfService } from 'src/pdf-service/pdf-service.service';
 config();
 
 @Module({
@@ -118,6 +119,7 @@ config();
     MainBackendService,
     EmailService,
     AwsS3Service,
+    PdfService,
   ],
 })
 export class TrusteeModule {}

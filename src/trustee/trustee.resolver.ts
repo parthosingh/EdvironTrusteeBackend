@@ -58,6 +58,7 @@ import { MerchantRefundRequestRes } from '../merchant/merchant.resolver';
 import { Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
 import { TempSettlementReport } from '../schema/tempSettlements.schema';
+import { PdfService } from 'src/pdf-service/pdf-service.service';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -162,6 +163,7 @@ export class TrusteeResolver {
     private readonly merchnatService: MerchantService,
     private readonly jwtService: JwtService,
     private readonly awsS3Service: AwsS3Service,
+    private readonly pdfService: PdfService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
@@ -2107,13 +2109,13 @@ export class TrusteeResolver {
 
   async generateInvoicePDF(invoiceId: string, invoiceData: any) {
     try {
-      const Testurl = `http://localhost:4005/puppeteer/test`;
-      const url = `http://puppeteer-service-prod-env.eba-cjxkm69d.ap-south-1.elasticbeanstalk.com/puppeteer/test`;
-      const response = await axios.post(url, invoiceData, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const pdfUrl = response.data;
+     const buffer=await this.pdfService.generateInvoicePdf(invoiceData)
+      const pdfUrl = await this.awsS3Service.uploadToS3(
+        buffer,
+        `invoice_${invoiceId}.pdf`,
+        'application/pdf',
+        'edviron-backend-dev'
+      )
 
       await this.invoiceModel.findByIdAndUpdate(invoiceId, {
         invoice_url: pdfUrl,
