@@ -7,6 +7,11 @@ import { EmailService } from '../email/email.service';
 import { RefundRequest } from '../schema/refund.schema';
 import { SettlementReport } from '../schema/settlement.schema';
 import { BusinessAlarmController } from './business-alarm.controller';
+import {
+  VendorsSettlement,
+  VendorsSettlementSchema,
+} from '../schema/vendor.settlements.schema';
+import { Vendors, VendorsSchema } from '../schema/vendors.schema';
 
 @Module({
   imports: [
@@ -14,6 +19,8 @@ import { BusinessAlarmController } from './business-alarm.controller';
       { name: TrusteeSchool.name, schema: TrusteeSchool },
       { name: RefundRequest.name, schema: RefundRequest },
       { name: SettlementReport.name, schema: SettlementReport },
+      { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
+      { name: Vendors.name, schema: VendorsSchema },
     ]),
   ],
   providers: [BusinessAlarmResolver, BusinessAlarmService, EmailService],
