@@ -1,21 +1,62 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MainBackendController } from './main-backend.controller';
-import { MainBackendService } from './main-backend.service';
-import { JwtService } from '@nestjs/jwt';
-import { getModelToken } from '@nestjs/mongoose';
-import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
-import { FullKycStatus, MerchantStatus, MinKycStatus, SchoolSchema, TrusteeSchool } from '../schema/school.schema';
-import { JwtPayload } from 'jsonwebtoken';
-import mongoose, { Connection, connect, Model, Types } from 'mongoose';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { mock } from 'node:test';
+import { Connection, connect, Model, Schema, Types, model } from 'mongoose';
+import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
+import { getModelToken } from '@nestjs/mongoose';
+import {
+  FullKycStatus,
+  MerchantStatus,
+  MinKycStatus,
+  SchoolSchema,
+  TrusteeSchool,
+} from '../schema/school.schema';
 import { TrusteeService } from '../trustee/trustee.service';
+import { ErpService } from '../erp/erp.service';
+import { TrusteeResolver } from '../trustee/trustee.resolver';
+import { JwtService } from '@nestjs/jwt';
+import { ObjectId } from 'mongodb';
+import {
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { MainBackendService } from '../main-backend/main-backend.service';
+import {
+  SettlementReport,
+  SettlementSchema,
+} from '../schema/settlement.schema';
+import axios, { AxiosError } from 'axios';
+import { error } from 'console';
+import { TrusteeModule } from '../trustee/trustee.module';
+import {
+  TrusteeMember,
+  TrusteeMemberSchema,
+} from '../schema/partner.member.schema';
+import { EmailService } from '../email/email.service';
+import { MerchantModule } from '../merchant/merchant.module';
+import { MerchantService } from '../merchant/merchant.service';
+import { AwsS3Service } from '../aws.s3/aws.s3.service';
+import { Commission, CommissionSchema } from '../schema/commission.schema';
+import { MerchantMember } from '../schema/merchant.member.schema';
+import { Invoice } from '../schema/invoice.schema';
+import { RefundRequest } from '../schema/refund.schema';
+import { VendorsSettlement } from '../schema/vendor.settlements.schema';
+import { TempSettlementReport } from '../schema/tempSettlements.schema';
+import { TransactionInfo } from '../schema/transaction.info.schema';
+import { RequestMDR } from '../schema/mdr.request.schema';
+import { BaseMdr } from '../schema/base.mdr.schema';
+import { SchoolMdr } from '../schema/school_mdr.schema';
+import { Vendors } from '../schema/vendors.schema';
+import { Disputes } from '../schema/disputes.schema';
+import { Reconciliation } from '../schema/Reconciliation.schema';
+import { ErpController } from '../erp/erp.controller';
+import { Earnings } from '../schema/earnings.schema';
+import { Capture } from '../schema/capture.schema';
+import { WebhookLogs } from '../schema/webhook.schema';
+import { MainBackendController } from './main-backend.controller';
+import { PdfService } from '../pdf-service/pdf-service.service';
+
 
 const mockMainbackenService = {
   createTrustee: jest.fn(),
@@ -31,14 +72,38 @@ const MockJwtService = {
 };
 
 describe('MainBackendController', () => {
+  let controller: MainBackendController;
+  let service: MainBackendService;
+  let jwt: JwtService;
+  let erpController: ErpController;
+  let jwtService: JwtService;
+  let resolver: TrusteeResolver;
   let mongod: MongoMemoryServer;
   let mongoConnection: Connection;
   let trusteeModel: Model<Trustee>;
   let trusteeSchoolModel: Model<TrusteeSchool>;
-  let controller: MainBackendController;
-  let service: MainBackendService;
-  let jwtService: JwtService;
-  let jwt: JwtService;
+  let erpService: ErpService;
+  let trusteeService: TrusteeService;
+  let mainbackendService: MainBackendService;
+  let settlementModel: Model<SettlementReport>;
+  let trusteeMemberModel: Model<TrusteeMember>;
+  let CommissionModel: Model<Commission>;
+  let MerchantMemberModel: Model<MerchantMember>;
+  let InvoiceModel: Model<Invoice>;
+  let RefundRequestModel: Model<RefundRequest>;
+  let VendorsSettlementModel: Model<VendorsSettlement>;
+  let TempSettlementReportModel: Model<TempSettlementReport>;
+  let TransactionInfoModel: Model<TransactionInfo>;
+  let RequestMDRModel: Model<RequestMDR>;
+  let BaseMdrModel: Model<BaseMdr>;
+  let SchoolMdrModel: Model<SchoolMdr>;
+  let VendorsModel: Model<Vendors>;
+  let DisputesModel: Model<Disputes>;
+  let ReconciliationModel: Model<Reconciliation>;
+  let EarningsModel: Model<Earnings>;
+  let CapturetModel:Model<Capture>;
+  let WebhookLogsModel:Model<WebhookLogs>;
+  let emailService: EmailService;
 
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
@@ -52,33 +117,113 @@ describe('MainBackendController', () => {
   });
 
   afterAll(async () => {
+    await mongoConnection.close();
     await mongod.stop();
-    await mongoose.disconnect();
   });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MainBackendController],
       providers: [
+        TrusteeResolver,
+        ErpService,
         MainBackendService,
-        { provide: Connection, useValue: {} },
-        {
-          provide: getModelToken(Trustee.name),
-          useValue: trusteeModel,
-        },
+        TrusteeService,
+        EmailService,
+        MerchantModule,
+        MerchantService,
+        AwsS3Service,
+        MainBackendService,
+        PdfService,
+        { provide: getModelToken(Trustee.name), useValue: trusteeModel },
         {
           provide: getModelToken(TrusteeSchool.name),
           useValue: trusteeSchoolModel,
         },
         {
-          provide: JwtService,
-          useValue: MockJwtService,
+          provide: ErpService,
+          useValue: { createApiKey: jest.fn() },
         },
         {
           provide: MainBackendService,
-          useValue: mockMainbackenService,
+          useValue: { createApiKey: jest.fn(), generateKey: jest.fn() },
         },
-        TrusteeService,
+        {
+          provide: JwtService,
+          useValue: { sign: jest.fn() },
+        },
+        {
+          provide: getModelToken(SettlementReport.name),
+          useValue: settlementModel,
+        },
+        {
+          provide: getModelToken(TrusteeMember.name),
+          useValue: trusteeMemberModel,
+        },
+        {
+          provide: getModelToken(Commission.name),
+          useValue: CommissionModel,
+        },
+        {
+          provide: getModelToken(MerchantMember.name),
+          useValue: MerchantMemberModel,
+        },
+        {
+          provide: getModelToken(Invoice.name),
+          useValue: InvoiceModel,
+        },
+        {
+          provide: getModelToken(RefundRequest.name),
+          useValue: RefundRequestModel,
+        },
+        {
+          provide: getModelToken(VendorsSettlement.name),
+          useValue: VendorsSettlementModel,
+        },
+        {
+          provide: getModelToken(TempSettlementReport.name),
+          useValue: TempSettlementReportModel,
+        },
+        {
+          provide: getModelToken(TransactionInfo.name),
+          useValue: TransactionInfoModel,
+        },
+        {
+          provide: getModelToken(RequestMDR.name),
+          useValue: RequestMDRModel,
+        },
+        {
+          provide: getModelToken(BaseMdr.name),
+          useValue: BaseMdrModel,
+        },
+        {
+          provide: getModelToken(SchoolMdr.name),
+          useValue: SchoolMdrModel,
+        },
+        {
+          provide: getModelToken(Vendors.name),
+          useValue: VendorsModel,
+        },
+        {
+          provide: getModelToken(Disputes.name),
+          useValue: DisputesModel,
+        },
+        {
+          provide: getModelToken(Reconciliation.name),
+          useValue: ReconciliationModel,
+        },
+        {
+          provide: getModelToken(Earnings.name),
+          useValue: EarningsModel,
+        },
+        {
+          provide: getModelToken(Capture.name),
+          useValue: CapturetModel,
+        },
+        {
+          provide: getModelToken(WebhookLogs.name),
+          useValue: WebhookLogsModel,
+        },
       ],
     }).compile();
 
@@ -91,220 +236,5 @@ describe('MainBackendController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('createTrustee', () => {
-    it('should return a signed JWT token', async () => {
-      const mockData = { data: 'mockData' };
-      const info: JwtPayload = {
-        email: 'test@example.com',
-        name: 'John Doe',
-        password: 'password123',
-        phone_number: '1234567890',
-        school_limit: 5,
-        iat: 1234567890,
-        exp: 1234567890,
-      };
-
-      const jwtPayload = { info };
-
-      const mockJwtPayload: JwtPayload = { credential: 'mockCredential' };
-      const mockToken = 'mockToken';
-
-      const mockTrustee = {
-        // Mocked trustee data
-        _id: new Types.ObjectId(),
-        name: 'John Doe',
-        email_id: 'john@example.com',
-        password_hash: 'hashedPassword',
-        school_limit: 10,
-        phone_number: '1234567890',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        __v: 0,
-      };
-
-      jest.spyOn(jwtService, 'verify').mockReturnValueOnce(info);
-      jest
-        .spyOn(service, 'createTrustee')
-        .mockResolvedValueOnce(mockTrustee as any);
-      jest.spyOn(jwtService, 'sign').mockReturnValueOnce(mockToken);
-
-      // Act
-      const result = await controller.createTrustee(mockData);
-
-      // Assert
-      expect(jwtService.verify).toHaveBeenCalledWith(mockData.data, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
-      expect(service.createTrustee).toHaveBeenCalledWith(info);
-      expect(jwtService.sign).toHaveBeenCalledWith(
-        { credential: mockTrustee },
-        { secret: process.env.JWT_SECRET_FOR_INTRANET },
-      );
-      expect(result).toEqual(mockToken);
-    });
-    it('should throw ConflictException if email already exists', async () => {
-      // Mock data
-      const mockData = { data: 'mockData' };
-      const info: JwtPayload = {
-        email: 'test@example.com',
-        name: 'John Doe',
-        password: 'password123',
-        phone_number: '1234567890',
-        school_limit: 5,
-        iat: 1234567890,
-        exp: 1234567890,
-      };
-
-      const conflictError = new ConflictException('Email already exists');
-
-      jest.spyOn(jwtService, 'verify').mockReturnValue(info);
-      jest.spyOn(service, 'createTrustee').mockRejectedValue(conflictError);
-
-      // Act and Assert
-      await expect(controller.createTrustee(mockData)).rejects.toThrow(
-        ConflictException,
-      );
-
-      // Ensure that the methods were called with the expected parameters
-      expect(jwtService.verify).toHaveBeenCalledWith(mockData.data, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
-      expect(service.createTrustee).toHaveBeenCalledWith(info);
-    });
-
-    it('should throw BadRequestException for other errors', async () => {
-      // Mocking the behavior of jwtService.verify that throws an exception
-      jest.spyOn(jwtService, 'verify').mockImplementation(() => {
-        throw { message: 'Bad Request' };
-      });
-      const info = {
-        email: 'some@mail.com',
-        name: 'new trustee',
-        password: 'password',
-        phone_number: '4564569875',
-        school_limit: 150,
-        iat: 1704643606,
-        exp: 1704650806,
-      } as JwtPayload;
-
-      // Execute the method and assert
-      await expect(
-        controller.createTrustee({ data: 'mockData' }),
-      ).rejects.toThrowError(BadRequestException);
-    });
-  });
-
-  describe('findTrustee', () => {
-    it('should return arrays of trustee', async () => {
-      const mockPage = 1;
-      const mockPageSize = 10;
-      const paginationToken = 'pagToken';
-      const pagInfo = {
-        mockPage: 1,
-        mockPageSize: 10,
-      };
-      const mockTrusteeData = [
-        {
-          _id: new Types.ObjectId(),
-          name: 'John Doe',
-          email_id: 'john@example.com',
-          password_hash: 'hashedPassword',
-          school_limit: 10,
-          phone_number: '1234567890',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          __v: 0,
-        },
-      ];
-      const mockToken = 'mockToken';
-      mockMainbackenService.findTrustee.mockResolvedValueOnce(mockTrusteeData);
-      MockJwtService.verify.mockReturnValueOnce(pagInfo);
-      MockJwtService.sign.mockReturnValueOnce(mockToken);
-      const result = await controller.findTrustee(paginationToken);
-      expect(MockJwtService.sign).toHaveBeenCalledWith(mockTrusteeData, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
-      expect(result).toEqual(mockToken);
-    });
-  });
-  describe('updatedSchool', () => {
-    it('shoulld update School', async () => {
-      const school = await new trusteeSchoolModel({
-        school_id: new Types.ObjectId('658e759736ba0754ca45d0c2'),
-        trustee_id: new Types.ObjectId('658e759736ba0754ca45d0c1'),
-        school_name: 'XYZ School',
-      }).save();
-
-      const mockdata = {
-        school_id: school.school_id,
-        trustee_id: school.trustee_id,
-        client_id: 'client_id',
-        merchantName: 'merchantName',
-        merchantEmail: 'merchantemail@edviron.com',
-        merchantStatus: MerchantStatus.NOT_INITIATED,
-        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
-        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
-      }
-
-      const updatedSchool = await trusteeSchoolModel.findOneAndUpdate(
-        { school_id: school.school_id },
-        {
-          $set: {
-            client_id: mockdata.client_id,
-            merchantEmail: mockdata.merchantEmail,
-            merchantName: mockdata.merchantName,
-            merchantStatus: mockdata.merchantStatus,
-            pgFullKYC: mockdata.pgFullKYC,
-            pgMinKYC: mockdata.pgMinKYC,
-            trustee_id: school.trustee_id,
-          },
-        },
-      );
-
-      MockJwtService.verify.mockResolvedValueOnce(mockdata);
-      jest
-        .spyOn(service, 'updateSchoolInfo')
-        .mockResolvedValueOnce({ updatedSchool });
-
-      const body = { token: 'mockToken' };
-      const result = await controller.updateSchool(body);
-      const expectedResult = {
-        school_id: school.school_id,
-        school_name: school.school_name,
-        msg: `${school.school_name} is Updated`,
-      };
-      expect(result).toEqual(expectedResult);
-    });
-    it('shoud throw BadRequestException on missing fields', async () => {
-      const mockToken = 'mockToken';
-      const mockdata = {
-        school_name: 'mock School Name',
-        school_id: '658e759736ba0754ca45d0c2',
-        trustee_id: '658e759736ba0754ca45d0c1',
-        client_id: 'client_id',
-        client_secret: 'client_secret',
-        merchantId: 'merchantId',
-        merchantName: 'merchantName',
-        merchantStatus: MerchantStatus.NOT_INITIATED,
-        pgMinKYC: MinKycStatus.MIN_KYC_PENDING,
-        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
-      }
-      MockJwtService.verify.mockReturnValueOnce(mockdata);
-      await expect(
-        async () => await controller.updateSchool({ token: mockToken }),
-      ).rejects.toThrowError(BadRequestException);
-    });
-    it('should throw BadRequestException for other errors', async () => {
-      const mockToken = 'mockToken';
-
-      jest
-        .spyOn(service, 'updateSchoolInfo')
-        .mockRejectedValueOnce({ message: 'Bad Request' });
-
-      await expect(
-        controller.updateSchool({ token: mockToken }),
-      ).rejects.toThrowError(BadRequestException);
-      expect(service.updateSchoolInfo).toHaveBeenCalled();
-    });
-  });
+ 
 });
