@@ -1162,28 +1162,35 @@ export class TrusteeService {
           if (schoolCharge) {
             // Create a combined charge object
             let commission;
-            if (schoolCharge.charge_type === 'PERCENT') {
-              commission = `${schoolCharge.charge}% - ${
-                baseCharge.charge_type === 'FLAT'
-                  ? `₹${baseCharge.charge}`
-                  : `${baseCharge.charge}%`
-              }`;
+
+            if (schoolCharge.charge_type === baseCharge.charge_type) {
+              commission =
+                schoolCharge.charge_type === 'PERCENT'
+                  ? `${(schoolCharge.charge - baseCharge.charge).toFixed(2)}%`
+                  : `₹${(schoolCharge.charge - baseCharge.charge).toFixed(2)}`;
             } else {
-              // If schoolCharge.charge_type is 'FLAT'
-              commission = `₹${schoolCharge.charge} - ${
+              const schoolValue = schoolCharge.charge.toFixed(2);
+              const baseValue = baseCharge.charge.toFixed(2);
+
+              const schoolPart =
+                schoolCharge.charge_type === 'PERCENT'
+                  ? `${schoolValue}%`
+                  : `₹${schoolValue}`;
+              const basePart =
                 baseCharge.charge_type === 'PERCENT'
-                  ? `${baseCharge.charge}%`
-                  : `₹${baseCharge.charge}`
-              }`;
+                  ? `${baseValue}%`
+                  : `₹${baseValue}`;
+
+              commission = `${schoolPart} - ${basePart}`;
             }
 
             // const commission = schoolCharge.charge - baseCharge.charge;
             const combinedCharge = {
               upto: baseCharge.upto,
               charge_type: schoolCharge.charge_type,
-              base_charge: baseCharge.charge,
+              base_charge: baseCharge?.charge.toFixed(2),
               base_charge_type: baseCharge.charge_type,
-              charge: schoolCharge.charge,
+              charge: schoolCharge?.charge.toFixed(2),
               commission: commission,
             };
 
