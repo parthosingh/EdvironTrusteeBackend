@@ -39,11 +39,7 @@ import { SchoolMdr } from '../schema/school_mdr.schema';
 import { Commission } from '../schema/commission.schema';
 import { MerchantMember } from '../schema/merchant.member.schema';
 import * as moment from 'moment';
-import {
-  Invoice,
-  invoice_status,
-  InvoiceData,
-} from '../schema/invoice.schema';
+import { Invoice, invoice_status, InvoiceData } from '../schema/invoice.schema';
 
 import * as path from 'path';
 import * as ejs from 'ejs';
@@ -2109,15 +2105,15 @@ export class TrusteeResolver {
 
   async generateInvoicePDF(invoiceId: string, invoiceData: any) {
     try {
-      console.log(invoiceData,'invoiceData');
-      
-     const buffer=await this.pdfService.generateInvoicePdf(invoiceData)
+      console.log(invoiceData, 'invoiceData');
+
+      const buffer = await this.pdfService.generateInvoicePdf(invoiceData);
       const pdfUrl = await this.awsS3Service.uploadToS3(
         buffer,
         `invoice_${invoiceId}.pdf`,
         'application/pdf',
-        'edviron-backend-dev'
-      )
+        'edviron-backend-dev',
+      );
 
       await this.invoiceModel.findByIdAndUpdate(invoiceId, {
         invoice_url: pdfUrl,
@@ -2190,6 +2186,7 @@ export class TrusteeResolver {
             refund_amount: 1,
             order_amount: 1,
             transaction_amount: 1,
+            reason: 1,
             createdAt: 1,
             updatedAt: 1,
             custom_id: 1,
@@ -3115,6 +3112,9 @@ class RefundRequestRes {
 
   @Field({ nullable: true })
   custom_id: string;
+
+  @Field({ nullable: true })
+  reason: string;
 }
 
 @ObjectType()
