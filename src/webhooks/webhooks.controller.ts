@@ -27,6 +27,8 @@ import {
   getAdminEmailTemplate,
   getCustomerEmailTemplate,
 } from '../email/templates/dipute.template';
+import { PdfService } from '../pdf-service/pdf-service.service';
+import { DISPUT_INVOICE_MAIL_GATEWAY } from '../utils/email.group';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -56,6 +58,7 @@ export class WebhooksController {
     private SettlementReportModel: mongoose.Model<SettlementReport>,
     private emailService: EmailService,
     private trusteeService: TrusteeService,
+    private readonly pdfService: PdfService,
   ) {}
 
   demoData = {
@@ -798,9 +801,68 @@ export class WebhooksController {
         },
         { upsert: true, new: true },
       );
+      if (dispute_status === 'DISPUTE_CREATED') {
+        // const trusteeEmail = await this.TrusteeModel.findById(
+        //   school.trustee_id,
+        // );
+        const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
+        const innerMailTemp = getAdminEmailTemplate(dispute, false);
+        // const userMailTemp = getCustomerEmailTemplate(
+        //   dispute,
+        //   school.school_name,
+        //   false,
+        // );
+        this.emailService.sendErrorMail(subject, innerMailTemp);
+
+        // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+
+        const gatewayMailSubject = `Dispute invoice against transaction id: ${dispute.collect_id}`;
+
+        const gatewayMailData = {
+          transactionId: transactionInfo.collect_id,
+          custom_order_id: transactionInfo.custom_order_id || 'NA',
+          disputeStatus: transactionInfo.dispute_status,
+          date: new Date(transactionInfo.payment_time).toLocaleDateString(
+            'en-IN',
+            { timeZone: 'Asia/Kolkata' },
+          ),
+          schoolName: school.school_name,
+          amount: transactionInfo.transaction_amount,
+          bank_reference: transactionInfo.bank_reference,
+          student_details: transactionInfo?.additional_data
+            ? JSON.parse(transactionInfo.additional_data)
+            : {},
+          payment_method: transactionInfo.payment_method,
+          payment_details: transactionInfo.details,
+          gateway: dispute.gateway,
+        };
+
+        this.pdfService.generatePDF(gatewayMailData).then((pdf: any) => {
+          this.emailService.sendMailWithAttachment(
+            gatewayMailSubject,
+            `<h3> Please find the attached invoice againest dispute case id: ${dispute.dispute_id} </h3>`,
+            DISPUT_INVOICE_MAIL_GATEWAY,
+            `receipt_${gatewayMailData.transactionId}.pdf`,
+            pdf,
+          );
+        });
+      }
       if (resolved_at) {
         dispute.dispute_resolved_at_date = new Date(resolved_at);
         await dispute.save();
+        // const trusteeEmail = await this.TrusteeModel.findById(
+        //   school.trustee_id,
+        // );
+        const subject = `A dispute has been resolved against transaction id: ${dispute.collect_id}`;
+        const innerMailTemp = getAdminEmailTemplate(dispute, false);
+        // const userMailTemp = getCustomerEmailTemplate(
+        //   dispute,
+        //   school.school_name,
+        //   false,
+        // );
+        this.emailService.sendErrorMail(subject, innerMailTemp);
+
+        // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
       }
       res.status(200).send('OK');
     } catch (e) {
@@ -900,6 +962,37 @@ export class WebhooksController {
         this.emailService.sendErrorMail(subject, innerMailTemp);
 
         // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+
+        const gatewayMailSubject = `Dispute invoice against transaction id: ${transaction_id}`;
+
+        const gatewayMailData = {
+          transactionId: transactionInfo.collect_id,
+          custom_order_id: transactionInfo.custom_order_id || 'NA',
+          disputeStatus: transactionInfo.dispute_status,
+          date: new Date(transactionInfo.payment_time).toLocaleDateString(
+            'en-IN',
+            { timeZone: 'Asia/Kolkata' },
+          ),
+          schoolName: school.school_name,
+          amount: transactionInfo.transaction_amount,
+          bank_reference: transactionInfo.bank_reference,
+          student_details: transactionInfo?.additional_data
+            ? JSON.parse(transactionInfo.additional_data)
+            : {},
+          payment_method: transactionInfo.payment_method,
+          payment_details: transactionInfo.details,
+          gateway: dispute.gateway,
+        };
+
+        this.pdfService.generatePDF(gatewayMailData).then((pdf: any) => {
+          this.emailService.sendMailWithAttachment(
+            gatewayMailSubject,
+            `<h3> Please find the attached invoice againest dispute case id: ${dispute.case_id} </h3>`,
+            DISPUT_INVOICE_MAIL_GATEWAY,
+            `receipt_${gatewayMailData.transactionId}.pdf`,
+            pdf,
+          );
+        });
       }
       if (status === 'CLOSED') {
         dispute.dispute_resolved_at_date = new Date(updated_at);

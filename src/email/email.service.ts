@@ -255,10 +255,7 @@ export class EmailService {
     }
   }
 
-  async reconMissmatched(
-    utr: string,
-    school: string,
-  ) {
+  async reconMissmatched(utr: string, school: string) {
     const emailRecipients = ['tarun.k@edviron.com', 'raj.barmaiya@edviron.com'];
     const htmlToSend = `
     <html>
