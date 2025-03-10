@@ -1998,7 +1998,7 @@ export class TrusteeService {
         );
 
         let settlements_transactions = transactions.settlements_transactions;
-        console.log(settlements_transactions.length);
+     
 
         if (Array.isArray(settlements_transactions)) {
           settlements_transactions = await Promise.all(
@@ -2023,7 +2023,8 @@ export class TrusteeService {
               }
 
               // Fetch refund UTR if event_type is 'REFUND'
-              if (transaction.event_type === 'REFUND') {
+              if (transaction.order_id && transaction.event_type === 'REFUND') {
+                console.log(transaction,'REFUND REPORT');
                 const config = {
                   method: 'get',
                   maxBodyLength: Infinity,
@@ -2041,7 +2042,10 @@ export class TrusteeService {
               }
 
               // Handle DISPUTE transactions
-              if (transaction.event_type === 'DISPUTE') {
+              if (
+                transaction.order_id &&
+                transaction.event_type === 'DISPUTE'
+              ) {
                 const config = {
                   method: 'get',
                   maxBodyLength: Infinity,
@@ -2059,7 +2063,10 @@ export class TrusteeService {
               }
 
               // Handle OTHER_ADJUSTMENT transactions
-              if (transaction.event_type === 'OTHER_ADJUSTMENT') {
+              if (
+                transaction.order_id &&
+                transaction.event_type === 'OTHER_ADJUSTMENT'
+              ) {
                 sumOtherAdjustments += transaction.event_amount;
                 const config = {
                   method: 'get',
@@ -2098,10 +2105,21 @@ export class TrusteeService {
     let refundSum = 0;
     const refundDetails = await Promise.all(
       refunds.map(async (refund: any) => {
+        console.log(refund, 'test refund');
+
         const refundInfo: any = await this.refundRequestModel.findOne({
           order_id: new Types.ObjectId(refund.collect_id),
         });
-        refundSum += refundInfo.refund_amount;
+        console.log(refundInfo, 'refundinfo2423');
+
+        if (!refundInfo) {
+          console.log('Refund information not found for:', refund.collect_id);
+          return null; // Or handle it as per your business logic
+        }
+
+        if (refundInfo.refund_amount) {
+          refundSum += refundInfo.refund_amount;
+        }
 
         const transactionData = await this.fetchTransactionInfo(
           refund.collect_id,
@@ -2146,7 +2164,8 @@ export class TrusteeService {
           const settlementDate = await this.vendorSettlementInfo(
             transactions.collect_id,
           );
-          console.log(settlementDate, 'ptransactionsp');
+         
+
 
           // Calculate earliest and latest dates inline
           const currDate = new Date(settlementDate.vendorSettlementDate);
@@ -2158,7 +2177,7 @@ export class TrusteeService {
           }
           // Process vendor splits
           for (const vendor of transactions.vendors_info) {
-            console.log(vendor, 'pvendorp');
+          
 
             let splitAmount = 0;
             const transactionTime =
@@ -2220,12 +2239,7 @@ export class TrusteeService {
 
       vendorSttlementStartDate.setHours(0, 0, 0, 0);
       const vendorSttlementEndDate = new Date(`${formatEndDate}T23:59:59Z`);
-      console.log({
-        earliestDate,
-        formatStartDate,
-        $gte: vendorSttlementStartDate,
-        $lte: vendorSttlementEndDate,
-      });
+    
 
       let vendorSettlementUtr: any = [];
       vendorSettlementsInfo = await this.vendorsSettlementModel.find({
@@ -2241,10 +2255,7 @@ export class TrusteeService {
         venodrSettlementSum += info.net_settlement_amount;
         vendorSettlementUtr.push(info.utr);
       });
-      console.log(
-        vendorSettlementUtr,
-        'venodrSettlementSumvenodrSettlementSum',
-      );
+     
 
       if (vendorSettlementUtr.length > 0) {
         const vendorToken = this.jwtService.sign(
@@ -2260,7 +2271,7 @@ export class TrusteeService {
           utrNumber: vendorSettlementUtr,
           cursor: null,
         };
-        console.log(vendorReconPayload, 'vendorReconPayload');
+  
 
         const config = {
           method: 'post',
@@ -2300,10 +2311,10 @@ export class TrusteeService {
           }),
         );
 
-        console.log(VendorRefundSum, 'VendorRefundSum2');
+     
       }
 
-      console.log(VendorRefundSum, 'VendorRefundSum3');
+   
       // console.log(refundDetails,'ven');
       // console.log({  duration_transactions: durationTransactions,});
     }
