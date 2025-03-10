@@ -438,6 +438,12 @@ export class TrusteeResolver {
       defaultValue: null,
     })
     payment_modes?: string[],
+    @Args('gateway', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    gateway?: string[],
   ) {
     try {
       console.log(school_id);
@@ -507,11 +513,11 @@ export class TrusteeResolver {
         merchant_ids_to_merchant_map[merchant.school_id] = merchant;
       });
       console.timeEnd('mapping merchant transaction');
-      let token = this.jwtService.sign(
+      const token = this.jwtService.sign(
         { trustee_id: id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
-      let config = {
+      const config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
@@ -527,14 +533,16 @@ export class TrusteeResolver {
           seachFilter: searchFilter,
           payment_modes,
           isQRCode,
+          gateway,
         },
       };
 
       console.time('fetching all transaction');
 
       const response = await axios.request(config);
-      let transactionLimit = Number(limit) || 100;
-      let transactionPage = Number(page) || 1;
+
+      const transactionLimit = Number(limit) || 100;
+      const transactionPage = Number(page) || 1;
       let total_pages = response.data.totalTransactions / transactionLimit;
 
       console.timeEnd('fetching all transaction');
@@ -3418,6 +3426,8 @@ export class TransactionReport {
   vendors_info?: [Vendor];
   @Field({ nullable: true })
   reason?: string;
+  @Field({ nullable: true })
+  gateway?: string;
 }
 
 @ObjectType()
