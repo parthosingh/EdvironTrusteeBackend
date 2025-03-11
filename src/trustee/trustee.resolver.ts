@@ -2022,9 +2022,10 @@ export class TrusteeResolver {
 
       const existingInvoice = await this.invoiceModel.findOne({
         trustee_id: context.req.trustee,
-        invoice_date: { $regex: new RegExp(`\\b${targetMonthYear}\\b`, 'i') }, // Case-insensitive match for the month and year
+        duration: { $regex: new RegExp(`\\b${duration}\\b`, 'i') }, // Case-insensitive match for the month and year
       });
-
+      console.log(targetMonthYear, 'targetMonthYear');
+      
       if (existingInvoice) {
         throw new ConflictException(
           `An invoice for ${duration} already exists.`,
