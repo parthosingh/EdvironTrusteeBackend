@@ -361,7 +361,44 @@ export class WebhooksController {
         body: details,
         status: 'SUCCESS',
       }).save();
-
+      const info=body.data
+      const data=JSON.parse(info)
+      data.submerchant_payouts.map(async (payout) => {
+        const merchant = await this.TrusteeSchoolmodel.findOne({easebuzz_id:payout.submerchant_id});
+        if(!merchant) {
+          console.log(`Merchant not found for easebuzz_id: ${payout.submerchant_id}`);
+          return;
+        }
+        const easebuzzDate = new Date(payout.submerchant_payout_date);
+        const saveSettlements = await this.SettlementReportModel.findOneAndUpdate(
+          { utrNumber: payout.bank_transaction_id },
+          {
+            $set: {
+              settlementAmount: payout.payout_amount + payout.refund_amount,
+              adjustment: payout.refund_amount,
+              netSettlementAmount: payout.payout_amount,
+              fromDate: new Date(
+                easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+              ),
+              tillDate: new Date(
+                easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+              ),
+              settlementInitiatedOn: new Date(payout.submerchant_payout_date),
+              status: 'SUCCESS',
+              utrNumber: payout.bank_transaction_id,
+              settlementDate: new Date(payout.submerchant_payout_date),
+              clientId: payout.submerchant_id || 'NA',
+              trustee: merchant.trustee_id,
+              schoolId: merchant.school_id,
+              remarks:  'NA',
+            },
+          },
+          {
+            upsert: true,
+            new: true,
+          },
+        );
+      })
       console.log('called');
       res.status(200).send('OK');
     } catch (e) {
@@ -384,6 +421,7 @@ export class WebhooksController {
       );
     }
   }
+
   @Post('cashfree/settlements')
   async cashfreeSettlements(@Body() body: any, @Res() res: any) {
     try {
