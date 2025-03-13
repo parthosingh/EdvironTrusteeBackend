@@ -1388,7 +1388,7 @@ export class ErpController {
         throw new NotFoundException('student name required');
       if (!body.amount) throw new NotFoundException('amount required');
       if (!body.reason) throw new NotFoundException('reason required');
-      if (!body.student_name) throw new NotFoundException('school id required');
+      if (!body.school_id) throw new NotFoundException('school id required');
       if (!body.phone_no && !body.mail_id)
         throw new NotFoundException(
           'atleast one contact detail required from phone no or mail id',
