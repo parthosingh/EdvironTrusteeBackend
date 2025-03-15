@@ -1105,7 +1105,7 @@ export class TrusteeService {
             const commission = schoolCharge.charge - baseCharge.charge;
             const combinedCharge = {
               upto: baseCharge.upto,
-              charge_type: baseCharge.charge_type,
+              charge_type: schoolCharge.charge_type,
               base_charge: baseCharge.charge,
               base_charge_type: baseCharge.charge_type,
               charge: schoolCharge.charge,
