@@ -216,8 +216,8 @@ export class ErpController {
     @Req() req,
   ) {
     try {
-      // const trustee_id = req.userTrustee.id;
-      const trustee_id = new Types.ObjectId('658e759736ba0754ca45d0c2');
+      const trustee_id = req.userTrustee.id;
+      // const trustee_id = new Types.ObjectId('658e759736ba0754ca45d0c2');
       // try {
       //   await new this.webhooksLogsModel({
       //     type: 'COLLECT REQUEST',
@@ -272,7 +272,8 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('Inalid Institute id');
       }
-
+      console.log(school.trustee_id,trustee_id);
+      
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
@@ -1250,7 +1251,8 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('School not found');
       }
-
+      console.log(school.trustee_id.toString(), trustee_id.toString());
+      
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
