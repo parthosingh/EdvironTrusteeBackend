@@ -2717,4 +2717,35 @@ export class ErpController {
       throw new BadRequestException(e.message);
     }
   }
+
+  @UseGuards(ErpGuard)
+  @Post('create-signature')
+  async createSignature(
+    @Body() body: { payload: any; school_id: string; pg_key: string },
+    @Req() req: any,
+  ) {
+    try {
+      const trustee_id = req.userTrustee.id;
+      const { payload, school_id, pg_key } = body;
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+        trustee_id,
+      });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      if (!school.pg_key) {
+        throw new BadRequestException(
+          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        );
+      }
+      if (school.pg_key !== pg_key) {
+        throw new BadRequestException('Invalid PG Key');
+      }
+      const sign = this.jwtService.sign(payload, { secret: school.pg_key });
+      return { sign };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 }
