@@ -186,7 +186,7 @@ export class ErpController {
   }
 
   @Post('create-collect-request')
-  // @UseGuards(ErpGuard)
+  @UseGuards(ErpGuard)
   async createCollectRequest(
     @Body()
     body: {
