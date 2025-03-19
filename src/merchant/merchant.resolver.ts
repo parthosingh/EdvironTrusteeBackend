@@ -1052,13 +1052,35 @@ export class MerchantResolver {
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
     @Context() context: any,
+    @Args('startDate', { type: () => String, nullable: true }) startDate?: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate?: string,
+    @Args('vendor_id', { type: () => String, nullable: true })
+    vendor_id?: string,
+    @Args('custom_id', { type: () => String, nullable: true })
+    custom_id?: string,
   ) {
+
     const school_id = context.req.merchant;
     const school = await this.trusteeSchoolModel.findById(school_id);
+
+
+    const query = {
+      school_id : school.school_id,
+      ...(vendor_id && { vendor_id }),
+      ...(startDate &&
+        endDate && {
+          updatedAt: {
+            $gte: new Date(startDate),
+            $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+          },
+        }),
+    }
+
     return this.trusteeService.getSchoolVendors(
       school.school_id.toString(),
       page,
       limit,
+      query
     );
   }
 

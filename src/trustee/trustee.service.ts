@@ -1510,23 +1510,33 @@ export class TrusteeService {
     }
   }
 
-  async getSchoolVendors(school_id: string, page: number, limit: number) {
+  async getSchoolVendors(school_id: string, page: number, limit: number, query: any) {
     try {
       // Calculate the number of documents to skip based on the current page and limit
       const skip = (page - 1) * limit;
-
       // Fetch vendors with pagination applied
       const vendors = await this.vendorsModel
-        .find({ school_id: new Types.ObjectId(school_id) })
-        .sort({ createdAt: -1 }) // Sort by createdAt in descending order
-        .skip(skip)
-        .limit(limit);
-
+      .aggregate([
+        {
+          $match: query
+        },
+        {
+          $sort: { createdAt: -1 },
+        },
+        {
+          $skip: skip,
+        },
+        {
+          $limit: limit,
+        },
+      ])
+      // console.log(vendors, "vendors")
+      // .find({ school_id: new Types.ObjectId(school_id) })
+      // .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+      // .skip(skip)
+      // .limit(limit);
       // Optional: Get the total count of vendors for the specified school to provide additional pagination info
-      const totalVendors = await this.vendorsModel.countDocuments({
-        school_id: new Types.ObjectId(school_id),
-      });
-
+      const totalVendors = await this.vendorsModel.countDocuments(query);
       return {
         vendors,
         totalPages: Math.ceil(totalVendors / limit),
