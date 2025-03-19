@@ -1756,7 +1756,21 @@ export class TrusteeService {
       data: data,
     };
     const { data: transactions } = await axios.request(config);
-    console.log(transactions);
+    // console.log(transactions, "transactions");
+
+    const updatedTransactions = await Promise.all(
+      transactions.vendorsTransaction.map(async (transaction) => {
+        if (!transaction.school_id) return { ...transaction, schoolName: "Unknown School" }; // Agar schoolId nahi hai
+
+        const school = await this.trusteeSchoolModel.findOne({school_id : new Types.ObjectId(transaction.school_id)});
+        return {
+          ...transaction,
+          schoolName: school ? school.school_name : "N/A",
+        };
+      })
+    )
+    transactions.vendorsTransaction = updatedTransactions
+
 
     return transactions;
   }

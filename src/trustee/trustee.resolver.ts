@@ -3016,9 +3016,27 @@ export class VendorTransaction {
 
   @Field({ nullable: true })
   createdAt: string;
-
+  
   @Field({ nullable: true })
   updatedAt: string;
+  
+  @Field({ nullable: true })
+  transaction_amount: number;
+
+  @Field({ nullable: true })
+  payment_method: string;
+
+  @Field({ nullable: true })
+  gateway: string;
+
+  @Field({ nullable: true })
+  additional_data: string;
+
+  @Field({ nullable: true })
+  custom_order_id: string;
+
+  @Field({ nullable: true })
+  schoolName: string;
 }
 
 @ObjectType()
