@@ -34,6 +34,7 @@ import {
   TransactionReport,
   TransactionReportResponsePaginated,
   VendorInfoInput,
+  VendorSingleTransaction,
   VendorsPaginationResponse,
   VendorsSettlementReportPaginatedResponse,
   VendorsTransactionPaginatedResponse,
@@ -78,7 +79,7 @@ export class MerchantResolver {
     @InjectModel(VendorsSettlement.name)
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   @Mutation(() => Boolean)
   async merchantLogin(
@@ -940,8 +941,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+          refundableAmount +
+          'Rs',
         );
       }
     }
@@ -1065,16 +1066,18 @@ export class MerchantResolver {
 
 
     const query = {
-      school_id : school.school_id,
+      school_id: school.school_id,
       ...(vendor_id && { vendor_id }),
       ...(startDate &&
         endDate && {
-          updatedAt: {
-            $gte: new Date(startDate),
-            $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
-          },
-        }),
+        updatedAt: {
+          $gte: new Date(startDate),
+          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+        },
+      }),
     }
+
+    console.log(query, ":query")
 
     return this.trusteeService.getSchoolVendors(
       school.school_id.toString(),
@@ -1155,14 +1158,31 @@ export class MerchantResolver {
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
     @Context() context: any,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate?: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate?: string,
+    @Args('status', { type: () => String, nullable: true }) status?: string,
+    @Args('vendor_id', { type: () => String, nullable: true })
+    vendor_id?: string,
+    @Args('custom_id', { type: () => String, nullable: true })
+    custom_id?: string,
+    @Args('order_id', { type: () => String, nullable: true })
+    order_id?: string,
   ) {
     const school_id = context.req.merchant;
+    console.log(school_id, "school_id")
     const school = await this.trusteeSchoolModel.findById(school_id);
     const transactions = this.trusteeService.getMerchantVendorTransactions(
       school.trustee_id.toString(),
       school.school_id.toString(),
       page,
       limit,
+      status,
+      vendor_id,
+      startDate,
+      endDate,
+      custom_id,
+      order_id,
     );
     return transactions;
   }
@@ -1192,11 +1212,11 @@ export class MerchantResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-          settled_on: {
-            $gte: new Date(start_date),
-            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-          },
-        }),
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -1247,7 +1267,7 @@ export class MerchantResolver {
     if (
       checkRefundRequest &&
       checkRefundRequest.split_refund_details[0]?.vendor_id ===
-        split_refund_details[0].vendor_id &&
+      split_refund_details[0].vendor_id &&
       checkRefundRequest.status === refund_status.INITIATED
     ) {
       throw new ConflictException(
@@ -1287,8 +1307,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+          refundableAmount +
+          'Rs',
         );
       }
     }
@@ -1330,6 +1350,19 @@ export class MerchantResolver {
     }).save();
 
     return `Refund Request Created`;
+  }
+
+  @UseGuards(MerchantGuard)
+  @Query(() => VendorSingleTransaction)
+  async getSingleMerchantVendorTransaction(
+    @Args('order_id') order_id: string,
+    @Context() context: any,
+  ) {
+  
+    const transactions = this.trusteeService.getVendonrMerchantSingleTransactions(
+      order_id,
+    );
+    return transactions;
   }
 }
 
