@@ -199,6 +199,15 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => String)
   super_admin_name: string;
+
+  @Prop({})
+  @Field(() => String)
+  smartgateway_merchant_id: string;
+
+  @Prop({})
+  @Field(() => String)
+  smartgateway_customer_id: string;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

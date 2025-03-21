@@ -217,6 +217,7 @@ export class ErpController {
   ) {
     try {
       const trustee_id = req.userTrustee.id;
+      // const trustee_id = new Types.ObjectId('658e759736ba0754ca45d0c2');
       // try {
       //   await new this.webhooksLogsModel({
       //     type: 'COLLECT REQUEST',
@@ -271,7 +272,8 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('Inalid Institute id');
       }
-
+      console.log(school.trustee_id,trustee_id);
+      
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
@@ -464,7 +466,7 @@ export class ErpController {
 
       const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
       const trustee = await this.trusteeModel.findById(trusteeObjId);
-      let webHookUrl = req_webhook_urls?.length;
+      const webHookUrl = req_webhook_urls?.length;
       // if (trustee.webhook_urls.length || req_webhook_urls?.length) {
       //   webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
       // }
@@ -493,7 +495,7 @@ export class ErpController {
       };
 
       const axios = require('axios');
-      let data = JSON.stringify({
+      const data = JSON.stringify({
         amount,
         callbackUrl: callback_url,
         jwt: this.jwtService.sign(
@@ -520,10 +522,12 @@ export class ErpController {
         ccavenue_access_code: school.ccavenue_access_code || null,
         ccavenue_merchant_id: school.ccavenue_merchant_id || null,
         ccavenue_working_key: school.ccavenue_working_key || null,
+        smartgateway_merchant_id: school.smartgateway_merchant_id || null,
+        smartgateway_customer_id: school.smartgateway_customer_id || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
       });
-      let config = {
+      const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect`,
@@ -534,7 +538,7 @@ export class ErpController {
       };
       const { data: paymentsServiceResp } = await axios.request(config);
 
-      let reason = 'fee payment';
+      const reason = 'fee payment';
 
       //set some variable here (user input [sendPaymentLink:true])
       // to send link to student
@@ -1247,7 +1251,8 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('School not found');
       }
-
+      console.log(school.trustee_id.toString(), trustee_id.toString());
+      
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
@@ -1341,7 +1346,7 @@ export class ErpController {
         throw new ForbiddenException('request forged');
       }
 
-      const config = {
+      let config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${
