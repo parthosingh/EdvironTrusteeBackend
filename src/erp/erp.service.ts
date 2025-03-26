@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -11,7 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import mongoose, { ObjectId, Types } from 'mongoose';
-import { TrusteeSchool } from '../schema/school.schema';
+import { PlatformCharge, TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import * as nodemailer from 'nodemailer';
 import * as path from 'path';
@@ -174,6 +175,8 @@ export class ErpService {
     trustee: ObjectId,
   ): Promise<any> {
     try {
+      console.log('p');
+      
       const no_of_schools = await this.trusteeSchoolModel.countDocuments({
         trustee_id: trustee,
       });
@@ -229,10 +232,17 @@ export class ErpService {
         // });
         trusteeSchool.platform_charges = base_charge.platform_charges;
         await trusteeSchool.save();
+        await this.updatePlatformChargesInPg(
+          base_charge.platform_charges,
+          trusteeSchool.trustee_id.toString(),
+          trusteeSchool.school_id.toString(),
+        )
       }
 
       return school;
     } catch (error) {
+      console.log(error);
+      
       if (error.response) {
         // The request was made and the server responded with a non-success status code
         if (error.response.status === 409) {
@@ -1015,17 +1025,19 @@ export class ErpService {
       data: data,
     };
     const response = await axios.request(config);
-    if (response.data.data.length === 0){ 
+    if (response.data.data.length === 0) {
       console.log('no data found');
-      
-      return};
+
+      return;
+    }
     console.log(response.data.data, 'cashfree response');
-  
-    
+
     const existingSettlement = await this.settlementReportModel.findOne({
       utrNumber: response.data.data[0].settlement_utr,
     });
-    const merchant =await this.trusteeSchoolModel.findOne({client_id:"CF_750839cc-0b2a-43ce-a90e-21eb92121b29"})
+    const merchant = await this.trusteeSchoolModel.findOne({
+      client_id: 'CF_750839cc-0b2a-43ce-a90e-21eb92121b29',
+    });
     if (!existingSettlement) {
       const settlementReport = new this.settlementReportModel({
         settlementAmount: response.data.data[0].payment_amount.toFixed(2),
@@ -1049,6 +1061,43 @@ export class ErpService {
       await settlementReport.save();
     } else {
       console.log('Settlement already exists', existingSettlement);
+    }
+  }
+
+  async updatePlatformChargesInPg(
+    platformCharges: PlatformCharge[],
+    trusteeId: string,
+    schoolId: string,
+  ) {
+    try {
+      const token =  this.jwtService.sign(
+        {
+          trustee_id: trusteeId,
+          school_id: schoolId,
+        },
+        {
+          secret: process.env.PAYMENTS_SERVICE_SECRET,
+        },
+      );
+
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/update-school-mdr`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: {
+          trustee_id: trusteeId,
+          school_id: schoolId,
+          platform_charges: platformCharges,
+          token: token,
+        },
+      };
+      const response = await axios(config);
+      console.log('response from payments service', response.data);
+      return response.data;
+    } catch (e) {
+      throw new BadGatewayException(e.message)
     }
   }
 }

@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   Get,
@@ -9,18 +10,20 @@ import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Mongoose, Types } from 'mongoose';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import {
-    MinKycStatus,
-    PlatformCharge,
-    TrusteeSchool,
-    charge_type,
-    rangeCharge,
+  MinKycStatus,
+  PlatformCharge,
+  TrusteeSchool,
+  charge_type,
+  rangeCharge,
 } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import { SchoolMdr } from '../schema/school_mdr.schema';
 import { platform } from 'os';
 import { RequestMDR, mdr_status } from '../schema/mdr.request.schema';
 import { BaseMdr } from '../schema/base.mdr.schema';
-
+import { TrusteeService } from 'src/trustee/trustee.service';
+import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
 @Injectable()
 export class PlatformChargeService {
   constructor(
@@ -34,22 +37,24 @@ export class PlatformChargeService {
     @InjectModel(RequestMDR.name)
     private mdrRequestModel: mongoose.Model<RequestMDR>,
     @InjectModel(BaseMdr.name)
-    private baseMdrModel: mongoose.Model<BaseMdr>,
+    private baseMdrModel: mongoose.Model<BaseMdr>
   ) {}
 
-    async AddPlatformCharge(
-        trusteeSchoolId: String,
-        platform_type: String,
-        payment_mode: String,
-        range_charge: rangeCharge[],
-    ) {
-        try {
-            const trusteeSchool = await this.trusteeSchoolModel.findOne({
-                _id: trusteeSchoolId,
-            });
-            
-            if (!trusteeSchool) throw new NotFoundException('Trustee school not found');
-            if (trusteeSchool.pgMinKYC !== MinKycStatus.MIN_KYC_APPROVED) throw new BadRequestException('KYC not approved');
+  async AddPlatformCharge(
+    trusteeSchoolId: String,
+    platform_type: String,
+    payment_mode: String,
+    range_charge: rangeCharge[],
+  ) {
+    try {
+      const trusteeSchool = await this.trusteeSchoolModel.findOne({
+        _id: trusteeSchoolId,
+      });
+
+      if (!trusteeSchool)
+        throw new NotFoundException('Trustee school not found');
+      if (trusteeSchool.pgMinKYC !== MinKycStatus.MIN_KYC_APPROVED)
+        throw new BadRequestException('KYC not approved');
 
       trusteeSchool.platform_charges.forEach((platformCharge) => {
         if (
@@ -110,7 +115,9 @@ export class PlatformChargeService {
           $set: { pg_key: pgKey },
         });
       }
-
+      await this.updatePlatformChargesInPg(
+        trusteeSchool.school_id.toString()
+      )
       return { platform_charges: res.platform_charges };
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -163,7 +170,9 @@ export class PlatformChargeService {
         },
         { returnDocument: 'after' },
       );
-
+      await this.updatePlatformChargesInPg(
+        school_id.toString()
+      )
       return res;
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -215,7 +224,9 @@ export class PlatformChargeService {
       } else if ((platformCharge.charge_type = charge_type.PERCENT)) {
         finalAmount += (amount * platformCharge.charge) / 100;
       }
-
+      await this.updatePlatformChargesInPg(
+        trusteeSchool.school_id.toString()
+      )
       return finalAmount.toFixed(2);
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -269,8 +280,10 @@ export class PlatformChargeService {
         _id: trusteeSchoolId,
       });
 
-            if (!trusteeSchool) throw new NotFoundException('Trustee school not found');
-            if (trusteeSchool.pgMinKYC !== MinKycStatus.MIN_KYC_APPROVED) throw new BadRequestException('KYC not approved');
+      if (!trusteeSchool)
+        throw new NotFoundException('Trustee school not found');
+      if (trusteeSchool.pgMinKYC !== MinKycStatus.MIN_KYC_APPROVED)
+        throw new BadRequestException('KYC not approved');
 
       let isFound = 0;
       trusteeSchool.platform_charges.forEach((platformCharge) => {
@@ -294,7 +307,9 @@ export class PlatformChargeService {
         },
         { returnDocument: 'after' },
       );
-
+      await this.updatePlatformChargesInPg(
+        trusteeSchool.school_id.toString()
+      )
       return { platform_charges: res.platform_charges };
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -375,6 +390,12 @@ export class PlatformChargeService {
           });
         }
       });
+      await Promise.all(
+        trusteeSchoolIds.map((school_id: string) => 
+          this.updatePlatformChargesInPg(school_id)
+        )
+      );
+      
       return {
         platform_charges: mdr2,
       };
@@ -426,7 +447,9 @@ export class PlatformChargeService {
         },
         { returnDocument: 'after' },
       );
-
+      await this.updatePlatformChargesInPg(
+        trusteeSchool.school_id.toString()
+      )
       return res;
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -527,6 +550,10 @@ export class PlatformChargeService {
         finalAmount += (amount * platformCharge.charge) / 100;
       }
       let commission = finalAmount - baseAmount;
+
+      await this.updatePlatformChargesInPg(
+        trusteeSchool.school_id.toString()
+      )
       return {
         finalAmount: finalAmount.toFixed(2),
         commission: commission.toFixed(2),
@@ -546,8 +573,50 @@ export class PlatformChargeService {
     const res = await this.mdrRequestModel.findByIdAndUpdate(mdrReqId, {
       $set: { status: mdr_status.APPROVED },
     });
+
+    
     if (!res) {
       throw new Error('Something went wrong while updating MDR request');
+    }
+  }
+
+  async updatePlatformChargesInPg(
+    schoolId: string,
+  ) {
+    try {
+      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(schoolId)})
+      if(!school){
+        throw new NotFoundException('School not found');
+      }
+      const trusteeId=school.trustee_id.toString();
+      const platformCharges = school.platform_charges
+      const token = jwt.sign(
+        {
+          trustee_id: trusteeId,
+          school_id: schoolId,
+        },
+
+        process.env.PAYMENTS_SERVICE_SECRET,
+      );
+
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/update-school-mdr`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: {
+          trustee_id: trusteeId,
+          school_id: schoolId,
+          platform_charges: platformCharges,
+          token: token,
+        },
+      };
+      const response = await axios(config);
+      console.log('response from payments service', response.data);
+      return response.data;
+    } catch (e) {
+      throw new BadGatewayException(e.message);
     }
   }
 }
