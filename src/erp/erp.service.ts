@@ -99,6 +99,7 @@ export class ErpService {
     try {
       const decodedPayload = this.jwtService.verify(apiKey, {
         secret: process.env.JWT_SECRET_FOR_API_KEY,
+        ignoreExpiration: true, 
       });
 
       const trustee = await this.trusteeModel.findById(
