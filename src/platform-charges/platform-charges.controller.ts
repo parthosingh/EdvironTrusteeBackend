@@ -17,7 +17,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Trustee } from '../schema/trustee.schema';
 import { SchoolMdr } from '../schema/school_mdr.schema';
 import { RequestMDR } from '../schema/mdr.request.schema';
-import pMap from 'p-map';
+// import pMap from 'p-map';
 @Controller('platform-charges')
 export class PlatformChargesController {
   constructor(
@@ -460,35 +460,35 @@ export class PlatformChargesController {
     }
   }
 
-  @Post('update-mdr-bulk')
-  async updateMdrBulk() {
-    const schoolList = await this.trusteeSchool.find({ pg_key: { $ne: null } });
+  // @Post('update-mdr-bulk')
+  // async updateMdrBulk() {
+  //   const schoolList = await this.trusteeSchool.find({ pg_key: { $ne: null } });
 
-    const batchSize = 10; // Same as concurrency
+  //   const batchSize = 10; // Same as concurrency
 
-    let processedCount = 0;
+  //   let processedCount = 0;
 
-    await pMap(
-      schoolList,
-      async (school: any, index: number) => {
-        await this.platformChargeService.updatePlatformChargesInPg(
-          school.school_id.toString(),
-        );
+  //   await pMap(
+  //     schoolList,
+  //     async (school: any, index: number) => {
+  //       await this.platformChargeService.updatePlatformChargesInPg(
+  //         school.school_id.toString(),
+  //       );
 
-        // Log progress after every batch
-        processedCount++;
-        if (
-          processedCount % batchSize === 0 ||
-          processedCount === schoolList.length
-        ) {
-          console.log(
-            `Processed ${processedCount}/${schoolList.length} schools`,
-          );
-        }
-      },
-      { concurrency: batchSize }, // Adjust concurrency as needed
-    );
+  //       // Log progress after every batch
+  //       processedCount++;
+  //       if (
+  //         processedCount % batchSize === 0 ||
+  //         processedCount === schoolList.length
+  //       ) {
+  //         console.log(
+  //           `Processed ${processedCount}/${schoolList.length} schools`,
+  //         );
+  //       }
+  //     },
+  //     { concurrency: batchSize }, // Adjust concurrency as needed
+  //   );
 
-    return { message: `Successfully updated ${schoolList.length} schools.` };
-  }
+  //   return { message: `Successfully updated ${schoolList.length} schools.` };
+  // }
 }

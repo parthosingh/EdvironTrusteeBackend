@@ -51,7 +51,6 @@
     "mongoose": "^8.0.3",
     "nodemailer": "^6.9.9",
     "number-to-words": "^1.2.4",
-    "p-map": "^7.0.3",
     "pdfmake": "^0.2.18",
     "puppeteer": "^23.1.0",
     "qrcode": "^1.5.4",

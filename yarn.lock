@@ -5742,11 +5742,6 @@ p-locate@^5.0.0:
   dependencies:
     p-limit "^3.0.2"
 
-p-map@^7.0.3:
-  version "7.0.3"
-  resolved "https://registry.npmjs.org/p-map/-/p-map-7.0.3.tgz"
-  integrity sha512-VkndIv2fIB99swvQoA65bm+fsmt6UNdGeIB0oxBs+WhAhdh08QA04JXpI7rbB9r08/nkbysKoya9rtDERYOYMA==
-
 p-try@^2.0.0:
   version "2.2.0"
   resolved "https://registry.npmjs.org/p-try/-/p-try-2.2.0.tgz"
