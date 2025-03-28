@@ -2989,6 +2989,9 @@ export class VendorSingleTransaction {
 
   @Field({ nullable: true })
   payment_detail: string;
+
+  @Field({ nullable: true })
+  details: string;
 }
 
 @ObjectType()
