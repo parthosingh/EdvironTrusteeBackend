@@ -208,6 +208,18 @@ export class TrusteeSchool {
   @Field(() => String)
   smartgateway_customer_id: string;
 
+  @Prop({})
+  @Field(() => String)
+  hdfc_razorpay_id: string;
+
+  @Prop({})
+  @Field(() => String)
+  hdfc_razorpay_secret: string;
+
+  @Prop({})
+  @Field(() => String)
+  hdfc_razorpay_mid: string;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -272,8 +272,7 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('Inalid Institute id');
       }
-      console.log(school.trustee_id,trustee_id);
-      
+
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
@@ -524,6 +523,9 @@ export class ErpController {
         ccavenue_working_key: school.ccavenue_working_key || null,
         smartgateway_merchant_id: school.smartgateway_merchant_id || null,
         smartgateway_customer_id: school.smartgateway_customer_id || null,
+        hdfc_razorpay_id: school.hdfc_razorpay_id || null,
+        hdfc_razorpay_secret: school.hdfc_razorpay_secret || null,
+        hdfc_razorpay_mid: school.hdfc_razorpay_mid || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
       });
@@ -1251,8 +1253,7 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('School not found');
       }
-      console.log(school.trustee_id.toString(), trustee_id.toString());
-      
+
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
