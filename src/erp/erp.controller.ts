@@ -17,7 +17,7 @@ import { ErpService } from './erp.service';
 import { JwtService } from '@nestjs/jwt';
 import { ErpGuard } from './erp.guard';
 import { InjectModel, Schema } from '@nestjs/mongoose';
-import { TrusteeSchool } from '../schema/school.schema';
+import { DisabledModes, TrusteeSchool } from '../schema/school.schema';
 import mongoose, { Types } from 'mongoose';
 import axios from 'axios';
 import {
@@ -204,6 +204,7 @@ export class ErpController {
       custom_order_id?: string;
       req_webhook_urls?: [string];
       split_payments?: boolean;
+      disabled_modes?:DisabledModes[];
       vendors_info?: [
         {
           vendor_id: string;
@@ -216,6 +217,7 @@ export class ErpController {
     @Req() req,
   ) {
     try {
+
       const trustee_id = req.userTrustee.id;
       // const trustee_id = new Types.ObjectId('658e759736ba0754ca45d0c2');
       // try {
@@ -244,6 +246,13 @@ export class ErpController {
         split_payments,
         vendors_info,
       } = body;
+      let  {disabled_modes} = body;
+
+      
+      
+      if(disabled_modes){
+        await this.erpService.validateDisabledModes(disabled_modes);
+      }
 
       let splitPay = split_payments;
       if (!school_id) {
@@ -269,6 +278,7 @@ export class ErpController {
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
+
       if (!school) {
         throw new NotFoundException('Inalid Institute id');
       }
@@ -281,6 +291,22 @@ export class ErpController {
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
       }
+
+      disabled_modes = Array.from(
+        new Set([...school.disabled_modes, ...(disabled_modes || [])])
+      ).map((mode) => {
+        const lowerMode = mode.toLowerCase(); 
+        const validMode = Object.keys(DisabledModes).find(
+          (enumValue) => enumValue.toLowerCase() === lowerMode
+        ) as keyof typeof DisabledModes;
+        if (!validMode) {
+          throw new BadRequestException(`Invalid payment mode: ${mode}`);
+        }
+        return DisabledModes[validMode];
+      });
+      
+
+      // console.log(disabled_modes, 'disabled_modes');
 
       if (split_payments && !vendors_info) {
         throw new BadRequestException(
@@ -511,7 +537,6 @@ export class ErpController {
         school_id: school_id,
         trustee_id: trustee_id,
         webHook: webHookUrl || null,
-        disabled_modes: school.disabled_modes,
         platform_charges: school.platform_charges,
         additional_data: additionalInfo || {},
         custom_order_id: custom_order_id || null,
@@ -528,6 +553,7 @@ export class ErpController {
         hdfc_razorpay_mid: school.hdfc_razorpay_mid || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
+        disabled_modes : disabled_modes || null,
       });
       const config = {
         method: 'post',
@@ -601,6 +627,7 @@ export class ErpController {
       custom_order_id?: string;
       req_webhook_urls?: [string];
       split_payments?: boolean;
+      disabled_modes?: DisabledModes[];
       vendors_info?: [
         {
           vendor_id: string;
@@ -630,7 +657,11 @@ export class ErpController {
         split_payments,
         vendors_info,
       } = body;
+      let  {disabled_modes} = body;
 
+      if(disabled_modes){
+        await this.erpService.validateDisabledModes(disabled_modes);
+      }
       let PaymnetWebhookUrl: any = req_webhook_urls;
       if (req_webhook_urls && !Array.isArray(req_webhook_urls)) {
         const decodeWebhookUrl = decodeURIComponent(req.body.req_webhook_urls);
@@ -664,6 +695,19 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('Inalid Institute id');
       }
+
+      disabled_modes = Array.from(
+        new Set([...school.disabled_modes, ...(disabled_modes || [])])
+      ).map((mode) => {
+        const lowerMode = mode.toLowerCase(); 
+        const validMode = Object.keys(DisabledModes).find(
+          (enumValue) => enumValue.toLowerCase() === lowerMode
+        ) as keyof typeof DisabledModes;
+        if (!validMode) {
+          throw new BadRequestException(`Invalid payment mode: ${mode}`);
+        }
+        return DisabledModes[validMode];
+      });
 
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
@@ -852,7 +896,7 @@ export class ErpController {
         school_id: school_id,
         trustee_id: trustee_id,
         webHook: webHookUrl || null,
-        disabled_modes: school.disabled_modes,
+        disabled_modes: disabled_modes || null,
         platform_charges: school.platform_charges,
         additional_data: additionalInfo || {},
         custom_order_id: custom_order_id || null,

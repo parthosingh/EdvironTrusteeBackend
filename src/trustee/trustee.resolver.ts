@@ -20,6 +20,7 @@ import {
 } from '@nestjs/common';
 import { ObjectType, Field } from '@nestjs/graphql';
 import {
+  DisabledModes,
   PlatformCharge,
   TrusteeSchool,
   rangeCharge,
@@ -1563,7 +1564,7 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async tooglePaymentMode(
-    @Args('mode') mode: string,
+    @Args('mode') mode: DisabledModes,
     @Args('school_id') school_id: string,
   ) {
     const validModes = [

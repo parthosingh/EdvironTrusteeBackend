@@ -11,6 +11,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Trustee } from '../schema/trustee.schema';
 import {
+  DisabledModes,
   PlatformCharge,
   TrusteeSchool,
   rangeCharge,
@@ -953,7 +954,7 @@ export class TrusteeService {
     return baseMdr.platform_charges;
   }
 
-  async toogleDisable(mode: string, school_id: string) {
+  async toogleDisable(mode: DisabledModes, school_id: string) {
     const school = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });

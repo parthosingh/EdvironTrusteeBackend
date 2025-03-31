@@ -65,6 +65,18 @@ export class PlatformCharge {
   range_charge: rangeCharge[];
 }
 
+
+export enum DisabledModes {
+  CARDLESS = "cardless",
+  PAY_LATER = "pay_later",
+  WALLET="wallet",
+  NETBANKING="net_banking",
+  UPI="upi",
+  CREDIT_CARD="credit_card",
+  DEBIT_CARD="debit_card",
+  CARDS='cards'
+}
+
 @ObjectType()
 @Schema({ timestamps: true })
 export class TrusteeSchool {
@@ -116,9 +128,9 @@ export class TrusteeSchool {
   @Field(() => FullKycStatus)
   pgFullKYC: FullKycStatus;
 
-  @Prop({ required: true, default: [] })
+  @Prop({ type:[String], required: true, enum:DisabledModes, default: [], })
   @Field(() => [String])
-  disabled_modes: string[];
+  disabled_modes: DisabledModes[];
 
   @Prop()
   @Field(() => [PlatformCharge], { defaultValue: [] })

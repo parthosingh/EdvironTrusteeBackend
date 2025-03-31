@@ -12,7 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import mongoose, { ObjectId, Types } from 'mongoose';
-import { PlatformCharge, TrusteeSchool } from '../schema/school.schema';
+import { DisabledModes, PlatformCharge, TrusteeSchool } from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import * as nodemailer from 'nodemailer';
 import * as path from 'path';
@@ -1100,5 +1100,18 @@ export class ErpService {
     } catch (e) {
       throw new BadGatewayException(e.message)
     }
+  }
+
+ async validateDisabledModes(disabled_modes: string[]) {
+    const invalidModes = disabled_modes.filter(
+      (mode) => !Object.keys(DisabledModes).includes(mode as DisabledModes),
+    );
+  
+    if (invalidModes.length > 0) {
+      throw new BadRequestException(
+        `Invalid disabled_modes: ${invalidModes.join(', ')}`,
+      );
+    }
+    return true
   }
 }
