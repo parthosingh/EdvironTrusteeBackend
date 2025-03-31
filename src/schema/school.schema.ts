@@ -74,7 +74,7 @@ export enum DisabledModes {
   UPI="upi",
   CREDIT_CARD="credit_card",
   DEBIT_CARD="debit_card",
-  CARDS='cards'
+  CARDS='card'
 }
 
 @ObjectType()
