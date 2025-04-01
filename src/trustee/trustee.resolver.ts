@@ -3463,6 +3463,8 @@ export class TransactionReport {
   reason?: string;
   @Field({ nullable: true })
   gateway?: string;
+  @Field({ nullable: true })
+  capture_status?: string;
 }
 
 @ObjectType()
