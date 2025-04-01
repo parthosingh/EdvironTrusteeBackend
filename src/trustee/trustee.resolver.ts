@@ -2595,6 +2595,18 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
+  @Mutation(()=>String)
+  async generateAndSaveWebhookKey(
+    @Context() context: any,
+    @Args('otp', { type: () => String }) otp: string,
+  ){
+    // verify OTP 
+    // if OTP is valid
+    // generate and save webhook key
+    // return `Webhook key generated`
+  }
+
+  @UseGuards(TrusteeGuard)
   @Query(() => ReconRes)
   async getReconcilation(
     @Context() context: any,

@@ -115,6 +115,9 @@ export class Trustee extends Document {
   @Field(() => ID)
   onboarder: ObjectId;
 
+  @Prop({})
+  @Field(() => String,{ nullable: true })
+  webhook_key: string;
 
 }
 
