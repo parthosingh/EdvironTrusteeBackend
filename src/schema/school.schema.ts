@@ -70,7 +70,7 @@ export enum DisabledModes {
   CARDLESS = "cardless",
   PAY_LATER = "pay_later",
   WALLET="wallet",
-  NETBANKING="net_banking",
+  NET_BANKING="net_banking",
   UPI="upi",
   CREDIT_CARD="credit_card",
   DEBIT_CARD="debit_card",
