@@ -217,6 +217,9 @@ export class MerchantResolver {
       const merchant = await this.trusteeSchoolModel.findById(
         context.req.merchant,
       );
+
+      console.log(merchant);
+       
       if (!merchant) throw new NotFoundException('User not found');
       const school_id = merchant.school_id.toString();
       console.log(school_id);

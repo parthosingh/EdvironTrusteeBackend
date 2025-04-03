@@ -1570,6 +1570,7 @@ export class TrusteeResolver {
     const validModes = [
       'wallet',
       'cardless',
+      'net_banking',
       'netbanking',
       'pay_later',
       'upi',
@@ -2026,7 +2027,7 @@ export class TrusteeResolver {
         duration: { $regex: new RegExp(`\\b${duration}\\b`, 'i') }, // Case-insensitive match for the month and year
       });
       console.log(targetMonthYear, 'targetMonthYear');
-      
+
       if (existingInvoice) {
         throw new ConflictException(
           `An invoice for ${duration} already exists.`,
@@ -2595,12 +2596,12 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Mutation(()=>String)
+  @Mutation(() => String)
   async generateAndSaveWebhookKey(
     @Context() context: any,
     @Args('otp', { type: () => String }) otp: string,
-  ){
-    // verify OTP 
+  ) {
+    // verify OTP
     // if OTP is valid
     // generate and save webhook key
     // return `Webhook key generated`
@@ -3032,10 +3033,10 @@ export class VendorTransaction {
 
   @Field({ nullable: true })
   createdAt: string;
-  
+
   @Field({ nullable: true })
   updatedAt: string;
-  
+
   @Field({ nullable: true })
   transaction_amount: number;
 

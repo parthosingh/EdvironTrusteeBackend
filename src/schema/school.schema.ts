@@ -232,6 +232,14 @@ export class TrusteeSchool {
   @Field(() => String)
   hdfc_razorpay_mid: string;
 
+  @Prop({})
+  @Field(() => String)
+  pay_u_key: string;
+
+  @Prop({})
+  @Field(() => String)
+  pay_u_salt: string;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

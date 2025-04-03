@@ -551,6 +551,8 @@ export class ErpController {
         hdfc_razorpay_id: school.hdfc_razorpay_id || null,
         hdfc_razorpay_secret: school.hdfc_razorpay_secret || null,
         hdfc_razorpay_mid: school.hdfc_razorpay_mid || null,
+        pay_u_key: school.pay_u_key || null,
+        pay_u_salt: school.pay_u_salt || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
         disabled_modes : disabled_modes || null,
