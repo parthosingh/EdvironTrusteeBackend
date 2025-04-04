@@ -23,6 +23,7 @@ import {
   DisabledModes,
   PlatformCharge,
   TrusteeSchool,
+  bank_Details,
   rangeCharge,
 } from '../schema/school.schema';
 import { TrusteeGuard } from './trustee.guard';
@@ -3358,6 +3359,15 @@ class School {
 
   @Field(() => Date, { nullable: true })
   updatedAt: Date;
+
+  @Field(() => String, { nullable: true })
+  gstIn: string;
+
+  @Field(() => String, { nullable: true })
+  residence_state: string;
+
+  @Field(() => bank_Details, { nullable: true })
+  bank_details: bank_Details;
 }
 
 @ObjectType()

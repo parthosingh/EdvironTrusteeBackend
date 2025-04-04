@@ -981,15 +981,13 @@ export class MainBackendController {
   @Post('update-school-info')
   async updateSchoolInfo(
     @Body()
-    body: { token: string; residence_state: string; bank_details: bank_Details; gstIn: string },
+    body: { school_id: string; residence_state: string; bank_details: bank_Details; gstIn: string },
   ): Promise<any> {
     try {
-      const decodedPayload = await this.jwtService.verify(body.token, {
-        secret: process.env.JWT_SECRET_FOR_INTRANET,
-      });
+     
 
       const school = await this.trusteeSchoolModel.findOne({
-        school_id: new Types.ObjectId(decodedPayload.school_id),
+        school_id: new Types.ObjectId(body.school_id),
       });
 
       if (!school) {

@@ -214,6 +214,9 @@ export class TrusteeService {
             platform_charges: 1,
             phone_number: 1,
             updatedAt: 1,
+            bank_details: 1,
+            gstIn:1,
+            residence_state: 1,
           },
         )
         .sort({ createdAt: -1 })
