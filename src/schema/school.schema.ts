@@ -78,6 +78,21 @@ export enum DisabledModes {
 }
 
 @ObjectType()
+export class bank_Details {
+  @Field(() => String, { nullable: true })
+  @Prop()
+  account_holder_name: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop()
+  account_number: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop()
+  ifsc_code: string;
+}
+
+@ObjectType()
 @Schema({ timestamps: true })
 export class TrusteeSchool {
   @Prop({ type: Types.ObjectId })
@@ -109,6 +124,18 @@ export class TrusteeSchool {
   merchantId: string;
 
   @Prop({})
+  @Field(() => String, { nullable: true })
+  residence_state: string;
+
+  @Prop({})
+  @Field(() => bank_Details, { nullable: true })
+  bank_details: bank_Details;
+
+  @Prop({})
+  @Field(() => String, { nullable: true })
+  gstIn: string;
+
+  @Prop({})
   @Field(() => String)
   merchantName: string;
 
@@ -128,7 +155,7 @@ export class TrusteeSchool {
   @Field(() => FullKycStatus)
   pgFullKYC: FullKycStatus;
 
-  @Prop({ type:[String], required: true, enum:DisabledModes, default: [], })
+  @Prop({ type: [String], required: true, enum: DisabledModes, default: [], })
   @Field(() => [String])
   disabled_modes: DisabledModes[];
 

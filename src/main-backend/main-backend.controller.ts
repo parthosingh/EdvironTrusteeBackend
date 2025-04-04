@@ -20,7 +20,7 @@ import { TrusteeService } from '../trustee/trustee.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { RequestMDR } from '../schema/mdr.request.schema';
 import { SchoolMdrInfo } from '../trustee/trustee.resolver';
-import { TrusteeSchool } from '../schema/school.schema';
+import { bank_Details, TrusteeSchool } from '../schema/school.schema';
 import { refund_status, RefundRequest } from '../schema/refund.schema';
 import { Parser } from 'json2csv';
 import { Response } from 'express';
@@ -976,5 +976,38 @@ export class MainBackendController {
     );
     this.emailService.sendErrorMail(mailSub, mailTemp);
     return `An alert email has been sent to developer team.`;
+  }
+
+  @Post('update-school-info')
+  async updateSchoolInfo(
+    @Body()
+    body: { token: string; residence_state: string; bank_details: bank_Details; gstIn: string },
+  ): Promise<any> {
+    try {
+      const decodedPayload = await this.jwtService.verify(body.token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(decodedPayload.school_id),
+      });
+
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+
+      school.residence_state = body.residence_state;
+      school.bank_details = body.bank_details;
+      school.gstIn = body.gstIn;
+
+      await school.save();
+
+      return {
+        message: 'School information updated successfully',
+        school,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }
