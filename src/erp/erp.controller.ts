@@ -2594,31 +2594,32 @@ export class ErpController {
 
       const { captureInfo, paymentInfo } = data;
 
-      const captureData = await this.CapturetModel.findOneAndUpdate(
-        { collect_id: collect_id },
-        {
-          $set: {
-            school_id: new Types.ObjectId(school_id),
-            trustee_id: school.trustee_id,
-            collect_id: collect_id,
-            custom_order_id: paymentInfo.custom_order_id,
-            order_amount: paymentInfo.order_amount,
-            payment_amount: paymentInfo.payment_amount,
-            action: captureInfo.authorization.action,
-            capture_status: captureInfo.authorization.status,
-            capture_start_date: new Date(captureInfo.authorization.start_time),
-            capture_end_date: new Date(captureInfo.authorization.end_time),
-            approve_by: new Date(captureInfo.authorization.approve_by),
-            action_reference: captureInfo.authorization.action_reference,
-            capture_amount: captureInfo.authorization.captured_amount,
-            is_captured: captureInfo.is_captured,
-            error_details: captureInfo.error_details,
-            auth_id: captureInfo.auth_id,
-            bank_reference: captureInfo.bank_reference,
-          },
-        },
-        { upsert: true, new: true },
-      );
+      // const captureData = await this.CapturetModel.findOneAndUpdate(
+      //   { collect_id: collect_id },
+      //   {
+      //     $set: {
+      //       school_id: new Types.ObjectId(school_id),
+      //       trustee_id: school.trustee_id,
+      //       collect_id: collect_id,
+      //       custom_order_id: paymentInfo.custom_order_id,
+      //       order_amount: paymentInfo.order_amount,
+      //       payment_amount: paymentInfo.payment_amount,
+      //       action: captureInfo.authorization.action,
+      //       capture_status: captureInfo.authorization.status,
+      //       capture_start_date: new Date(captureInfo.authorization.start_time),
+      //       capture_end_date: new Date(captureInfo.authorization.end_time),
+      //       approve_by: new Date(captureInfo.authorization.approve_by),
+      //       action_reference: captureInfo.authorization.action_reference,
+      //       capture_amount: captureInfo.authorization.captured_amount,
+      //       is_captured: captureInfo.is_captured,
+      //       error_details: captureInfo.error_details,
+      //       auth_id: captureInfo.auth_id,
+      //       bank_reference: captureInfo.bank_reference,
+      //     },
+      //   },
+      //   { upsert: true, new: true },
+      // );
+     
       const res = {
         auth_id: data.auth_id,
         authorization: {
