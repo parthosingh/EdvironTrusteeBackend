@@ -86,6 +86,7 @@ export class MainBackendController {
       await this.mainBackendService.findTrustee(
         paginationInfo.page,
         paginationInfo.pageSize,
+        paginationInfo.search,
       ),
       { secret: process.env.JWT_SECRET_FOR_INTRANET },
     );

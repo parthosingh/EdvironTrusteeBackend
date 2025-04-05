@@ -68,31 +68,51 @@ export class MainBackendService {
     }
   }
 
-  async findTrustee(page, pageSize) {
+  async findTrustee(page: number, pageSize: number, search: string) {
+
+    let pipeline = []
+    if(search.length>0){
+      pipeline.push(
+        {
+          $match: {
+            $or: [
+              { name: { $regex: search, $options: 'i' } },
+              { email_id: { $regex: search, $options: 'i' } },
+            ],
+          },
+        },
+      )
+    }
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: (page - 1) * pageSize },
+      { $limit: pageSize }
+    )
+
     try {
-      const totalItems = await this.trusteeModel.countDocuments();
+      const trustees = await this.trusteeModel.aggregate(pipeline);
+  
+      const totalItems = await this.trusteeModel.countDocuments({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email_id: { $regex: search, $options: 'i' } },
+        ],
+      });
+  
       const totalPages = Math.ceil(totalItems / pageSize);
-
-      const trustee = await this.trusteeModel
-        .find()
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .exec();
-
-      const pagination = {
-        data: trustee,
+  
+      return {
+        data: trustees,
         page,
         pageSize,
         totalPages,
         totalItems,
       };
-
-      return pagination;
     } catch (err) {
       throw new NotFoundException(err.message);
     }
   }
+  
 
   async findOneTrustee(trustee_id: Types.ObjectId) {
     try {
