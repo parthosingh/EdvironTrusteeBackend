@@ -212,14 +212,19 @@ export class MerchantResolver {
       defaultValue: null,
     })
     payment_modes?: string[],
+    @Args('gateway', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    gateway?: string[],
   ) {
     try {
       const merchant = await this.trusteeSchoolModel.findById(
         context.req.merchant,
       );
 
-      console.log(merchant);
-       
+
       if (!merchant) throw new NotFoundException('User not found');
       const school_id = merchant.school_id.toString();
       console.log(school_id);
@@ -305,6 +310,7 @@ export class MerchantResolver {
           seachFilter: searchFilter,
           payment_modes,
           isQRCode,
+          gateway,
         },
       };
 
