@@ -68,51 +68,31 @@ export class MainBackendService {
     }
   }
 
-  async findTrustee(page: number, pageSize: number, search: string) {
-
-    let pipeline = []
-    if(search.length>0){
-      pipeline.push(
-        {
-          $match: {
-            $or: [
-              { name: { $regex: search, $options: 'i' } },
-              { email_id: { $regex: search, $options: 'i' } },
-            ],
-          },
-        },
-      )
-    }
-    pipeline.push(
-      { $sort: { createdAt: -1 } },
-      { $skip: (page - 1) * pageSize },
-      { $limit: pageSize }
-    )
-
+  async findTrustee(page, pageSize) {
     try {
-      const trustees = await this.trusteeModel.aggregate(pipeline);
-  
-      const totalItems = await this.trusteeModel.countDocuments({
-        $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { email_id: { $regex: search, $options: 'i' } },
-        ],
-      });
-  
+      const totalItems = await this.trusteeModel.countDocuments();
       const totalPages = Math.ceil(totalItems / pageSize);
-  
-      return {
-        data: trustees,
+
+      const trustee = await this.trusteeModel
+        .find()
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .exec();
+
+      const pagination = {
+        data: trustee,
         page,
         pageSize,
         totalPages,
         totalItems,
       };
+
+      return pagination;
     } catch (err) {
       throw new NotFoundException(err.message);
     }
   }
-  
 
   async findOneTrustee(trustee_id: Types.ObjectId) {
     try {
@@ -521,8 +501,8 @@ export class MainBackendService {
           token,
         },
       };
-   
-      const amountConfig= {
+
+      const amountConfig = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-transaction-report-batched`,
@@ -531,16 +511,16 @@ export class MainBackendService {
           'content-type': 'application/json',
         },
         data: {
-          end_date:endDate,
-          start_date:startDate,
-          school_id:school_id,
+          end_date: endDate,
+          start_date: startDate,
+          school_id: school_id,
           trustee_id: trustee_id,
           status: 'SUCCESS',
         },
       };
 
       const { data: response } = await axios.request(config);
-      const {data:amountResponse}=await axios.request(amountConfig);
+      const { data: amountResponse } = await axios.request(amountConfig);
       console.log(response);
       const totalorderAmount = response.transactions.reduce(
         (sum, transaction) => sum + (transaction.order_amount || 0),
@@ -548,11 +528,13 @@ export class MainBackendService {
       );
       return {
         totalorderAmount,
-        test:amountResponse.transactions[0].totalOrderAmount,
-        amountResponse
-      }
-      if(totalorderAmount===amountResponse.transactions[0].totalOrderAmount){
-        return true
+        test: amountResponse.transactions[0].totalOrderAmount,
+        amountResponse,
+      };
+      if (
+        totalorderAmount === amountResponse.transactions[0].totalOrderAmount
+      ) {
+        return true;
       }
       // add mailer here
     } catch (e) {
@@ -561,19 +543,17 @@ export class MainBackendService {
     }
   }
 
-  
- async getDebounceRequest(key: string): Promise<boolean> {
-    return this.debounceMap.has(key);  
+  async getDebounceRequest(key: string): Promise<boolean> {
+    return this.debounceMap.has(key);
   }
 
- 
   async saveDebounceRequest(key: string, ttl: number): Promise<void> {
-    if (this.debounceMap.has(key)) return; 
+    if (this.debounceMap.has(key)) return;
 
     this.debounceMap.set(
       key,
       setTimeout(() => {
-        this.debounceMap.delete(key); 
+        this.debounceMap.delete(key);
       }, ttl),
     );
   }

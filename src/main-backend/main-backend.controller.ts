@@ -77,6 +77,7 @@ export class MainBackendController {
     }
   }
 
+
   @Get('find-all-trustee')
   async findTrustee(@Query('token') token: string) {
     const paginationInfo: JwtPayload = this.jwtService.verify(token, {
@@ -86,7 +87,6 @@ export class MainBackendController {
       await this.mainBackendService.findTrustee(
         paginationInfo.page,
         paginationInfo.pageSize,
-        paginationInfo.search,
       ),
       { secret: process.env.JWT_SECRET_FOR_INTRANET },
     );
