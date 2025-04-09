@@ -40,6 +40,8 @@ import {
   ReconciliationSchema,
 } from '../schema/Reconciliation.schema';
 import { PdfService } from '../pdf-service/pdf-service.service';
+import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
+import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 
 @Module({
   imports: [
@@ -80,6 +82,8 @@ import { PdfService } from '../pdf-service/pdf-service.service';
     ]),
     MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
     MongooseModule.forFeature([{ name: SchoolMdr.name, schema: SchoolSchema }]),
+    MongooseModule.forFeature([{ name: EmailGroup.name, schema: EmailGroupSchema }]),
+    MongooseModule.forFeature([{ name: EmailEvent.name, schema: EmailEventSchema }]),
     MongooseModule.forFeature([
       { name: Reconciliation.name, schema: ReconciliationSchema },
     ]),

@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   InternalServerErrorException,
+  NotFoundException,
   Post,
   Res,
 } from '@nestjs/common';
@@ -29,6 +31,9 @@ import {
 } from '../email/templates/dipute.template';
 import { PdfService } from '../pdf-service/pdf-service.service';
 import { DISPUT_INVOICE_MAIL_GATEWAY } from '../utils/email.group';
+import { EmailGroup, EmailGroupType } from 'src/schema/email.schema';
+import { EmailEvent, Events } from 'src/schema/email.events.schema';
+import { string1To1000 } from 'aws-sdk/clients/customerprofiles';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -56,6 +61,10 @@ export class WebhooksController {
     private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
     @InjectModel(SettlementReport.name)
     private SettlementReportModel: mongoose.Model<SettlementReport>,
+    @InjectModel(EmailGroup.name)
+    private EmailGroupModel: mongoose.Model<EmailGroup>,
+    @InjectModel(EmailEvent.name)
+    private EmailEventModel: mongoose.Model<EmailEvent>,
     private emailService: EmailService,
     private trusteeService: TrusteeService,
     private readonly pdfService: PdfService,
@@ -361,44 +370,49 @@ export class WebhooksController {
         body: details,
         status: 'SUCCESS',
       }).save();
-      const info=body.data
-      const data=JSON.parse(info)
+      const info = body.data;
+      const data = JSON.parse(info);
       data.submerchant_payouts.map(async (payout) => {
-        const merchant = await this.TrusteeSchoolmodel.findOne({easebuzz_id:payout.submerchant_id});
-        if(!merchant) {
-          console.log(`Merchant not found for easebuzz_id: ${payout.submerchant_id}`);
+        const merchant = await this.TrusteeSchoolmodel.findOne({
+          easebuzz_id: payout.submerchant_id,
+        });
+        if (!merchant) {
+          console.log(
+            `Merchant not found for easebuzz_id: ${payout.submerchant_id}`,
+          );
           return;
         }
         const easebuzzDate = new Date(payout.submerchant_payout_date);
-        const saveSettlements = await this.SettlementReportModel.findOneAndUpdate(
-          { utrNumber: payout.bank_transaction_id },
-          {
-            $set: {
-              settlementAmount: payout.payout_amount + payout.refund_amount,
-              adjustment: payout.refund_amount,
-              netSettlementAmount: payout.payout_amount,
-              fromDate: new Date(
-                easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
-              ),
-              tillDate: new Date(
-                easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
-              ),
-              settlementInitiatedOn: new Date(payout.submerchant_payout_date),
-              status: 'SUCCESS',
-              utrNumber: payout.bank_transaction_id,
-              settlementDate: new Date(payout.submerchant_payout_date),
-              clientId: payout.submerchant_id || 'NA',
-              trustee: merchant.trustee_id,
-              schoolId: merchant.school_id,
-              remarks:  'NA',
+        const saveSettlements =
+          await this.SettlementReportModel.findOneAndUpdate(
+            { utrNumber: payout.bank_transaction_id },
+            {
+              $set: {
+                settlementAmount: payout.payout_amount + payout.refund_amount,
+                adjustment: payout.refund_amount,
+                netSettlementAmount: payout.payout_amount,
+                fromDate: new Date(
+                  easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                ),
+                tillDate: new Date(
+                  easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                ),
+                settlementInitiatedOn: new Date(payout.submerchant_payout_date),
+                status: 'SUCCESS',
+                utrNumber: payout.bank_transaction_id,
+                settlementDate: new Date(payout.submerchant_payout_date),
+                clientId: payout.submerchant_id || 'NA',
+                trustee: merchant.trustee_id,
+                schoolId: merchant.school_id,
+                remarks: 'NA',
+              },
             },
-          },
-          {
-            upsert: true,
-            new: true,
-          },
-        );
-      })
+            {
+              upsert: true,
+              new: true,
+            },
+          );
+      });
       console.log('called');
       res.status(200).send('OK');
     } catch (e) {
@@ -902,6 +916,7 @@ export class WebhooksController {
 
         // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
       }
+
       res.status(200).send('OK');
     } catch (e) {
       console.log(e.message);
@@ -915,6 +930,22 @@ export class WebhooksController {
       const webhooklogs = await new this.webhooksLogsModel({
         body: details,
       }).save();
+
+      // try{
+      //   const {school_id}=body
+      //   const emails=await this.getMails(
+      //     'DISPUTE',
+      //     school_id
+      //   )
+      //   const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
+      //   const innerMailTemp = getAdminEmailTemplate(dispute, false);
+      //   // const userMailTemp = getCustomerEmailTemplate(
+      //   //   dispute,
+      //   //   school.school_name,
+      //   //   false,
+      //   // );
+      //   this.emailService.sendErrorMail(subject, innerMailTemp);
+      // }catch(e){}
 
       const {
         dispute_id,
@@ -930,11 +961,11 @@ export class WebhooksController {
 
       if (transaction_id.startsWith('upi_')) {
         transaction_id = transaction_id.replace('upi_', '');
-      }
-
+      } 
+ 
       webhooklogs.collect_id = transaction_id;
       await webhooklogs.save();
-
+ 
       const token = jwt.sign(
         { collect_request_id: transaction_id },
         process.env.PAYMENTS_SERVICE_SECRET,
@@ -1066,6 +1097,104 @@ export class WebhooksController {
       this.emailService.sendErrorMail(emailSubject, emailBody);
       throw new BadRequestException(error.message);
     }
+  }
+
+  @Post('create-event')
+  async createEvent(@Body() body: { name: Events }) {
+    try {
+      console.log(body.name);
+
+      const event = await this.EmailEventModel.findOne({
+        event_name: body.name,
+      });
+      console.log(event);
+
+      event;
+      if (event) {
+        throw new ConflictException('Event Already present ' + body.name);
+      }
+      const newEvent = await this.EmailEventModel.create({
+        event_name: body.name,
+      });
+
+      return newEvent;
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @Post('create-group')
+  async createGroup(
+    @Body()
+    body: {
+      school_id: string;
+      group_name: string;
+      emails: [string];
+      event_id: string;
+      isCommon: boolean;
+    },
+  ) {
+    const { school_id, group_name, emails, event_id, isCommon } = body;
+    if (isCommon) {
+      const event = await this.EmailEventModel.findById(event_id);
+      if (!event) {
+        throw new NotFoundException('Event not found');
+      }
+      const group = await this.EmailGroupModel.create({
+        group_name,
+        emails,
+        event_id: new Types.ObjectId(event_id),
+        isCommon,
+      });
+
+      return group;
+    }
+    const school = await this.TrusteeSchoolmodel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    if (!school) {
+      throw new NotFoundException('school not found');
+    }
+    const event = await this.EmailEventModel.findById(event_id);
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+    const group = await this.EmailGroupModel.create({
+      group_name,
+      school_id: new Types.ObjectId(school_id),
+      emails,
+      event_id: new Types.ObjectId(event_id),
+      trustee_id: school.trustee_id,
+      isCommon,
+    });
+
+    return group;
+  }
+
+  async getMails(event_name: string, school_id: string) {
+    try {
+      const event = await this.EmailEventModel.findOne({
+        event_name: event_name,
+      });
+      const groups = await this.EmailEventModel.find({
+        $or: [
+          {
+            event_id: event._id,
+            school_id: new Types.ObjectId(school_id),
+            isCommon: false,
+          },
+          {
+            event_id: event._id,
+            isCommon: true,
+          },
+        ],
+      })
+        .select('emails')
+        .exec();
+      // Flatten and remove duplicates
+      const emails = [...new Set(groups.flatMap((group) => group.emails))];
+      return emails;
+    } catch (e) {}
   }
 }
 
