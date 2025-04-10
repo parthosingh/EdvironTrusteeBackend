@@ -19,6 +19,7 @@ import { ErpGuard } from './erp.guard';
 import { InjectModel, Schema } from '@nestjs/mongoose';
 import { DisabledModes, TrusteeSchool } from '../schema/school.schema';
 import mongoose, { Types } from 'mongoose';
+import * as moment from 'moment-timezone';
 import axios from 'axios';
 import {
   SettlementReport,
@@ -35,6 +36,8 @@ import { Capture } from '../schema/capture.schema';
 // import cf_commision from '../utils/cashfree.commission'; // hardcoded cashfree charges change this according to cashfree
 import * as qs from 'qs';
 import { WebhookLogs } from '../schema/webhook.schema';
+import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
+import { Vendors } from 'src/schema/vendors.schema';
 @Controller('erp')
 export class ErpController {
   constructor(
@@ -59,6 +62,10 @@ export class ErpController {
     private CapturetModel: mongoose.Model<Capture>,
     @InjectModel(WebhookLogs.name)
     private webhooksLogsModel: mongoose.Model<WebhookLogs>,
+    @InjectModel(VendorsSettlement.name)
+    private VendorsSettlementModel: mongoose.Model<VendorsSettlement>,
+    @InjectModel(Vendors.name)
+    private VendorsModel: mongoose.Model<Vendors>,
   ) {}
 
   @Get('payment-link')
@@ -204,7 +211,7 @@ export class ErpController {
       custom_order_id?: string;
       req_webhook_urls?: [string];
       split_payments?: boolean;
-      disabled_modes?:DisabledModes[];
+      disabled_modes?: DisabledModes[];
       vendors_info?: [
         {
           vendor_id: string;
@@ -217,7 +224,6 @@ export class ErpController {
     @Req() req,
   ) {
     try {
-
       const trustee_id = req.userTrustee.id;
       // const trustee_id = new Types.ObjectId('658e759736ba0754ca45d0c2');
       // try {
@@ -246,11 +252,9 @@ export class ErpController {
         split_payments,
         vendors_info,
       } = body;
-      let  {disabled_modes} = body;
+      let { disabled_modes } = body;
 
-      
-      
-      if(disabled_modes){
+      if (disabled_modes) {
         await this.erpService.validateDisabledModes(disabled_modes);
       }
 
@@ -293,18 +297,17 @@ export class ErpController {
       }
 
       disabled_modes = Array.from(
-        new Set([...school.disabled_modes, ...(disabled_modes || [])])
+        new Set([...school.disabled_modes, ...(disabled_modes || [])]),
       ).map((mode) => {
-        const lowerMode = mode.toLowerCase(); 
+        const lowerMode = mode.toLowerCase();
         const validMode = Object.keys(DisabledModes).find(
-          (enumValue) => enumValue.toLowerCase() === lowerMode
+          (enumValue) => enumValue.toLowerCase() === lowerMode,
         ) as keyof typeof DisabledModes;
         if (!validMode) {
           throw new BadRequestException(`Invalid payment mode: ${mode}`);
         }
         return DisabledModes[validMode];
       });
-      
 
       // console.log(disabled_modes, 'disabled_modes');
 
@@ -555,7 +558,7 @@ export class ErpController {
         pay_u_salt: school.pay_u_salt || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
-        disabled_modes : disabled_modes || null,
+        disabled_modes: disabled_modes || null,
       });
       const config = {
         method: 'post',
@@ -659,9 +662,9 @@ export class ErpController {
         split_payments,
         vendors_info,
       } = body;
-      let  {disabled_modes} = body;
+      let { disabled_modes } = body;
 
-      if(disabled_modes){
+      if (disabled_modes) {
         await this.erpService.validateDisabledModes(disabled_modes);
       }
       let PaymnetWebhookUrl: any = req_webhook_urls;
@@ -699,11 +702,11 @@ export class ErpController {
       }
 
       disabled_modes = Array.from(
-        new Set([...school.disabled_modes, ...(disabled_modes || [])])
+        new Set([...school.disabled_modes, ...(disabled_modes || [])]),
       ).map((mode) => {
-        const lowerMode = mode.toLowerCase(); 
+        const lowerMode = mode.toLowerCase();
         const validMode = Object.keys(DisabledModes).find(
-          (enumValue) => enumValue.toLowerCase() === lowerMode
+          (enumValue) => enumValue.toLowerCase() === lowerMode,
         ) as keyof typeof DisabledModes;
         if (!validMode) {
           throw new BadRequestException(`Invalid payment mode: ${mode}`);
@@ -1567,6 +1570,127 @@ export class ErpController {
       };
     } catch (error) {
       throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get('/vendors-settlement')
+  @UseGuards(ErpGuard)
+  async getVendorsSettlements(@Req() req: any) {
+    try {
+      const trustee_id = req.userTrustee.id;
+      const school_id = req.query.school_id;
+      const startDate = req.query.startDate;
+      const endDate = req.query.endDate;
+      const page = Number(req.query.page || 1);
+      const limit = Number(req.query.limit || 100);
+      const vendor_id=req.query.vendor_id
+      let query: any = {
+        trustee_id,
+      };
+      if((startDate && !endDate) || (endDate && !startDate)){
+        throw new ConflictException(`Both start and end date must be present`)
+      }
+      
+      if(vendor_id){
+        const vendors=await this.VendorsModel.findOne({vendor_id})
+        if(!vendor_id){
+          throw new NotFoundException('Invalid Vendor ID')
+        }
+        if(school_id && vendors.school_id.toString() !==school_id){
+          throw new BadRequestException('Vendor dosent belong to school school_id:'+school_id)
+        }
+
+        if(trustee_id.toString() !== vendors.trustee_id.toString()){
+          throw new BadRequestException('Invalid Vendor ID')
+        }
+        query={
+          ...query,
+          vendor_id
+        }
+      }
+      if (startDate && endDate) {
+        const startUTC = moment
+          .tz(startDate, 'YYYY-MM-DD', 'Asia/Kolkata')
+          .startOf('day')
+          .utc()
+          .toDate();
+        const endUTC = moment
+          .tz(endDate, 'YYYY-MM-DD', 'Asia/Kolkata')
+          .endOf('day')
+          .utc()
+          .toDate();
+        query = {
+          ...query,
+          settled_on: { $gte: startUTC, $lte: endUTC },
+        };
+      }
+ 
+      if (limit && limit > 2000) {
+        throw new BadRequestException('Limit cant be more that 2000');
+      }
+      if (school_id) {
+        const school = await this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(school_id),
+        });
+        if (!school) {
+          throw new BadRequestException(`Invalid School id`);
+        }
+        console.log({
+          trustee_id,
+          schoolTrustee: school.trustee_id,
+        });
+
+        if (school.trustee_id.toString() !== trustee_id.toString()) {
+          throw new BadRequestException(`Invalid School id`);
+        }
+        query = {
+          ...query,
+          school_id: school.school_id,
+        };
+      }
+
+      const skip = (page - 1) * limit;
+
+      // Get total count
+      const total = await this.VendorsSettlementModel.countDocuments(query);
+
+      // Get paginated data
+      const vendorsSettlement = await this.VendorsSettlementModel.aggregate([
+        { $match: query },
+        { $sort: { settled_on: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            vendor_id: 1,
+            vendor_name: 1,
+            vendor_transaction_amount: 1,
+            utr: 1,
+            status: 1,
+            settlement_initiated_on: 1,
+            settlement_amount: 1,
+            settled_on: 1,
+            school_name: 1,
+            school_id: 1,
+            payment_from: 1,
+            payment_till: 1,
+            adjustment: 1,
+            _id: 0,
+          },
+        },
+      ]);
+
+      return {
+        data: vendorsSettlement,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
   }
 
@@ -2557,10 +2681,10 @@ export class ErpController {
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       console.log(decoded);
-      
+
       if (decoded.collect_id !== collect_id) {
         console.log('fordge');
-        
+
         throw new BadRequestException('Fordge request');
       }
       const payload = {
@@ -2590,7 +2714,7 @@ export class ErpController {
 
       const response = await axios.request(config);
       const data = response.data;
-      console.log(data,'response');
+      console.log(data, 'response');
 
       const { captureInfo, paymentInfo } = data;
 
@@ -2619,7 +2743,7 @@ export class ErpController {
       //   },
       //   { upsert: true, new: true },
       // );
-     
+
       const res = {
         auth_id: data.auth_id,
         authorization: {
@@ -2645,7 +2769,7 @@ export class ErpController {
       };
       return res;
     } catch (e) {
-      if(e.message === 'Fordge request'){
+      if (e.message === 'Fordge request') {
         throw new BadRequestException('Fordge request');
       }
       if (e.response?.data.message) {
