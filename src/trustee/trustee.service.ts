@@ -2265,7 +2265,7 @@ export class TrusteeService {
 
             let splitAmount = 0;
             const transactionTime =
-              transaction.payment_time || transactions.transaction_time;
+              transactions.payment_time || transactions.transaction_time;
             if (vendor.percentage) {
               splitAmount =
                 (transactions.order_amount * vendor.percentage) / 100;
