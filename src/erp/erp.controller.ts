@@ -2931,4 +2931,60 @@ export class ErpController {
       throw new BadRequestException(error.message);
     }
   }
+
+  @UseGuards(ErpGuard)
+  @Post('vendor-settlements-recon')
+  async vendorSettlementRecon(
+    @Body() 
+    body: {
+      limit: number;
+      utr: string;
+      school_id: string;
+      cursor?: string;
+    },
+  ) { 
+    const { limit, utr, cursor,school_id } = body;
+    try {
+      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+      if(!school){
+        throw new BadRequestException('School not found')
+      }
+      if (limit < 10 && limit > 1000) {
+        throw new BadRequestException(
+          `Pagination limit must be between 10 to 1000`,
+        );
+      }
+      const vendorsSettlements = await this.VendorsSettlementModel.findOne({
+        utr,
+      });
+      if(vendorsSettlements.school_id.toString() !== school_id){
+        throw new BadRequestException('Invalid School ID')
+      }
+      if (!vendorsSettlements) {
+        throw new BadRequestException('UTR not found');
+      }
+      const { settlement_id, client_id, vendor_id } = vendorsSettlements;
+      const data = {
+        limit,
+        merchant_vendor_id: vendor_id,
+        settlement_id,
+        client_id,
+        cursor: cursor || null,
+      };
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/vendor-settlement-reconcilation`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data,
+      };
+      const { data: response } = await axios.request(config);
+      return response;
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
 }
