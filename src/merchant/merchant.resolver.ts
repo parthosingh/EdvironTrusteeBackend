@@ -1155,6 +1155,7 @@ export class MerchantResolver {
       client_id,
       school.trustee_id.toString(),
       school.school_id.toString(),
+      school.school_name,
       vendor_info,
       chequeBase64,
       chequeExtension,

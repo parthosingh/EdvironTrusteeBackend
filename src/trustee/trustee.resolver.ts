@@ -2285,6 +2285,7 @@ export class TrusteeResolver {
       client_id,
       trustee_id.toString(),
       school_id,
+      school.school_name,
       vendor_info,
       chequeBase64,
       chequeExtension,

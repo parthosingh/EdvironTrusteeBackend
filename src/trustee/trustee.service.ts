@@ -36,6 +36,8 @@ import { refund_status, RefundRequest } from '../schema/refund.schema';
 import { VendorsSettlement } from '../schema/vendor.settlements.schema';
 import { Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
+import { generateVendorRequestEmailTemplate } from '../email/templates/vendor_creat_alert.template';
+import { VENDOR_CREATE_ALERT_EMAIL } from '../utils/email.group';
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number
@@ -1396,6 +1398,7 @@ export class TrusteeService {
     client_id: string,
     trustee_id: string,
     school_id: string,
+    school_name: string,
     vendor_info: {
       status: string;
       name: string;
@@ -1484,6 +1487,27 @@ export class TrusteeService {
 
       newVendor.vendor_id = newVendor._id.toString();
       await newVendor.save();
+
+      const mailTemplate = generateVendorRequestEmailTemplate({
+        trustee_id,
+        school_id,
+        school_name,
+        vendor_info: {
+          name: newVendor.name,
+          email: newVendor.email,
+          phone: newVendor.phone,
+          status: newVendor.status,
+        },
+      });
+
+      const emailSubject = `Vendor Request Initiated from ${school_name}`;
+
+      this.emailService.sendMailToTrustee(
+        emailSubject,
+        mailTemplate,
+        VENDOR_CREATE_ALERT_EMAIL,
+      );
+
       return 'Vendor Created Successfully';
     } catch (err) {
       throw new Error(err.message);
@@ -1514,15 +1538,19 @@ export class TrusteeService {
     }
   }
 
-  async getSchoolVendors(school_id: string, page: number, limit: number, query: any) {
+  async getSchoolVendors(
+    school_id: string,
+    page: number,
+    limit: number,
+    query: any,
+  ) {
     try {
       // Calculate the number of documents to skip based on the current page and limit
       const skip = (page - 1) * limit;
       // Fetch vendors with pagination applied
-      const vendors = await this.vendorsModel
-      .aggregate([
+      const vendors = await this.vendorsModel.aggregate([
         {
-          $match: query
+          $match: query,
         },
         {
           $sort: { createdAt: -1 },
@@ -1533,7 +1561,7 @@ export class TrusteeService {
         {
           $limit: limit,
         },
-      ])
+      ]);
       // console.log(vendors, "vendors")
       // .find({ school_id: new Types.ObjectId(school_id) })
       // .sort({ createdAt: -1 }) // Sort by createdAt in descending order
@@ -1723,7 +1751,7 @@ export class TrusteeService {
     };
 
     const { data: transactions } = await axios.request(config);
-  
+
     return transactions;
   }
 
@@ -1800,16 +1828,19 @@ export class TrusteeService {
 
     const updatedTransactions = await Promise.all(
       transactions.vendorsTransaction.map(async (transaction) => {
-        if (!transaction.school_id) return { ...transaction, schoolName: "Unknown School" }; // Agar schoolId nahi hai
+        if (!transaction.school_id)
+          return { ...transaction, schoolName: 'Unknown School' }; // Agar schoolId nahi hai
 
-        const school = await this.trusteeSchoolModel.findOne({school_id : new Types.ObjectId(transaction.school_id)});
+        const school = await this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(transaction.school_id),
+        });
         return {
           ...transaction,
-          schoolName: school ? school.school_name : "N/A",
+          schoolName: school ? school.school_name : 'N/A',
         };
-      })
-    )
-    transactions.vendorsTransaction = updatedTransactions
+      }),
+    );
+    transactions.vendorsTransaction = updatedTransactions;
     return transactions;
   }
 
@@ -1858,16 +1889,19 @@ export class TrusteeService {
     // console.log(transactions);
     const updatedTransactions = await Promise.all(
       transactions.vendorsTransaction.map(async (transaction) => {
-        if (!transaction.school_id) return { ...transaction, schoolName: "Unknown School" }; 
-        
-        const school = await this.trusteeSchoolModel.findOne({school_id : new Types.ObjectId(transaction.school_id)});
+        if (!transaction.school_id)
+          return { ...transaction, schoolName: 'Unknown School' };
+
+        const school = await this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(transaction.school_id),
+        });
         return {
           ...transaction,
-          schoolName: school ? school.school_name : "N/A",
+          schoolName: school ? school.school_name : 'N/A',
         };
-      })
-    )
-    transactions.vendorsTransaction = updatedTransactions
+      }),
+    );
+    transactions.vendorsTransaction = updatedTransactions;
     return transactions;
   }
 
@@ -2082,7 +2116,6 @@ export class TrusteeService {
         );
 
         let settlements_transactions = transactions.settlements_transactions;
-     
 
         if (Array.isArray(settlements_transactions)) {
           settlements_transactions = await Promise.all(
@@ -2108,7 +2141,7 @@ export class TrusteeService {
 
               // Fetch refund UTR if event_type is 'REFUND'
               if (transaction.order_id && transaction.event_type === 'REFUND') {
-                console.log(transaction,'REFUND REPORT');
+                console.log(transaction, 'REFUND REPORT');
                 const config = {
                   method: 'get',
                   maxBodyLength: Infinity,
@@ -2248,8 +2281,6 @@ export class TrusteeService {
           const settlementDate = await this.vendorSettlementInfo(
             transactions.collect_id,
           );
-         
-
 
           // Calculate earliest and latest dates inline
           const currDate = new Date(settlementDate.vendorSettlementDate);
@@ -2261,8 +2292,6 @@ export class TrusteeService {
           }
           // Process vendor splits
           for (const vendor of transactions.vendors_info) {
-          
-
             let splitAmount = 0;
             const transactionTime =
               transactions.payment_time || transactions.transaction_time;
@@ -2323,7 +2352,6 @@ export class TrusteeService {
 
       vendorSttlementStartDate.setHours(0, 0, 0, 0);
       const vendorSttlementEndDate = new Date(`${formatEndDate}T23:59:59Z`);
-    
 
       let vendorSettlementUtr: any = [];
       vendorSettlementsInfo = await this.vendorsSettlementModel.find({
@@ -2339,7 +2367,6 @@ export class TrusteeService {
         venodrSettlementSum += info.net_settlement_amount;
         vendorSettlementUtr.push(info.utr);
       });
-     
 
       if (vendorSettlementUtr.length > 0) {
         const vendorToken = this.jwtService.sign(
@@ -2355,7 +2382,6 @@ export class TrusteeService {
           utrNumber: vendorSettlementUtr,
           cursor: null,
         };
-  
 
         const config = {
           method: 'post',
@@ -2394,11 +2420,8 @@ export class TrusteeService {
             }
           }),
         );
-
-     
       }
 
-   
       // console.log(refundDetails,'ven');
       // console.log({  duration_transactions: durationTransactions,});
     }
