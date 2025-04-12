@@ -36,6 +36,7 @@ import {
   resetPassResponse,
   TransactionReport,
   TransactionReportResponsePaginated,
+  UploadedFile,
   VendorInfoInput,
   VendorSingleTransaction,
   VendorsPaginationResponse,
@@ -88,8 +89,8 @@ export class MerchantResolver {
     private emailService: EmailService,
     private readonly awsS3Service: AwsS3Service,
   ) {}
-    private emailService: EmailService,
-  ) { }
+    // private emailService: EmailService,
+  // ) { }
 
   @Mutation(() => Boolean)
   async merchantLogin(

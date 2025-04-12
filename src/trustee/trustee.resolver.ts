@@ -53,7 +53,7 @@ import { TransactionInfo } from '../schema/transaction.info.schema';
 import { kyc_details, Vendors } from '../schema/vendors.schema';
 import { VendorsSettlement } from '../schema/vendor.settlements.schema';
 import { MerchantRefundRequestRes } from '../merchant/merchant.resolver';
-import { Disputes } from '../schema/disputes.schema';
+import { DisputeGateways, Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
 import { TempSettlementReport } from '../schema/tempSettlements.schema';
 import { PdfService } from '../pdf-service/pdf-service.service';

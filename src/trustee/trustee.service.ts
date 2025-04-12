@@ -7,6 +7,7 @@ import {
   NotFoundException,
   BadRequestException,
   Body,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Trustee } from '../schema/trustee.schema';
