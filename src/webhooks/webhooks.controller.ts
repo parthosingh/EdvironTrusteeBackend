@@ -31,8 +31,8 @@ import {
 } from '../email/templates/dipute.template';
 import { PdfService } from '../pdf-service/pdf-service.service';
 import { DISPUT_INVOICE_MAIL_GATEWAY } from '../utils/email.group';
-import { EmailGroup, EmailGroupType } from 'src/schema/email.schema';
-import { EmailEvent, Events } from 'src/schema/email.events.schema';
+import { EmailGroup, EmailGroupType } from '../schema/email.schema';
+import { EmailEvent, Events } from '../schema/email.events.schema';
 import { string1To1000 } from 'aws-sdk/clients/customerprofiles';
 
 export enum DISPUTES_STATUS {

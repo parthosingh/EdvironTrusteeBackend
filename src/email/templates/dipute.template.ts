@@ -115,3 +115,98 @@ function generateTableRow(label: string, value: string | number): string {
     </tr>
   `;
 }
+
+export function getDisputeReceivedEmailForTeam(
+  dispute_id: string,
+  collect_id: string,
+  action: string,
+  reason: string,
+  gateway: string,
+  documents: { document_type: string; file_url: string }[],
+) {
+  return `
+  <!DOCTYPE html>
+    <html>
+    <head>
+    <title>Page Title</title>
+    </head>
+    <body>
+    <div style="font-family: Arial, sans-serif; width: 100%; text-align: center; padding: 20px; background-color: #f4f4f4;">
+        <div style="max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+        <h2 style="color: #d32f2f;">Dispute Document Received</h2>
+        <p style="color: #333;">Hello Team,</p>
+        <p style="color: #333;">A new dispute document has been received with the following details:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Dispute ID:</td><td style="padding: 10px;">${dispute_id}</td></tr>
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Transaction ID:</td><td style="padding: 10px;">${collect_id}</td></tr>
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Action:</td><td style="padding: 10px;">${action}</td></tr>
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Reason:</td><td style="padding: 10px;">${reason}</td></tr>
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Gateway:</td><td style="padding: 10px; color: #d32f2f;">${gateway}</td></tr>
+        </table>
+        <h3 style="color: #d32f2f; margin-top: 20px;">Submitted Documents</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <tr style="background: #f8f8f8;">
+            <th style="padding: 10px; text-align: center;">Document Type</th>
+            <th style="padding: 10px; text-align: center;">Link</th>
+            </tr>
+            ${documents
+              .map(
+                (doc) =>
+                  `<tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">${doc.document_type}</td><td style="padding: 10px;"><a href="${doc.file_url}" style="color: #1e88e5; text-decoration: none;">View</a></td></tr>`,
+              )
+              .join('')}
+        </table>
+        <p style="color: #333;">Please review and take necessary action.</p>
+        <p style="color: #555; font-size: 12px;">This is an automated email. Please do not reply.</p>
+        </div>
+    </div>
+    </body>
+    </html>`;
+}
+
+export function getDisputeReceivedEmailForUser(
+  dispute_id: string,
+  collect_id: string,
+  action: string,
+  reason: string,
+  documents: { document_type: string; file_url: string }[],
+) {
+  return `
+  <!DOCTYPE html>
+    <html>
+    <head>
+    <title>Page Title</title>
+    </head>
+    <body>
+    <div style="font-family: Arial, sans-serif; width: 100%; text-align: center; padding: 20px; background-color: #f4f4f4;">
+        <div style="max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+        <h2 style="color: #2e7d32;">Dispute Document Submitted</h2>
+        <p style="color: #333;">Dear User,</p>
+        <p style="color: #333;">Your dispute documents have been successfully submitted. Here are the details:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Dispute ID:</td><td style="padding: 10px;">${dispute_id}</td></tr>
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Transaction ID:</td><td style="padding: 10px;">${collect_id}</td></tr>
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Action:</td><td style="padding: 10px;">${action}</td></tr>
+            <tr><td style="padding: 10px; font-weight: bold; background: #f8f8f8;">Reason:</td><td style="padding: 10px;">${reason}</td></tr>
+        </table>
+        <h3 style="color: #2e7d32; margin-top: 20px;">Submitted Documents</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <tr style="background: #f8f8f8;">
+            <th style="padding: 10px; text-align: center;">Document Type</th>
+            <th style="padding: 10px; text-align: center;">Link</th>
+            </tr>
+            ${documents
+              .map(
+                (doc) =>
+                  `<tr><td style="padding: 10px;">${doc.document_type}</td><td style="padding: 10px;"><a href="${doc.file_url}" style="color: #1e88e5; text-decoration: none;">View</a></td></tr>`,
+              )
+              .join('')}
+        </table>
+        <p style="color: #333;">We will review your submission and update you accordingly.</p>
+        <p style="color: #555; font-size: 12px;">This is an automated email. Please do not reply.</p>
+        </div>
+    </div>
+    </body>
+    </html>
+`;
+}

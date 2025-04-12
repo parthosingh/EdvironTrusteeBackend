@@ -57,6 +57,11 @@ import { Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
 import { TempSettlementReport } from '../schema/tempSettlements.schema';
 import { PdfService } from '../pdf-service/pdf-service.service';
+import {
+  getDisputeReceivedEmailForTeam,
+  getDisputeReceivedEmailForUser,
+} from '../email/templates/dipute.template';
+import { EmailService } from '../email/email.service';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -152,6 +157,27 @@ export class VendorInfoInput {
   kyc_details: KycDetailsInput;
 }
 
+export enum Dispute_Actions {
+  ACCEPT = 'accept',
+  DENY = 'deny',
+  QUERY = 'query',
+}
+
+@InputType()
+export class UploadedFile {
+  @Field()
+  description: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  file: string;
+
+  @Field({ nullable: true })
+  preview?: string;
+}
+
 @Resolver('Trustee')
 export class TrusteeResolver {
   constructor(
@@ -162,6 +188,7 @@ export class TrusteeResolver {
     private readonly jwtService: JwtService,
     private readonly awsS3Service: AwsS3Service,
     private readonly pdfService: PdfService,
+    private readonly emailService: EmailService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
@@ -182,6 +209,8 @@ export class TrusteeResolver {
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     @InjectModel(TempSettlementReport.name)
     private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
+    @InjectModel(Disputes.name)
+    private DisputesModel: mongoose.Model<Disputes>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -2675,6 +2704,134 @@ export class TrusteeResolver {
 
     return { totalCommission: commissionsInfo[0].totalCommission };
   }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => DisputeResponse)
+  async handleAndUploadDisputDocs(
+    @Args('files', { type: () => [UploadedFile] }) files: UploadedFile[],
+    @Args('collect_id', { type: () => String }) collect_id: string,
+    @Args('reason', { type: () => String }) reason: string,
+    @Args('action', { type: () => String }) action: Dispute_Actions,
+    @Context() context: any,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      if (!trustee) throw new NotFoundException('Trustee not found');
+      const collectObjectId = new Types.ObjectId(collect_id);
+      const disputDetails = await this.DisputesModel.findOne({
+        collect_id: collectObjectId,
+      });
+
+      if (!disputDetails) {
+        throw new BadRequestException('Dispute not found');
+      }
+
+      const uploadedFiles = await Promise.all(
+        files.map(async (data) => {
+          try {
+            const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+            if (!matches || matches.length !== 3) {
+              throw new Error('Invalid base64 file format.');
+            }
+
+            const contentType = matches[1];
+            const base64Data = matches[2];
+
+            const fileBuffer = Buffer.from(base64Data, 'base64');
+
+            const fileExtension = contentType.split('/')[1];
+            const sanitizedFileName = data.name.replace(/\s+/g, '_');
+            const sanitizedFileDesc = data.description.replace(/\s+/g, '_');
+            const key = `uploads/disputes/${disputDetails.dispute_id}_${sanitizedFileName}_${sanitizedFileDesc}.${fileExtension}`;
+
+            const file_url = await this.awsS3Service.uploadToS3(
+              fileBuffer,
+              key,
+              contentType,
+              process.env.AWS_S3_BUCKET,
+            );
+
+            return {
+              document_type: fileExtension,
+              file_url,
+            };
+          } catch (error) {
+            throw new InternalServerErrorException(
+              error.message || 'File upload failed',
+            );
+          }
+        }),
+      );
+      await this.DisputesModel.findOneAndUpdate(
+        { dispute_id: disputDetails.dispute_id },
+        {
+          $push: { documents: { $each: uploadedFiles } },
+          dispute_status: 'REQUEST_INITIATED',
+        },
+        { new: true },
+      );
+
+      if (disputDetails.gateway === DisputeGateways.EASEBUZZ) {
+        await this.trusteeService.handleEasebuzzDispute({
+          case_id: disputDetails.case_id,
+          action,
+          reason,
+          documents: uploadedFiles,
+        });
+      } else {
+        const school_details = await this.trusteeSchoolModel.findById(
+          disputDetails.school_id,
+        );
+        await this.trusteeService.handleCashfreeDispute({
+          dispute_id: disputDetails.dispute_id,
+          action,
+          documents: [
+            {
+              file: files[0].file,
+              doc_type: uploadedFiles[0].document_type,
+              note: files[0].description,
+            },
+          ],
+          client_id: school_details.client_id,
+        });
+      }
+      const teamMailSubject = `Dispute documents received for dispute id: ${disputDetails.dispute_id}`;
+
+      const teamMailTemplate = getDisputeReceivedEmailForTeam(
+        disputDetails.dispute_id,
+        disputDetails.collect_id,
+        action,
+        reason,
+        disputDetails.gateway,
+        uploadedFiles,
+      );
+
+      // mail to trustee
+      // const userMailSubject = `Dispute documents received for transaction id: ${disputDetails.collect_id}`;
+      // const userMailTemplate = getDisputeReceivedEmailForUser(
+      //   disputDetails.dispute_id,
+      //   disputDetails.collect_id,
+      //   action,
+      //   reason,
+      //   uploadedFiles,
+      // );
+
+      return { success: true, message: 'Files uploaded successfully' };
+    } catch (error) {
+      console.log(error.message);
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+}
+
+@ObjectType()
+export class DisputeResponse {
+  @Field()
+  success: boolean;
+
+  @Field()
+  message: string;
 }
 
 @ObjectType()

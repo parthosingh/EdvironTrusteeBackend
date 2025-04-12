@@ -2694,6 +2694,94 @@ export class TrusteeService {
       console.log(e);
     }
   }
+
+  async handleEasebuzzDispute({
+    case_id,
+    action,
+    reason,
+    documents,
+  }: {
+    case_id: string;
+    action: string;
+    reason: string;
+    documents: Array<{ document_type: string; file_url: string }>;
+  }) {
+    try {
+      const token = this.jwtService.sign(
+        { case_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/update-dispute`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: {
+          case_id,
+          action,
+          reason,
+          documents,
+          token,
+        },
+      };
+      const { data: response } = await axios.request(config);
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Something went wrong',
+      );
+    }
+  }
+
+  async handleCashfreeDispute({
+    dispute_id,
+    action,
+    documents,
+    client_id,
+  }: {
+    dispute_id: string;
+    action: string;
+    documents: Array<{
+      file: string;
+      doc_type: string;
+      note: string;
+    }>;
+    client_id: string;
+  }) {
+    try {
+      const token = this.jwtService.sign(
+        { dispute_id },
+        {
+          secret: process.env.PAYMENTS_SERVICE_SECRET,
+        },
+      );
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/update-dispute`,
+        headers: {
+          accept: 'application/json',
+          'Content-Type': 'multipart/form-data',
+        },
+        data: {
+          dispute_id,
+          action,
+          documents,
+          client_id,
+          token,
+        },
+      };
+      const { data: response } = await axios.request(config);
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Something went wrong',
+      );
+    }
+  }
 }
 
 const transaction = {

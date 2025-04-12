@@ -30,6 +30,9 @@ import axios from 'axios';
 import { MerchantService } from './merchant.service';
 import {
   AuthResponse,
+  Dispute_Actions,
+  DisputeResponse,
+  DisputesRes,
   resetPassResponse,
   TransactionReport,
   TransactionReportResponsePaginated,
@@ -52,6 +55,8 @@ import {
 } from '../schema/refund.schema';
 import { VendorsSettlement } from '../schema/vendor.settlements.schema';
 import { EmailService } from '../email/email.service';
+import { DisputeGateways, Disputes } from '../schema/disputes.schema';
+import { AwsS3Service } from '../aws.s3/aws.s3.service';
 
 @InputType()
 export class SplitRefundDetails {
@@ -78,6 +83,11 @@ export class MerchantResolver {
     private readonly trusteeService: TrusteeService,
     @InjectModel(VendorsSettlement.name)
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
+    @InjectModel(Disputes.name)
+    private DisputesModel: mongoose.Model<Disputes>,
+    private emailService: EmailService,
+    private readonly awsS3Service: AwsS3Service,
+  ) {}
     private emailService: EmailService,
   ) { }
 
@@ -1368,11 +1378,142 @@ export class MerchantResolver {
     @Args('order_id') order_id: string,
     @Context() context: any,
   ) {
-  
-    const transactions = this.trusteeService.getVendonrMerchantSingleTransactions(
-      order_id,
-    );
+    const transactions =
+      this.trusteeService.getVendonrMerchantSingleTransactions(order_id);
     return transactions;
+  }
+
+  @UseGuards(MerchantGuard)
+  @Query(() => [DisputesRes])
+  async getMerchantDisputes(
+    @Context() context: any,
+    @Args('page', { type: () => Int, defaultValue: 0 }) page: number,
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
+    @Args('collect_id', { type: () => String, nullable: true })
+    collect_id: string,
+    @Args('custom_id', { type: () => String, nullable: true })
+    custom_id: string,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate: string,
+    @Args('dispute_status', { type: () => String, nullable: true })
+    dispute_status: string,
+  ) {
+    try {
+      const schoolId = context.req.merchant;
+      const school = await this.trusteeSchoolModel.findById(schoolId);
+      if (!school) throw new BadRequestException('School Not Found');
+
+      return this.trusteeService.getDisputes(
+        school.trustee_id.toString(),
+        page,
+        limit,
+        school.school_id.toString(),
+        collect_id,
+        custom_id,
+        startDate,
+        endDate,
+        dispute_status,
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @UseGuards(MerchantGuard)
+  @Mutation(() => DisputeResponse)
+  async handleUpdateMerchantDispute(
+    @Args('files', { type: () => [UploadedFile] }) files: UploadedFile[],
+    @Args('collect_id', { type: () => String }) collect_id: string,
+    @Args('reason', { type: () => String }) reason: string,
+    @Args('action', { type: () => String }) action: Dispute_Actions,
+    @Context() context: any,
+  ) {
+    try {
+      const schoolId = context.req.merchant;
+      const school = await this.trusteeSchoolModel.findById(schoolId);
+      if (!school) throw new BadRequestException('School Not Found');
+      const collectObjectId = new Types.ObjectId(collect_id);
+      const disputDetails = await this.DisputesModel.findOne({
+        collect_id: collectObjectId,
+      });
+      if (!disputDetails) {
+        throw new BadRequestException('Dispute not found');
+      }
+      const uploadedFiles = await Promise.all(
+        files.map(async (data) => {
+          try {
+            const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+            if (!matches || matches.length !== 3) {
+              throw new Error('Invalid base64 file format.');
+            }
+
+            const contentType = matches[1];
+            const base64Data = matches[2];
+
+            const fileBuffer = Buffer.from(base64Data, 'base64');
+
+            const fileExtension = contentType.split('/')[1];
+            const sanitizedFileName = data.name.replace(/\s+/g, '_');
+            const sanitizedFileDesc = data.description.replace(/\s+/g, '_');
+            const key = `uploads/disputes/${disputDetails.dispute_id}_${sanitizedFileName}_${sanitizedFileDesc}.${fileExtension}`;
+
+            const file_url = await this.awsS3Service.uploadToS3(
+              fileBuffer,
+              key,
+              contentType,
+              process.env.AWS_S3_BUCKET,
+            );
+
+            return {
+              document_type: fileExtension,
+              file_url,
+            };
+          } catch (error) {
+            throw new InternalServerErrorException(
+              error.message || 'File upload failed',
+            );
+          }
+        }),
+      );
+      await this.DisputesModel.findOneAndUpdate(
+        { dispute_id: disputDetails.dispute_id },
+        {
+          $push: { documents: { $each: uploadedFiles } },
+          dispute_status: 'REQUEST_INITIATED',
+        },
+        { new: true },
+      );
+
+      if (disputDetails.gateway === DisputeGateways.EASEBUZZ) {
+        await this.trusteeService.handleEasebuzzDispute({
+          case_id: disputDetails.case_id,
+          action,
+          reason,
+          documents: uploadedFiles,
+        });
+      } else {
+        const school_details = await this.trusteeSchoolModel.findById(
+          disputDetails.school_id,
+        );
+        await this.trusteeService.handleCashfreeDispute({
+          dispute_id: disputDetails.dispute_id,
+          action,
+          documents: [
+            {
+              file: files[0].file,
+              doc_type: uploadedFiles[0].document_type,
+              note: files[0].description,
+            },
+          ],
+          client_id: school_details.client_id,
+        });
+      }
+      // Mail Service need to implement
+      return { success: true, message: 'Files uploaded successfully' };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }
 
