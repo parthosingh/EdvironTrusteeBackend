@@ -160,22 +160,21 @@ export class VendorInfoInput {
 export enum Dispute_Actions {
   ACCEPT = 'accept',
   DENY = 'deny',
-  QUERY = 'query',
 }
 
 @InputType()
 export class UploadedFile {
-  @Field()
-  description: string;
-
-  @Field()
-  name: string;
-
-  @Field()
-  file: string;
+  @Field({ nullable: true })
+  file?: string;
 
   @Field({ nullable: true })
-  preview?: string;
+  extension?: string;
+
+  @Field({ nullable: true })
+  description?: string;
+
+  @Field({ nullable: true })
+  name?: string;
 }
 
 @Resolver('Trustee')
@@ -2708,11 +2707,12 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   @Mutation(() => DisputeResponse)
   async handleAndUploadDisputDocs(
-    @Args('files', { type: () => [UploadedFile] }) files: UploadedFile[],
     @Args('collect_id', { type: () => String }) collect_id: string,
-    @Args('reason', { type: () => String }) reason: string,
     @Args('action', { type: () => String }) action: Dispute_Actions,
     @Context() context: any,
+    @Args('files', { type: () => [UploadedFile] })
+    files: UploadedFile[],
+    @Args('reason', { type: () => String, nullable: true }) reason?: string,
   ) {
     try {
       const trustee_id = context.req.trustee;
@@ -2727,42 +2727,49 @@ export class TrusteeResolver {
         throw new BadRequestException('Dispute not found');
       }
 
-      const uploadedFiles = await Promise.all(
-        files.map(async (data) => {
-          try {
-            const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-            if (!matches || matches.length !== 3) {
-              throw new Error('Invalid base64 file format.');
-            }
+      const uploadedFiles: Array<{ document_type: string; file_url: string }> =
+        files && files.length > 0
+          ? await Promise.all(
+              files.map(async (data) => {
+                try {
+                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                  if (!matches || matches.length !== 3) {
+                    throw new Error('Invalid base64 file format.');
+                  }
 
-            const contentType = matches[1];
-            const base64Data = matches[2];
+                  const contentType = matches[1];
+                  const base64Data = matches[2];
 
-            const fileBuffer = Buffer.from(base64Data, 'base64');
+                  const fileBuffer = Buffer.from(base64Data, 'base64');
 
-            const fileExtension = contentType.split('/')[1];
-            const sanitizedFileName = data.name.replace(/\s+/g, '_');
-            const sanitizedFileDesc = data.description.replace(/\s+/g, '_');
-            const key = `uploads/disputes/${disputDetails.dispute_id}_${sanitizedFileName}_${sanitizedFileDesc}.${fileExtension}`;
+                  // const fileExtension = contentType.split('/')[1];
+                  const fileExtension = data.extension;
+                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                  const sanitizedFileDesc = data.description.replace(
+                    /\s+/g,
+                    '_',
+                  );
+                  const key = `uploads/disputes/${disputDetails.dispute_id}_${sanitizedFileName}_${sanitizedFileDesc}.${fileExtension}`;
 
-            const file_url = await this.awsS3Service.uploadToS3(
-              fileBuffer,
-              key,
-              contentType,
-              process.env.AWS_S3_BUCKET,
-            );
+                  const file_url = await this.awsS3Service.uploadToS3(
+                    fileBuffer,
+                    key,
+                    contentType,
+                    process.env.AWS_S3_BUCKET,
+                  );
 
-            return {
-              document_type: fileExtension,
-              file_url,
-            };
-          } catch (error) {
-            throw new InternalServerErrorException(
-              error.message || 'File upload failed',
-            );
-          }
-        }),
-      );
+                  return {
+                    document_type: fileExtension,
+                    file_url,
+                  };
+                } catch (error) {
+                  throw new InternalServerErrorException(
+                    error.message || 'File upload failed',
+                  );
+                }
+              }),
+            )
+          : [];
       await this.DisputesModel.findOneAndUpdate(
         { dispute_id: disputDetails.dispute_id },
         {
@@ -2783,16 +2790,20 @@ export class TrusteeResolver {
         const school_details = await this.trusteeSchoolModel.findById(
           disputDetails.school_id,
         );
+
         await this.trusteeService.handleCashfreeDispute({
           dispute_id: disputDetails.dispute_id,
           action,
-          documents: [
-            {
-              file: files[0].file,
-              doc_type: uploadedFiles[0].document_type,
-              note: files[0].description,
-            },
-          ],
+          documents:
+            files.length > 0
+              ? [
+                  {
+                    file: files[0].file,
+                    doc_type: uploadedFiles[0].document_type,
+                    note: files[0].description,
+                  },
+                ]
+              : [],
           client_id: school_details.client_id,
         });
       }

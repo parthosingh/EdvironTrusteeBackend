@@ -2708,8 +2708,8 @@ export class TrusteeService {
     documents: Array<{ document_type: string; file_url: string }>;
   }) {
     try {
-      const token = this.jwtService.sign(
-        { case_id },
+      const sign = this.jwtService.sign(
+        { case_id, action },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
       const config = {
@@ -2725,7 +2725,7 @@ export class TrusteeService {
           action,
           reason,
           documents,
-          token,
+          sign,
         },
       };
       const { data: response } = await axios.request(config);
@@ -2753,8 +2753,8 @@ export class TrusteeService {
     client_id: string;
   }) {
     try {
-      const token = this.jwtService.sign(
-        { dispute_id },
+      const sign = this.jwtService.sign(
+        { dispute_id, action, client_id },
         {
           secret: process.env.PAYMENTS_SERVICE_SECRET,
         },
@@ -2772,7 +2772,7 @@ export class TrusteeService {
           action,
           documents,
           client_id,
-          token,
+          sign,
         },
       };
       const { data: response } = await axios.request(config);
