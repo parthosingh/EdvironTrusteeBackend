@@ -1385,7 +1385,7 @@ export class MerchantResolver {
   }
 
   @UseGuards(MerchantGuard)
-  @Query(() => [DisputesRes])
+  @Query(() => DisputesRes)
   async getMerchantDisputes(
     @Context() context: any,
     @Args('page', { type: () => Int, defaultValue: 0 }) page: number,
