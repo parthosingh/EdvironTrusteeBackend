@@ -93,6 +93,25 @@ export class bank_Details {
 }
 
 @ObjectType()
+export class gatewaysEmails{
+  @Field(() => String, { nullable: true })
+  @Prop()
+  cashfree: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop()
+  easebuzz: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop()
+  razorpay: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop()
+  pay_u: string;
+}
+
+@ObjectType()
 @Schema({ timestamps: true })
 export class TrusteeSchool {
   @Prop({ type: Types.ObjectId })
@@ -130,6 +149,10 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => bank_Details, { nullable: true })
   bank_details: bank_Details;
+
+  @Prop({})
+  @Field(() => gatewaysEmails, { nullable: true })
+  gatewaysMail: gatewaysEmails;
 
   @Prop({})
   @Field(() => String, { nullable: true })
