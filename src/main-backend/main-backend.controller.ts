@@ -1009,4 +1009,29 @@ export class MainBackendController {
       throw new BadRequestException(error.message);
     }
   }
+
+  @Get('get-webhook-key')
+  async getWebhookKey(
+    @Query('token') token: string,
+    @Query('trustee_id') trustee_id: string,
+  ) {
+    try {
+      const decoded = this.jwtService.verify(token, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      }) as { trustee_id: string };
+
+      if (!decoded) throw new BadRequestException('Invalid Token');
+      if (decoded.trustee_id !== trustee_id)
+        throw new BadRequestException('Request Forged');
+      const trustee = await this.trusteeModel.findById(trustee_id);
+
+      if (!trustee) throw new BadRequestException('Trustee not found');
+
+      if (!trustee.webhook_key)
+        throw new BadRequestException('Feature not activated');
+      return { webhook_key: trustee.webhook_key };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 }
