@@ -7,6 +7,7 @@ import {
   Context,
   InputType,
   ID,
+  registerEnumType,
 } from '@nestjs/graphql';
 import { TrusteeService } from './trustee.service';
 import {
@@ -212,7 +213,7 @@ export class TrusteeResolver {
     private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
     @InjectModel(Disputes.name)
     private DisputesModel: mongoose.Model<Disputes>,
-  ) {}
+  ) { }
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -2439,11 +2440,11 @@ export class TrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-          settled_on: {
-            $gte: new Date(start_date),
-            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-          },
-        }),
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -2773,38 +2774,38 @@ export class TrusteeResolver {
       const uploadedFiles: Array<{ document_type: string; file_url: string }> =
         files && files.length > 0
           ? await Promise.all(
-              files.map(async (data) => {
-                try {
-                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                  if (!matches || matches.length !== 3) {
-                    throw new Error('Invalid base64 file format.');
-                  }
-
-                  const contentType = matches[1];
-                  const base64Data = matches[2];
-                  const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const key = `disputes/trustee/${disputDetails.dispute_id}_${sanitizedFileName}`;
-
-                  const file_url = await this.awsS3Service.uploadToS3(
-                    fileBuffer,
-                    key,
-                    contentType,
-                    'edviron-backend-dev',
-                  );
-
-                  return {
-                    document_type: data.extension,
-                    file_url,
-                  };
-                } catch (error) {
-                  throw new InternalServerErrorException(
-                    error.message || 'File upload failed',
-                  );
+            files.map(async (data) => {
+              try {
+                const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                if (!matches || matches.length !== 3) {
+                  throw new Error('Invalid base64 file format.');
                 }
-              }),
-            )
+
+                const contentType = matches[1];
+                const base64Data = matches[2];
+                const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                const key = `disputes/trustee/${disputDetails.dispute_id}_${sanitizedFileName}`;
+
+                const file_url = await this.awsS3Service.uploadToS3(
+                  fileBuffer,
+                  key,
+                  contentType,
+                  'edviron-backend-dev',
+                );
+
+                return {
+                  document_type: data.extension,
+                  file_url,
+                };
+              } catch (error) {
+                throw new InternalServerErrorException(
+                  error.message || 'File upload failed',
+                );
+              }
+            }),
+          )
           : [];
       await this.DisputesModel.findOneAndUpdate(
         { dispute_id: disputDetails.dispute_id },
@@ -2833,12 +2834,12 @@ export class TrusteeResolver {
           documents:
             files.length > 0
               ? [
-                  {
-                    file: files[0].file,
-                    doc_type: uploadedFiles[0].document_type,
-                    note: files[0]?.description || '',
-                  },
-                ]
+                {
+                  file: files[0].file,
+                  doc_type: uploadedFiles[0].document_type,
+                  note: files[0]?.description || '',
+                },
+              ]
               : [],
           client_id: school_details.client_id,
         });
@@ -2876,12 +2877,10 @@ export class TrusteeResolver {
   async testWebhook(
     @Context() context: any,
     @Args('url', { type: () => String }) url: string,
+    @Args('type', { type: () => WebhookType }) type: WebhookType,
   ) {
     try {
       const trustee_id = context.req.trustee;
-      const token = this.jwtService.sign(trustee_id.toString(), {
-        secret: process.env.PAYMENTS_SERVICE_SECRET,
-      });
       const trusteeDetails = await this.trusteeModel.findById(trustee_id);
       if (!trusteeDetails) {
         throw new NotFoundException('Invalid Request');
@@ -2889,13 +2888,95 @@ export class TrusteeResolver {
       if (!url) {
         throw new NotFoundException('Url Not Found');
       }
-      const response = await this.trusteeService.testUrl(trustee_id, token, url)
+      const token = this.jwtService.sign({trustee_id:trustee_id.toString()}, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+
+      let base64Header = '';
+      if (type === WebhookType.SETTLEMENTS) {
+        const dummyData = {
+          adjustment: "150.25",
+          amount_settled: 1250.75,
+          payment_amount: 1400.00,
+          payment_from: "2024-12-01T10:00:00Z",
+          payment_till: "2024-12-31T18:00:00Z",
+          service_charge: 25.50,
+          service_tax: 18.75,
+          settled_on: "2024-09-18T10:11:39.630Z",
+          settlement_amount: 1232.50,
+          settlement_charge: 50.00,
+          settlement_id: "SET123456789",
+          settlement_initiated_on: "2024-12-30T12:00:00Z",
+          status: "Completed",
+          utr: "UTR987654321"
+        };
+        let webhook_key = trusteeDetails?.webhook_key || ""
+        if (webhook_key) {
+          base64Header = 'Basic ' + Buffer.from(webhook_key).toString('base64');
+        }
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: url,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authorization: base64Header,
+          },
+          data: dummyData
+        };
+        const res = await axios.request(config);
+        // return res.data;
+      }
+      else if (type === WebhookType.REFUNDS) {
+        const dummyData = {
+          refund_id: "REF123456789",
+          refund_amount: 1250.75,
+          status_description: "Refund processed successfully",
+          school_id: "123",
+          order_id: "1254"
+        };
+        let webhook_key = trusteeDetails?.webhook_key || ""
+        if (webhook_key) {
+          base64Header = 'Basic ' + Buffer.from(webhook_key).toString('base64');
+        }
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: url,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authorization: base64Header,
+          },
+          data: dummyData,
+        };
+        const res = await axios.request(config);
+        // return res.data;
+      }
+      else if (type === WebhookType.PAYMENTS) {
+        const response = await this.trusteeService.testUrl(trustee_id, token, url)
+        // return response.data;
+      }
       return `Webhook hit successfully`;
     } catch (error) {
       throw new BadRequestException(error.message || 'Something went wrong');
     }
   }
 }
+
+
+export enum WebhookType {
+  PAYMENTS = 'PAYMENTS',
+  SETTLEMENTS = 'SETTLEMENTS',
+  REFUNDS = 'REFUNDS',
+}
+
+registerEnumType(WebhookType, {
+  name: 'WebhookType',
+  description: 'Allowed webhook event types',
+});
+
 
 
 
