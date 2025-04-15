@@ -81,7 +81,7 @@ export class TrusteeService {
     private DisputesModel: mongoose.Model<Disputes>,
     @InjectModel(Reconciliation.name)
     private ReconciliationModel: mongoose.Model<Reconciliation>,
-  ) {}
+  ) { }
 
   async loginAndGenerateToken(
     emailId: string,
@@ -218,7 +218,7 @@ export class TrusteeService {
             phone_number: 1,
             updatedAt: 1,
             bank_details: 1,
-            gstIn:1,
+            gstIn: 1,
             residence_state: 1,
           },
         )
@@ -1618,9 +1618,8 @@ export class TrusteeService {
       if (chequeExtension === 'pdf') {
         mimeType = 'application/pdf';
       } else if (['jpg', 'jpeg', 'png'].includes(chequeExtension)) {
-        mimeType = `image/${
-          chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
-        }`;
+        mimeType = `image/${chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
+          }`;
       } else {
         throw new Error('Unsupported file type file type.');
       }
@@ -2600,13 +2599,13 @@ export class TrusteeService {
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-              dispute_created_date: {
-                ...(start_date && { $gte: new Date(start_date) }),
-                ...(end_date && {
-                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
+            dispute_created_date: {
+              ...(start_date && { $gte: new Date(start_date) }),
+              ...(end_date && {
+                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+              }),
+            },
+          }
           : {}),
       };
       const skip = (page - 1) * limit;
@@ -2646,13 +2645,13 @@ export class TrusteeService {
         ...(school_id && { schoolId: new Types.ObjectId(school_id) }),
         ...(start_date || end_date
           ? {
-              settlementDate: {
-                ...(start_date && { $gte: new Date(start_date) }),
-                ...(end_date && {
-                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
+            settlementDate: {
+              ...(start_date && { $gte: new Date(start_date) }),
+              ...(end_date && {
+                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+              }),
+            },
+          }
           : {}),
       };
 
@@ -2670,7 +2669,7 @@ export class TrusteeService {
         totalCount,
         totalPages,
       };
-    } catch (e) {}
+    } catch (e) { }
   }
 
   async fetchTransactionInfo(collect_id: string) {
@@ -2808,6 +2807,33 @@ export class TrusteeService {
       );
     }
   }
+
+  async testUrl(trustee_id: any, token: string, url: string) {
+    try {
+      const data = {
+        trustee_id,
+        token,
+        url
+      }
+      const testWebhookconfig = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/test-webhook`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: data
+      };
+      const testwebhook = await axios.request(testWebhookconfig);
+      return testwebhook;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Something went wrong',
+      );
+    }
+  }
+
 }
 
 const transaction = {

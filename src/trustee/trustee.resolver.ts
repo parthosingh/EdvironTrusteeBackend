@@ -2870,7 +2870,34 @@ export class TrusteeResolver {
       throw new InternalServerErrorException(error.message);
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => String)
+  async testWebhook(
+    @Context() context: any,
+    @Args('url', { type: () => String }) url: string,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const token = this.jwtService.sign(trustee_id.toString(), {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      const trusteeDetails = await this.trusteeModel.findById(trustee_id);
+      if (!trusteeDetails) {
+        throw new NotFoundException('Invalid Request');
+      }
+      if (!url) {
+        throw new NotFoundException('Url Not Found');
+      }
+      const response = await this.trusteeService.testUrl(trustee_id, token, url)
+      return `Webhook hit successfully`;
+    } catch (error) {
+      throw new BadRequestException(error.message || 'Something went wrong');
+    }
+  }
 }
+
+
 
 @ObjectType()
 export class DisputeResponse {
