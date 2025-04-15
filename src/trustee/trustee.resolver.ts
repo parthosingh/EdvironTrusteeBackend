@@ -2782,27 +2782,20 @@ export class TrusteeResolver {
 
                   const contentType = matches[1];
                   const base64Data = matches[2];
-
                   const fileBuffer = Buffer.from(base64Data, 'base64');
 
-                  // const fileExtension = contentType.split('/')[1];
-                  const fileExtension = data.extension;
                   const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const sanitizedFileDesc = data.description.replace(
-                    /\s+/g,
-                    '_',
-                  );
-                  const key = `uploads/disputes/${disputDetails.dispute_id}_${sanitizedFileName}_${sanitizedFileDesc}.${fileExtension}`;
+                  const key = `disputes/trustee/${disputDetails.dispute_id}_${sanitizedFileName}`;
 
                   const file_url = await this.awsS3Service.uploadToS3(
                     fileBuffer,
                     key,
                     contentType,
-                    process.env.AWS_S3_BUCKET,
+                    'edviron-backend-dev',
                   );
 
                   return {
-                    document_type: fileExtension,
+                    document_type: data.extension,
                     file_url,
                   };
                 } catch (error) {
@@ -2843,7 +2836,7 @@ export class TrusteeResolver {
                   {
                     file: files[0].file,
                     doc_type: uploadedFiles[0].document_type,
-                    note: files[0].description,
+                    note: files[0]?.description || '',
                   },
                 ]
               : [],

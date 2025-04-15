@@ -89,7 +89,7 @@ export class MerchantResolver {
     private emailService: EmailService,
     private readonly awsS3Service: AwsS3Service,
   ) {}
-    // private emailService: EmailService,
+  // private emailService: EmailService,
   // ) { }
 
   @Mutation(() => Boolean)
@@ -234,7 +234,6 @@ export class MerchantResolver {
       const merchant = await this.trusteeSchoolModel.findById(
         context.req.merchant,
       );
-
 
       if (!merchant) throw new NotFoundException('User not found');
       const school_id = merchant.school_id.toString();
@@ -961,8 +960,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -1073,37 +1072,36 @@ export class MerchantResolver {
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
     @Context() context: any,
-    @Args('startDate', { type: () => String, nullable: true }) startDate?: string,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate?: string,
     @Args('endDate', { type: () => String, nullable: true }) endDate?: string,
     @Args('vendor_id', { type: () => String, nullable: true })
     vendor_id?: string,
     @Args('custom_id', { type: () => String, nullable: true })
     custom_id?: string,
   ) {
-
     const school_id = context.req.merchant;
     const school = await this.trusteeSchoolModel.findById(school_id);
-
 
     const query = {
       school_id: school.school_id,
       ...(vendor_id && { vendor_id }),
       ...(startDate &&
         endDate && {
-        updatedAt: {
-          $gte: new Date(startDate),
-          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
-        },
-      }),
-    }
+          updatedAt: {
+            $gte: new Date(startDate),
+            $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+          },
+        }),
+    };
 
-    console.log(query, ":query")
+    console.log(query, ':query');
 
     return this.trusteeService.getSchoolVendors(
       school.school_id.toString(),
       page,
       limit,
-      query
+      query,
     );
   }
 
@@ -1191,7 +1189,7 @@ export class MerchantResolver {
     order_id?: string,
   ) {
     const school_id = context.req.merchant;
-    console.log(school_id, "school_id")
+    console.log(school_id, 'school_id');
     const school = await this.trusteeSchoolModel.findById(school_id);
     const transactions = this.trusteeService.getMerchantVendorTransactions(
       school.trustee_id.toString(),
@@ -1233,11 +1231,11 @@ export class MerchantResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-        settled_on: {
-          $gte: new Date(start_date),
-          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-        },
-      }),
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -1288,7 +1286,7 @@ export class MerchantResolver {
     if (
       checkRefundRequest &&
       checkRefundRequest.split_refund_details[0]?.vendor_id ===
-      split_refund_details[0].vendor_id &&
+        split_refund_details[0].vendor_id &&
       checkRefundRequest.status === refund_status.INITIATED
     ) {
       throw new ConflictException(
@@ -1328,8 +1326,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -1455,28 +1453,20 @@ export class MerchantResolver {
 
                   const contentType = matches[1];
                   const base64Data = matches[2];
-
                   const fileBuffer = Buffer.from(base64Data, 'base64');
 
-                  // const fileExtension = contentType.split('/')[1];
-                  const fileExtension = data.extension;
-
                   const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const sanitizedFileDesc = data.description.replace(
-                    /\s+/g,
-                    '_',
-                  );
-                  const key = `uploads/disputes/${disputDetails.dispute_id}_${sanitizedFileName}_${sanitizedFileDesc}.${fileExtension}`;
+                  const key = `disputes/merchant/${disputDetails.dispute_id}_${sanitizedFileName}`;
 
                   const file_url = await this.awsS3Service.uploadToS3(
                     fileBuffer,
                     key,
                     contentType,
-                    process.env.AWS_S3_BUCKET,
+                    'edviron-backend-dev',
                   );
 
                   return {
-                    document_type: fileExtension,
+                    document_type: data.extension,
                     file_url,
                   };
                 } catch (error) {
@@ -1516,7 +1506,7 @@ export class MerchantResolver {
                   {
                     file: files[0].file,
                     doc_type: uploadedFiles[0].document_type,
-                    note: files[0].description,
+                    note: files[0]?.description || '',
                   },
                 ]
               : [],
