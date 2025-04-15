@@ -2873,7 +2873,7 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(() => String)
+  @Mutation(() => String)
   async testWebhook(
     @Context() context: any,
     @Args('url', { type: () => String }) url: string,
