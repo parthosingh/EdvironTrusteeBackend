@@ -57,11 +57,13 @@ import { DisputeGateways, Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
 import { TempSettlementReport } from '../schema/tempSettlements.schema';
 import { PdfService } from '../pdf-service/pdf-service.service';
+import * as crypto from 'crypto';
 import {
   getDisputeReceivedEmailForTeam,
   getDisputeReceivedEmailForUser,
 } from '../email/templates/dipute.template';
 import { EmailService } from '../email/email.service';
+
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -348,6 +350,7 @@ export class TrusteeResolver {
         gstIn: trustee.gstIn,
         residence_state: trustee.residence_state,
         bank_details: trustee.bank_details,
+        webhook_key: trustee.webhook_key,
       };
       return user;
     } catch (error) {
@@ -2626,15 +2629,55 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
+  @Query(() => String)
+  async generateWebhookKeyOtp(@Context() context: any) {
+    try {
+      const trustee_id = context.req.trustee;
+      const trusteeDetails = await this.trusteeModel.findById(trustee_id);
+      if (!trusteeDetails) {
+        throw new NotFoundException('Invalid Request');
+      }
+      const sendMail = await this.trusteeService.sendWebhookKeyMail(
+        trusteeDetails.email_id,
+      );
+      if (sendMail) {
+        return 'Otp send to email, verify otp to generate webhook key';
+      } else {
+        throw new BadRequestException('Error Sending Mail');
+      }
+    } catch (error) {
+      throw new BadRequestException(error.message || 'Something went wrong');
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
   @Mutation(() => String)
   async generateAndSaveWebhookKey(
     @Context() context: any,
     @Args('otp', { type: () => String }) otp: string,
   ) {
-    // verify OTP
-    // if OTP is valid
-    // generate and save webhook key
-    // return `Webhook key generated`
+    try {
+      const trustee_id = context.req.trustee;
+      const trusteeDetails = await this.trusteeModel.findById(trustee_id);
+      if (!trusteeDetails) {
+        throw new NotFoundException('Invalid Request');
+      }
+      const isVerifiedOtp = await this.trusteeService.validateOtp(
+        otp,
+        trusteeDetails.email_id,
+      );
+      if (!isVerifiedOtp) {
+        throw new BadRequestException('Invalid OTP');
+      }
+      const key = crypto.randomBytes(24);
+      const webhookKey = key.toString('hex');
+      trusteeDetails.webhook_key = webhookKey;
+      await trusteeDetails.save();
+      return `Webhook key generated`;
+    } catch (error) {
+      throw new BadRequestException(error.message || 'Something went wrong');
+    }
+
   }
 
   @UseGuards(TrusteeGuard)
@@ -3486,6 +3529,8 @@ class TrusteeUser {
   residence_state: string;
   @Field({ nullable: true })
   bank_details: bankDetails;
+  @Field({ nullable: true })
+  webhook_key: string;
 }
 
 @ObjectType()

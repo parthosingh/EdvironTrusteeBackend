@@ -520,6 +520,31 @@ export class TrusteeService {
     }
   }
 
+  async sendWebhookKeyMail(email: string) {
+    try {
+      if (otps[email]) {
+        throw new Error('you cannot send another OTP before 3 Min');
+      }
+      const otp = Math.floor(100000 + Math.random() * 900000);
+      otps[email] = otp;
+      setTimeout(() => {
+        delete otps[email];
+      }, 180000);
+      const mail = await this.emailService.sendOTPMail(
+        email,
+        'OTP for Generate Webhook Key',
+        `${otp}`,
+      );
+      if (mail) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      throw new BadRequestException(error.message || 'Something went wrong');
+    }
+  }
+
   async validatePasswordOtp(otp: string, email: string) {
     if (otps[email] == otp) {
       delete otps[email];
