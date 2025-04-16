@@ -37,8 +37,13 @@ import { refund_status, RefundRequest } from '../schema/refund.schema';
 import { VendorsSettlement } from '../schema/vendor.settlements.schema';
 import { Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
+import { generateVendorStatusEmailTemplate } from '../email/templates/vendorstatus.template';
+import {
+  VENDOR_STATUS_EMAIL,
+  VENDOR_CREATE_ALERT_EMAIL,
+} from '../utils/email.group';
 import { generateVendorRequestEmailTemplate } from '../email/templates/vendor_creat_alert.template';
-import { VENDOR_CREATE_ALERT_EMAIL } from '../utils/email.group';
+
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
 var editNumOtps: any = {}; // edit number
@@ -1704,6 +1709,14 @@ export class TrusteeService {
       const updatedStatus = response.data.status;
       vendor.status = updatedStatus;
       await vendor.save();
+      this.automatedVendoStatusCheck(school.client_id, {
+        vendor_id: vendor.vendor_id,
+        vendor_name: vendor_info.name,
+        vendor_email: vendor_info.email,
+        school_name: school.school_name,
+        school_id: school.school_id.toString(),
+        trustee_id: trustee_id,
+      });
       return 'Vendor updated successfully to Vendor status: ' + updatedStatus;
     } catch (e) {
       if (e.response.data.message) {
@@ -1712,6 +1725,66 @@ export class TrusteeService {
       }
 
       throw new BadRequestException(e.message);
+    }
+  }
+
+  async automatedVendoStatusCheck(
+    client_id: string,
+    vendor: {
+      vendor_id: string;
+      vendor_name: string;
+      vendor_email: string;
+      school_name: string;
+      school_id: string;
+      trustee_id: string;
+    },
+  ) {
+    const MAX_RETRIES = 2;
+    const RETRY_DELAY = 30 * 60 * 1000;
+    let retryCount = 0;
+    const intervalId = setInterval(async () => {
+      try {
+        const data: any = this.checkVendorStatus(vendor.vendor_id, client_id);
+        if (data.status && data.status?.toUpperCase() === 'ACTIVE') {
+          clearInterval(intervalId);
+        } else {
+          retryCount++;
+          if (retryCount >= MAX_RETRIES) {
+            clearInterval(intervalId);
+            const emailSubject =
+              'Urgent: Vendor Status Still Pending After 1 Hour – Attention Required';
+            const template = generateVendorStatusEmailTemplate(vendor);
+            this.emailService.sendMailToTrustee(
+              template,
+              emailSubject,
+              VENDOR_STATUS_EMAIL,
+            );
+          }
+        }
+      } catch (error) {
+        throw new BadRequestException(error.message);
+      }
+    }, RETRY_DELAY);
+  }
+  async checkVendorStatus(vendor_id: string, client_id: string) {
+    try {
+      const token = this.jwtService.sign(
+        { vendor_id, client_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-status?token=${token}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+      };
+      const { data } = await axios.request(config);
+      return data;
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
   }
 
