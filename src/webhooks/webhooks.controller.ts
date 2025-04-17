@@ -68,7 +68,7 @@ export class WebhooksController {
     private emailService: EmailService,
     private trusteeService: TrusteeService,
     private readonly pdfService: PdfService,
-  ) {}
+  ) { }
 
   demoData = {
     data: {
@@ -961,11 +961,11 @@ export class WebhooksController {
 
       if (transaction_id.startsWith('upi_')) {
         transaction_id = transaction_id.replace('upi_', '');
-      } 
- 
+      }
+
       webhooklogs.collect_id = transaction_id;
       await webhooklogs.save();
- 
+
       const token = jwt.sign(
         { collect_request_id: transaction_id },
         process.env.PAYMENTS_SERVICE_SECRET,
@@ -1194,7 +1194,47 @@ export class WebhooksController {
       // Flatten and remove duplicates
       const emails = [...new Set(groups.flatMap((group) => group.emails))];
       return emails;
-    } catch (e) {}
+    } catch (e) { }
+  }
+
+  @Post('pay-u/refunds')
+  async payuRefundWebhook(@Body() body: any, @Res() res: any){
+    const data = JSON.stringify(body.data);
+    // const {txnid, mihpayid} = data
+    // let collect_id = txnid;
+    await new this.webhooksLogsModel({
+      type: 'Refund Webhook',
+      // order_id: 'payu-pg',
+      status: 'CALLED',
+      gateway: 'EDVIRON_PAY-U',
+      // type_id: "payu typeid",
+      body: data,
+    }).save();
+  }
+
+  @Post('pay-u/settlements')
+  async payuSettlementWebhook(@Body() body: any, @Res() res: any){
+    const data = JSON.stringify(body.data);
+    // const {txnid, mihpayid} = data
+    // let collect_id = txnid;
+    await new this.webhooksLogsModel({
+      type: 'SETTLEMENTS',
+      gateway: 'EDVIRON_PAY-U',
+      // type_id:body.data.hash,
+      body: data,
+      status: 'CALLED',
+    }).save();
+  }
+
+  @Post('pay-u/disputes')
+  async payuDisputesWebhook(@Body() body: any, @Res() res: any){
+    const data = JSON.stringify(body.data);
+    await new this.webhooksLogsModel({
+      type: 'Disputes',
+      gateway: 'EDVIRON_PAY-U',
+      body: data,
+      status: 'CALLED',
+    }).save();
   }
 }
 
