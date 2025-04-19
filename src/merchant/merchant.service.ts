@@ -170,6 +170,7 @@ export class MerchantService {
           trustee_logo:trustee.logo || null,
           school_id:merchant.school_id,
           school_logo:merchant.logo,
+          bank_details:merchant.bank_details || null,
         };
         return userMerchant;
       }

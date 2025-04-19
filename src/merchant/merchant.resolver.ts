@@ -143,6 +143,7 @@ export class MerchantResolver {
         trustee_logo: userMerchant.trustee_logo,
         school_id: userMerchant.school_id,
         school_logo: userMerchant.school_logo,
+        bank_details: userMerchant.bank_details || null,
       };
       console.log(user, 'userrr');
 
@@ -1376,8 +1377,11 @@ export class MerchantResolver {
     @Args('order_id') order_id: string,
     @Context() context: any,
   ) {
-    const transactions =
-      this.trusteeService.getVendonrMerchantSingleTransactions(order_id);
+
+    const transactions = this.trusteeService.getVendonrMerchantSingleTransactions(
+      order_id,
+    );
+
     return transactions;
   }
 
@@ -1622,6 +1626,18 @@ class MerchantTransactionReport {
 }
 
 @ObjectType()
+class BankDetails {
+  @Field({ nullable: true })
+  account_holder_name: string;
+
+  @Field({ nullable: true })
+  account_number: string;
+
+  @Field({ nullable: true })
+  ifsc_code: string;
+}
+
+@ObjectType()
 class MerchantUser {
   @Field()
   _id: string;
@@ -1645,7 +1661,11 @@ class MerchantUser {
   trustee_logo?: string;
   @Field({ nullable: true })
   school_logo?: string;
+  @Field(() => BankDetails, { nullable: true })
+  bank_details?: BankDetails;
 }
+
+
 
 @ObjectType()
 class MerchantMemberesResponse {
