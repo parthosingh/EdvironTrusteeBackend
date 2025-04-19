@@ -1210,6 +1210,7 @@ export class WebhooksController {
       // type_id: "payu typeid",
       body: data,
     }).save();
+    return res.status(200).send('OK');
   }
 
   @Post('pay-u/settlements')
@@ -1224,6 +1225,7 @@ export class WebhooksController {
       body: data,
       status: 'CALLED',
     }).save();
+    return res.status(200).send('OK');
   }
 
   @Post('pay-u/disputes')
@@ -1235,6 +1237,7 @@ export class WebhooksController {
       body: data,
       status: 'CALLED',
     }).save();
+    return res.status(200).send('OK');
   }
 }
 
