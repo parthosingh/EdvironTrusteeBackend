@@ -2152,7 +2152,6 @@ export class TrusteeService {
   async getSingleTransaction(
     trustee_id: string,
     collect_id: string,
-    school_id: string,
     token: string,
   ) {
     const config = {
@@ -2167,7 +2166,6 @@ export class TrusteeService {
         collect_id,
         trustee_id,
         token,
-        school_id,
       },
     };
     const { data: transaction } = await axios.request(config);

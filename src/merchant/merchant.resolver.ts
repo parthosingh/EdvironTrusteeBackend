@@ -422,7 +422,6 @@ export class MerchantResolver {
       const data = await this.trusteeService.getSingleTransaction(
         trustee_id.toString(),
         collect_id,
-        school_id.toString(),
         token,
       );
 

@@ -65,7 +65,6 @@ import {
 } from '../email/templates/dipute.template';
 import { EmailService } from '../email/email.service';
 
-
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
   REFUNDS = 'REFUNDS',
@@ -213,7 +212,7 @@ export class TrusteeResolver {
     private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
     @InjectModel(Disputes.name)
     private DisputesModel: mongoose.Model<Disputes>,
-  ) { }
+  ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -651,26 +650,24 @@ export class TrusteeResolver {
   async getSingleTransactionReport(
     @Context() context,
     @Args('collect_id') collect_id: string,
-    @Args('school_id') school_id: string,
+    @Args('school_id', { nullable: true }) school_id?: string,
   ) {
     try {
       const trustee_id = context.req.trustee;
       const token = this.jwtService.sign(
-        { trustee_id, collect_id, school_id },
+        { trustee_id, collect_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
       const data = await this.trusteeService.getSingleTransaction(
         trustee_id,
         collect_id,
-        school_id,
         token,
       );
 
-      const school = await this.trusteeSchoolModel.findOne({
-        school_id: new Types.ObjectId(school_id),
-      });
-
-      return data.map((item: any) => {
+      return await data.map(async (item: any) => {
+        const school = await this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(item?.school_id),
+        });
         const remark = null;
         const parsedData = item?.additional_data
           ? JSON.parse(item?.additional_data)
@@ -3738,6 +3735,18 @@ class Vendor {
 }
 
 @ObjectType()
+class Error_Details {
+  @Field({ nullable: true })
+  error_description?: string;
+
+  @Field({ nullable: true })
+  error_reason?: string;
+
+  @Field({ nullable: true })
+  error_source?: string;
+}
+
+@ObjectType()
 export class TransactionReport {
   @Field({ nullable: true })
   collect_id: string;
@@ -3791,6 +3800,8 @@ export class TransactionReport {
   gateway?: string;
   @Field({ nullable: true })
   capture_status?: string;
+  @Field({ nullable: true })
+  error_details?: Error_Details;
 }
 
 @ObjectType()
