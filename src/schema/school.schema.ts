@@ -28,6 +28,11 @@ export enum MerchantStatus {
   KYC_APPROVED = 'KYC Approved',
 }
 
+interface I_NTT_DATA {
+  nttdata_id: string;
+  nttdata_secret: string;
+}
+
 registerEnumType(MinKycStatus, {
   name: 'MinKycStatus',
   description: 'Status of min kyc',
@@ -289,6 +294,16 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => String)
   pay_u_salt: string;
+
+  @Prop({
+    required: false,
+    type: {
+      nttdata_id: { type: String, required: false, default: null },
+      nttdata_secret: { type: String, required: false, default: null },
+    },
+    _id: false,
+  })
+  ntt_data: I_NTT_DATA;
 
   createdAt?: Date;
   updatedAt?: Date;
