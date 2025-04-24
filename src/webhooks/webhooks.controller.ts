@@ -1200,6 +1200,16 @@ export class WebhooksController {
   @Post('pay-u/refunds')
   async payuRefundWebhook(@Body() body: any, @Res() res: any){
     const data = JSON.stringify(body.data);
+    try{
+      await new this.webhooksLogsModel({
+        type: 'Refund Webhook',
+        status: 'CALLED',
+        gateway: 'EDVIRON_PAY-U',
+        body: 'data',
+      }).save();
+    }catch(e){
+      console.log(`Error in Saving refund`);
+    }
     // const {txnid, mihpayid} = data
     // let collect_id = txnid;
     await new this.webhooksLogsModel({
