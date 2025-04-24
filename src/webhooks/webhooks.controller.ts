@@ -1199,7 +1199,6 @@ export class WebhooksController {
 
   @Post('pay-u/refunds')
   async payuRefundWebhook(@Body() body: any, @Res() res: any){
-    const data = JSON.stringify(body.data);
     try{
       await new this.webhooksLogsModel({
         type: 'Refund Webhook',
@@ -1210,6 +1209,7 @@ export class WebhooksController {
     }catch(e){
       console.log(`Error in Saving refund`);
     }
+    const data = JSON.stringify(body);
     // const {txnid, mihpayid} = data
     // let collect_id = txnid;
     await new this.webhooksLogsModel({
@@ -1248,6 +1248,13 @@ export class WebhooksController {
       status: 'CALLED',
     }).save();
     return res.status(200).send('OK');
+  }
+
+  @Get('/dummy')
+  async dummy(){
+    const res="{\"rows\":1,\"message\":\"1 Settlements found for the 2025-04-22T00:00 and 2025-04-23T00:00\",\"status\":1,\"result\":[{\"settlementId\":\"12678458202504221245\",\"settlementCompletedDate\":\"2025-04-22 15:03:13\",\"settlementAmount\":\"16198.64\",\"merchantId\":12678458,\"utrNumber\":\"AXISCN0964297088\",\"transaction\":[{\"action\":\"capture\",\"payuId\":\"23244908014\",\"requestId\":\"16733631193\",\"transactionAmount\":\"1.00\",\"merchantServiceFee\":\"0.00000\",\"merchantServiceTax\":\"0.00000\",\"merchantNetAmount\":\"-0.18\",\"sgst\":\"0.00000\",\"cgst\":\"0.00000\",\"igst\":\"0.00000\",\"merchantTransactionId\":\"680613d78218d3a8c036fed4\",\"mode\":\"UPI\",\"paymentStatus\":\"captured\",\"transactionDate\":\"2025-04-21 15:16:01\",\"requestDate\":\"2025-04-21 15:16:24\",\"requestedAmount\":\"1.00\",\"bankName\":\"INTENT\",\"offerServiceFee\":\"0.00\",\"offerServiceTax\":\"0.00\",\"forexAmount\":\"0.00\",\"discount\":\"0.00\",\"additionalTdrFee\":\"1.00\",\"totalServiceTax\":\"0.18000\",\"transactionCurrency\":\"INR\",\"settlementCurrency\":\"INR\",\"totalProcessingFee\":\"1.00000\",\"additionalTdrTax\":\"0.18\"},{\"action\":\"capture\",\"payuId\":\"23250070064\",\"requestId\":\"16737918929\",\"transactionAmount\":\"16200.00\",\"merchantServiceFee\":\"0.00000\",\"merchantServiceTax\":\"0.00000\",\"merchantNetAmount\":\"16198.82\",\"sgst\":\"0.00000\",\"cgst\":\"0.00000\",\"igst\":\"0.00000\",\"merchantTransactionId\":\"6806781a8218d3a8c03772ff\",\"mode\":\"UPI\",\"paymentStatus\":\"captured\",\"transactionDate\":\"2025-04-21 22:23:47\",\"requestDate\":\"2025-04-21 22:24:10\",\"requestedAmount\":\"16200.00\",\"bankName\":\"INTENT\",\"offerServiceFee\":\"0.00\",\"offerServiceTax\":\"0.00\",\"forexAmount\":\"0.00\",\"discount\":\"0.00\",\"additionalTdrFee\":\"1.00\",\"totalServiceTax\":\"0.18000\",\"transactionCurrency\":\"INR\",\"settlementCurrency\":\"INR\",\"totalProcessingFee\":\"1.00000\",\"additionalTdrTax\":\"0.18\"}]}]}"
+
+    return JSON.parse(res)
   }
 }
 
