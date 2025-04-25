@@ -551,6 +551,7 @@ export class ErpController {
         ccavenue_working_key: school.ccavenue_working_key || null,
         smartgateway_merchant_id: school.smartgateway_merchant_id || null,
         smartgateway_customer_id: school.smartgateway_customer_id || null,
+        smart_gateway_api_key:school?.smart_gateway_api_key || null,
         hdfc_razorpay_id: school.hdfc_razorpay_id || null,
         hdfc_razorpay_secret: school.hdfc_razorpay_secret || null,
         hdfc_razorpay_mid: school.hdfc_razorpay_mid || null,

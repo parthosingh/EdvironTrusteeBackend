@@ -273,6 +273,10 @@ export class TrusteeSchool {
 
   @Prop({})
   @Field(() => String)
+  smart_gateway_api_key: string;
+
+  @Prop({})
+  @Field(() => String)
   smartgateway_customer_id: string;
 
   @Prop({})
