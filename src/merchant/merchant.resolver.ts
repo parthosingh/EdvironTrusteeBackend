@@ -1433,6 +1433,7 @@ export class MerchantResolver {
     @Args('reason', { type: () => String, nullable: true })
     reason?: string | null,
   ) {
+    let uploadedFiles: Array<{ document_type: string; file_url: string }> = [];
     try {
       const schoolId = context.req.merchant;
       const school = await this.trusteeSchoolModel.findById(schoolId);
@@ -1444,40 +1445,43 @@ export class MerchantResolver {
       if (!disputDetails) {
         throw new BadRequestException('Dispute not found');
       }
-      const uploadedFiles: Array<{ document_type: string; file_url: string }> =
+      uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-              files.map(async (data) => {
-                try {
-                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                  if (!matches || matches.length !== 3) {
-                    throw new Error('Invalid base64 file format.');
+              files
+                .map(async (data) => {
+                  try {
+                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                    if (!matches || matches.length !== 3) {
+                      throw new Error('Invalid base64 file format.');
+                    }
+
+                    const contentType = matches[1];
+                    const base64Data = matches[2];
+                    const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                    const last4DigitsOfMs = Date.now().toString().slice(-4);
+                    const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
+
+                    const file_url = await this.awsS3Service.uploadToS3(
+                      fileBuffer,
+                      key,
+                      contentType,
+                      'disputes-docs',
+                    );
+
+                    return {
+                      document_type: data.extension,
+                      file_url,
+                    };
+                  } catch (error) {
+                    throw new InternalServerErrorException(
+                      error.message || 'File upload failed',
+                    );
                   }
-
-                  const contentType = matches[1];
-                  const base64Data = matches[2];
-                  const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const key = `disputes/merchant/${disputDetails.dispute_id}_${sanitizedFileName}`;
-
-                  const file_url = await this.awsS3Service.uploadToS3(
-                    fileBuffer,
-                    key,
-                    contentType,
-                    'edviron-backend-dev',
-                  );
-
-                  return {
-                    document_type: data.extension,
-                    file_url,
-                  };
-                } catch (error) {
-                  throw new InternalServerErrorException(
-                    error.message || 'File upload failed',
-                  );
-                }
-              }),
+                })
+                .filter((file) => file !== null),
             )
           : [];
       await this.DisputesModel.findOneAndUpdate(
@@ -1519,6 +1523,30 @@ export class MerchantResolver {
       // Mail Service need to implement
       return { success: true, message: 'Files uploaded successfully' };
     } catch (error) {
+      const disputDetails = await this.DisputesModel.findOne({
+        collect_id: new Types.ObjectId(collect_id),
+      });
+      if (disputDetails) {
+        if (uploadedFiles.length > 0) {
+          await Promise.all([
+            ...uploadedFiles.map(async (file) => {
+              const bucketName = file.file_url.split('//')[1].split('.')[0];
+              const key = file.file_url.split('.com/')[1];
+              await this.awsS3Service.deleteFromS3(key, bucketName);
+            }),
+            this.DisputesModel.updateOne(
+              { collect_id: new Types.ObjectId(collect_id) },
+              {
+                $pull: {
+                  documents: {
+                    file_url: { $in: uploadedFiles.map((f) => f.file_url) },
+                  },
+                },
+              },
+            ),
+          ]);
+        }
+      }
       throw new InternalServerErrorException(error.message);
     }
   }

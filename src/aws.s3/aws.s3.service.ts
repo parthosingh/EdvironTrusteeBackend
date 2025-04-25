@@ -31,4 +31,19 @@ export class AwsS3Service {
 
     return `https://${bucketName}.s3.amazonaws.com/${key}`;
   }
+
+  async deleteFromS3(key: string, bucketName: string) {
+    try {
+      const params = {
+        Bucket: bucketName,
+        Key: key,
+      };
+      await this.s3Bucket.deleteObject(params).promise();
+      return 'File removed successfully from S3';
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Something went wrong',
+      );
+    }
+  }
 }
