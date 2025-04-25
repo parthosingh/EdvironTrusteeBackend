@@ -121,8 +121,7 @@ export class BusinessAlarmResolver {
     return true;
   }
 
-
-  @Cron('0 11 * * *', { timeZone: 'UTC' })
+  @Cron('0 12 * * *', { timeZone: 'UTC' }) // 12:00 UTC = 5:30PM IST
   @Query(() => [MerchantSettlement])
   async checkMerchantSettlement(): Promise<MerchantSettlement[]> {
     const today = new Date();
@@ -195,7 +194,7 @@ export class BusinessAlarmResolver {
     return missMatched;
   }
 
-  @Cron('0 13,17 * * *', { timeZone: 'UTC' })
+  @Cron('0 14,18 * * *', { timeZone: 'UTC' }) // 14:00 & 18:00 UTC = 7:30PM & 11:30PM IST
   @Query(() => Boolean)
   async checkFailedMerchantSettlement() {
     const today = new Date();
@@ -220,8 +219,7 @@ export class BusinessAlarmResolver {
     return false;
   }
 
-  // Runs at 5 PM IST (which is 11:30 AM UTC, rounded down to 11 AM UTC)
-  @Cron('0 11 * * *', { timeZone: 'UTC' })
+  @Cron('0 12 * * *', { timeZone: 'UTC' }) // 12:00 UTC = 5:30PM IST
   @Query(() => Boolean)
   async checkSavedVendorSettlement() {
     const todaySettlement =
@@ -241,7 +239,7 @@ export class BusinessAlarmResolver {
     return false;
   }
 
-  @Cron('0 13,17 * * *', { timeZone: 'UTC' })
+  @Cron('0 14,18 * * *', { timeZone: 'UTC' }) // 14:00 & 18:00 UTC = 7:30PM & 11:30PM IST
   @Query(() => Boolean)
   async checkFailedVendorSettlement() {
     const todaySettlement =
