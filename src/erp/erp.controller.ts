@@ -12,6 +12,7 @@ import {
   UseGuards,
   ForbiddenException,
   Res,
+  Param,
 } from '@nestjs/common';
 import { ErpService } from './erp.service';
 import { JwtService } from '@nestjs/jwt';
@@ -3034,6 +3035,109 @@ export class ErpController {
           payment_modes,
           page,
           limit,
+          school_id:"null"
+        },
+      };
+      const response = await axios.request(config);
+      // console.log(response.data, 'response data');  
+      const total_pages = Math.ceil(response.data.totalTransactions / limit);
+      const transactions = response.data.transactions.map((item: any) => {
+        const date = new Date(item.updatedAt);
+        return {
+          ...item,
+          merchant_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          student_id:
+            JSON.parse(item?.additional_data).student_details?.student_id || '',
+
+          student_name:
+            JSON.parse(item?.additional_data).student_details?.student_name ||
+            '',
+
+          student_email:
+            JSON.parse(item?.additional_data).student_details?.student_email ||
+            '',
+          student_phone:
+            JSON.parse(item?.additional_data).student_details
+              ?.student_phone_no || '',
+          receipt:
+            JSON.parse(item?.additional_data).student_details?.receipt || '',
+          additional_data:
+            JSON.parse(item?.additional_data).additional_fields || '',
+          currency: 'INR',
+          school_id: item.merchant_id,
+          school_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          formattedDate: `${date.getFullYear()}-${String(
+            date.getMonth() + 1,
+          ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+        };
+      });
+      return {
+        page,
+        limit,
+        transactions,
+        total_records: response.data.totalTransactions,
+        total_pages,
+      };
+    } catch (error) {
+      console.error('Error in getSuccessTransactions:', error);
+      throw new BadRequestException('Error fetching success transactions');
+    }
+
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('erp-get-transactions-schoolId')
+  async getEprTransactionsSchoolId(
+    @Req() req: any,
+    @Body() body: any,
+    @Query('school_id') school_id: string
+  ) {
+    const { start_date, end_date, payment_modes, status, page, limit } = body;
+    const trustee_id = req.userTrustee.id
+    try {
+      if (!trustee_id) {
+        throw new BadRequestException('trustee not found')
+      }
+      if(limit > 1000){
+        throw new BadRequestException('Limit should be less than 1000')
+      }
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id)
+      });
+      
+      if(!school){
+        throw new BadRequestException('school not found')
+      }
+      const merchants = await this.trusteeSchoolModel.find({
+        trustee_id: trustee_id,
+      });
+      const merchant_ids_to_merchant_map = {};
+      merchants.map((merchant: any) => {
+        merchant_ids_to_merchant_map[merchant.school_id] = merchant;
+      });      
+      let token = this.jwtService.sign(
+        { trustee_id: trustee_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: { trustee_id: trustee_id, token },
+        params: {
+          status,
+          startDate: start_date,
+          endDate: end_date,
+          payment_modes,
+          page,
+          limit,
+          school_id:school_id
         },
       };
       const response = await axios.request(config);
