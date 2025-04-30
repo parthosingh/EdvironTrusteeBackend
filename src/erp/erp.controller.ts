@@ -68,7 +68,7 @@ export class ErpController {
     private VendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     @InjectModel(Vendors.name)
     private VendorsModel: mongoose.Model<Vendors>,
-  ) { }
+  ) {}
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -347,7 +347,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -770,7 +770,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -1093,7 +1093,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -1332,13 +1332,14 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: collect_request_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: collect_request_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -1403,15 +1404,16 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: order_id,
-              trusteeId: trustee_id,
-              school_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: order_id,
+            trusteeId: trustee_id,
+            school_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -1586,30 +1588,32 @@ export class ErpController {
       const endDate = req.query.endDate;
       const page = Number(req.query.page || 1);
       const limit = Number(req.query.limit || 100);
-      const vendor_id = req.query.vendor_id
+      const vendor_id = req.query.vendor_id;
       let query: any = {
         trustee_id,
       };
       if ((startDate && !endDate) || (endDate && !startDate)) {
-        throw new ConflictException(`Both start and end date must be present`)
+        throw new ConflictException(`Both start and end date must be present`);
       }
 
       if (vendor_id) {
-        const vendors = await this.VendorsModel.findOne({ vendor_id })
+        const vendors = await this.VendorsModel.findOne({ vendor_id });
         if (!vendor_id) {
-          throw new NotFoundException('Invalid Vendor ID')
+          throw new NotFoundException('Invalid Vendor ID');
         }
         if (school_id && vendors.school_id.toString() !== school_id) {
-          throw new BadRequestException('Vendor dosent belong to school school_id:' + school_id)
+          throw new BadRequestException(
+            'Vendor dosent belong to school school_id:' + school_id,
+          );
         }
 
         if (trustee_id.toString() !== vendors.trustee_id.toString()) {
-          throw new BadRequestException('Invalid Vendor ID')
+          throw new BadRequestException('Invalid Vendor ID');
         }
         query = {
           ...query,
-          vendor_id
-        }
+          vendor_id,
+        };
       }
       if (startDate && endDate) {
         const startUTC = moment
@@ -2587,8 +2591,8 @@ export class ErpController {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -2948,9 +2952,11 @@ export class ErpController {
   ) {
     const { limit, utr, cursor, school_id } = body;
     try {
-      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
       if (!school) {
-        throw new BadRequestException('School not found')
+        throw new BadRequestException('School not found');
       }
       if (limit < 10 && limit > 1000) {
         throw new BadRequestException(
@@ -2961,7 +2967,7 @@ export class ErpController {
         utr,
       });
       if (vendorsSettlements.school_id.toString() !== school_id) {
-        throw new BadRequestException('Invalid School ID')
+        throw new BadRequestException('Invalid School ID');
       }
       if (!vendorsSettlements) {
         throw new BadRequestException('UTR not found');
@@ -2993,19 +2999,23 @@ export class ErpController {
 
   @UseGuards(ErpGuard)
   @Post('erp-get-transactions')
-  async getEprTransactions(
-    @Req() req: any,
-    @Body() body: any
-  ) {
-    const { userTrustee } = req
-    const { start_date, end_date, payment_modes, status, page, limit } = body;
-    const trustee_id = userTrustee.id
+  async getEprTransactions(@Req() req: any, @Body() body: any) {
+    const { userTrustee } = req;
+    let { start_date, end_date, payment_modes, status, page, limit } = body;
+    payment_modes=[payment_modes]
+    const trustee_id = userTrustee.id;
+    let isQRCode = false;
+    if (payment_modes[0] === 'qr_pay') {
+      isQRCode = true;
+      payment_modes = null;
+      console.log('q code');
+    }
     try {
       if (!trustee_id) {
-        throw new BadRequestException('trustee not found')
+        throw new BadRequestException('trustee not found');
       }
-      if(limit > 1000){
-        throw new BadRequestException('Limit should be less than 1000')
+      if (limit > 1000) {
+        throw new BadRequestException('Limit should be less than 1000');
       }
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: trustee_id,
@@ -3014,11 +3024,12 @@ export class ErpController {
       merchants.map((merchant: any) => {
         merchant_ids_to_merchant_map[merchant.school_id] = merchant;
       });
-      
+
       let token = this.jwtService.sign(
         { trustee_id: trustee_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
+      
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
@@ -3027,19 +3038,23 @@ export class ErpController {
           accept: 'application/json',
           'content-type': 'application/json',
         },
-        data: { trustee_id: trustee_id, token },
+        data: {
+          trustee_id: trustee_id,
+          token,
+          payment_modes,
+          isQRCode,
+        },
         params: {
           status,
           startDate: start_date,
           endDate: end_date,
-          payment_modes,
           page,
           limit,
-          school_id:"null"
+          school_id: 'null',
         },
       };
       const response = await axios.request(config);
-      // console.log(response.data, 'response data');  
+      // console.log(response.data, 'response data');
       const total_pages = Math.ceil(response.data.totalTransactions / limit);
       const transactions = response.data.transactions.map((item: any) => {
         const date = new Date(item.updatedAt);
@@ -3084,7 +3099,6 @@ export class ErpController {
       console.error('Error in getSuccessTransactions:', error);
       throw new BadRequestException('Error fetching success transactions');
     }
-
   }
 
   @UseGuards(ErpGuard)
@@ -3092,23 +3106,31 @@ export class ErpController {
   async getEprTransactionsSchoolId(
     @Req() req: any,
     @Body() body: any,
-    @Param('school_id') school_id: string
+    @Param('school_id') school_id: string,
   ) {
-    const { start_date, end_date, payment_modes, status, page, limit } = body;
-    const trustee_id = req.userTrustee.id
+    const trustee_id = req.userTrustee.id;
+    let { start_date, end_date, payment_modes, status, page, limit } = body;
+    payment_modes=[payment_modes]
+    let isQRCode = false;
+    if (payment_modes[0] === 'qr_pay') {
+      isQRCode = true;
+      payment_modes = null;
+      console.log('q code');
+    }
+   
     try {
       if (!trustee_id) {
-        throw new BadRequestException('trustee not found')
+        throw new BadRequestException('trustee not found');
       }
-      if(limit > 1000){
-        throw new BadRequestException('Limit should be less than 1000')
+      if (limit > 1000) {
+        throw new BadRequestException('Limit should be less than 1000');
       }
       const school = await this.trusteeSchoolModel.findOne({
-        school_id: new Types.ObjectId(school_id)
+        school_id: new Types.ObjectId(school_id),
       });
-      
-      if(!school){
-        throw new BadRequestException('school not found')
+
+      if (!school) {
+        throw new BadRequestException('school not found');
       }
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: trustee_id,
@@ -3116,7 +3138,7 @@ export class ErpController {
       const merchant_ids_to_merchant_map = {};
       merchants.map((merchant: any) => {
         merchant_ids_to_merchant_map[merchant.school_id] = merchant;
-      });      
+      });
       let token = this.jwtService.sign(
         { trustee_id: trustee_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
@@ -3129,19 +3151,23 @@ export class ErpController {
           accept: 'application/json',
           'content-type': 'application/json',
         },
-        data: { trustee_id: trustee_id, token },
+        data: {
+          trustee_id: trustee_id,
+          token,
+          payment_modes,
+          isQRCode,
+        },
         params: {
           status,
           startDate: start_date,
           endDate: end_date,
-          payment_modes,
           page,
           limit,
-          school_id:school_id
+          school_id: 'null',
         },
       };
       const response = await axios.request(config);
-      // console.log(response.data, 'response data');  
+      // console.log(response.data, 'response data');
       const total_pages = Math.ceil(response.data.totalTransactions / limit);
       const transactions = response.data.transactions.map((item: any) => {
         const date = new Date(item.updatedAt);
@@ -3186,7 +3212,5 @@ export class ErpController {
       console.error('Error in getSuccessTransactions:', error);
       throw new BadRequestException('Error fetching success transactions');
     }
-
   }
-
 }
