@@ -12,6 +12,7 @@ import {
   UseGuards,
   ForbiddenException,
   Res,
+  Param,
 } from '@nestjs/common';
 import { ErpService } from './erp.service';
 import { JwtService } from '@nestjs/jwt';
@@ -38,6 +39,7 @@ import * as qs from 'qs';
 import { WebhookLogs } from '../schema/webhook.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { Vendors } from 'src/schema/vendors.schema';
+import { Context } from '@nestjs/graphql';
 @Controller('erp')
 export class ErpController {
   constructor(
@@ -551,7 +553,7 @@ export class ErpController {
         ccavenue_working_key: school.ccavenue_working_key || null,
         smartgateway_merchant_id: school.smartgateway_merchant_id || null,
         smartgateway_customer_id: school.smartgateway_customer_id || null,
-        smart_gateway_api_key:school?.smart_gateway_api_key || null,
+        smart_gateway_api_key: school?.smart_gateway_api_key || null,
         hdfc_razorpay_id: school.hdfc_razorpay_id || null,
         hdfc_razorpay_secret: school.hdfc_razorpay_secret || null,
         hdfc_razorpay_mid: school.hdfc_razorpay_mid || null,
@@ -1586,30 +1588,32 @@ export class ErpController {
       const endDate = req.query.endDate;
       const page = Number(req.query.page || 1);
       const limit = Number(req.query.limit || 100);
-      const vendor_id=req.query.vendor_id
+      const vendor_id = req.query.vendor_id;
       let query: any = {
         trustee_id,
       };
-      if((startDate && !endDate) || (endDate && !startDate)){
-        throw new ConflictException(`Both start and end date must be present`)
+      if ((startDate && !endDate) || (endDate && !startDate)) {
+        throw new ConflictException(`Both start and end date must be present`);
       }
-      
-      if(vendor_id){
-        const vendors=await this.VendorsModel.findOne({vendor_id})
-        if(!vendor_id){
-          throw new NotFoundException('Invalid Vendor ID')
+
+      if (vendor_id) {
+        const vendors = await this.VendorsModel.findOne({ vendor_id });
+        if (!vendor_id) {
+          throw new NotFoundException('Invalid Vendor ID');
         }
-        if(school_id && vendors.school_id.toString() !==school_id){
-          throw new BadRequestException('Vendor dosent belong to school school_id:'+school_id)
+        if (school_id && vendors.school_id.toString() !== school_id) {
+          throw new BadRequestException(
+            'Vendor dosent belong to school school_id:' + school_id,
+          );
         }
 
-        if(trustee_id.toString() !== vendors.trustee_id.toString()){
-          throw new BadRequestException('Invalid Vendor ID')
+        if (trustee_id.toString() !== vendors.trustee_id.toString()) {
+          throw new BadRequestException('Invalid Vendor ID');
         }
-        query={
+        query = {
           ...query,
-          vendor_id
-        }
+          vendor_id,
+        };
       }
       if (startDate && endDate) {
         const startUTC = moment
@@ -1627,7 +1631,7 @@ export class ErpController {
           settled_on: { $gte: startUTC, $lte: endUTC },
         };
       }
- 
+
       if (limit && limit > 2000) {
         throw new BadRequestException('Limit cant be more that 2000');
       }
@@ -2938,19 +2942,21 @@ export class ErpController {
   @UseGuards(ErpGuard)
   @Post('vendor-settlements-recon')
   async vendorSettlementRecon(
-    @Body() 
+    @Body()
     body: {
       limit: number;
       utr: string;
       school_id: string;
       cursor?: string;
     },
-  ) { 
-    const { limit, utr, cursor,school_id } = body;
+  ) {
+    const { limit, utr, cursor, school_id } = body;
     try {
-      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
-      if(!school){
-        throw new BadRequestException('School not found')
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('School not found');
       }
       if (limit < 10 && limit > 1000) {
         throw new BadRequestException(
@@ -2960,8 +2966,8 @@ export class ErpController {
       const vendorsSettlements = await this.VendorsSettlementModel.findOne({
         utr,
       });
-      if(vendorsSettlements.school_id.toString() !== school_id){
-        throw new BadRequestException('Invalid School ID')
+      if (vendorsSettlements.school_id.toString() !== school_id) {
+        throw new BadRequestException('Invalid School ID');
       }
       if (!vendorsSettlements) {
         throw new BadRequestException('UTR not found');
@@ -2988,6 +2994,223 @@ export class ErpController {
       return response;
     } catch (e) {
       throw new BadRequestException(e.message);
+    }
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('erp-get-transactions')
+  async getEprTransactions(@Req() req: any, @Body() body: any) {
+    const { userTrustee } = req;
+    let { start_date, end_date, payment_modes, status, page, limit } = body;
+    payment_modes=[payment_modes]
+    const trustee_id = userTrustee.id;
+    let isQRCode = false;
+    if (payment_modes[0] === 'qr_pay') {
+      isQRCode = true;
+      payment_modes = null;
+      console.log('q code');
+    }
+    try {
+      if (!trustee_id) {
+        throw new BadRequestException('trustee not found');
+      }
+      if (limit > 1000) {
+        throw new BadRequestException('Limit should be less than 1000');
+      }
+      const merchants = await this.trusteeSchoolModel.find({
+        trustee_id: trustee_id,
+      });
+      const merchant_ids_to_merchant_map = {};
+      merchants.map((merchant: any) => {
+        merchant_ids_to_merchant_map[merchant.school_id] = merchant;
+      });
+
+      let token = this.jwtService.sign(
+        { trustee_id: trustee_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: {
+          trustee_id: trustee_id,
+          token,
+          payment_modes,
+          isQRCode,
+        },
+        params: {
+          status,
+          startDate: start_date,
+          endDate: end_date,
+          page,
+          limit,
+          school_id: 'null',
+        },
+      };
+      const response = await axios.request(config);
+      // console.log(response.data, 'response data');
+      const total_pages = Math.ceil(response.data.totalTransactions / limit);
+      const transactions = response.data.transactions.map((item: any) => {
+        const date = new Date(item.updatedAt);
+        return {
+          ...item,
+          merchant_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          student_id:
+            JSON.parse(item?.additional_data).student_details?.student_id || '',
+
+          student_name:
+            JSON.parse(item?.additional_data).student_details?.student_name ||
+            '',
+
+          student_email:
+            JSON.parse(item?.additional_data).student_details?.student_email ||
+            '',
+          student_phone:
+            JSON.parse(item?.additional_data).student_details
+              ?.student_phone_no || '',
+          receipt:
+            JSON.parse(item?.additional_data).student_details?.receipt || '',
+          additional_data:
+            JSON.parse(item?.additional_data).additional_fields || '',
+          currency: 'INR',
+          school_id: item.merchant_id,
+          school_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          formattedDate: `${date.getFullYear()}-${String(
+            date.getMonth() + 1,
+          ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+        };
+      });
+      return {
+        page,
+        limit,
+        transactions,
+        total_records: response.data.totalTransactions,
+        total_pages,
+      };
+    } catch (error) {
+      console.error('Error in getSuccessTransactions:', error);
+      throw new BadRequestException('Error fetching success transactions');
+    }
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('erp-get-transactions/:school_id')
+  async getEprTransactionsSchoolId(
+    @Req() req: any,
+    @Body() body: any,
+    @Param('school_id') school_id: string,
+  ) {
+    const trustee_id = req.userTrustee.id;
+    let { start_date, end_date, payment_modes, status, page, limit } = body;
+    payment_modes=[payment_modes]
+    let isQRCode = false;
+    if (payment_modes[0] === 'qr_pay') {
+      isQRCode = true;
+      payment_modes = null;
+      console.log('q code');
+    }
+   
+    try {
+      if (!trustee_id) {
+        throw new BadRequestException('trustee not found');
+      }
+      if (limit > 1000) {
+        throw new BadRequestException('Limit should be less than 1000');
+      }
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!school) {
+        throw new BadRequestException('school not found');
+      }
+      const merchants = await this.trusteeSchoolModel.find({
+        trustee_id: trustee_id,
+      });
+      const merchant_ids_to_merchant_map = {};
+      merchants.map((merchant: any) => {
+        merchant_ids_to_merchant_map[merchant.school_id] = merchant;
+      });
+      let token = this.jwtService.sign(
+        { trustee_id: trustee_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: {
+          trustee_id: trustee_id,
+          token,
+          payment_modes,
+          isQRCode,
+        },
+        params: {
+          status,
+          startDate: start_date,
+          endDate: end_date,
+          page,
+          limit,
+          school_id: 'null',
+        },
+      };
+      const response = await axios.request(config);
+      // console.log(response.data, 'response data');
+      const total_pages = Math.ceil(response.data.totalTransactions / limit);
+      const transactions = response.data.transactions.map((item: any) => {
+        const date = new Date(item.updatedAt);
+        return {
+          ...item,
+          merchant_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          student_id:
+            JSON.parse(item?.additional_data).student_details?.student_id || '',
+
+          student_name:
+            JSON.parse(item?.additional_data).student_details?.student_name ||
+            '',
+
+          student_email:
+            JSON.parse(item?.additional_data).student_details?.student_email ||
+            '',
+          student_phone:
+            JSON.parse(item?.additional_data).student_details
+              ?.student_phone_no || '',
+          receipt:
+            JSON.parse(item?.additional_data).student_details?.receipt || '',
+          additional_data:
+            JSON.parse(item?.additional_data).additional_fields || '',
+          currency: 'INR',
+          school_id: item.merchant_id,
+          school_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          formattedDate: `${date.getFullYear()}-${String(
+            date.getMonth() + 1,
+          ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+        };
+      });
+      return {
+        page,
+        limit,
+        transactions,
+        total_records: response.data.totalTransactions,
+        total_pages,
+      };
+    } catch (error) {
+      console.error('Error in getSuccessTransactions:', error);
+      throw new BadRequestException('Error fetching success transactions');
     }
   }
 }
