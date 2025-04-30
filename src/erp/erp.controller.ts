@@ -3088,11 +3088,11 @@ export class ErpController {
   }
 
   @UseGuards(ErpGuard)
-  @Post('erp-get-transactions-schoolId')
+  @Post('erp-get-transactions/:school_id')
   async getEprTransactionsSchoolId(
     @Req() req: any,
     @Body() body: any,
-    @Query('school_id') school_id: string
+    @Param('school_id') school_id: string
   ) {
     const { start_date, end_date, payment_modes, status, page, limit } = body;
     const trustee_id = req.userTrustee.id
