@@ -366,7 +366,7 @@ export class PdfService {
               {
                 text: [
                   {
-                    text: `Subtotal: ₹${invoiceData.details?.amount_with_gst}\n`,
+                    text: `Subtotal: ₹${invoiceData.details?.amount_without_gst}\n`,
                     fontSize: 8,
                     color: '#666666',
                     alignment: 'right',
