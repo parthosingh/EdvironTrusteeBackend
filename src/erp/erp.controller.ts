@@ -523,7 +523,16 @@ export class ErpController {
           ...additional_data,
         },
       };
-
+      const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
+      console.log({
+        worldline_merchant_id:
+          school.worldline?.merchant_code || null,
+        worldline_encryption_key:
+          school.worldline?.encryption_key || null,
+        worldline_encryption_iV:
+          school.worldline?.encryption_iV || null,
+      },school);
+      
       const axios = require('axios');
       const data = JSON.stringify({
         amount,
@@ -561,6 +570,12 @@ export class ErpController {
         pay_u_salt: school.pay_u_salt || null,
         nttdata_id: school?.ntt_data?.nttdata_id || null,
         nttdata_secret: school?.ntt_data?.nttdata_secret || null,
+        worldline_merchant_id:
+          school?.worldline?.merchant_code || null,
+        worldline_encryption_key:
+          school?.worldline?.encryption_key || null,
+        worldline_encryption_iV:
+          school?.worldline?.encryption_iV || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
         disabled_modes: disabled_modes || null,
@@ -607,7 +622,7 @@ export class ErpController {
         ),
       };
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       if (error?.response?.data?.message) {

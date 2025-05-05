@@ -33,6 +33,18 @@ interface I_NTT_DATA {
   nttdata_secret: string;
 }
 
+@ObjectType()
+export class I_Worldline {
+  @Field(() => String)
+  merchant_code: string;
+
+  @Field(() => String)
+  encryption_key: string;
+
+  @Field(() => String)
+  encryption_iV: string;
+}
+
 registerEnumType(MinKycStatus, {
   name: 'MinKycStatus',
   description: 'Status of min kyc',
@@ -308,6 +320,10 @@ export class TrusteeSchool {
     _id: false,
   })
   ntt_data: I_NTT_DATA;
+  
+  @Prop({})
+  @Field(() => I_Worldline, { nullable: true })
+  worldline: I_Worldline;
 
   createdAt?: Date;
   updatedAt?: Date;

@@ -119,6 +119,8 @@ export class ErpService {
 
       return userTrustee;
     } catch (error) {
+      console.log(error);
+      
       if (error instanceof NotFoundException) throw error;
       throw new UnauthorizedException('Invalid API key');
     }
