@@ -1342,14 +1342,22 @@ export class TrusteeResolver {
   async sendOtp(@Args('type') type: string, @Context() context) {
     const id = context.req.trustee;
     const role = context.req.role;
-    if (role !== 'owner' || role!=='developer') {
+    if (role !== 'owner' && role!=='developer') {
       throw new UnauthorizedException(
         'You are not Authorized to perform this action',
       );
     }
-    const trustee = await this.trusteeModel.findById(id);
+    let trustee = await this.trusteeModel.findById(id);
     if (!trustee) {
-      throw new NotFoundException('Trustee Not Found');
+      const member=await this.trusteeMemberModel.findById(id)
+      if(!member){
+        throw new NotFoundException('Account not found Not Found');
+      }
+      const trusteenew=await this.trusteeModel.findById(member.trustee_id)
+      if(!trusteenew){
+        throw new NotFoundException('Account not found Not Found');
+      }
+      trustee=trusteenew
     }
 
     const email = trustee.email_id;
