@@ -1342,7 +1342,7 @@ export class TrusteeResolver {
   async sendOtp(@Args('type') type: string, @Context() context) {
     const id = context.req.trustee;
     const role = context.req.role;
-    if (role !== 'owner') {
+    if (role !== 'owner' || role!=='developer') {
       throw new UnauthorizedException(
         'You are not Authorized to perform this action',
       );
