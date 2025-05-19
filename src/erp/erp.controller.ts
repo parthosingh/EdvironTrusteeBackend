@@ -285,6 +285,7 @@ export class ErpController {
         //   throw new BadRequestException('reason is required');
         // }
       }
+      let isVBAPayment = false;
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
@@ -301,7 +302,35 @@ export class ErpController {
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
       }
-
+      if (school.isVBAActive) {
+        isVBAPayment = true;
+      }
+      let vba_account_number = 'NA';
+      if (isVBAPayment) {
+        try {
+          if (
+            !student_id ||
+            !student_email ||
+            !student_name ||
+            !student_phone_no
+          ) {
+            throw new BadRequestException(
+              `Student details required for NEFT/RTGS`,
+            );
+          }
+          const vba = await this.erpService.createStudentVBA(
+            student_id,
+            student_name,
+            student_email,
+            student_phone_no,
+            school_id,
+            Number(amount),
+          );
+          vba_account_number = vba.vba_account_number;
+        } catch (e) {
+          console.log(e);
+        }
+      }
       disabled_modes = Array.from(
         new Set([...school.disabled_modes, ...(disabled_modes || [])]),
       ).map((mode) => {
@@ -437,17 +466,11 @@ export class ErpController {
         school.isAdjustment &&
         Number(amount) >= school.minAdjustmnentAmount
       ) {
-        console.log(`Adujstment true`);
-
         if (school.advanceAdjustment) {
-          console.log(`Adnace adjustment true`);
-
           const advanceAdjustementAmount =
             school.targetAdjustmnentAmount - adjustedAmount;
           // if order amt is greater than targetAdjustmentAmount
           if (amount > advanceAdjustementAmount) {
-            console.log(`Amount is greater than targetAdjustmentAmount`);
-
             const splitAmount = advanceAdjustementAmount;
             const updatedVendor = {
               vendor_id: school.adjustment_vendor_id,
@@ -528,15 +551,6 @@ export class ErpController {
         },
       };
       const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
-      console.log(
-        {
-          worldline_merchant_id: school.worldline?.merchant_code || null,
-          worldline_encryption_key: school.worldline?.encryption_key || null,
-          worldline_encryption_iV: school.worldline?.encryption_iV || null,
-        },
-        school,
-      );
-
       const axios = require('axios');
       const data = JSON.stringify({
         amount,
@@ -580,6 +594,8 @@ export class ErpController {
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
         disabled_modes: disabled_modes || null,
+        isVBAPayment: isVBAPayment || false,
+        vba_account_number: vba_account_number || 'NA',
       });
       const config = {
         method: 'post',
@@ -596,17 +612,28 @@ export class ErpController {
 
       //set some variable here (user input [sendPaymentLink:true])
       // to send link to student
-      if (body.student_phone_no || body.student_email) {
-        if (body.sendPaymentLink) {
-          await this.erpService.sendPaymentLink({
-            student_name: body.student_name || ' ',
-            phone_no: body.student_phone_no,
-            amount: body.amount,
-            reason: reason,
-            school_id: body.school_id,
-            mail_id: body.student_email,
-            paymentURL: paymentsServiceResp.url,
-          });
+      // if (body.student_phone_no || body.student_email) {
+      //   if (body.sendPaymentLink) {
+      //     await this.erpService.sendPaymentLink({
+      //       student_name: body.student_name || ' ',
+      //       phone_no: body.student_phone_no,
+      //       amount: body.amount,
+      //       reason: reason,
+      //       school_id: body.school_id,
+      //       mail_id: body.student_email,
+      //       paymentURL: paymentsServiceResp.url,
+      //     });
+      //   }
+      // }
+
+      if (isVBAPayment) {
+        try {
+          await this.erpService.updateVBA(
+            paymentsServiceResp.request._id.toString(),
+            vba_account_number,
+          );
+        } catch (e) {
+          console.log(e);
         }
       }
 
@@ -691,7 +718,6 @@ export class ErpController {
       let PaymnetWebhookUrl: any = req_webhook_urls;
       if (req_webhook_urls && !Array.isArray(req_webhook_urls)) {
         const decodeWebhookUrl = decodeURIComponent(req.body.req_webhook_urls);
-        console.log(decodeWebhookUrl);
         PaymnetWebhookUrl = JSON.parse(decodeWebhookUrl);
       }
       let splitPay = split_payments;
@@ -715,11 +741,47 @@ export class ErpController {
         //   throw new BadRequestException('reason is required');
         // }
       }
+      let isVBAPayment = false;
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
       if (!school) {
         throw new NotFoundException('Inalid Institute id');
+      }
+
+      if (!school.pg_key) {
+        throw new BadRequestException(
+          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        );
+      }
+      if (school.isVBAActive) {
+        isVBAPayment = true;
+      }
+      let vba_account_number = 'NA';
+      if (isVBAPayment) {
+        try {
+          if (
+            !student_id ||
+            !student_email ||
+            !student_name ||
+            !student_phone_no
+          ) {
+            throw new BadRequestException(
+              `Student details required for NEFT/RTGS`,
+            );
+          }
+          const vba = await this.erpService.createStudentVBA(
+            student_id,
+            student_name,
+            student_email,
+            student_phone_no,
+            school_id,
+            Number(amount),
+          );
+          vba_account_number = vba.vba_account_number;
+        } catch (e) {
+          console.log(e);
+        }
       }
 
       disabled_modes = Array.from(
@@ -747,8 +809,6 @@ export class ErpController {
       if (split_payments && vendors_info && !Array.isArray(vendors_info)) {
         const decoded_vendor_info = decodeURIComponent(req.body.vendors_info);
         PGVendorInfo = JSON.parse(decoded_vendor_info);
-        console.log(PGVendorInfo, 'v');
-        console.log(typeof PGVendorInfo);
       }
 
       if (split_payments && !vendors_info) {
@@ -767,8 +827,6 @@ export class ErpController {
         let totalAmount = 0;
         let totalPercentage = 0;
         for (const vendor of PGVendorInfo) {
-          console.log(vendor, 'vendor');
-
           // Check if vendor_id is present
           if (!vendor.vendor_id) {
             throw new BadRequestException('Vendor ID is required');
@@ -854,8 +912,6 @@ export class ErpController {
       }
 
       if (school.isVendor && school.vendor_id) {
-        console.log('ADDING vendor info');
-
         const updatedVendor = {
           vendor_id: school.vendor_id,
           percentage: 100,
@@ -934,6 +990,8 @@ export class ErpController {
         ccavenue_working_key: school.ccavenue_working_key || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
+        isVBAPayment: isVBAPayment || false,
+        vba_account_number: vba_account_number || 'NA',
       });
       let config = {
         method: 'post',
@@ -963,7 +1021,16 @@ export class ErpController {
           });
         }
       }
-
+      if (isVBAPayment) {
+        try {
+          await this.erpService.updateVBA(
+            paymentsServiceResp.request._id.toString(),
+            vba_account_number,
+          );
+        } catch (e) {
+          console.log(e);
+        }
+      }
       return {
         collect_request_id: paymentsServiceResp.request._id,
         collect_request_url: paymentsServiceResp.url,
@@ -977,13 +1044,11 @@ export class ErpController {
         ),
       };
     } catch (error) {
-      console.log(error);
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       if (error?.response?.data?.message) {
         throw new ConflictException(error.response.data.message);
       }
-      console.log('error in create collect request', error);
       throw error;
     }
   }
@@ -1037,7 +1102,6 @@ export class ErpController {
         vendors_info,
       } = body;
       const { reseller_name } = req.params;
-      console.log(reseller_name, 'reseller_name');
 
       if (!school_id) {
         throw new BadRequestException('School id is required');
@@ -1176,8 +1240,6 @@ export class ErpController {
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-      console.log(decoded);
-
       if (
         decoded.amount != amount ||
         decoded.callback_url != callback_url ||
@@ -1294,7 +1356,7 @@ export class ErpController {
         throw new BadRequestException('Invalid sign');
       if (error?.response?.data?.message)
         throw new ConflictException(error.response.data.message);
-      console.log('error in create collect request', error);
+
       throw error;
     }
   }
@@ -1304,7 +1366,6 @@ export class ErpController {
   async getCollectRequestStatus(@Req() req) {
     try {
       const trustee_id = req.userTrustee.id;
-      console.log(trustee_id);
 
       const { collect_request_id } = req.params;
       const { school_id, sign } = req.query;
@@ -1335,8 +1396,6 @@ export class ErpController {
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-      console.log(decoded);
-      console.log(collect_request_id, school_id);
 
       if (
         decoded.collect_request_id != collect_request_id ||
@@ -1374,7 +1433,6 @@ export class ErpController {
     } catch (error) {
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
-      console.log('error in collect request status check', error);
       throw error;
     }
   }
@@ -1440,7 +1498,6 @@ export class ErpController {
     } catch (error) {
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
-      console.log('error in collect request status check', error);
       throw error;
     }
   }
@@ -1515,8 +1572,6 @@ export class ErpController {
           mail_id,
           paymentURL,
         });
-
-        console.log('mail sent');
       }
 
       if (body.phone_no) {
@@ -1528,8 +1583,6 @@ export class ErpController {
           school_id,
           paymentURL,
         });
-
-        console.log('whatsaap sent');
       }
 
       return 'Notification sent scuccessfully';
@@ -1658,10 +1711,6 @@ export class ErpController {
         if (!school) {
           throw new BadRequestException(`Invalid School id`);
         }
-        console.log({
-          trustee_id,
-          schoolTrustee: school.trustee_id,
-        });
 
         if (school.trustee_id.toString() !== trustee_id.toString()) {
           throw new BadRequestException(`Invalid School id`);
@@ -1898,7 +1947,6 @@ export class ErpController {
         total_pages,
       };
     } catch (error) {
-      console.log(error);
       throw new Error(error.message);
     }
   }
@@ -1984,7 +2032,6 @@ export class ErpController {
       }
       return {};
     } catch (error) {
-      console.log(error);
       if (error?.response?.data) {
         throw new BadRequestException(error?.response?.data?.message);
       }
@@ -1995,8 +2042,6 @@ export class ErpController {
   @Post('webhook')
   async webhook(@Body() body, @Res() res) {
     try {
-      console.log('webhook called', body);
-
       const decrypted = this.jwtService.verify(body.jwt, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
       });
@@ -2026,7 +2071,6 @@ export class ErpController {
       }
 
       if (!trustee) {
-        console.log('trustee not found while sending webhook');
         throw new NotFoundException('Trustee not found');
       }
       if (!pg_key) {
@@ -2082,7 +2126,6 @@ export class ErpController {
 
       return res.status(200).send('OK');
     } catch (error) {
-      console.log('error in sending-webhook', error);
       throw error;
     }
   }
@@ -2125,7 +2168,6 @@ export class ErpController {
       const checkCommission = await this.commissionModel.findOne({
         collect_id: new Types.ObjectId(transaction_id),
       });
-      console.log(checkCommission);
 
       if (checkCommission) {
         throw new BadRequestException('Commission already updated');
@@ -2336,37 +2378,22 @@ export class ErpController {
   async checkSettlement() {
     const settlementDate = new Date('2025-01-27T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
-    // console.log(date, 'DATE');
+
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
-    // console.log(date);
 
     // const day = String(date.getDate()).padStart(2, '0');
     // const month = String(date.getMonth() + 1).padStart(2, '0');
     // const year = date.getFullYear();
 
     // const formattedDateString = `${day}-${month}-${year}`; //eazebuzz accepts date in DD-MM-YYYY formal seprated with - like '19-07-2024'
-    // console.log(formattedDateString, 'formant date');
+
     // return formattedDateString
     // const data = await this.erpService.easebuzzSettlements(date);
     await this.erpService.sendSettlements(date);
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {
-    console.log(req.query);
-    console.log(req.body);
-    console.log(req.params);
-    console.log(req.headers);
-    console.log(req.ip);
-    console.log(req.hostname);
-    console.log(req.protocol);
-    console.log(req.secure);
-    console.log(req.connection.remoteAddress);
-    console.log(req.originalUrl);
-    console.log(req.baseUrl);
-    console.log(req.path);
-    console.log(req.method);
-  }
+  async test(@Req() req: any) {}
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -2393,8 +2420,6 @@ export class ErpController {
       }
 
       const decrypted = this.jwtService.verify(sign, { secret: pg_key });
-      console.log(decrypted, 'dat');
-      console.log({ school_id, collect_id });
 
       if (decrypted.collect_id !== collect_id) {
         throw new BadRequestException('incorrect sign');
@@ -2438,7 +2463,6 @@ export class ErpController {
       };
       var QRCode = require('qrcode');
       const { data: response } = await axios.request(config);
-      console.log(QRCode);
 
       const qrCodeBase64 = await QRCode.toDataURL(response, {
         margin: 2, // Add margin to the QR code
@@ -2446,7 +2470,7 @@ export class ErpController {
       });
       return qrCodeBase64;
     } catch (e) {
-      console.log(e);
+      throw new BadRequestException(e.message);
     }
   }
 
@@ -2508,8 +2532,6 @@ export class ErpController {
         settlements_transactions,
       };
     } catch (e) {
-      console.log(e);
-
       throw new BadRequestException(e.message);
     }
   }
@@ -2528,7 +2550,6 @@ export class ErpController {
     @Req() req: any,
   ) {
     const { school_id, sign, refund_amount, order_id, refund_note } = body;
-    console.log({ refund_amount });
 
     const school = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
@@ -2577,12 +2598,10 @@ export class ErpController {
     };
 
     const response = await axios.request(pgConfig);
-    console.log(refund_amount);
 
     const custom_id = response.data[0].custom_order_id;
     const order_amount = response.data[0].order_amount;
     const transaction_amount = response.data[0].transaction_amount;
-    console.log(custom_id, order_amount, transaction_amount);
 
     if (refund_amount > order_amount) {
       throw new BadRequestException(
@@ -2599,10 +2618,9 @@ export class ErpController {
       totalRefunds.map((refund: any) => {
         totalRefundAmount += refund.refund_amount;
       });
-      console.log(totalRefundAmount, 'amount refunded');
+
       const refundableAmount =
         checkRefundRequest.transaction_amount - totalRefundAmount;
-      console.log(refundableAmount, 'amount can be refunded');
 
       if (refund_amount > refundableAmount) {
         throw new Error(
@@ -2691,8 +2709,6 @@ export class ErpController {
       sign: string;
     },
   ) {
-    console.log('pp');
-
     const { collect_id, amount, school_id, sign, capture } = body;
     try {
       const school = await this.trusteeSchoolModel.findOne({
@@ -2703,11 +2719,8 @@ export class ErpController {
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-      console.log(decoded);
 
       if (decoded.collect_id !== collect_id) {
-        console.log('fordge');
-
         throw new BadRequestException('Fordge request');
       }
       const payload = {
@@ -2737,7 +2750,6 @@ export class ErpController {
 
       const response = await axios.request(config);
       const data = response.data;
-      console.log(data, 'response');
 
       const { captureInfo, paymentInfo } = data;
 
@@ -2796,7 +2808,6 @@ export class ErpController {
         throw new BadRequestException('Fordge request');
       }
       if (e.response?.data.message) {
-        console.log(e.response.data);
         if (e.response.data.message.startsWith('Capture/Void')) {
           throw new BadRequestException(
             'Capture/Void not enabled for your merchant account',
@@ -2849,8 +2860,6 @@ export class ErpController {
       const response = await axios.request(config);
       return response.data;
     } catch (e) {
-      console.log(e);
-
       throw new BadRequestException(e.message);
     }
   }
@@ -3024,7 +3033,6 @@ export class ErpController {
     if (payment_modes[0] === 'qr_pay') {
       isQRCode = true;
       payment_modes = null;
-      console.log('q code');
     }
     try {
       if (!trustee_id) {
@@ -3070,7 +3078,7 @@ export class ErpController {
         },
       };
       const response = await axios.request(config);
-      // console.log(response.data, 'response data');
+
       const total_pages = Math.ceil(response.data.totalTransactions / limit);
       const transactions = response.data.transactions.map((item: any) => {
         const date = new Date(item.updatedAt);
@@ -3131,7 +3139,6 @@ export class ErpController {
     if (payment_modes[0] === 'qr_pay') {
       isQRCode = true;
       payment_modes = null;
-      console.log('q code');
     }
 
     try {

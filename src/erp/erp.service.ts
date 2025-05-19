@@ -13,6 +13,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import mongoose, { ObjectId, Types } from 'mongoose';
 import {
+  charge_type,
   DisabledModes,
   PlatformCharge,
   TrusteeSchool,
@@ -1150,5 +1151,143 @@ export class ErpService {
       }
     }
     return virtualAccountId;
+  }
+
+  async createStudentVBA(
+    student_id: string,
+    student_name: string,
+    student_email: string,
+    student_number: string,
+    school_id: string,
+    amount:number
+  ) {
+    try {
+      // fetch mdr 
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      const platformCharge=await this.getPlatformCharge(school_id,"vba","Others",amount)
+      const finalAmount = amount + platformCharge * 1.18;
+
+
+      if (!school.cf_x_client_id || !school.cf_x_client_secret) {
+        throw new BadRequestException(
+          `Virtual account is not ennabled for your account. Kindly contact us at tarun.k@edviron.com.`,
+        );
+      }
+      const virtualAccountId =
+        await this.generateUniqueVirtualAccountId();
+      const virtualAccount = await this.VirtualAccountModel.create({
+        school_id: school.school_id,
+        trustee_id: school.trustee_id,
+        status: 'INITIATED',
+        student_email,
+        student_id,
+        student_name,
+        student_number,
+        notification_group: 'test',
+        gateway: 'CASHFREE',
+        virtual_account_id: virtualAccountId,
+        min_amount:finalAmount,
+        max_amount:finalAmount
+      });
+      const token = await this.jwtService.sign(
+        { school_id: school_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/v2/create-vba`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: {
+          cf_x_client_id: school.cf_x_client_id,
+          cf_x_clien_secret: school.cf_x_client_secret,
+          school_id,
+          token,
+          virtual_account_details: {
+            virtual_account_id: virtualAccount.virtual_account_id,
+            virtual_account_name: school.school_name,
+            virtual_account_email: school.email,
+            virtual_account_phone: school.phone_number,
+          },
+          notification_group: virtualAccount.notification_group || 'test',
+          amount:finalAmount
+        },
+      };
+
+      const { data: response } = await axios.request(config);
+      const details = {
+        status: response.virtual_bank_accounts[0].status,
+        vba_account_number:
+          response.virtual_bank_accounts[0].vba_account_number,
+        vba_ifsc: response.virtual_bank_accounts[0].vba_ifsc,
+        vba_status: response.virtual_bank_accounts[0].vba_status,
+      };
+      virtualAccount.status = details.vba_status;
+      virtualAccount.virtual_account_number = details.vba_account_number;
+      virtualAccount.virtual_account_ifsc = details.vba_ifsc;
+      await virtualAccount.save();
+      return details;
+    } catch (e) {
+      console.log(e);
+      
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  async getPlatformCharge(
+    school_id: string,
+    platform_type: string,
+    payment_mode: string,
+    amount: number,
+  ) {
+    const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+    if(!school){
+      throw new BadRequestException('INVALID SCHOOL ID')
+    }
+    const platform = school.platform_charges.find(
+      (pc) =>
+        pc.platform_type.toLowerCase() === platform_type.toLowerCase() &&
+        pc.payment_mode.toLowerCase() === payment_mode.toLowerCase(),
+    );
+
+    if (!platform) {
+      return 0;
+    }
+
+    const chargeRule = platform.range_charge
+      .filter((rc) => rc.upto === null || rc.upto >= amount)
+      .sort((a, b) => (a.upto ?? Infinity) - (b.upto ?? Infinity))[0];
+
+    if (!chargeRule) {
+      return 0;
+    }
+
+    if (chargeRule.charge_type === charge_type.FLAT) {
+      return chargeRule.charge;
+    } else if (chargeRule.charge_type === charge_type.PERCENT) {
+      return (chargeRule.charge / 100) * amount;
+    }
+
+    return 0;
+  }
+
+  async updateVBA(
+    collect_id:string,
+    vba_account:string
+  ){
+    try{
+
+      await this.VirtualAccountModel.findOneAndUpdate(
+        { virtual_account_number:vba_account }, // Find by vba_account
+        { $set: { collect_id } }, // Update collect_id
+        { new: true } // Optionally return the updated document
+      );
+      return true
+    }catch(e){
+      return false
+    }
   }
 }

@@ -30,6 +30,10 @@ export class VirtualAccount {
 
   @Prop()
   @Field(() => String, { nullable: true })
+  collect_id: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
   student_id: string;
 
   @Prop()
@@ -55,6 +59,14 @@ export class VirtualAccount {
   @Prop()
   @Field(() => String, { nullable: true })
   virtual_account_ifsc: string;
+
+  @Field()
+  @Prop()
+  min_amount: number;
+
+  @Field()
+  @Prop()
+  max_amount: number;
 
   @Prop()
   @Field(() => String, { nullable: true })
