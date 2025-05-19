@@ -12,7 +12,11 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import mongoose, { ObjectId, Types } from 'mongoose';
-import { DisabledModes, PlatformCharge, TrusteeSchool } from '../schema/school.schema';
+import {
+  DisabledModes,
+  PlatformCharge,
+  TrusteeSchool,
+} from '../schema/school.schema';
 import { Trustee } from '../schema/trustee.schema';
 import * as nodemailer from 'nodemailer';
 import * as path from 'path';
@@ -24,6 +28,7 @@ import { SchoolMdr } from '../schema/school_mdr.schema';
 import { BaseMdr } from '../schema/base.mdr.schema';
 import { CashfreeService } from '../cashfree/cashfree.service';
 import * as crypto from 'crypto';
+import { VirtualAccount } from 'src/schema/virtual.account.schema';
 @Injectable()
 export class ErpService {
   constructor(
@@ -38,6 +43,8 @@ export class ErpService {
     private schoolMdrModel: mongoose.Model<SchoolMdr>,
     @InjectModel(BaseMdr.name)
     private baseMdrModel: mongoose.Model<BaseMdr>,
+    @InjectModel(VirtualAccount.name)
+    private VirtualAccountModel: mongoose.Model<VirtualAccount>,
     private readonly cashfreeService: CashfreeService,
   ) {}
 
@@ -99,7 +106,7 @@ export class ErpService {
     try {
       const decodedPayload = this.jwtService.verify(apiKey, {
         secret: process.env.JWT_SECRET_FOR_API_KEY,
-        ignoreExpiration: true, 
+        ignoreExpiration: true,
       });
 
       const trustee = await this.trusteeModel.findById(
@@ -120,7 +127,7 @@ export class ErpService {
       return userTrustee;
     } catch (error) {
       console.log(error);
-      
+
       if (error instanceof NotFoundException) throw error;
       throw new UnauthorizedException('Invalid API key');
     }
@@ -179,7 +186,7 @@ export class ErpService {
   ): Promise<any> {
     try {
       console.log('p');
-      
+
       const no_of_schools = await this.trusteeSchoolModel.countDocuments({
         trustee_id: trustee,
       });
@@ -239,13 +246,13 @@ export class ErpService {
           base_charge.platform_charges,
           trusteeSchool.trustee_id.toString(),
           trusteeSchool.school_id.toString(),
-        )
+        );
       }
 
       return school;
     } catch (error) {
       console.log(error);
-      
+
       if (error.response) {
         // The request was made and the server responded with a non-success status code
         if (error.response.status === 409) {
@@ -1073,7 +1080,7 @@ export class ErpService {
     schoolId: string,
   ) {
     try {
-      const token =  this.jwtService.sign(
+      const token = this.jwtService.sign(
         {
           trustee_id: trusteeId,
           school_id: schoolId,
@@ -1100,20 +1107,48 @@ export class ErpService {
       console.log('response from payments service', response.data);
       return response.data;
     } catch (e) {
-      throw new BadGatewayException(e.message)
+      throw new BadGatewayException(e.message);
     }
   }
 
- async validateDisabledModes(disabled_modes: string[]) {
+  async validateDisabledModes(disabled_modes: string[]) {
     const invalidModes = disabled_modes.filter(
       (mode) => !Object.keys(DisabledModes).includes(mode as DisabledModes),
     );
-  
+
     if (invalidModes.length > 0) {
       throw new BadRequestException(
         `Invalid disabled_modes: ${invalidModes.join(', ')}`,
       );
     }
-    return true
+    return true;
+  }
+
+  async generateVirtualAccountId() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    while (result.length < 8) {
+      const byte = crypto.randomBytes(1)[0];
+      const char = chars.charAt(byte % chars.length);
+      result += char;
+    }
+    return result;
+  }
+
+  async generateUniqueVirtualAccountId() {
+    let unique = false;
+    let virtualAccountId;
+
+    while (!unique) {
+      virtualAccountId = await this.generateVirtualAccountId();
+
+      const existing = await this.VirtualAccountModel.findOne({
+        virtual_account_id: virtualAccountId,
+      });
+      if (!existing) {
+        unique = true;
+      }
+    }
+    return virtualAccountId;
   }
 }

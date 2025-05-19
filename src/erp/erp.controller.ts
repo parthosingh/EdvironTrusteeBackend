@@ -40,6 +40,8 @@ import { WebhookLogs } from '../schema/webhook.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 import { Vendors } from 'src/schema/vendors.schema';
 import { Context } from '@nestjs/graphql';
+import * as crypto from 'crypto';
+import { VirtualAccount } from 'src/schema/virtual.account.schema';
 @Controller('erp')
 export class ErpController {
   constructor(
@@ -68,6 +70,8 @@ export class ErpController {
     private VendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     @InjectModel(Vendors.name)
     private VendorsModel: mongoose.Model<Vendors>,
+    @InjectModel(VirtualAccount.name)
+    private VirtualAccountModel: mongoose.Model<VirtualAccount>,
   ) {}
 
   @Get('payment-link')
@@ -524,15 +528,15 @@ export class ErpController {
         },
       };
       const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
-      console.log({
-        worldline_merchant_id:
-          school.worldline?.merchant_code || null,
-        worldline_encryption_key:
-          school.worldline?.encryption_key || null,
-        worldline_encryption_iV:
-          school.worldline?.encryption_iV || null,
-      },school);
-      
+      console.log(
+        {
+          worldline_merchant_id: school.worldline?.merchant_code || null,
+          worldline_encryption_key: school.worldline?.encryption_key || null,
+          worldline_encryption_iV: school.worldline?.encryption_iV || null,
+        },
+        school,
+      );
+
       const axios = require('axios');
       const data = JSON.stringify({
         amount,
@@ -570,12 +574,9 @@ export class ErpController {
         pay_u_salt: school.pay_u_salt || null,
         nttdata_id: school?.ntt_data?.nttdata_id || null,
         nttdata_secret: school?.ntt_data?.nttdata_secret || null,
-        worldline_merchant_id:
-          school?.worldline?.merchant_code || null,
-        worldline_encryption_key:
-          school?.worldline?.encryption_key || null,
-        worldline_encryption_iV:
-          school?.worldline?.encryption_iV || null,
+        worldline_merchant_id: school?.worldline?.merchant_code || null,
+        worldline_encryption_key: school?.worldline?.encryption_key || null,
+        worldline_encryption_iV: school?.worldline?.encryption_iV || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
         disabled_modes: disabled_modes || null,
@@ -3017,7 +3018,7 @@ export class ErpController {
   async getEprTransactions(@Req() req: any, @Body() body: any) {
     const { userTrustee } = req;
     let { start_date, end_date, payment_modes, status, page, limit } = body;
-    payment_modes=[payment_modes]
+    payment_modes = [payment_modes];
     const trustee_id = userTrustee.id;
     let isQRCode = false;
     if (payment_modes[0] === 'qr_pay') {
@@ -3044,7 +3045,7 @@ export class ErpController {
         { trustee_id: trustee_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
-      
+
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
@@ -3125,14 +3126,14 @@ export class ErpController {
   ) {
     const trustee_id = req.userTrustee.id;
     let { start_date, end_date, payment_modes, status, page, limit } = body;
-    payment_modes=[payment_modes]
+    payment_modes = [payment_modes];
     let isQRCode = false;
     if (payment_modes[0] === 'qr_pay') {
       isQRCode = true;
       payment_modes = null;
       console.log('q code');
     }
-   
+
     try {
       if (!trustee_id) {
         throw new BadRequestException('trustee not found');
@@ -3226,6 +3227,196 @@ export class ErpController {
     } catch (error) {
       console.error('Error in getSuccessTransactions:', error);
       throw new BadRequestException('Error fetching success transactions');
+    }
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('create-virtual-account')
+  async createVirtualAccount(
+    @Req() req: any,
+    @Body()
+    body: {
+      student_id: string;
+      student_name: string;
+      student_email: string;
+      student_number: string;
+      school_id: string;
+      sign: string;
+    },
+  ) {
+    const trustee_id = req.userTrustee.id;
+    const requiredFields = [
+      'student_id',
+      'student_name',
+      'student_email',
+      'student_number',
+      'school_id',
+      'sign',
+    ];
+
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        throw new BadRequestException(`${field} is required`);
+      }
+    }
+
+    const {
+      student_email,
+      student_id,
+      student_name,
+      student_number,
+      school_id,
+      sign,
+    } = body;
+
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!school) {
+        throw new BadRequestException('INVALID school_id');
+      }
+      if (trustee_id.toString() !== school.trustee_id.toString()) {
+        throw new BadRequestException('Invalid School id');
+      }
+      if (!school.pg_key) {
+        throw new BadRequestException(
+          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        );
+      }
+      const decodedPayload = this.jwtService.verify(sign, {
+        secret: school.pg_key,
+      });
+
+      if (
+        decodedPayload.school_id !== school_id ||
+        decodedPayload.student_id !== student_id
+      ) {
+        throw new UnauthorizedException('Invalid SIGN');
+      }
+      const checkVirtualAccount = await this.VirtualAccountModel.findOne({
+        student_id,
+      });
+      if (checkVirtualAccount) {
+        throw new ConflictException(
+          'Students Virtual account is already created with student id ' +
+            student_id,
+        );
+      }
+
+      if (!school.cf_x_client_id || !school.cf_x_client_secret) {
+        throw new BadRequestException(
+          `Virtual account is not ennabled for your account. Kindly contact us at tarun.k@edviron.com.`,
+        );
+      }
+      const virtualAccountId =
+        await this.erpService.generateUniqueVirtualAccountId();
+      const virtualAccount = await this.VirtualAccountModel.create({
+        school_id: school.school_id,
+        trustee_id: school.trustee_id,
+        status: 'INITIATED',
+        student_email,
+        student_id,
+        student_name,
+        student_number,
+        notification_group: 'test',
+        gateway: 'CASHFREE',
+        virtual_account_id: virtualAccountId,
+      });
+      const token = await this.jwtService.sign(
+        { school_id: school_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/create-vba`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: {
+          cf_x_client_id: school.cf_x_client_id,
+          cf_x_clien_secret: school.cf_x_client_secret,
+          school_id,
+          token,
+          virtual_account_details: {
+            virtual_account_id: virtualAccount.virtual_account_id,
+            virtual_account_name: school.school_name,
+            virtual_account_email: school.email,
+            virtual_account_phone: school.phone_number,
+          },
+          notification_group: virtualAccount.notification_group || 'test',
+        },
+      };
+
+      const { data: response } = await axios.request(config);
+      const details = {
+        status: response.virtual_bank_accounts[0].status,
+        vba_account_number:
+          response.virtual_bank_accounts[0].vba_account_number,
+        vba_ifsc: response.virtual_bank_accounts[0].vba_ifsc,
+        vba_status: response.virtual_bank_accounts[0].vba_status,
+      };
+      virtualAccount.status = details.vba_status;
+      virtualAccount.virtual_account_number = details.vba_account_number;
+      virtualAccount.virtual_account_ifsc = details.vba_ifsc;
+      await virtualAccount.save();
+      return details;
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @Get('get-student-vba')
+  async getStudentVBA(@Req() req: any) {
+    const { student_id, school_id, token } = req.query;
+    try {
+      const decodedPayload = await this.jwtService.verify(token, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      if (decodedPayload.student_id !== student_id) {
+        throw new BadRequestException('Invalid token');
+      }
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        return {
+          isSchoolVBA: false,
+          isStudentVBA: false,
+          virtual_account_number: null,
+          virtual_account_ifsc: null,
+        };
+      }
+
+      if (!school.isVBAActive) {
+        return {
+          isSchoolVBA: false,
+          isStudentVBA: false,
+          virtual_account_number: null,
+          virtual_account_ifsc: null,
+        };
+      }
+      const virtualAccount = await this.VirtualAccountModel.findOne({
+        student_id,
+      });
+      if (!virtualAccount) {
+        return {
+          isSchoolVBA: true,
+          isStudentVBA: false,
+          virtual_account_number: null,
+          virtual_account_ifsc: null,
+        };
+      }
+
+      return {
+        isSchoolVBA: true,
+        isStudentVBA: true,
+        virtual_account_number: virtualAccount.virtual_account_number,
+        virtual_account_ifsc: virtualAccount.virtual_account_ifsc,
+      };
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
   }
 }

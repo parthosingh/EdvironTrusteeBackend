@@ -271,6 +271,11 @@ export class TrusteeSchool {
   @Field(() => Boolean, { defaultValue: false })
   advanceAdjustment: boolean;
 
+  
+  @Prop({})
+  @Field(() => Boolean, { defaultValue: false })
+  isVBAActive: boolean;
+
   @Field({ nullable: true })
   @Prop()
   logo: string;
@@ -324,6 +329,14 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => I_Worldline, { nullable: true })
   worldline: I_Worldline;
+
+  @Prop({})
+  @Field(() => String)
+  cf_x_client_id: string;
+
+  @Prop({})
+  @Field(() => String)
+  cf_x_client_secret: string;
 
   createdAt?: Date;
   updatedAt?: Date;

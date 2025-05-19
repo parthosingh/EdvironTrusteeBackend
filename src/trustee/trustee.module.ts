@@ -39,9 +39,16 @@ import {
   VendorsSettlementSchema,
 } from '../schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from '../schema/disputes.schema';
-import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
-import { TempSettlementReport, TempSettlementReportSchema } from '../schema/tempSettlements.schema';
+import {
+  Reconciliation,
+  ReconciliationSchema,
+} from '../schema/Reconciliation.schema';
+import {
+  TempSettlementReport,
+  TempSettlementReportSchema,
+} from '../schema/tempSettlements.schema';
 import { PdfService } from '../pdf-service/pdf-service.service';
+import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
 config();
 
 @Module({
@@ -92,6 +99,10 @@ config();
     ]),
     MongooseModule.forFeature([
       { name: TempSettlementReport.name, schema: TempSettlementReportSchema },
+    ]),
+
+    MongooseModule.forFeature([
+      { name: VirtualAccount.name, schema: VirtualAccountSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({

@@ -33,8 +33,12 @@ import {
 } from '../schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from '../schema/disputes.schema';
 import { Capture, CaptureSchema } from '../schema/capture.schema';
-import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
+import {
+  Reconciliation,
+  ReconciliationSchema,
+} from '../schema/Reconciliation.schema';
 import { WebhookLogs, WebhookLogsSchema } from '../schema/webhook.schema';
+import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
 
 @Module({
   imports: [
@@ -64,9 +68,9 @@ import { WebhookLogs, WebhookLogsSchema } from '../schema/webhook.schema';
     MongooseModule.forFeature([
       { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
     ]),
-     MongooseModule.forFeature([
-          { name: Reconciliation.name, schema: ReconciliationSchema },
-        ]),
+    MongooseModule.forFeature([
+      { name: Reconciliation.name, schema: ReconciliationSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_API_KEY,
@@ -86,12 +90,14 @@ import { WebhookLogs, WebhookLogsSchema } from '../schema/webhook.schema';
     MongooseModule.forFeature([
       { name: Disputes.name, schema: DisputesSchema },
     ]),
+    MongooseModule.forFeature([{ name: Capture.name, schema: CaptureSchema }]),
     MongooseModule.forFeature([
-      { name: Capture.name, schema: CaptureSchema },
+      { name: WebhookLogs.name, schema: WebhookLogsSchema },
     ]),
+
     MongooseModule.forFeature([
-          { name: WebhookLogs.name, schema: WebhookLogsSchema },
-        ]),
+      { name: VirtualAccount.name, schema: VirtualAccountSchema },
+    ]),
   ],
   providers: [
     ErpService,
