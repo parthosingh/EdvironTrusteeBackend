@@ -64,6 +64,7 @@ import {
   getDisputeReceivedEmailForUser,
 } from '../email/templates/dipute.template';
 import { EmailService } from '../email/email.service';
+import { VirtualAccount } from 'src/schema/virtual.account.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -212,6 +213,8 @@ export class TrusteeResolver {
     private TempSettlementReportModel: mongoose.Model<TempSettlementReport>,
     @InjectModel(Disputes.name)
     private DisputesModel: mongoose.Model<Disputes>,
+    @InjectModel(VirtualAccount.name)
+    private virtualAccSchema: mongoose.Model<VirtualAccount>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -651,6 +654,7 @@ export class TrusteeResolver {
     @Context() context,
     @Args('collect_id') collect_id: string,
     @Args('school_id', { nullable: true }) school_id?: string,
+    @Args('isVBAPaymentComplete', { nullable: true, defaultValue: false }) isVBAPaymentComplete?: boolean,
   ) {
     try {
       const trustee_id = context.req.trustee;
@@ -663,6 +667,16 @@ export class TrusteeResolver {
         collect_id,
         token,
       );
+
+      let vbaPayment;
+      if(isVBAPaymentComplete){
+        vbaPayment = await this.virtualAccSchema.findOne({
+          collect_id : collect_id
+        })
+        if(!vbaPayment){
+          throw new BadRequestException("vba payment not found")
+        }
+      }
 
       return await data.map(async (item: any) => {
         const school = await this.trusteeSchoolModel.findOne({
@@ -685,6 +699,9 @@ export class TrusteeResolver {
           school_name: school?.school_name,
           remarks: remark,
           custom_order_id: item?.custom_order_id || null,
+          virtual_account_number: vbaPayment?.virtual_account_number || null,
+          virtual_account_ifsc: vbaPayment?.virtual_account_ifsc || null,
+          virtual_account_id: vbaPayment?.virtual_account_id || null,
         };
       });
     } catch (error) {
@@ -3835,6 +3852,12 @@ export class TransactionReport {
   gateway?: string;
   @Field({ nullable: true })
   capture_status?: string;
+  @Field({ nullable: true })
+  virtual_account_id?: string;
+  @Field({ nullable: true })
+  virtual_account_number?: string;
+  @Field({ nullable: true })
+  virtual_account_ifsc?: string;
   @Field({ nullable: true })
   error_details?: Error_Details;
   @Field({ nullable: true })

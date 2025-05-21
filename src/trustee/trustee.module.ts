@@ -120,6 +120,9 @@ config();
     MongooseModule.forFeature([
       { name: 'SettlementReport', schema: SettlementSchema },
     ]),
+        MongooseModule.forFeature([
+      { name: VirtualAccount.name, schema: VirtualAccountSchema },
+    ]),
   ],
   controllers: [],
   providers: [
