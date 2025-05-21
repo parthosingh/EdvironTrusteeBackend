@@ -641,6 +641,28 @@ export class MainBackendController {
     }
   }
 
+  @Get('get-school-all-data')
+  async getSchoolAllData(@Query('token') token: string) {
+    try {
+      const decodedPayload = await this.jwtService.verify(token, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      const school = await this.mainBackendService.getSchool(
+        decodedPayload.school_id,
+      );
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      return {
+        email: school.email,
+        school_name:school.school_name
+      };
+    } catch (e) {
+      console.log(e.message);
+      throw new BadRequestException(e.message);
+    }
+  }
+
   @Post('update-refund-status')
   async updateRefundStatus(@Query('token') token: string) {
     const decodedPayload = await this.jwtService.verify(token, {

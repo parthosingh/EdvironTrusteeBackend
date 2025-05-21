@@ -3837,6 +3837,8 @@ export class TransactionReport {
   capture_status?: string;
   @Field({ nullable: true })
   error_details?: Error_Details;
+  @Field({ nullable: true })
+  isVBAPaymentComplete: boolean;
 }
 
 @ObjectType()
