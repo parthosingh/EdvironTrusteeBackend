@@ -3376,18 +3376,24 @@ export class ErpController {
 
   @Get('get-student-vba')
   async getStudentVBA(@Req() req: any) {
-    const { student_id, school_id, amount, collect_id, token } = req.query;
+    const { vba_account_number, school_id, amount, collect_id, token } = req.query;
     try {
+      console.log(
+        { vba_account_number, school_id, amount, collect_id, token }
+      );
+      
       const decodedPayload = await this.jwtService.verify(token, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
       });
-      if (decodedPayload.student_id !== student_id) {
+      if (decodedPayload.vba_account_number !== vba_account_number) {
         throw new BadRequestException('Invalid token');
       }
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
       if (!school) {
+        console.log('not school');
+        
         return {
           isSchoolVBA: false,
           isStudentVBA: false,
@@ -3425,7 +3431,7 @@ export class ErpController {
         };
       }
       const virtualAccount = await this.VirtualAccountModel.findOne({
-        student_id,
+        virtual_account_number: vba_account_number,
       });
       if (!virtualAccount) {
         return {
