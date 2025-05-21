@@ -1209,8 +1209,8 @@ export class ErpService {
           virtual_account_details: {
             virtual_account_id: virtualAccount.virtual_account_id,
             virtual_account_name: school.school_name,
-            virtual_account_email: school.email,
-            virtual_account_phone: school.phone_number,
+            virtual_account_email: 'kyc@edviron.com',
+            virtual_account_phone: '0000000000',
           },
           notification_group: virtualAccount.notification_group || 'test',
           amount:finalAmount

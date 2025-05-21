@@ -3376,7 +3376,7 @@ export class ErpController {
 
   @Get('get-student-vba')
   async getStudentVBA(@Req() req: any) {
-    const { student_id, school_id, token } = req.query;
+    const { student_id, school_id, amount, collect_id, token } = req.query;
     try {
       const decodedPayload = await this.jwtService.verify(token, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
@@ -3391,17 +3391,37 @@ export class ErpController {
         return {
           isSchoolVBA: false,
           isStudentVBA: false,
-          virtual_account_number: null,
-          virtual_account_ifsc: null,
+          virtual_account_number: '',
+          virtual_account_ifsc: '',
+          finalAmount: 0,
+          beneficiary_bank_and_address: '',
+          beneficiary_name: '',
+          refrence_no: collect_id,
+          transaction_id: collect_id,
+          cutomer_name: '',
+          cutomer_no: '',
+          customer_email: '',
+          customer_id: '',
         };
       }
-
+      const beneficiary_bank_and_address =
+        school.bank_details?.beneficiary_bank_and_address || 'NA';
+      const beneficiary_name = school.school_name;
       if (!school.isVBAActive) {
         return {
           isSchoolVBA: false,
           isStudentVBA: false,
-          virtual_account_number: null,
-          virtual_account_ifsc: null,
+          virtual_account_number: '',
+          virtual_account_ifsc: '',
+          finalAmount: 0,
+          beneficiary_bank_and_address,
+          beneficiary_name,
+          refrence_no: collect_id,
+          transaction_id: collect_id,
+          cutomer_name: '',
+          cutomer_no: '',
+          customer_email: '',
+          customer_id: '',
         };
       }
       const virtualAccount = await this.VirtualAccountModel.findOne({
@@ -3411,16 +3431,40 @@ export class ErpController {
         return {
           isSchoolVBA: true,
           isStudentVBA: false,
-          virtual_account_number: null,
-          virtual_account_ifsc: null,
+          virtual_account_number: '',
+          virtual_account_ifsc: '',
+          finalAmount: 0,
+          beneficiary_bank_and_address,
+          beneficiary_name,
+          refrence_no: collect_id,
+          transaction_id: collect_id,
+          cutomer_name: '',
+          cutomer_no: '',
+          customer_email: '',
+          customer_id: '',
         };
       }
-
+      const platformCharge = await this.erpService.getPlatformCharge(
+        school_id,
+        'vba',
+        'Others',
+        amount,
+      );
+      const finalAmount = amount + platformCharge * 1.18;
       return {
         isSchoolVBA: true,
         isStudentVBA: true,
         virtual_account_number: virtualAccount.virtual_account_number,
         virtual_account_ifsc: virtualAccount.virtual_account_ifsc,
+        finalAmount,
+        beneficiary_bank_and_address,
+        beneficiary_name,
+        refrence_no: collect_id,
+        transaction_id: collect_id,
+        cutomer_name: virtualAccount.student_name,
+        cutomer_no: virtualAccount.student_number,
+        customer_email: virtualAccount.student_email,
+        customer_id: virtualAccount.student_id,
       };
     } catch (e) {
       throw new BadRequestException(e.message);

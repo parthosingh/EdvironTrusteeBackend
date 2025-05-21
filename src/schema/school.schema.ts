@@ -107,6 +107,10 @@ export class bank_Details {
   @Field(() => String, { nullable: true })
   @Prop()
   ifsc_code: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop()
+  beneficiary_bank_and_address: string;
 }
 
 @ObjectType()
