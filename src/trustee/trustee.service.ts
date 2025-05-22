@@ -43,6 +43,9 @@ import {
   VENDOR_CREATE_ALERT_EMAIL,
 } from '../utils/email.group';
 import { generateVendorRequestEmailTemplate } from '../email/templates/vendor_creat_alert.template';
+import { EmailGroup } from 'src/schema/email.schema';
+import { EmailEvent } from 'src/schema/email.events.schema';
+import { getAdminEmailTemplate } from 'src/email/templates/dipute.template';
 
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
@@ -86,6 +89,10 @@ export class TrusteeService {
     private DisputesModel: mongoose.Model<Disputes>,
     @InjectModel(Reconciliation.name)
     private ReconciliationModel: mongoose.Model<Reconciliation>,
+    @InjectModel(EmailGroup.name)
+    private EmailGroupModel: mongoose.Model<EmailGroup>,
+    @InjectModel(EmailEvent.name)
+    private EmailEventModel: mongoose.Model<EmailEvent>,
   ) { }
 
   async loginAndGenerateToken(
@@ -2903,6 +2910,35 @@ export class TrusteeService {
         error.message || 'Something went wrong',
       );
     }
+  }
+
+  async getMails(
+    school_id: string,
+    event_name: string
+  ) {
+    try {
+      const event = await this.EmailEventModel.findOne({ event_name: event_name })
+      if (!event) {
+        throw new BadRequestException('Event Not found')
+      }
+      const emailGroups = await this.EmailGroupModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+        event_id: event._id
+      })
+
+      return {
+        email: emailGroups.emails || [],
+        cc: emailGroups.cc || ['tarun.k@edviron.com']
+      }
+    } catch (e) {
+      throw new BadRequestException('Error in getting mail')
+    }
+  }
+
+  async generateDisputePDF(dispute: Disputes, isClosed = false) {
+    const html = getAdminEmailTemplate(dispute, isClosed);
+    return html
+    // Use a library to convert HTML to PDF Buffer (example: puppeteer)
   }
 
 }

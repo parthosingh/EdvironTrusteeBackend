@@ -39,6 +39,8 @@ import {
 } from '../schema/Reconciliation.schema';
 import { WebhookLogs, WebhookLogsSchema } from '../schema/webhook.schema';
 import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
+import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
+import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 
 @Module({
   imports: [
@@ -98,6 +100,12 @@ import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account
     MongooseModule.forFeature([
       { name: VirtualAccount.name, schema: VirtualAccountSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: EmailGroup.name, schema: EmailGroupSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: EmailEvent.name, schema: EmailEventSchema },
+    ]),
   ],
   providers: [
     ErpService,
@@ -108,4 +116,4 @@ import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account
   ],
   controllers: [ErpController],
 })
-export class ErpModule {}
+export class ErpModule { }

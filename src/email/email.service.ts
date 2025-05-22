@@ -293,4 +293,21 @@ export class EmailService {
       console.error('Error sending email:', error);
     }
   }
+
+  async sendAlertMail2(
+    subject: string,
+    htmlBody: string,
+    to: string[],
+    cc?: string[],
+    attachments?: any
+  ) {
+    await this.transporter.sendMail({
+      to,
+      cc: cc || [],
+      subject,
+      html: htmlBody,
+      attachments: attachments || [],
+    });
+  }
+
 }

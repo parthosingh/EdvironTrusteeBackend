@@ -8,14 +8,14 @@ export enum EmailGroupType {
   OBSERVERS = 'OBSERVERS',
   GATEWAYS = 'GATEWAYS',
   DISPUTE = 'DISPUTE',
-  TRUSTEE_DISPUTE='TRUSTEE_DISPUTE',
-  TRUSTEE='TRUSTEE',
-  SCHOOL='SCHOOL',
+  TRUSTEE_DISPUTE = 'TRUSTEE_DISPUTE',
+  TRUSTEE = 'TRUSTEE',
+  SCHOOL = 'SCHOOL',
 }
 
 @Schema({ timestamps: true })
 export class EmailGroup {
-  @Prop({  })
+  @Prop({})
   @Field(() => String)
   group_name: string;
 
@@ -38,6 +38,10 @@ export class EmailGroup {
   @Prop({})
   @Field(() => Boolean, { defaultValue: false })
   isCommon: boolean;
+
+  @Prop({ type: [String] })
+  @Field(() => String)
+  cc: string[];
 }
 
 export const EmailGroupSchema = SchemaFactory.createForClass(EmailGroup);

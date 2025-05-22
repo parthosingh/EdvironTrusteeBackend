@@ -178,6 +178,9 @@ export class UploadedFile {
 
   @Field({ nullable: true })
   name?: string;
+
+  @Field({ nullable: true })
+  preview?: string;
 }
 
 @Resolver('Trustee')
@@ -215,7 +218,7 @@ export class TrusteeResolver {
     private DisputesModel: mongoose.Model<Disputes>,
     @InjectModel(VirtualAccount.name)
     private virtualAccSchema: mongoose.Model<VirtualAccount>,
-  ) {}
+  ) { }
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -669,11 +672,11 @@ export class TrusteeResolver {
       );
 
       let vbaPayment;
-      if(isVBAPaymentComplete){
+      if (isVBAPaymentComplete) {
         vbaPayment = await this.virtualAccSchema.findOne({
-          collect_id : collect_id
+          collect_id: collect_id
         })
-        if(!vbaPayment){
+        if (!vbaPayment) {
           throw new BadRequestException("vba payment not found")
         }
       }
@@ -1359,22 +1362,22 @@ export class TrusteeResolver {
   async sendOtp(@Args('type') type: string, @Context() context) {
     const id = context.req.trustee;
     const role = context.req.role;
-    if (role !== 'owner' && role!=='developer') {
+    if (role !== 'owner' && role !== 'developer') {
       throw new UnauthorizedException(
         'You are not Authorized to perform this action',
       );
     }
     let trustee = await this.trusteeModel.findById(id);
     if (!trustee) {
-      const member=await this.trusteeMemberModel.findById(id)
-      if(!member){
+      const member = await this.trusteeMemberModel.findById(id)
+      if (!member) {
         throw new NotFoundException('Account not found Not Found');
       }
-      const trusteenew=await this.trusteeModel.findById(member.trustee_id)
-      if(!trusteenew){
+      const trusteenew = await this.trusteeModel.findById(member.trustee_id)
+      if (!trusteenew) {
         throw new NotFoundException('Account not found Not Found');
       }
-      trustee=trusteenew
+      trustee = trusteenew
     }
 
     const email = trustee.email_id;
@@ -2785,9 +2788,9 @@ export class TrusteeResolver {
       const trustee_id = context.req.trustee;
       const trustee = await this.trusteeModel.findById(trustee_id);
       if (!trustee) throw new NotFoundException('Trustee not found');
-      const collectObjectId = new Types.ObjectId(collect_id);
+      // const collectObjectId = new Types.ObjectId(collect_id);
       const disputDetails = await this.DisputesModel.findOne({
-        collect_id: collectObjectId,
+        collect_id: collect_id,
       });
 
       if (!disputDetails) {
@@ -2797,44 +2800,46 @@ export class TrusteeResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-              files
-                .map(async (data) => {
-                  try {
-                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                    if (!matches || matches.length !== 3) {
-                      throw new Error('Invalid base64 file format.');
-                    }
-
-                    const contentType = matches[1];
-                    const base64Data = matches[2];
-                    const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                    const last4DigitsOfMs = Date.now().toString().slice(-4);
-                    const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
-
-                    const file_url = await this.awsS3Service.uploadToS3(
-                      fileBuffer,
-                      key,
-                      contentType,
-                      'disputes-docs',
-                    );
-
-                    return {
-                      document_type: data.extension,
-                      file_url,
-                    };
-                  } catch (error) {
-                    throw new InternalServerErrorException(
-                      error.message || 'File upload failed',
-                    );
+            files
+              .map(async (data) => {
+                try {
+                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                  if (!matches || matches.length !== 3) {
+                    throw new Error('Invalid base64 file format.');
                   }
-                })
-                .filter((file) => file !== null),
-            )
+
+                  const contentType = matches[1];
+                  const base64Data = matches[2];
+                  const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                  const last4DigitsOfMs = Date.now().toString().slice(-4);
+                  const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
+
+                  const file_url = await this.awsS3Service.uploadToS3(
+                    fileBuffer,
+                    key,
+                    contentType,
+                    'disputes-docs',
+                  );
+
+                  return {
+                    document_type: data.extension,
+                    file_url,
+                    name : data.name
+                  };
+                } catch (error) {
+                  throw new InternalServerErrorException(
+                    error.message || 'File upload failed',
+                  );
+                }
+              })
+              .filter((file) => file !== null),
+          )
           : [];
-      await this.DisputesModel.findOneAndUpdate(
-        { dispute_id: disputDetails.dispute_id },
+
+     const dusputeUpdate =  await this.DisputesModel.findOneAndUpdate(
+        { _id: disputDetails._id },
         {
           $push: { documents: { $each: uploadedFiles } },
           dispute_status: 'REQUEST_INITIATED',
@@ -2850,25 +2855,43 @@ export class TrusteeResolver {
           documents: uploadedFiles,
         });
       } else {
-        const school_details = await this.trusteeSchoolModel.findById(
-          disputDetails.school_id,
-        );
-
-        await this.trusteeService.handleCashfreeDispute({
-          dispute_id: disputDetails.dispute_id,
-          action,
-          documents:
-            files.length > 0
-              ? [
-                  {
-                    file: files[0].file,
-                    doc_type: uploadedFiles[0].document_type,
-                    note: files[0]?.description || '',
-                  },
-                ]
-              : [],
-          client_id: school_details.client_id,
+        const school_details = await this.trusteeSchoolModel.findOne({
+          school_id: disputDetails.school_id,
         });
+
+        if (!school_details) {
+          throw new NotFoundException('School details not found');
+        }
+        // await this.trusteeService.handleCashfreeDispute({
+        //   dispute_id: disputDetails.dispute_id,
+        //   action,
+        //   documents:
+        //     files.length > 0
+        //       ? [
+        //         {
+        //           file: files[0].file,
+        //           doc_type: uploadedFiles[0].document_type,
+        //           note: files[0]?.description || '',
+        //         },
+        //       ]
+        //       : [],
+        //   client_id: school_details?.client_id || null,
+        // });
+
+        const { email, cc } = await this.trusteeService.getMails(disputDetails.school_id.toString(), "DISPUTE")
+
+        const htmlBody = await this.trusteeService.generateDisputePDF(disputDetails)
+
+        const subject = `A dispute has been raised against ${school_details.school_name}`
+
+        await this.emailService.sendAlertMail2(
+          subject,
+          htmlBody,
+          email,
+          cc,
+          dusputeUpdate.documents
+        )
+
       }
       const teamMailSubject = `Dispute documents received for dispute id: ${disputDetails.dispute_id}`;
 
@@ -2891,32 +2914,35 @@ export class TrusteeResolver {
       //   uploadedFiles,
       // );
 
+      console.log('before return')
+
       return { success: true, message: 'Files uploaded successfully' };
     } catch (error) {
-      const disputDetails = await this.DisputesModel.findOne({
-        collect_id: new Types.ObjectId(collect_id),
-      });
-      if (disputDetails) {
-        if (uploadedFiles.length > 0) {
-          await Promise.all([
-            ...uploadedFiles.map(async (file) => {
-              const bucketName = file.file_url.split('//')[1].split('.')[0];
-              const key = file.file_url.split('.com/')[1];
-              await this.awsS3Service.deleteFromS3(key, bucketName);
-            }),
-            this.DisputesModel.updateOne(
-              { collect_id: new Types.ObjectId(collect_id) },
-              {
-                $pull: {
-                  documents: {
-                    file_url: { $in: uploadedFiles.map((f) => f.file_url) },
-                  },
-                },
-              },
-            ),
-          ]);
-        }
-      }
+      // const disputDetails = await this.DisputesModel.findOne({
+      //   collect_id: new Types.ObjectId(collect_id),
+      // });
+      // if (disputDetails) {
+      //   if (uploadedFiles.length > 0) {
+      //     await Promise.all([
+      //       ...uploadedFiles.map(async (file) => {
+      //         const bucketName = file.file_url.split('//')[1].split('.')[0];
+      //         const key = file.file_url.split('.com/')[1];
+      //         await this.awsS3Service.deleteFromS3(key, bucketName);
+      //       }),
+      //       this.DisputesModel.updateOne(
+      //         { collect_id: new Types.ObjectId(collect_id) },
+      //         {
+      //           $pull: {
+      //             documents: {
+      //               file_url: { $in: uploadedFiles.map((f) => f.file_url) },
+      //             },
+      //           },
+      //         },
+      //       ),
+      //     ]);
+      //   }
+      // }
+      console.log(error)
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -2937,7 +2963,7 @@ export class TrusteeResolver {
       if (!url) {
         throw new NotFoundException('Url Not Found');
       }
-      const token = this.jwtService.sign({trustee_id:trustee_id.toString()}, {
+      const token = this.jwtService.sign({ trustee_id: trustee_id.toString() }, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
       });
 

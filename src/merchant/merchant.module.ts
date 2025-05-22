@@ -28,6 +28,8 @@ import {
 } from '../schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from '../schema/disputes.schema';
 import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
+import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
+import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 
 @Module({
   imports: [
@@ -78,6 +80,12 @@ import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.s
     MongooseModule.forFeature([
       { name: 'SettlementReport', schema: SettlementSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: EmailGroup.name, schema: EmailGroupSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: EmailEvent.name, schema: EmailEventSchema },
+    ]),
   ],
   controllers: [],
   providers: [
@@ -90,4 +98,4 @@ import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.s
   ],
   exports: [MerchantService],
 })
-export class MerchantModule {}
+export class MerchantModule { }

@@ -17,6 +17,10 @@ export class DisputeDocument {
 
   @Field()
   file_url: string;
+
+  
+  @Field()
+  name: string;
 }
 
 @ObjectType()
@@ -106,7 +110,7 @@ export class Disputes extends Document {
   case_id: string;
 
   @Field(() => [DisputeDocument], { nullable: true })
-  @Prop({ type: [{ document_type: String, file_url: String }] })
+  @Prop()
   documents?: Array<DisputeDocument>;
 }
 

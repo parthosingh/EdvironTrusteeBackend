@@ -49,6 +49,8 @@ import {
 } from '../schema/tempSettlements.schema';
 import { PdfService } from '../pdf-service/pdf-service.service';
 import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
+import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
+import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 config();
 
 @Module({
@@ -123,6 +125,12 @@ config();
         MongooseModule.forFeature([
       { name: VirtualAccount.name, schema: VirtualAccountSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: EmailGroup.name, schema: EmailGroupSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: EmailEvent.name, schema: EmailEventSchema },
+    ]),
   ],
   controllers: [],
   providers: [
