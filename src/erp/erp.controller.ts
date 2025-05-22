@@ -3456,7 +3456,7 @@ export class ErpController {
         'Others',
         amount,
       );
-      const finalAmount = amount + platformCharge * 1.18;
+      const finalAmount = Number(amount) + platformCharge * 1.18;
       return {
         isSchoolVBA: true,
         isStudentVBA: true,
