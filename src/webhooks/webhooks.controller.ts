@@ -858,13 +858,18 @@ export class WebhooksController {
         //   school.trustee_id,
         // );
         const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
-        const innerMailTemp = getAdminEmailTemplate(dispute, false);
-        // const userMailTemp = getCustomerEmailTemplate(
-        //   dispute,
-        //   school.school_name,
-        //   false,
-        // );
-        this.emailService.sendErrorMail(subject, innerMailTemp);
+        const htmlBody = 'Please find the attached receipt for dispute details.';
+        
+        // Generate PDF buffer (you need to implement this part)
+        const pdfBuffer = await this.generateDisputePDF(dispute, false);
+        
+        this.emailService.sendErrorMail2(subject, htmlBody, [
+          {
+            filename: `Dispute-${dispute.dispute_id}.pdf`,
+            content: pdfBuffer,
+          },
+        ]);
+        
 
         // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
 
@@ -920,7 +925,14 @@ export class WebhooksController {
       res.status(200).send('OK');
     } catch (e) {
       console.log(e.message);
+      throw new BadRequestException(e.message)
     }
+  }
+
+  
+  async generateDisputePDF(dispute: Disputes, isClosed = false) {
+    const html = getAdminEmailTemplate(dispute, isClosed);
+    // Use a library to convert HTML to PDF Buffer (example: puppeteer)
   }
 
   @Post('easebuzz/dispute-webhooks')
@@ -1264,32 +1276,32 @@ export class WebhooksController {
 const payloadTest = {
   data: {
     dispute: {
-      dispute_id: '433475257',
+      dispute_id: '377208',
       dispute_type: 'CHARGEBACK',
       reason_code: '4855',
       reason_description: 'Goods or Services Not Provided',
-      dispute_amount: 4500,
-      created_at: '2023-06-15T21:16:03+05:30',
-      updated_at: '2023-06-15T21:16:51+05:30',
-      respond_by: '2023-06-18T00:00:00+05:30',
-      resolved_at: '2023-06-15T21:16:51.682836678+05:30',
-      dispute_status: 'CHARGEBACK_MERCHANT_WON',
-      cf_dispute_remarks: 'Chargeback won by merchant',
+      dispute_amount: 13849,
+      created_at: '2025-05-20T21:16:03+05:30',
+      updated_at: '2025-05-20T21:16:51+05:30',
+      respond_by: '2025-05-23T00:00:00+05:30',
+      // resolved_at: '2023-06-15T21:16:51.682836678+05:30',
+      dispute_status: 'DISPUTE_CREATED',
+      cf_dispute_remarks: '4853-Cardholder Disputes',
     },
     order_details: {
-      order_id: 'order_1944392D4jHtCeVPPdTXkaUwg5cfnujQe',
-      order_amount: 4500,
+      order_id: '681ddea8d4dca49136ad7d17',
+      order_amount: 13790,
       order_currency: 'INR',
       cf_payment_id: 885457437,
-      payment_amount: 4500,
+      payment_amount: 13849,
       payment_currency: 'INR',
     },
     customer_details: {
-      customer_name: 'Dileep Kumar s',
-      customer_phone: '8000000000',
-      customer_email: 'dileep@gmail.com',
+      customer_name: 'EDVIRON',
+      customer_phone: '9898989898',
+      customer_email: '',
     },
   },
   event_time: '2023-06-15T21:17:14+05:30',
-  type: 'DISPUTE_CLOSED',
+  type: 'DISPUTE_CREATED',
 };

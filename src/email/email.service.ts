@@ -177,6 +177,17 @@ export class EmailService {
     });
   }
 
+  async sendErrorMail2(subject: string, htmlBody: string, attachments?: any[]) {
+    await this.transporter.sendMail({
+      to: 'admin@example.com',
+      subject,
+      html: htmlBody,
+      attachments: attachments || [],
+    });
+  }
+
+  
+
   sendMailToTrustee(subject: string, body: string, emails: Array<string>) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
