@@ -3456,7 +3456,7 @@ export class ErpController {
         'Others',
         amount,
       );
-      const finalAmount = Number(amount) + platformCharge * 1.18;
+      const finalAmount = virtualAccount.max_amount;
       return {
         isSchoolVBA: true,
         isStudentVBA: true,

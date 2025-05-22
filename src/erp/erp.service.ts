@@ -1188,8 +1188,8 @@ export class ErpService {
         notification_group: 'test',
         gateway: 'CASHFREE',
         virtual_account_id: virtualAccountId,
-        min_amount:finalAmount,
-        max_amount:finalAmount
+        min_amount:finalAmount.toFixed(2),
+        max_amount:finalAmount.toFixed(2)
       });
       const token = await this.jwtService.sign(
         { school_id: school_id },
@@ -1213,7 +1213,7 @@ export class ErpService {
             virtual_account_phone: '0000000000',
           },
           notification_group: virtualAccount.notification_group || 'test',
-          amount:finalAmount
+          amount:finalAmount.toFixed(2)
         },
       };
 
