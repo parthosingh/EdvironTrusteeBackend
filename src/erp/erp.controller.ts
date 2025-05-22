@@ -3400,7 +3400,7 @@ export class ErpController {
           virtual_account_number: '',
           virtual_account_ifsc: '',
           finalAmount: 0,
-          beneficiary_bank_and_address: '',
+          beneficiary_bank_and_address: 'AXIS BANK,5TH FLOOR, GIGAPLEX, AIROLI KNOWLEDGE PARK, AIROLI, MUMBAI',
           beneficiary_name: '',
           refrence_no: collect_id,
           transaction_id: collect_id,
@@ -3411,7 +3411,7 @@ export class ErpController {
         };
       }
       const beneficiary_bank_and_address =
-        school.bank_details?.beneficiary_bank_and_address || 'NA';
+       'AXIS BANK,5TH FLOOR, GIGAPLEX, AIROLI KNOWLEDGE PARK, AIROLI, MUMBAI';
       const beneficiary_name = school.school_name;
       if (!school.isVBAActive) {
         return {
