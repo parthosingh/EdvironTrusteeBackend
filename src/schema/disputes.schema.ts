@@ -12,15 +12,14 @@ export enum DisputeGateways {
 
 @ObjectType()
 export class DisputeDocument {
-  @Field()
-  document_type: string;
+  @Field({ nullable: true })
+  file_url?: string;
 
-  @Field()
-  file_url: string;
+  @Field({ nullable: true })
+  name?: string;
 
-  
-  @Field()
-  name: string;
+  @Field({ nullable: true })
+  document_type?: string;
 }
 
 @ObjectType()
@@ -110,8 +109,8 @@ export class Disputes extends Document {
   case_id: string;
 
   @Field(() => [DisputeDocument], { nullable: true })
-  @Prop()
-  documents?: Array<DisputeDocument>;
+  @Prop({ type: [DisputeDocument], default: [] })
+  documents?: DisputeDocument[];
 }
 
 export const DisputesSchema = SchemaFactory.createForClass(Disputes);
