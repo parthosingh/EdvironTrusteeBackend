@@ -7,7 +7,7 @@ import { htmlToSend } from '../business-alarm/templates/htmlToSend.format';
 import { SETTLEMENT_ERROR_EMAIL } from '../utils/email.group';
 import { sendEnablePgInfotemp } from './templates/enable.pg.template';
 import { sendQueryErrortemplate } from './templates/error.template';
-
+import axios from 'axios';
 @Injectable()
 export class EmailService {
   transporter: any;
@@ -301,13 +301,37 @@ export class EmailService {
     cc?: string[],
     attachments?: any
   ) {
-    await this.transporter.sendMail({
-      to,
-      cc: cc || [],
-      subject,
-      html: htmlBody,
-      attachments: attachments || [],
-    });
+    const formattedAttachments = [];
+
+  if (attachments && attachments.length > 0) {
+    for (const attachment of attachments) {
+      try {
+        const response = await axios.get(attachment.file_url, {
+          responseType: 'arraybuffer',
+        });
+
+        formattedAttachments.push({
+          filename: attachment.name,
+          content: Buffer.from(response.data),
+          contentType: response.headers['content-type'],
+        });
+      } catch (error) {
+        console.error(
+          `Failed to fetch attachment from ${attachment.file_url}`,
+          error
+        );
+        // Optionally skip or throw depending on your tolerance for missing files
+      }
+    }
+  }
+
+  await this.transporter.sendMail({
+    to,
+    cc: cc || [],
+    subject,
+    html: htmlBody,
+    attachments: formattedAttachments,
+  });
   }
 
 }
