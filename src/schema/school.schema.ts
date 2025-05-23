@@ -31,6 +31,10 @@ export enum MerchantStatus {
 interface I_NTT_DATA {
   nttdata_id: string;
   nttdata_secret: string;
+  nttdata_hash_req_key: string;
+  nttdata_hash_res_key: string;
+  nttdata_res_salt: string;
+  nttdata_req_salt: string;
 }
 
 @ObjectType()
@@ -325,6 +329,10 @@ export class TrusteeSchool {
     type: {
       nttdata_id: { type: String, required: false, default: null },
       nttdata_secret: { type: String, required: false, default: null },
+      nttdata_hash_req_key: { type: String, required: false, default: null },
+      nttdata_hash_res_key: { type: String, required: false, default: null },
+      nttdata_res_salt: { type: String, required: false, default: null },
+      nttdata_req_salt: { type: String, required: false, default: null },
     },
     _id: false,
   })

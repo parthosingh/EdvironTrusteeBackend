@@ -588,6 +588,16 @@ export class ErpController {
         pay_u_salt: school.pay_u_salt || null,
         nttdata_id: school?.ntt_data?.nttdata_id || null,
         nttdata_secret: school?.ntt_data?.nttdata_secret || null,
+        nttdata_hash_req_key: school?.ntt_data?.nttdata_hash_req_key || null,
+        nttdata_hash_res_key: school?.ntt_data?.nttdata_hash_res_key || null,
+        nttdata_res_salt: school?.ntt_data?.nttdata_res_salt || null,
+        nttdata_req_salt: school?.ntt_data?.nttdata_req_salt || null,
+        worldline_merchant_id:
+          school?.worldline?.merchant_code || null,
+        worldline_encryption_key:
+          school?.worldline?.encryption_key || null,
+        worldline_encryption_iV:
+          school?.worldline?.encryption_iV || null,
         worldline_merchant_id: school?.worldline?.merchant_code || null,
         worldline_encryption_key: school?.worldline?.encryption_key || null,
         worldline_encryption_iV: school?.worldline?.encryption_iV || null,
