@@ -31,7 +31,7 @@ export function getAdminEmailTemplate(
 
     <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
       ${generateTableRow('Dispute ID', dispute_id)}
-      ${generateTableRow('Collect ID', collect_id)}
+      ${generateTableRow('Order ID', collect_id)}
       ${generateTableRow('Dispute Type', dispute_type)}
       ${generateTableRow('Reason', reason_description)}
       ${generateTableRow('Dispute Amount', `₹${dispute_amount}`)}

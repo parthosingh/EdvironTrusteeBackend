@@ -342,6 +342,11 @@ export class TrusteeSchool {
   @Field(() => String)
   cf_x_client_secret: string;
 
+  
+  @Prop({})
+  @Field(() => String,{ nullable: true })
+  kyc_mail: string;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

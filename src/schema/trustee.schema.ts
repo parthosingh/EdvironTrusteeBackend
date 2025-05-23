@@ -119,6 +119,7 @@ export class Trustee extends Document {
   @Field(() => String,{ nullable: true })
   webhook_key: string;
 
+
 }
 
 export const TrusteeSchema = SchemaFactory.createForClass(Trustee);

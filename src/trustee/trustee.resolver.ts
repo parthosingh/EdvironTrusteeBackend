@@ -2882,7 +2882,7 @@ export class TrusteeResolver {
 
         const htmlBody = await this.trusteeService.generateDisputePDF(disputDetails)
 
-        const subject = `A dispute has been raised against ${school_details.school_name}`
+        const subject = `A dispute has been raised against ${school_details.school_name} : (${school_details.kyc_mail})`
 
         await this.emailService.sendAlertMail2(
           subject,
