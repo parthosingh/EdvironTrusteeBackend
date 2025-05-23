@@ -598,9 +598,6 @@ export class ErpController {
           school?.worldline?.encryption_key || null,
         worldline_encryption_iV:
           school?.worldline?.encryption_iV || null,
-        worldline_merchant_id: school?.worldline?.merchant_code || null,
-        worldline_encryption_key: school?.worldline?.encryption_key || null,
-        worldline_encryption_iV: school?.worldline?.encryption_iV || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
         disabled_modes: disabled_modes || null,
