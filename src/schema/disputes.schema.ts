@@ -46,6 +46,14 @@ export class Disputes extends Document {
 
   @Field({ nullable: true })
   @Prop()
+  school_name: string;
+
+  @Field({ nullable: true })
+  @Prop()
+  student_name: string;
+
+  @Field({ nullable: true })
+  @Prop()
   dispute_id: string;
 
   @Field({ nullable: true })
