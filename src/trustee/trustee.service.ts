@@ -2664,6 +2664,7 @@ export class TrusteeService {
     school_id?: string,
     order_id?: string,
     custom_id?: string,
+    dispute_id?: string,
     start_date?: string,
     end_date?: string,
     status?: string,
@@ -2673,7 +2674,8 @@ export class TrusteeService {
         trustee_id: new Types.ObjectId(trustee_id),
         ...(school_id && { school_id: new Types.ObjectId(school_id) }),
         ...(order_id && { collect_id: order_id }),
-        ...(custom_id && { custom_id }),
+        ...(custom_id && { custom_order_id :custom_id }),
+        ...(dispute_id && { dispute_id :dispute_id }),
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {

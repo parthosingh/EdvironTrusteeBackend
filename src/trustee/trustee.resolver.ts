@@ -2631,6 +2631,8 @@ export class TrusteeResolver {
     collect_id: string,
     @Args('custom_id', { type: () => String, nullable: true })
     custom_id: string,
+    @Args('dispute_id', { type: () => String, nullable: true })
+    dispute_id: string,
     @Args('startDate', { type: () => String, nullable: true })
     startDate: string,
     @Args('endDate', { type: () => String, nullable: true }) endDate: string,
@@ -2645,6 +2647,7 @@ export class TrusteeResolver {
         school_id,
         collect_id,
         custom_id,
+        dispute_id,
         startDate,
         endDate,
         dispute_status,
