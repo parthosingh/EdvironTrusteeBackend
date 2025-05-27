@@ -116,6 +116,10 @@ export class Disputes extends Document {
   @Prop()
   case_id: string;
 
+  @Field({ nullable: true })
+  @Prop()
+  bank_reference: string;
+
   @Field(() => [DisputeDocument], { nullable: true })
   @Prop({ type: [DisputeDocument], default: [] })
   documents?: DisputeDocument[];
