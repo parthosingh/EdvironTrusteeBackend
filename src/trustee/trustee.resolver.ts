@@ -2842,7 +2842,7 @@ export class TrusteeResolver {
           : [];
 
      const dusputeUpdate =  await this.DisputesModel.findOneAndUpdate(
-        { _id: disputDetails._id },
+        { dispute_id: disputDetails.dispute_id },
         {
           $push: { documents: { $each: uploadedFiles } },
           dispute_status: 'REQUEST_INITIATED',

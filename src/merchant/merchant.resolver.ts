@@ -58,6 +58,7 @@ import { VendorsSettlement } from '../schema/vendor.settlements.schema';
 import { EmailService } from '../email/email.service';
 import { DisputeGateways, Disputes } from '../schema/disputes.schema';
 import { AwsS3Service } from '../aws.s3/aws.s3.service';
+import { getDisputeReceivedEmailForTeam } from 'src/email/templates/dipute.template';
 
 @InputType()
 export class SplitRefundDetails {
@@ -88,7 +89,7 @@ export class MerchantResolver {
     private DisputesModel: mongoose.Model<Disputes>,
     private emailService: EmailService,
     private readonly awsS3Service: AwsS3Service,
-  ) {}
+  ) { }
   // private emailService: EmailService,
   // ) { }
 
@@ -960,8 +961,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+          refundableAmount +
+          'Rs',
         );
       }
     }
@@ -1088,11 +1089,11 @@ export class MerchantResolver {
       ...(vendor_id && { vendor_id }),
       ...(startDate &&
         endDate && {
-          updatedAt: {
-            $gte: new Date(startDate),
-            $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
-          },
-        }),
+        updatedAt: {
+          $gte: new Date(startDate),
+          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     console.log(query, ':query');
@@ -1231,11 +1232,11 @@ export class MerchantResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-          settled_on: {
-            $gte: new Date(start_date),
-            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-          },
-        }),
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -1286,7 +1287,7 @@ export class MerchantResolver {
     if (
       checkRefundRequest &&
       checkRefundRequest.split_refund_details[0]?.vendor_id ===
-        split_refund_details[0].vendor_id &&
+      split_refund_details[0].vendor_id &&
       checkRefundRequest.status === refund_status.INITIATED
     ) {
       throw new ConflictException(
@@ -1326,8 +1327,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+          refundableAmount +
+          'Rs',
         );
       }
     }
@@ -1395,6 +1396,8 @@ export class MerchantResolver {
     collect_id: string,
     @Args('custom_id', { type: () => String, nullable: true })
     custom_id: string,
+    @Args('dispute_id', { type: () => String, nullable: true })
+    dispute_id: string,
     @Args('startDate', { type: () => String, nullable: true })
     startDate: string,
     @Args('endDate', { type: () => String, nullable: true }) endDate: string,
@@ -1413,6 +1416,7 @@ export class MerchantResolver {
         school.school_id.toString(),
         collect_id,
         custom_id,
+        dispute_id,
         startDate,
         endDate,
         dispute_status,
@@ -1448,51 +1452,52 @@ export class MerchantResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-              files
-                .map(async (data) => {
-                  try {
-                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                    if (!matches || matches.length !== 3) {
-                      throw new Error('Invalid base64 file format.');
-                    }
-
-                    const contentType = matches[1];
-                    const base64Data = matches[2];
-                    const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                    const last4DigitsOfMs = Date.now().toString().slice(-4);
-                    const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
-
-                    const file_url = await this.awsS3Service.uploadToS3(
-                      fileBuffer,
-                      key,
-                      contentType,
-                      'disputes-docs',
-                    );
-
-                    return {
-                      document_type: data.extension,
-                      file_url,
-                    };
-                  } catch (error) {
-                    throw new InternalServerErrorException(
-                      error.message || 'File upload failed',
-                    );
+            files
+              .map(async (data) => {
+                try {
+                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                  if (!matches || matches.length !== 3) {
+                    throw new Error('Invalid base64 file format.');
                   }
-                })
-                .filter((file) => file !== null),
-            )
+
+                  const contentType = matches[1];
+                  const base64Data = matches[2];
+                  const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                  const last4DigitsOfMs = Date.now().toString().slice(-4);
+                  const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
+
+                  const file_url = await this.awsS3Service.uploadToS3(
+                    fileBuffer,
+                    key,
+                    contentType,
+                    'edviron-backend-dev',
+                  );
+
+                  return {
+                    document_type: data.extension,
+                    file_url,
+                    name : data.name
+                  };
+                } catch (error) {
+                  throw new InternalServerErrorException(
+                    error.message || 'File upload failed',
+                  );
+                }
+              })
+              .filter((file) => file !== null),
+          )
           : [];
-      await this.DisputesModel.findOneAndUpdate(
-        { dispute_id: disputDetails.dispute_id },
+      const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
+        { collect_id: collect_id },
         {
           $push: { documents: { $each: uploadedFiles } },
           dispute_status: 'REQUEST_INITIATED',
         },
         { new: true },
       );
-
+      // console.log(dusputeUpdate, "dusputeUpdate")
       if (disputDetails.gateway === DisputeGateways.EASEBUZZ) {
         await this.trusteeService.handleEasebuzzDispute({
           case_id: disputDetails.case_id,
@@ -1501,52 +1506,78 @@ export class MerchantResolver {
           documents: uploadedFiles,
         });
       } else {
-        const school_details = await this.trusteeSchoolModel.findById(
-          disputDetails.school_id,
-        );
-        await this.trusteeService.handleCashfreeDispute({
-          dispute_id: disputDetails.dispute_id,
-          action,
-          documents:
-            files.length > 0
-              ? [
-                  {
-                    file: files[0].file,
-                    doc_type: uploadedFiles[0].document_type,
-                    note: files[0]?.description || '',
-                  },
-                ]
-              : [],
-          client_id: school_details.client_id,
+        const school_details = await this.trusteeSchoolModel.findOne({
+          school_id: disputDetails.school_id
         });
+        // await this.trusteeService.handleCashfreeDispute({
+        //   dispute_id: disputDetails.dispute_id,
+        //   action,
+        //   documents:
+        //     files.length > 0
+        //       ? [
+        //         {
+        //           file: files[0].file,
+        //           doc_type: uploadedFiles[0].document_type,
+        //           note: files[0]?.description || '',
+        //         },
+        //       ]
+        //       : [],
+        //   client_id: school_details.client_id,
+        // });
+
+        const { email, cc } = await this.trusteeService.getMails(disputDetails.school_id.toString(), "DISPUTE")
+
+        const htmlBody = await this.trusteeService.generateDisputePDF(disputDetails)
+
+        const subject = `A dispute has been raised against ${school_details.school_name} : (${school_details.kyc_mail})`
+
+        await this.emailService.sendAlertMail2(
+          subject,
+          htmlBody,
+          email,
+          cc,
+          dusputeUpdate.documents
+        )
       }
+
+      const teamMailSubject = `Dispute documents received for dispute id: ${disputDetails.dispute_id}`;
+
+      const teamMailTemplate = getDisputeReceivedEmailForTeam(
+        disputDetails.dispute_id,
+        disputDetails.collect_id,
+        action,
+        reason,
+        disputDetails.gateway,
+        uploadedFiles,
+      );
       // Mail Service need to implement
       return { success: true, message: 'Files uploaded successfully' };
     } catch (error) {
-      const disputDetails = await this.DisputesModel.findOne({
-        collect_id: new Types.ObjectId(collect_id),
-      });
-      if (disputDetails) {
-        if (uploadedFiles.length > 0) {
-          await Promise.all([
-            ...uploadedFiles.map(async (file) => {
-              const bucketName = file.file_url.split('//')[1].split('.')[0];
-              const key = file.file_url.split('.com/')[1];
-              await this.awsS3Service.deleteFromS3(key, bucketName);
-            }),
-            this.DisputesModel.updateOne(
-              { collect_id: new Types.ObjectId(collect_id) },
-              {
-                $pull: {
-                  documents: {
-                    file_url: { $in: uploadedFiles.map((f) => f.file_url) },
-                  },
-                },
-              },
-            ),
-          ]);
-        }
-      }
+      // const disputDetails = await this.DisputesModel.findOne({
+      //   collect_id: new Types.ObjectId(collect_id),
+      // });
+      // if (disputDetails) {
+      //   if (uploadedFiles.length > 0) {
+      //     await Promise.all([
+      //       ...uploadedFiles.map(async (file) => {
+      //         const bucketName = file.file_url.split('//')[1].split('.')[0];
+      //         const key = file.file_url.split('.com/')[1];
+      //         await this.awsS3Service.deleteFromS3(key, bucketName);
+      //       }),
+      //       this.DisputesModel.updateOne(
+      //         { collect_id: new Types.ObjectId(collect_id) },
+      //         {
+      //           $pull: {
+      //             documents: {
+      //               file_url: { $in: uploadedFiles.map((f) => f.file_url) },
+      //             },
+      //           },
+      //         },
+      //       ),
+      //     ]);
+      //   }
+      // }
+      console.log(error)
       throw new InternalServerErrorException(error.message);
     }
   }
