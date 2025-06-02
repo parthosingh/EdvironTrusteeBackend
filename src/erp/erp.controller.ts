@@ -2355,6 +2355,30 @@ export class ErpController {
     return { school_name: school.school_name };
   }
 
+  
+  @Get('school-info-new')
+  async getSchoolInfoNew(@Req() req: any) {
+    const { school_id } = req.query;
+    // const decrypted = this.jwtService.verify(token, {
+    //   secret: process.env.PAYMENTS_SERVICE_SECRET,
+    // });
+    // if (decrypted.school_id !== school_id) {
+    //   throw new UnauthorizedException('token forged');
+    // }
+
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+
+    return { 
+      school_name: school.school_name,
+      email:school.email,
+      phone_number:school.phone_number,
+      school_id:school.school_id,
+      trustee_id:school.trustee_id
+     };
+  }
+
   @Get('trustee-logo')
   async getTrusteeLogo(
     @Body() body: { token: string },
