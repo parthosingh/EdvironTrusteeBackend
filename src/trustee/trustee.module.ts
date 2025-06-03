@@ -51,6 +51,7 @@ import { PdfService } from '../pdf-service/pdf-service.service';
 import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
+import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
 config();
 
 @Module({
@@ -122,15 +123,18 @@ config();
     MongooseModule.forFeature([
       { name: 'SettlementReport', schema: SettlementSchema },
     ]),
-        MongooseModule.forFeature([
+    MongooseModule.forFeature([
       { name: VirtualAccount.name, schema: VirtualAccountSchema },
     ]),
     MongooseModule.forFeature([
       { name: EmailGroup.name, schema: EmailGroupSchema },
     ]),
     MongooseModule.forFeature([
-      { name: EmailEvent.name, schema: EmailEventSchema },
-    ]),
+      { name: EmailEvent.name, schema: EmailEventSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: PosMachine.name, schema: PosMachineSchema },
+    ]),
   ],
   controllers: [],
   providers: [
@@ -144,4 +148,4 @@ config();
     PdfService,
   ],
 })
-export class TrusteeModule {}
+export class TrusteeModule { }

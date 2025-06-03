@@ -38,9 +38,11 @@ import {
   ReconciliationSchema,
 } from '../schema/Reconciliation.schema';
 import { WebhookLogs, WebhookLogsSchema } from '../schema/webhook.schema';
+import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
 import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
+
 
 @Module({
   imports: [
@@ -73,6 +75,9 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
     MongooseModule.forFeature([
       { name: Reconciliation.name, schema: ReconciliationSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: PosMachine.name, schema: PosMachineSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_API_KEY,
@@ -97,6 +102,9 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
       { name: WebhookLogs.name, schema: WebhookLogsSchema },
     ]),
 
+    MongooseModule.forFeature([
+      { name: WebhookLogs.name, schema: WebhookLogsSchema },
+    ]),
     MongooseModule.forFeature([
       { name: VirtualAccount.name, schema: VirtualAccountSchema },
     ]),

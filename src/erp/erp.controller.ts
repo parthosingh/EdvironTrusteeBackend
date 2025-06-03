@@ -38,8 +38,9 @@ import { Capture } from '../schema/capture.schema';
 import * as qs from 'qs';
 import { WebhookLogs } from '../schema/webhook.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
-import { Vendors } from 'src/schema/vendors.schema';
+import { Vendors } from '../schema/vendors.schema';
 import { Context } from '@nestjs/graphql';
+import { PosMachine } from '../schema/pos.machine.schema';
 import * as crypto from 'crypto';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
 @Controller('erp')
@@ -70,9 +71,11 @@ export class ErpController {
     private VendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     @InjectModel(Vendors.name)
     private VendorsModel: mongoose.Model<Vendors>,
+    @InjectModel(PosMachine.name)
+    private posMachineModel: mongoose.Model<PosMachine>,
     @InjectModel(VirtualAccount.name)
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
-  ) {}
+  ) { }
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -380,7 +383,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -851,7 +854,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -1180,7 +1183,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -1414,14 +1417,13 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -1485,16 +1487,15 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2424,7 +2425,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -2656,8 +2657,8 @@ export class ErpController {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+          refundableAmount +
+          'Rs',
         );
       }
     }
@@ -3058,6 +3059,7 @@ export class ErpController {
   async getEprTransactions(@Req() req: any, @Body() body: any) {
     const { userTrustee } = req;
     let { start_date, end_date, payment_modes, status, page, limit } = body;
+
     payment_modes = [payment_modes];
     const trustee_id = userTrustee.id;
     let isQRCode = false;
@@ -3269,6 +3271,144 @@ export class ErpController {
   }
 
   @UseGuards(ErpGuard)
+  @Post('/create-pos-request')
+  async createPOSRequest(
+    @Body()
+    body: {
+      posmachine_device_id: string,
+      school_id: string;
+      amount: number;
+      callback_url: string;
+      sign: string;
+      student_phone_no?: string;
+      student_email?: string;
+      student_name?: string;
+      student_id?: string;
+      receipt?: string;
+      custom_order_id?: string;
+    },
+    @Req() req,
+  ) {
+    const trustee_id = req.userTrustee.id;
+    const {
+      school_id,
+      amount,
+      callback_url,
+      sign,
+      student_id,
+      student_email,
+      student_name,
+      student_phone_no,
+      receipt,
+      posmachine_device_id,
+      custom_order_id,
+    } = body;
+
+    if (!school_id) {
+      throw new BadRequestException('School id is required');
+    }
+
+    if (!posmachine_device_id) {
+      throw new BadRequestException('POS Machine Details is required');
+    }
+    if (!amount || amount <= 0) {
+      throw new BadRequestException('Amount is required');
+    }
+    if (!callback_url) {
+      throw new BadRequestException('Callback url is required');
+    }
+    if (!sign) {
+      throw new BadRequestException('sign is required');
+    }
+    if (body.student_phone_no || body.student_email) {
+      if (!body.student_name) {
+        throw new BadRequestException('student name is required');
+      }
+    }
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+
+    if (!school) {
+      throw new NotFoundException('Inalid Institute id');
+    }
+
+    const POSMachine = await this.posMachineModel.findOne({
+      'machine_details.device_id': posmachine_device_id
+    });
+    
+    if (!POSMachine) {
+      throw new NotFoundException('POS Machine Not Found')
+    }
+
+    if (school.trustee_id.toString() !== trustee_id.toString()) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    if (!school.pg_key) {
+      throw new BadRequestException(
+        'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+      );
+    }
+
+    // const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+    // if (
+    //   decoded.amount != amount ||
+    //   decoded.school_id != school_id
+    // ) {
+    //   throw new ForbiddenException('request forged');
+    // };
+
+    const additionalInfo = {
+      student_details: {
+        student_id: student_id,
+        student_email: student_email,
+        student_name: student_name,
+        student_phone_no: student_phone_no,
+        receipt: receipt,
+      },
+    };
+
+    const axios = require('axios');
+    const data = JSON.stringify({
+      amount,
+      callbackUrl: callback_url,
+      jwt: this.jwtService.sign(
+        {
+          amount,
+          school_id,
+        },
+        { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+      ),
+      school_id: school_id,
+      trustee_id: trustee_id,
+      platform_charges: school.platform_charges,
+      additional_data: additionalInfo || {},
+      school_name: school.school_name || null,
+      custom_order_id: custom_order_id || null,
+      machine_name: POSMachine.machine_name,
+      paytm_pos: {
+        paytmMid: POSMachine.machine_details.device_mid || null,
+        paytmTid: POSMachine.machine_details.device_tid || null,
+        channel_id: POSMachine.machine_details.channel_id || null,
+        paytm_merchant_key: POSMachine.machine_details.merchant_key || null,
+        device_id: POSMachine.machine_details.device_id || null,
+      },
+    });
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect/pos`,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: data,
+    };
+    const request =  await axios.request(config);
+    return request.data;
+  }
+
+
+  @UseGuards(ErpGuard)
   @Post('create-virtual-account')
   async createVirtualAccount(
     @Req() req: any,
@@ -3339,7 +3479,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -3412,7 +3552,7 @@ export class ErpController {
       console.log(
         { vba_account_number, school_id, amount, collect_id, token }
       );
-      
+
       const decodedPayload = await this.jwtService.verify(token, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
       });
@@ -3424,7 +3564,7 @@ export class ErpController {
       });
       if (!school) {
         console.log('not school');
-        
+
         return {
           isSchoolVBA: false,
           isStudentVBA: false,
@@ -3442,7 +3582,7 @@ export class ErpController {
         };
       }
       const beneficiary_bank_and_address =
-       'AXIS BANK,5TH FLOOR, GIGAPLEX, AIROLI KNOWLEDGE PARK, AIROLI, MUMBAI';
+        'AXIS BANK,5TH FLOOR, GIGAPLEX, AIROLI KNOWLEDGE PARK, AIROLI, MUMBAI';
       const beneficiary_name = school.school_name;
       if (!school.isVBAActive) {
         return {
@@ -3507,4 +3647,30 @@ export class ErpController {
       throw new BadRequestException(e.message);
     }
   }
+
+  @Post('/create-pos-machine')
+  async createPosMachine(@Body() body: any) {
+    const {
+      school_id,
+      trustee_id,
+      machine_name,
+      machine_details,
+      firmware_version,
+      status,
+      installation_date,
+      last_maintenance_at
+    } = body;
+
+    return this.erpService.create({
+      school_id,
+      trustee_id,
+      machine_name,
+      machine_details,
+      firmware_version,
+      status,
+      installation_date,
+      last_maintenance_at
+    });
+  }
+
 }
