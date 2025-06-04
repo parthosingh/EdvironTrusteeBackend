@@ -3333,13 +3333,6 @@ export class ErpController {
       throw new NotFoundException('Inalid Institute id');
     }
 
-    const POSMachine = await this.posMachineModel.findOne({
-      'machine_details.device_id': posmachine_device_id
-    });
-
-    if (!POSMachine) {
-      throw new NotFoundException('POS Machine Not Found')
-    }
 
     if (school.trustee_id.toString() !== trustee_id.toString()) {
       throw new UnauthorizedException('Unauthorized');
