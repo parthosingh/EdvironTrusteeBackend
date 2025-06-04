@@ -13,13 +13,14 @@ import {
   ForbiddenException,
   Res,
   Param,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ErpService } from './erp.service';
 import { JwtService } from '@nestjs/jwt';
 import { ErpGuard } from './erp.guard';
 import { InjectModel, Schema } from '@nestjs/mongoose';
 import { DisabledModes, TrusteeSchool } from '../schema/school.schema';
-import mongoose, { Types } from 'mongoose';
+import mongoose, { isValidObjectId, Types } from 'mongoose';
 import * as moment from 'moment-timezone';
 import axios from 'axios';
 import {
@@ -43,6 +44,7 @@ import { Context } from '@nestjs/graphql';
 import { PosMachine } from '../schema/pos.machine.schema';
 import * as crypto from 'crypto';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
+import { Disputes } from 'src/schema/disputes.schema';
 @Controller('erp')
 export class ErpController {
   constructor(
@@ -75,6 +77,8 @@ export class ErpController {
     private posMachineModel: mongoose.Model<PosMachine>,
     @InjectModel(VirtualAccount.name)
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
+    @InjectModel(Disputes.name)
+    private disputeModel: mongoose.Model<Disputes>,
   ) { }
 
   @Get('payment-link')
@@ -2356,7 +2360,7 @@ export class ErpController {
     return { school_name: school.school_name };
   }
 
-  
+
   @Get('school-info-new')
   async getSchoolInfoNew(@Req() req: any) {
     const { school_id } = req.query;
@@ -2371,13 +2375,13 @@ export class ErpController {
       school_id: new Types.ObjectId(school_id),
     });
 
-    return { 
+    return {
       school_name: school.school_name,
-      email:school.email,
-      phone_number:school.phone_number,
-      school_id:school.school_id,
-      trustee_id:school.trustee_id
-     };
+      email: school.email,
+      phone_number: school.phone_number,
+      school_id: school.school_id,
+      trustee_id: school.trustee_id
+    };
   }
 
   @Get('trustee-logo')
@@ -3336,7 +3340,7 @@ export class ErpController {
     const POSMachine = await this.posMachineModel.findOne({
       'machine_details.device_id': posmachine_device_id
     });
-    
+
     if (!POSMachine) {
       throw new NotFoundException('POS Machine Not Found')
     }
@@ -3403,7 +3407,7 @@ export class ErpController {
       },
       data: data,
     };
-    const request =  await axios.request(config);
+    const request = await axios.request(config);
     return request.data;
   }
 
@@ -3645,6 +3649,57 @@ export class ErpController {
       };
     } catch (e) {
       throw new BadRequestException(e.message);
+    }
+  }
+
+  @Get('get-dispute-byOrderId')
+  async getDisputesbyOrderId(
+    @Query('collect_id') collect_id: string,
+  ) {
+    try {
+      if (!collect_id) {
+        throw new BadRequestException('collect_id is required');
+      }
+
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-dispute-byOrderId?collect_id=${collect_id}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        }
+      };
+      const { data: paymentsResponse } = await axios.request(config);
+      const gateway =
+        paymentsResponse.data?.gateway === "EDVIRON_PG" ? 'CASHFREE' : paymentsResponse.data?.gateway
+
+      await this.disputeModel.findOneAndUpdate(
+        { collect_id: paymentsResponse.data?.collect_id },
+        {
+          $set: {
+            dispute_id: paymentsResponse.data?.cashfreeDispute[0].cf_dispute_id,
+            custom_order_id: paymentsResponse.data?.custom_order_id,
+            school_id: new Types.ObjectId(paymentsResponse.data?.school_id),
+            trustee_id: new Types.ObjectId(paymentsResponse.data?.trustee_id),
+            gateway: gateway,
+            dispute_status: paymentsResponse.data?.cashfreeDispute[0]?.dispute_status,
+            student_name: JSON.parse(paymentsResponse.data?.additional_data)?.student_details?.student_name || '',
+          }
+        },
+        { upsert: true, new: true }
+      )
+      return {
+        message: 'Dispute updated successfully',
+        data: paymentsResponse.data,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Axios Error:', error.response?.data || error.message);
+        throw new BadRequestException(`External API error: ${error.response?.data?.message || error.message}`);
+      }
+      console.error('Internal Error:', error.message);
+      throw new InternalServerErrorException(error.message || 'Something went wrong');
     }
   }
 
