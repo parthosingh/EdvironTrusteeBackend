@@ -3063,6 +3063,7 @@ export class TrusteeResolver {
       const schoolsPosMachine = await this.posMachineModel.find({
         school_id: new Types.ObjectId(school_id),
       });
+      
       return schoolsPosMachine
     } catch (error) {
       console.error(error);

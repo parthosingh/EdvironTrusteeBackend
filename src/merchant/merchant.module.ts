@@ -30,6 +30,7 @@ import { Disputes, DisputesSchema } from '../schema/disputes.schema';
 import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
+import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
 
 @Module({
   imports: [
@@ -85,6 +86,9 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
     ]),
     MongooseModule.forFeature([
       { name: EmailEvent.name, schema: EmailEventSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: PosMachine.name, schema: PosMachineSchema },
     ]),
   ],
   controllers: [],

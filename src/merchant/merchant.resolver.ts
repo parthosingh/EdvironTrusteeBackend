@@ -33,6 +33,7 @@ import {
   Dispute_Actions,
   DisputeResponse,
   DisputesRes,
+  PosMachineQuery,
   resetPassResponse,
   TransactionReport,
   TransactionReportResponsePaginated,
@@ -59,6 +60,7 @@ import { EmailService } from '../email/email.service';
 import { DisputeGateways, Disputes } from '../schema/disputes.schema';
 import { AwsS3Service } from '../aws.s3/aws.s3.service';
 import { getDisputeReceivedEmailForTeam } from 'src/email/templates/dipute.template';
+import { PosMachine } from 'src/schema/pos.machine.schema';
 
 @InputType()
 export class SplitRefundDetails {
@@ -89,6 +91,8 @@ export class MerchantResolver {
     private DisputesModel: mongoose.Model<Disputes>,
     private emailService: EmailService,
     private readonly awsS3Service: AwsS3Service,
+    @InjectModel(PosMachine.name)
+    private posMachineModel: mongoose.Model<PosMachine>,
   ) { }
   // private emailService: EmailService,
   // ) { }
@@ -1478,7 +1482,7 @@ export class MerchantResolver {
                   return {
                     document_type: data.extension,
                     file_url,
-                    name : data.name
+                    name: data.name
                   };
                 } catch (error) {
                   throw new InternalServerErrorException(
@@ -1581,6 +1585,29 @@ export class MerchantResolver {
       throw new InternalServerErrorException(error.message);
     }
   }
+
+  @UseGuards(MerchantGuard)
+  @Query(() => [PosMachineQuery])
+  async getMerchantSchoolPOS(
+    @Context() context: any,
+  ) {
+    try {
+      const schoolId = context.req.merchant;
+      const school = await this.trusteeSchoolModel.findById(schoolId);
+      if (!school) throw new BadRequestException('School Not Found');
+      const schoolsPosMachine = await this.posMachineModel.find({
+        school_id: school?.school_id,
+      });
+      // if(!schoolsPosMachine || schoolsPosMachine.length === 0) {
+      //   throw new NotFoundException('No POS machines found for this school');
+      // }
+      return schoolsPosMachine
+    } catch (error) {
+      console.error(error);
+      throw new BadRequestException(error.message || 'Something went wrong');
+    }
+  }
+
 }
 
 @ObjectType()
