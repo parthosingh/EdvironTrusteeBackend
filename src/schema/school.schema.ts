@@ -136,6 +136,22 @@ export class gatewaysEmails{
   pay_u: string;
 }
 
+
+@ObjectType()
+export class isNotificationOn{
+  @Field(() => Boolean, { nullable: true, defaultValue: false })
+  @Prop({ default: false })
+  for_transaction: Boolean;
+
+  @Field(() => Boolean, { nullable: true, defaultValue: false })
+  @Prop({ default: false })
+  for_refund: Boolean;
+
+  @Field(() => Boolean, { nullable: true, defaultValue: false })
+  @Prop({ default: false })
+  for_settlement: Boolean;
+}
+
 @ObjectType()
 @Schema({ timestamps: true })
 export class TrusteeSchool {
@@ -178,6 +194,10 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => gatewaysEmails, { nullable: true })
   gatewaysMail: gatewaysEmails;
+
+  @Prop({ type: isNotificationOn })
+  @Field(() => isNotificationOn, { nullable: true })
+  isNotificationOn: isNotificationOn;
 
   @Prop({})
   @Field(() => String, { nullable: true })
