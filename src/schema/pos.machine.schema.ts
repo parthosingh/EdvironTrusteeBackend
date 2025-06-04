@@ -40,24 +40,19 @@ export class MachineDetail {
     @Prop()
     @Field(() => String, { nullable: true })
     device_id: string
-
 }
 
 @ObjectType()
 @Schema({ timestamps: true })
 export class PosMachine {
-    @Prop({ type: Types.ObjectId })
-    @Field(() => ID)
-    _id: ObjectId
-
+   
     @Prop({ type: Types.ObjectId, ref: 'TrusteeSchool' })
     @Field(() => ID)
-    school_id: ObjectId
+    school_id: Types.ObjectId
 
     @Prop({ type: Types.ObjectId, ref: 'Trustee' })
     @Field(() => ID)
-    trustee_id: ObjectId
-
+    trustee_id: Types.ObjectId
 
     @Prop({ enum: PosMachineType })
     @Field(() => PosMachineType)

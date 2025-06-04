@@ -31,6 +31,7 @@ import { CashfreeService } from '../cashfree/cashfree.service';
 import * as crypto from 'crypto';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
+import { ObjectType } from '@nestjs/graphql';
 @Injectable()
 export class ErpService {
   constructor(
@@ -50,7 +51,7 @@ export class ErpService {
     @InjectModel(PosMachine.name)
     private posMachineModel: mongoose.Model<PosMachine>,
     private readonly cashfreeService: CashfreeService,
-  ) { }
+  ) {}
 
   async createApiKey(trusteeId: string): Promise<string> {
     try {
@@ -671,25 +672,26 @@ export class ErpService {
                         content: `
                     S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
                     1, ${response.data.data[0].payment_amount.toFixed(
-                          2,
-                        )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
-                          2,
-                        )},	${new Date(
-                          start.getTime() - 24 * 60 * 60 * 1000,
-                        )}, ${new Date(
-                          start.getTime() - 24 * 60 * 60 * 1000,
-                        )},	Settled, ${response.data.data[0].settlement_utr
-                          }, ${new Date(
-                            settlementDate.getTime() - 86400000 * 1,
-                          ).toDateString()}`,
+                      2,
+                    )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                      2,
+                    )},	${new Date(
+                      start.getTime() - 24 * 60 * 60 * 1000,
+                    )}, ${new Date(
+                      start.getTime() - 24 * 60 * 60 * 1000,
+                    )},	Settled, ${
+                      response.data.data[0].settlement_utr
+                    }, ${new Date(
+                      settlementDate.getTime() - 86400000 * 1,
+                    ).toDateString()}`,
                       },
                     ],
                     html: `
                 Dear School, <br/><br/>
                 
                 Attached is the settlement report for transactions processed on ${new Date(
-                      settlementDate.getTime() - 86400000 * 2,
-                    ).toDateString()}. <br/><br/>
+                  settlementDate.getTime() - 86400000 * 2,
+                ).toDateString()}. <br/><br/>
                 
                 If you have any questions or require further clarification, feel free to reach out. <br/><br/>
                 
@@ -711,25 +713,26 @@ export class ErpService {
                         content: `
                     S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
                     1, ${response.data.data[0].payment_amount.toFixed(
-                          2,
-                        )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
-                          2,
-                        )},	${new Date(
-                          start.getTime() - 24 * 60 * 60 * 1000,
-                        )}, ${new Date(
-                          start.getTime() - 24 * 60 * 60 * 1000,
-                        )},	Settled, ${response.data.data[0].settlement_utr
-                          }, ${new Date(
-                            settlementDate.getTime() - 86400000 * 1,
-                          ).toDateString()}`,
+                      2,
+                    )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                      2,
+                    )},	${new Date(
+                      start.getTime() - 24 * 60 * 60 * 1000,
+                    )}, ${new Date(
+                      start.getTime() - 24 * 60 * 60 * 1000,
+                    )},	Settled, ${
+                      response.data.data[0].settlement_utr
+                    }, ${new Date(
+                      settlementDate.getTime() - 86400000 * 1,
+                    ).toDateString()}`,
                       },
                     ],
                     html: `
                 Dear School, <br/><br/>
                 
                 Attached is the settlement report for transactions processed on ${new Date(
-                      settlementDate.getTime() - 86400000 * 2,
-                    ).toDateString()}. <br/><br/>
+                  settlementDate.getTime() - 86400000 * 2,
+                ).toDateString()}. <br/><br/>
                 
                 If you have any questions or require further clarification, feel free to reach out. <br/><br/>
                 
@@ -881,24 +884,24 @@ export class ErpService {
                     content: `
                 S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
                 1, ${response.data.data[0].payment_amount.toFixed(
-                      2,
-                    )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
-                      2,
-                    )},	${new Date(
-                      start.getTime() - 24 * 60 * 60 * 1000,
-                    )}, ${new Date(
-                      start.getTime() - 24 * 60 * 60 * 1000,
-                    )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
-                      settlementDate.getTime() - 86400000 * 1,
-                    ).toDateString()}`,
+                  2,
+                )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                  2,
+                )},	${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )}, ${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
+                  settlementDate.getTime() - 86400000 * 1,
+                ).toDateString()}`,
                   },
                 ],
                 html: `
             Dear School, <br/><br/>
             
             Attached is the settlement report for transactions processed on ${new Date(
-                  settlementDate.getTime() - 86400000 * 2,
-                ).toDateString()}. <br/><br/>
+              settlementDate.getTime() - 86400000 * 2,
+            ).toDateString()}. <br/><br/>
             
             If you have any questions or require further clarification, feel free to reach out. <br/><br/>
             
@@ -920,24 +923,24 @@ export class ErpService {
                     content: `
                 S.No., Settlement Amount,	Adjustment,	Net Settlement Amount,	From,	Till,	Status,	UTR No.,	Settlement Date
                 1, ${response.data.data[0].payment_amount.toFixed(
-                      2,
-                    )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
-                      2,
-                    )},	${new Date(
-                      start.getTime() - 24 * 60 * 60 * 1000,
-                    )}, ${new Date(
-                      start.getTime() - 24 * 60 * 60 * 1000,
-                    )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
-                      settlementDate.getTime() - 86400000 * 1,
-                    ).toDateString()}`,
+                  2,
+                )}, ${(0.0).toString()}, ${response.data.data[0].payment_amount.toFixed(
+                  2,
+                )},	${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )}, ${new Date(
+                  start.getTime() - 24 * 60 * 60 * 1000,
+                )},	Settled, ${response.data.data[0].settlement_utr}, ${new Date(
+                  settlementDate.getTime() - 86400000 * 1,
+                ).toDateString()}`,
                   },
                 ],
                 html: `
             Dear School, <br/><br/>
             
             Attached is the settlement report for transactions processed on ${new Date(
-                  settlementDate.getTime() - 86400000 * 2,
-                ).toDateString()}. <br/><br/>
+              settlementDate.getTime() - 86400000 * 2,
+            ).toDateString()}. <br/><br/>
             
             If you have any questions or require further clarification, feel free to reach out. <br/><br/>
             
@@ -1160,24 +1163,27 @@ export class ErpService {
     student_email: string,
     student_number: string,
     school_id: string,
-    amount: number
+    amount: number,
   ) {
     try {
-      // fetch mdr 
+      // fetch mdr
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
-      const platformCharge = await this.getPlatformCharge(school_id, "vba", "Others", amount)
+      const platformCharge = await this.getPlatformCharge(
+        school_id,
+        'vba',
+        'Others',
+        amount,
+      );
       const finalAmount = amount + platformCharge * 1.18;
-
 
       if (!school.cf_x_client_id || !school.cf_x_client_secret) {
         throw new BadRequestException(
           `Virtual account is not ennabled for your account. Kindly contact us at tarun.k@edviron.com.`,
         );
       }
-      const virtualAccountId =
-        await this.generateUniqueVirtualAccountId();
+      const virtualAccountId = await this.generateUniqueVirtualAccountId();
       const virtualAccount = await this.VirtualAccountModel.create({
         school_id: school.school_id,
         trustee_id: school.trustee_id,
@@ -1190,7 +1196,7 @@ export class ErpService {
         gateway: 'CASHFREE',
         virtual_account_id: virtualAccountId,
         min_amount: finalAmount.toFixed(2),
-        max_amount: finalAmount.toFixed(2)
+        max_amount: finalAmount.toFixed(2),
       });
       const token = await this.jwtService.sign(
         { school_id: school_id },
@@ -1214,7 +1220,7 @@ export class ErpService {
             virtual_account_phone: '0000000000',
           },
           notification_group: virtualAccount.notification_group || 'test',
-          amount: finalAmount.toFixed(2)
+          amount: finalAmount.toFixed(2),
         },
       };
 
@@ -1244,9 +1250,11 @@ export class ErpService {
     payment_mode: string,
     amount: number,
   ) {
-    const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
     if (!school) {
-      throw new BadRequestException('INVALID SCHOOL ID')
+      throw new BadRequestException('INVALID SCHOOL ID');
     }
     const platform = school.platform_charges.find(
       (pc) =>
@@ -1275,29 +1283,62 @@ export class ErpService {
     return 0;
   }
 
-  async updateVBA(
-    collect_id: string,
-    vba_account: string
-  ) {
+  async updateVBA(collect_id: string, vba_account: string) {
     try {
-
       await this.VirtualAccountModel.findOneAndUpdate(
         { virtual_account_number: vba_account }, // Find by vba_account
         { $set: { collect_id } }, // Update collect_id
-        { new: true } // Optionally return the updated document
+        { new: true }, // Optionally return the updated document
       );
-      return true
+      return true;
     } catch (e) {
-      return false
+      return false;
     }
   }
 
-  async create(data: any) {
-    if (!data._id) {
-      data._id = new mongoose.Types.ObjectId();
-    }
-    const newMachine = new this.posMachineModel(data);
-    return newMachine.save();
-  }
+  async createPosMachine(
+    school_id: string,
+    trustee_id: string,
+    machine_name: string,
+    machine_details: {
+      device_mid: string;
+      merchant_key: string;
+      Device_serial_no: string;
+      device_tid: string;
+      channel_id: string;
+      device_id: string;
+    },
 
+    status: string,
+  ) {
+    try{
+      const checkDevice=await this.posMachineModel.findOne({
+        'machine_details.device_id':machine_details.device_id
+      })
+
+      if(checkDevice){
+        throw new BadRequestException(`Device already added for ${checkDevice.school_id}`)
+      }
+      const newPosMachine = await new this.posMachineModel({
+        school_id: new Types.ObjectId(school_id),
+        trustee_id: new Types.ObjectId(trustee_id),
+        machine_name: machine_name,
+        machine_details: {
+          device_mid: machine_details?.device_mid || '',
+          merchant_key: machine_details?.merchant_key || '',
+          Device_serial_no: machine_details?.Device_serial_no || '',
+          device_tid: machine_details?.device_tid || '',
+          channel_id: machine_details?.channel_id || '',
+          device_id: machine_details?.device_id || '',
+        },
+        status: status,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+      
+      return newPosMachine.save();
+    }catch(e){
+      throw new BadRequestException(e.message)
+    }
+    }
 }

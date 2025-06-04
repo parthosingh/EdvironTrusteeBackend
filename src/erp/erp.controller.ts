@@ -81,6 +81,7 @@ export class ErpController {
     private disputeModel: mongoose.Model<Disputes>,
   ) { }
 
+
   @Get('payment-link')
   @UseGuards(ErpGuard)
   async genratePaymentLink(
@@ -387,7 +388,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -599,12 +600,9 @@ export class ErpController {
         nttdata_hash_res_key: school?.ntt_data?.nttdata_hash_res_key || null,
         nttdata_res_salt: school?.ntt_data?.nttdata_res_salt || null,
         nttdata_req_salt: school?.ntt_data?.nttdata_req_salt || null,
-        worldline_merchant_id:
-          school?.worldline?.merchant_code || null,
-        worldline_encryption_key:
-          school?.worldline?.encryption_key || null,
-        worldline_encryption_iV:
-          school?.worldline?.encryption_iV || null,
+        worldline_merchant_id: school?.worldline?.merchant_code || null,
+        worldline_encryption_key: school?.worldline?.encryption_key || null,
+        worldline_encryption_iV: school?.worldline?.encryption_iV || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
         disabled_modes: disabled_modes || null,
@@ -858,7 +856,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -1187,7 +1185,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -1421,13 +1419,14 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: collect_request_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: collect_request_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -1491,15 +1490,16 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: order_id,
-              trusteeId: trustee_id,
-              school_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: order_id,
+            trusteeId: trustee_id,
+            school_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2360,7 +2360,6 @@ export class ErpController {
     return { school_name: school.school_name };
   }
 
-
   @Get('school-info-new')
   async getSchoolInfoNew(@Req() req: any) {
     const { school_id } = req.query;
@@ -2429,7 +2428,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) { }
+  async test(@Req() req: any) {}
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -2661,8 +2660,8 @@ export class ErpController {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -3279,10 +3278,9 @@ export class ErpController {
   async createPOSRequest(
     @Body()
     body: {
-      posmachine_device_id: string,
+      posmachine_device_id: string;
       school_id: string;
       amount: number;
-      callback_url: string;
       sign: string;
       student_phone_no?: string;
       student_email?: string;
@@ -3290,14 +3288,15 @@ export class ErpController {
       student_id?: string;
       receipt?: string;
       custom_order_id?: string;
+      req_webhook_urls?: [string];
     },
     @Req() req,
   ) {
     const trustee_id = req.userTrustee.id;
+    const callback_url = 'https://payments.edviron.com/pos-paytm/callback';
     const {
       school_id,
       amount,
-      callback_url,
       sign,
       student_id,
       student_email,
@@ -3306,6 +3305,7 @@ export class ErpController {
       receipt,
       posmachine_device_id,
       custom_order_id,
+      req_webhook_urls,
     } = body;
 
     if (!school_id) {
@@ -3324,11 +3324,7 @@ export class ErpController {
     if (!sign) {
       throw new BadRequestException('sign is required');
     }
-    if (body.student_phone_no || body.student_email) {
-      if (!body.student_name) {
-        throw new BadRequestException('student name is required');
-      }
-    }
+
     const school = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
     });
@@ -3353,14 +3349,42 @@ export class ErpController {
         'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
       );
     }
+    const POSMachine = await this.posMachineModel.findById(
+      new Types.ObjectId(posmachine_device_id),
+    );
 
-    // const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-    // if (
-    //   decoded.amount != amount ||
-    //   decoded.school_id != school_id
-    // ) {
-    //   throw new ForbiddenException('request forged');
-    // };
+    if (!POSMachine) {
+      console.log({ posmachine_device_id });
+
+      throw new NotFoundException('POS Machine Not Found');
+    }
+
+    if (POSMachine.school_id.toString() !== school.school_id.toString()) {
+      throw new BadRequestException('Invalid POS achine ID');
+    }
+
+    const { device_mid, device_tid, channel_id, merchant_key, device_id } =
+      POSMachine.machine_details;
+
+    if (
+      !device_id ||
+      !device_tid ||
+      !device_mid ||
+      !channel_id ||
+      !merchant_key
+    ) {
+      throw new BadRequestException(
+        'Device is not Configure Please contact tarun.k@edviron.com',
+      );
+    }
+
+    const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+    if (
+      decoded.amount.toString() !== amount.toString() ||
+      decoded.school_id !== school_id
+    ) {
+      throw new ForbiddenException('request forged');
+    }
 
     const additionalInfo = {
       student_details: {
@@ -3390,6 +3414,7 @@ export class ErpController {
       school_name: school.school_name || null,
       custom_order_id: custom_order_id || null,
       machine_name: POSMachine.machine_name,
+      req_webhook_urls,
       paytm_pos: {
         paytmMid: POSMachine.machine_details.device_mid || null,
         paytmTid: POSMachine.machine_details.device_tid || null,
@@ -3410,7 +3435,6 @@ export class ErpController {
     const request = await axios.request(config);
     return request.data;
   }
-
 
   @UseGuards(ErpGuard)
   @Post('create-virtual-account')
@@ -3483,7 +3507,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-          student_id,
+            student_id,
         );
       }
 
@@ -3551,11 +3575,10 @@ export class ErpController {
 
   @Get('get-student-vba')
   async getStudentVBA(@Req() req: any) {
-    const { vba_account_number, school_id, amount, collect_id, token } = req.query;
+    const { vba_account_number, school_id, amount, collect_id, token } =
+      req.query;
     try {
-      console.log(
-        { vba_account_number, school_id, amount, collect_id, token }
-      );
+      console.log({ vba_account_number, school_id, amount, collect_id, token });
 
       const decodedPayload = await this.jwtService.verify(token, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
@@ -3575,7 +3598,8 @@ export class ErpController {
           virtual_account_number: '',
           virtual_account_ifsc: '',
           finalAmount: 0,
-          beneficiary_bank_and_address: 'AXIS BANK,5TH FLOOR, GIGAPLEX, AIROLI KNOWLEDGE PARK, AIROLI, MUMBAI',
+          beneficiary_bank_and_address:
+            'AXIS BANK,5TH FLOOR, GIGAPLEX, AIROLI KNOWLEDGE PARK, AIROLI, MUMBAI',
           beneficiary_name: '',
           refrence_no: collect_id,
           transaction_id: collect_id,
@@ -3704,28 +3728,40 @@ export class ErpController {
   }
 
   @Post('/create-pos-machine')
-  async createPosMachine(@Body() body: any) {
-    const {
-      school_id,
-      trustee_id,
-      machine_name,
-      machine_details,
-      firmware_version,
-      status,
-      installation_date,
-      last_maintenance_at
-    } = body;
+  async createPosMachine(
+    @Body()
+    body: {
+      school_id: string;
+      trustee_id: string;
+      machine_name: string;
+      machine_details: {
+        device_mid: string;
+        merchant_key: string;
+        Device_serial_no: string;
+        device_tid: string;
+        channel_id: string;
+        device_id: string;
+      };
+      status: string;
+    },
+  ) {
+    const { school_id, machine_name, machine_details, status } = body;
 
-    return this.erpService.create({
-      school_id,
-      trustee_id,
-      machine_name,
-      machine_details,
-      firmware_version,
-      status,
-      installation_date,
-      last_maintenance_at
+    if (!school_id || !machine_name || !machine_details) {
+      throw new BadRequestException('Required fields are missing');
+    }
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
     });
+    if (!school) {
+      throw new NotFoundException('School not found');
+    }
+    return this.erpService.createPosMachine(
+      school_id,
+      school.trustee_id.toString(),
+      machine_name,
+      machine_details,
+      status,
+    );
   }
-
 }

@@ -65,6 +65,7 @@ import {
 } from '../email/templates/dipute.template';
 import { EmailService } from '../email/email.service';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
+import { PosMachine } from 'src/schema/pos.machine.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -218,6 +219,8 @@ export class TrusteeResolver {
     private DisputesModel: mongoose.Model<Disputes>,
     @InjectModel(VirtualAccount.name)
     private virtualAccSchema: mongoose.Model<VirtualAccount>,
+    @InjectModel(PosMachine.name)
+    private posMachineModel: mongoose.Model<PosMachine>,
   ) { }
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -2829,7 +2832,7 @@ export class TrusteeResolver {
                   return {
                     document_type: data.extension,
                     file_url,
-                    name : data.name
+                    name: data.name
                   };
                 } catch (error) {
                   throw new InternalServerErrorException(
@@ -2841,7 +2844,7 @@ export class TrusteeResolver {
           )
           : [];
 
-     const dusputeUpdate =  await this.DisputesModel.findOneAndUpdate(
+      const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
         { dispute_id: disputDetails.dispute_id },
         {
           $push: { documents: { $each: uploadedFiles } },
@@ -3041,6 +3044,82 @@ export class TrusteeResolver {
       throw new BadRequestException(error.message || 'Something went wrong');
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [PosMachineQuery])
+  async getSchoolPOS(
+    @Context() context: any,
+    @Args('school_id', { type: () => String }) school_id: string,
+  ) {
+    try {
+      if (!school_id) {
+        throw new BadRequestException('School ID is required');
+      }
+      const trustee_id = context.req.trustee;
+      const trusteeDetails = await this.trusteeModel.findById(trustee_id);
+      if (!trusteeDetails) {
+        throw new NotFoundException('Invalid Request');
+      }
+      const schoolsPosMachine = await this.posMachineModel.find({
+        school_id: new Types.ObjectId(school_id),
+      });
+      return schoolsPosMachine
+    } catch (error) {
+      console.error(error);
+      throw new BadRequestException(error.message || 'Something went wrong');
+    }
+  }
+}
+
+@ObjectType()
+export class MachineDetails {
+  @Field(() => String, { nullable: true })
+  device_mid: string
+
+  @Field(() => String, { nullable: true })
+  merchant_key: string
+
+  @Field(() => String, { nullable: true })
+  Device_serial_no: string
+
+  @Field(() => String, { nullable: true })
+  device_tid: string
+
+  @Field(() => String, { nullable: true })
+  channel_id: string
+
+  @Field(() => String, { nullable: true })
+  device_id: string
+}
+
+@ObjectType()
+export class PosMachineQuery {
+  @Field(() => String, { nullable: true })
+  _id: string
+
+  @Field(() => String, { nullable: true })
+  school_id: string
+
+  @Field(() => String, { nullable: true })
+  trustee_id: string
+
+  @Field(() => String, { nullable: true })
+  machine_name: string
+
+  @Field(() => MachineDetails, { nullable: true })
+  machine_details: MachineDetails;
+
+  @Field(() => String, { nullable: true })
+  firmware_version: string
+
+  @Field(() => String, { nullable: true })
+  status: string
+
+  @Field(() => Date, { nullable: true })
+  installation_date?: Date;
+
+  @Field(() => Date, { nullable: true })
+  last_maintenance_at?: Date;
 }
 
 
