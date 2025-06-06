@@ -3273,6 +3273,7 @@ export class ErpController {
     }
   }
 
+  
   @UseGuards(ErpGuard)
   @Post('/create-pos-request')
   async createPOSRequest(
@@ -3426,9 +3427,24 @@ export class ErpController {
       data: data,
     };
     const request = await axios.request(config);
-    return request.data;
+    
+    const {
+      requestSent,
+      paytmResponse
+    } =request.data
+    const {
+      body:posBody,
+      merchantTransactionId
+    }=paytmResponse
+    // return posBody
+    const res={
+      collect_id:posBody.merchantTransactionId,
+      status:posBody.resultInfo.resultStatus,
+      resultMsg:posBody.resultInfo.resultMsg,
+      jwt:request.data.jwt
+    }
+    return res;
   }
-
   @UseGuards(ErpGuard)
   @Post('create-virtual-account')
   async createVirtualAccount(
