@@ -1019,19 +1019,19 @@ export class ErpController {
 
       //set some variable here (user input [sendPaymentLink:true])
       // to send link to student
-      if (body.student_phone_no || body.student_email) {
-        if (body.sendPaymentLink) {
-          await this.erpService.sendPaymentLink({
-            student_name: body.student_name || ' ',
-            phone_no: body.student_phone_no,
-            amount: body.amount,
-            reason: reason,
-            school_id: body.school_id,
-            mail_id: body.student_email,
-            paymentURL: paymentsServiceResp.url,
-          });
-        }
-      }
+      // if (body.student_phone_no || body.student_email) {
+      //   if (body.sendPaymentLink) {
+      //     await this.erpService.sendPaymentLink({
+      //       student_name: body.student_name || ' ',
+      //       phone_no: body.student_phone_no,
+      //       amount: body.amount,
+      //       reason: reason,
+      //       school_id: body.school_id,
+      //       mail_id: body.student_email,
+      //       paymentURL: paymentsServiceResp.url,
+      //     });
+      //   }
+      // }
       if (isVBAPayment) {
         try {
           await this.erpService.updateVBA(
@@ -1335,19 +1335,19 @@ export class ErpController {
 
       //set some variable here (user input [sendPaymentLink:true])
       // to send link to student
-      if (body.student_phone_no || body.student_email) {
-        if (body.sendPaymentLink) {
-          await this.erpService.sendPaymentLink({
-            student_name: body.student_name || ' ',
-            phone_no: body.student_phone_no,
-            amount: body.amount,
-            reason: reason,
-            school_id: body.school_id,
-            mail_id: body.student_email,
-            paymentURL: paymentsServiceResp.url,
-          });
-        }
-      }
+      // if (body.student_phone_no || body.student_email) {
+      //   if (body.sendPaymentLink) {
+      //     await this.erpService.sendPaymentLink({
+      //       student_name: body.student_name || ' ',
+      //       phone_no: body.student_phone_no,
+      //       amount: body.amount,
+      //       reason: reason,
+      //       school_id: body.school_id,
+      //       mail_id: body.student_email,
+      //       paymentURL: paymentsServiceResp.url,
+      //     });
+      //   }
+      // }
 
       return {
         collect_request_id: paymentsServiceResp.request._id,
