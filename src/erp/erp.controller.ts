@@ -79,8 +79,7 @@ export class ErpController {
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
     @InjectModel(Disputes.name)
     private disputeModel: mongoose.Model<Disputes>,
-  ) { }
-
+  ) {}
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -2379,7 +2378,7 @@ export class ErpController {
       email: school.email,
       phone_number: school.phone_number,
       school_id: school.school_id,
-      trustee_id: school.trustee_id
+      trustee_id: school.trustee_id,
     };
   }
 
@@ -3273,7 +3272,6 @@ export class ErpController {
     }
   }
 
-  
   @UseGuards(ErpGuard)
   @Post('/create-pos-request')
   async createPOSRequest(
@@ -3308,142 +3306,138 @@ export class ErpController {
       custom_order_id,
       req_webhook_urls,
     } = body;
+    try {
+      if (!school_id) {
+        throw new BadRequestException('School id is required');
+      }
 
-    if (!school_id) {
-      throw new BadRequestException('School id is required');
-    }
+      if (!posmachine_device_id) {
+        throw new BadRequestException('POS Machine Details is required');
+      }
+      if (!amount || amount <= 0) {
+        throw new BadRequestException('Amount is required');
+      }
+      if (!callback_url) {
+        throw new BadRequestException('Callback url is required');
+      }
+      if (!sign) {
+        throw new BadRequestException('sign is required');
+      }
 
-    if (!posmachine_device_id) {
-      throw new BadRequestException('POS Machine Details is required');
-    }
-    if (!amount || amount <= 0) {
-      throw new BadRequestException('Amount is required');
-    }
-    if (!callback_url) {
-      throw new BadRequestException('Callback url is required');
-    }
-    if (!sign) {
-      throw new BadRequestException('sign is required');
-    }
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
 
-    const school = await this.trusteeSchoolModel.findOne({
-      school_id: new Types.ObjectId(school_id),
-    });
+      if (!school) {
+        throw new NotFoundException('Inalid Institute id');
+      }
 
-    if (!school) {
-      throw new NotFoundException('Inalid Institute id');
-    }
-
-
-    if (school.trustee_id.toString() !== trustee_id.toString()) {
-      throw new UnauthorizedException('Unauthorized');
-    }
-    if (!school.pg_key) {
-      throw new BadRequestException(
-        'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+      if (school.trustee_id.toString() !== trustee_id.toString()) {
+        throw new UnauthorizedException('Unauthorized');
+      }
+      if (!school.pg_key) {
+        throw new BadRequestException(
+          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        );
+      }
+      const POSMachine = await this.posMachineModel.findById(
+        new Types.ObjectId(posmachine_device_id),
       );
-    }
-    const POSMachine = await this.posMachineModel.findById(
-      new Types.ObjectId(posmachine_device_id),
-    );
 
-    if (!POSMachine) {
-      console.log({ posmachine_device_id });
+      if (!POSMachine) {
+        console.log({ posmachine_device_id });
 
-      throw new NotFoundException('POS Machine Not Found');
-    }
+        throw new NotFoundException('POS Machine Not Found');
+      }
 
-    if (POSMachine.school_id.toString() !== school.school_id.toString()) {
-      throw new BadRequestException('Invalid POS achine ID');
-    }
+      if (POSMachine.school_id.toString() !== school.school_id.toString()) {
+        throw new BadRequestException('Invalid POS achine ID');
+      }
 
-    const { device_mid, device_tid, channel_id, merchant_key, device_id } =
-      POSMachine.machine_details;
+      const { device_mid, device_tid, channel_id, merchant_key, device_id } =
+        POSMachine.machine_details;
 
-    if (
-      !device_id ||
-      !device_tid ||
-      !device_mid ||
-      !channel_id ||
-      !merchant_key
-    ) {
-      throw new BadRequestException(
-        'Device is not Configure Please contact tarun.k@edviron.com',
-      );
-    }
+      if (
+        !device_id ||
+        !device_tid ||
+        !device_mid ||
+        !channel_id ||
+        !merchant_key
+      ) {
+        throw new BadRequestException(
+          'Device is not Configure Please contact tarun.k@edviron.com',
+        );
+      }
 
-    const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
-    if (
-      decoded.amount.toString() !== amount.toString() ||
-      decoded.school_id !== school_id
-    ) {
-      throw new ForbiddenException('request forged');
-    }
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      if (
+        decoded.amount.toString() !== amount.toString() ||
+        decoded.school_id !== school_id
+      ) {
+        throw new ForbiddenException('request forged');
+      }
 
-    const additionalInfo = {
-      student_details: {
-        student_id: student_id,
-        student_email: student_email,
-        student_name: student_name,
-        student_phone_no: student_phone_no,
-        receipt: receipt,
-      },
-    };
-
-    const axios = require('axios');
-    const data = JSON.stringify({
-      amount,
-      callbackUrl: callback_url,
-      jwt: this.jwtService.sign(
-        {
-          amount,
-          school_id,
+      const additionalInfo = {
+        student_details: {
+          student_id: student_id,
+          student_email: student_email,
+          student_name: student_name,
+          student_phone_no: student_phone_no,
+          receipt: receipt,
         },
-        { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-      ),
-      school_id: school_id,
-      trustee_id: trustee_id,
-      platform_charges: school.platform_charges,
-      additional_data: additionalInfo || {},
-      school_name: school.school_name || null,
-      custom_order_id: custom_order_id || null,
-      machine_name: POSMachine.machine_name,
-      req_webhook_urls,
-      paytm_pos: {
-        paytmMid: POSMachine.machine_details.device_mid || null,
-        paytmTid: POSMachine.machine_details.device_tid || null,
-        channel_id: POSMachine.machine_details.channel_id || null,
-        paytm_merchant_key: POSMachine.machine_details.merchant_key || null,
-        device_id: POSMachine.machine_details.device_id || null,
-      },
-    });
-    const config = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect/pos`,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: data,
-    };
-    const request = await axios.request(config);
-    
-    const {
-      requestSent,
-      paytmResponse
-    } =request.data
-    const {
-      body:posBody,
-      merchantTransactionId
-    }=paytmResponse
-    // return posBody
-    const res={
-      collect_id:posBody.merchantTransactionId,
-      status:posBody.resultInfo.resultStatus,
-      resultMsg:posBody.resultInfo.resultMsg,
-      jwt:request.data.jwt
+      };
+
+      const axios = require('axios');
+      const data = JSON.stringify({
+        amount,
+        callbackUrl: callback_url,
+        jwt: this.jwtService.sign(
+          {
+            amount,
+            school_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        ),
+        school_id: school_id,
+        trustee_id: trustee_id,
+        platform_charges: school.platform_charges,
+        additional_data: additionalInfo || {},
+        school_name: school.school_name || null,
+        custom_order_id: custom_order_id || null,
+        machine_name: POSMachine.machine_name,
+        req_webhook_urls,
+        paytm_pos: {
+          paytmMid: POSMachine.machine_details.device_mid || null,
+          paytmTid: POSMachine.machine_details.device_tid || null,
+          channel_id: POSMachine.machine_details.channel_id || null,
+          paytm_merchant_key: POSMachine.machine_details.merchant_key || null,
+          device_id: POSMachine.machine_details.device_id || null,
+        },
+      });
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect/pos`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: data,
+      };
+      const request = await axios.request(config);
+
+      const { requestSent, paytmResponse } = request.data;
+      const { body: posBody, merchantTransactionId } = paytmResponse;
+      // return posBody
+      const res = {
+        collect_id: posBody.merchantTransactionId,
+        status: posBody.resultInfo.resultStatus,
+        resultMsg: posBody.resultInfo.resultMsg,
+        jwt: request.data.jwt,
+      };
+      return res;
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
-    return res;
   }
   @UseGuards(ErpGuard)
   @Post('create-virtual-account')
@@ -3686,9 +3680,7 @@ export class ErpController {
   }
 
   @Get('get-dispute-byOrderId')
-  async getDisputesbyOrderId(
-    @Query('collect_id') collect_id: string,
-  ) {
+  async getDisputesbyOrderId(@Query('collect_id') collect_id: string) {
     try {
       if (!collect_id) {
         throw new BadRequestException('collect_id is required');
@@ -3701,11 +3693,13 @@ export class ErpController {
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
-        }
+        },
       };
       const { data: paymentsResponse } = await axios.request(config);
       const gateway =
-        paymentsResponse.data?.gateway === "EDVIRON_PG" ? 'CASHFREE' : paymentsResponse.data?.gateway
+        paymentsResponse.data?.gateway === 'EDVIRON_PG'
+          ? 'CASHFREE'
+          : paymentsResponse.data?.gateway;
 
       await this.disputeModel.findOneAndUpdate(
         { collect_id: paymentsResponse.data?.collect_id },
@@ -3716,12 +3710,15 @@ export class ErpController {
             school_id: new Types.ObjectId(paymentsResponse.data?.school_id),
             trustee_id: new Types.ObjectId(paymentsResponse.data?.trustee_id),
             gateway: gateway,
-            dispute_status: paymentsResponse.data?.cashfreeDispute[0]?.dispute_status,
-            student_name: JSON.parse(paymentsResponse.data?.additional_data)?.student_details?.student_name || '',
-          }
+            dispute_status:
+              paymentsResponse.data?.cashfreeDispute[0]?.dispute_status,
+            student_name:
+              JSON.parse(paymentsResponse.data?.additional_data)
+                ?.student_details?.student_name || '',
+          },
         },
-        { upsert: true, new: true }
-      )
+        { upsert: true, new: true },
+      );
       return {
         message: 'Dispute updated successfully',
         data: paymentsResponse.data,
@@ -3729,10 +3726,16 @@ export class ErpController {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
-        throw new BadRequestException(`External API error: ${error.response?.data?.message || error.message}`);
+        throw new BadRequestException(
+          `External API error: ${
+            error.response?.data?.message || error.message
+          }`,
+        );
       }
       console.error('Internal Error:', error.message);
-      throw new InternalServerErrorException(error.message || 'Something went wrong');
+      throw new InternalServerErrorException(
+        error.message || 'Something went wrong',
+      );
     }
   }
 
