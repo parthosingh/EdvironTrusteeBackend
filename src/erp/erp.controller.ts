@@ -3701,6 +3701,8 @@ export class ErpController {
           ? 'CASHFREE'
           : paymentsResponse.data?.gateway;
 
+          
+
       await this.disputeModel.findOneAndUpdate(
         { collect_id: paymentsResponse.data?.collect_id },
         {
@@ -3713,7 +3715,7 @@ export class ErpController {
             dispute_status:
               paymentsResponse.data?.cashfreeDispute[0]?.dispute_status,
             student_name:
-              JSON.parse(paymentsResponse.data?.additional_data)
+              JSON.parse(paymentsResponse.data.student_detail)
                 ?.student_details?.student_name || '',
           },
         },
@@ -3732,7 +3734,7 @@ export class ErpController {
           }`,
         );
       }
-      console.error('Internal Error:', error.message);
+      console.error('Internal Error:', error);
       throw new InternalServerErrorException(
         error.message || 'Something went wrong',
       );

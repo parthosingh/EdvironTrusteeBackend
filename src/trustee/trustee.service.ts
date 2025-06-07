@@ -2067,8 +2067,6 @@ export class TrusteeService {
       { trustee_id: trustee_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
-    console.log(process.env.PAYMENTS_SERVICE_SECRET);
-
     const config = {
       method: 'get',
       maxBodyLength: Infinity,
