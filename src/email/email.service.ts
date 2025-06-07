@@ -334,4 +334,21 @@ export class EmailService {
   });
   }
 
+  sendTransactionAlert(emailBody: string, sub: string, emailRecipient:string) {
+    console.log(emailRecipient);
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: emailRecipient,
+      subject: sub,
+      html: emailBody,
+    };
+
+    this.transporter.sendMail(mailOptions, (err) => {
+      if (err) {
+        console.error('Error sending  alert email:');
+      } else {
+        console.log('alert email sent successfully.');
+      }
+    });
+  }
 }

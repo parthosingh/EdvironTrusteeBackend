@@ -1587,6 +1587,40 @@ export class MerchantResolver {
   }
 
   @UseGuards(MerchantGuard)
+  @Query(() => String)
+  async updateMerchantTransactionNotification(
+    @Context() context: any,
+    @Args('for_transaction', { type: () => Boolean, nullable: true }) for_transaction?: boolean,
+    @Args('for_refund', { type: () => Boolean, nullable: true }) for_refund?: boolean,
+    @Args('for_settlement', { type: () => Boolean, nullable: true }) for_settlement?: boolean,
+  ) {
+    const schoolId = context.req.merchant;
+    const school = await this.trusteeSchoolModel.findById(schoolId);
+    if (!school) {
+      throw new NotFoundException('School not found');
+    }
+    if (!school.isNotificationOn) {
+      school.isNotificationOn = {
+        for_transaction: false,
+        for_refund: false,
+        for_settlement: false,
+      };
+    }
+    if (for_transaction !== undefined) {
+      school.isNotificationOn.for_transaction = for_transaction;
+    }
+    if (for_refund !== undefined) {
+      school.isNotificationOn.for_refund = for_refund;
+    }
+    if (for_settlement !== undefined) {
+      school.isNotificationOn.for_settlement = for_settlement;
+    }
+
+    school.markModified('isNotificationOn');
+    await school.save();
+    return `Transaction notification setting updated to ${school.school_name}`;
+  }
+
   @Query(() => [PosMachineQuery])
   async getMerchantSchoolPOS(
     @Context() context: any,
@@ -1607,8 +1641,8 @@ export class MerchantResolver {
       throw new BadRequestException(error.message || 'Something went wrong');
     }
   }
-
 }
+
 
 @ObjectType()
 export class MerchantRefundRequestRes {

@@ -139,15 +139,15 @@ export class gatewaysEmails{
 
 @ObjectType()
 export class isNotificationOn{
-  @Field(() => Boolean, { nullable: true, defaultValue: false })
+  @Field(() => Boolean, { nullable: true })
   @Prop({ default: false })
   for_transaction: Boolean;
 
-  @Field(() => Boolean, { nullable: true, defaultValue: false })
+  @Field(() => Boolean, { nullable: true })
   @Prop({ default: false })
   for_refund: Boolean;
 
-  @Field(() => Boolean, { nullable: true, defaultValue: false })
+  @Field(() => Boolean, { nullable: true })
   @Prop({ default: false })
   for_settlement: Boolean;
 }
@@ -195,7 +195,7 @@ export class TrusteeSchool {
   @Field(() => gatewaysEmails, { nullable: true })
   gatewaysMail: gatewaysEmails;
 
-  @Prop({ type: isNotificationOn })
+  @Prop()
   @Field(() => isNotificationOn, { nullable: true })
   isNotificationOn: isNotificationOn;
 

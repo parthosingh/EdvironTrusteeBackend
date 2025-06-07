@@ -1,11 +1,11 @@
-import { Controller, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, Res } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import { BusinessAlarmService } from './business-alarm.service';
 import { EmailService } from '../email/email.service';
 import { TrusteeSchool } from '../schema/school.schema';
-import mongoose from 'mongoose';
-import { checkMerchantSettlementnot } from './templates/htmlToSend.format';
+import mongoose, { Types } from 'mongoose';
+import { checkMerchantSettlementnot, generateTransactionMailReciept } from './templates/htmlToSend.format';
 
 @Controller('business-alarm')
 export class BusinessAlarmController {
@@ -17,7 +17,7 @@ export class BusinessAlarmController {
     ) { }
 
 
-    @Post('fivepm') 
+    @Post('fivepm')
     async checkMerchantSettlement() {
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
@@ -37,7 +37,7 @@ export class BusinessAlarmController {
             }
         ])
         console.time("check time before");
-        let allSchoolaftercontext : any[] = [];
+        let allSchoolaftercontext: any[] = [];
 
         const requests = schools.map(async (school) => {
             const config = {
@@ -62,21 +62,96 @@ export class BusinessAlarmController {
                 if (response.data && response.data.length > 0) {
                     allSchoolaftercontext.push(school);
                 }
-                
+
             } catch (error) {
                 console.error(`Error fetching data for school ${school.school_name}:`, error.message);
             }
         });
 
         await Promise.all(requests);
-       
+
         console.timeEnd("check time before");
-       
+
         const missMatched = await this.businessServices.checkMerchantSettlement(today, at5pm, allSchoolaftercontext);
         const formatEmail = checkMerchantSettlementnot(missMatched);
 
         this.emailService.sendAlert(formatEmail, "Today These School Not Setteled Any Amount Yet")
 
         return missMatched;
+    }
+
+    @Post('send-mail-after-transaction')
+    async sendMailAfterTransaction(
+        @Body() body: any,
+        @Res() res: any
+    ) {
+        const {
+            amount,
+            gateway,
+            additional_data,
+            school_id,
+            trustee_id,
+            custom_order_id,
+            vendors_info,
+            isQRPayment,
+            createdAt,
+            updatedAt,
+            collect_id,
+            status,
+            bank_reference,
+            details,
+            transactionAmount,
+            transactionStatus,
+            transactionTime,
+            payment_method,
+            payment_time,
+            transaction_amount,
+            order_amount,
+            isAutoRefund,
+            reason,
+            error_details
+        } = body;
+
+        try {
+            const school = await this.trusteeSchool.findOne({
+                school_id: new Types.ObjectId(school_id),
+            });
+            if (!school) {
+                throw new BadRequestException("School not found");
+            }
+            if (school.isNotificationOn && school.isNotificationOn.for_transaction === true && status === 'SUCCESS') {
+                const htmlContent = await generateTransactionMailReciept(
+                    amount,
+                    gateway,
+                    additional_data,
+                    school_id,
+                    trustee_id,
+                    custom_order_id,
+                    vendors_info,
+                    isQRPayment,
+                    createdAt,
+                    updatedAt,
+                    collect_id,
+                    status,
+                    bank_reference,
+                    details,
+                    transactionAmount,
+                    transactionStatus,
+                    transactionTime,
+                    payment_method,
+                    payment_time,
+                    transaction_amount,
+                    order_amount,
+                    isAutoRefund,
+                    reason,
+                    error_details
+                )
+                const emailRecipient = school.email
+                this.emailService.sendTransactionAlert(htmlContent, reason, emailRecipient)
+            }
+            return res.status(200).send("ok")
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
     }
 }
