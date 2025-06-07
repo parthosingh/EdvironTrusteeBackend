@@ -284,14 +284,14 @@ export class ErpController {
       if (!sign) {
         throw new BadRequestException('sign is required');
       }
-      if (body.student_phone_no || body.student_email) {
-        if (!body.student_name) {
-          throw new BadRequestException('student name is required');
-        }
-        // if (!body.reason) {
-        //   throw new BadRequestException('reason is required');
-        // }
-      }
+      // if (body.student_phone_no || body.student_email) {
+      //   if (!body.student_name) {
+      //     throw new BadRequestException('student name is required');
+      //   }
+      //   // if (!body.reason) {
+      //   //   throw new BadRequestException('reason is required');
+      //   // }
+      // }
       let isVBAPayment = false;
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
@@ -744,14 +744,14 @@ export class ErpController {
       if (!sign) {
         throw new BadRequestException('sign is required');
       }
-      if (body.student_phone_no || body.student_email) {
-        if (!body.student_name) {
-          throw new BadRequestException('student name is required');
-        }
-        // if (!body.reason) {
-        //   throw new BadRequestException('reason is required');
-        // }
-      }
+      // if (body.student_phone_no || body.student_email) {
+      //   if (!body.student_name) {
+      //     throw new BadRequestException('student name is required');
+      //   }
+      //   // if (!body.reason) {
+      //   //   throw new BadRequestException('reason is required');
+      //   // }
+      // }
       let isVBAPayment = false;
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
@@ -1126,14 +1126,14 @@ export class ErpController {
       if (!sign) {
         throw new BadRequestException('sign is required');
       }
-      if (body.student_phone_no || body.student_email) {
-        if (!body.student_name) {
-          throw new BadRequestException('student name is required');
-        }
-        // if (!body.reason) {
-        //   throw new BadRequestException('reason is required');
-        // }
-      }
+      // if (body.student_phone_no || body.student_email) {
+      //   if (!body.student_name) {
+      //     throw new BadRequestException('student name is required');
+      //   }
+      //   // if (!body.reason) {
+      //   //   throw new BadRequestException('reason is required');
+      //   // }
+      // }
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
