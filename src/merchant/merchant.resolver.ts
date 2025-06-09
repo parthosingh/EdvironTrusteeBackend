@@ -35,6 +35,7 @@ import {
   DisputesRes,
   PosMachineQuery,
   resetPassResponse,
+  SettlementsTransactionsPaginatedResponse,
   TransactionReport,
   TransactionReportResponsePaginated,
   UploadedFile,
@@ -1621,6 +1622,7 @@ export class MerchantResolver {
     return `Transaction notification setting updated to ${school.school_name}`;
   }
 
+   @UseGuards(MerchantGuard)
   @Query(() => [PosMachineQuery])
   async getMerchantSchoolPOS(
     @Context() context: any,
@@ -1639,6 +1641,33 @@ export class MerchantResolver {
     } catch (error) {
       console.error(error);
       throw new BadRequestException(error.message || 'Something went wrong');
+    }
+  }
+
+  @UseGuards(MerchantGuard)
+  @Query(()=>SettlementsTransactionsPaginatedResponse)
+  async getmerchnatSettlementsTransacions(
+    @Args('utr', { type: () => String }) utr: string,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Args('cursor', { type: () => String, nullable: true })
+    cursor: string | null,
+  ){
+     try {
+      const settlement = await this.settlementReportModel.findOne({
+        utrNumber: utr,
+      });
+      if (!settlement) {
+        throw new Error('Settlement not found');
+      }
+      const client_id = settlement.clientId;
+      return await this.trusteeService.getTransactionsForSettlements(
+        utr,
+        client_id,
+        limit,
+        cursor,
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
   }
 }
