@@ -361,7 +361,7 @@ export class ErpController {
       const updatedVendorsInfo = [];
       let easebuzzVendors = [];
       let cashfreeVedors = [];
-      let worldLine_vendors:any=[]
+      let worldLine_vendors: any = [];
       // VENDORS LOGIC FOR MULTIPLE GATEWAYS
       if (split_payments && vendors_info && vendors_info.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
@@ -373,7 +373,7 @@ export class ErpController {
             if (!vendor.vendor_id) {
               throw new BadRequestException('Vendor ID is required');
             }
-             const vendors_data = await this.trusteeService.getVenodrInfo(
+            const vendors_data = await this.trusteeService.getVenodrInfo(
               vendor.vendor_id,
               school_id,
             );
@@ -383,23 +383,27 @@ export class ErpController {
               );
             }
 
-            if(!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)){
-              throw new BadRequestException('Split Not configure')
+            if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
+              throw new BadRequestException('Split Not configure');
             }
-            if(vendor.percentage){
-              throw new BadRequestException('Please pass Amount for WorldLine schools')
+            if (vendor.percentage) {
+              throw new BadRequestException(
+                'Please pass Amount for WorldLine schools',
+              );
             }
-            if(!vendors_data.worldline_vendor_name && vendors_data.worldline_vendor_id){
-              throw new BadRequestException('Split Not Configure')
+            if (
+              !vendors_data.worldline_vendor_name &&
+              vendors_data.worldline_vendor_id
+            ) {
+              throw new BadRequestException('Split Not Configure');
             }
-            vendorgateway.worldline=true
-           let worldlineVenodr:any={}
-           worldlineVenodr.vendor_id=vendor.vendor_id,
-           worldlineVenodr.amount=vendor.amount,
-           worldlineVenodr.name=vendors_data.worldline_vendor_name
-           worldlineVenodr.scheme_code=vendors_data.worldline_vendor_id
-           worldLine_vendors.push(worldlineVenodr)
-
+            vendorgateway.worldline = true;
+            let worldlineVenodr: any = {};
+            (worldlineVenodr.vendor_id = vendor.vendor_id),
+              (worldlineVenodr.amount = vendor.amount),
+              (worldlineVenodr.name = vendors_data.worldline_vendor_name);
+            worldlineVenodr.scheme_code = vendors_data.worldline_vendor_id;
+            worldLine_vendors.push(worldlineVenodr);
           }
         } else {
           for (const vendor of vendors_info) {
@@ -704,7 +708,7 @@ export class ErpController {
         easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
-        worldLine_vendors:worldLine_vendors||null
+        worldLine_vendors: worldLine_vendors || null,
       });
       const config = {
         method: 'post',
@@ -3094,7 +3098,7 @@ export class ErpController {
       const custom_id = order_id;
       const order_amount = response.data[0].order_amount;
       const transaction_amount = response.data[0].transaction_amount;
-      const collect_id=response.data[0].collect_id
+      const collect_id = response.data[0].collect_id;
 
       if (refund_amount > order_amount) {
         throw new BadRequestException(
@@ -3125,7 +3129,7 @@ export class ErpController {
       }
 
       const token = this.jwtService.sign(
-        { order_id:collect_id.toString() },
+        { order_id: collect_id.toString() },
         { secret: process.env.JWT_SECRET_FOR_TRUSTEE },
       );
 
@@ -3145,7 +3149,7 @@ export class ErpController {
         gateway = 'EDVIRON_CASHFREE';
       }
 
-      await new this.refundRequestModel({
+      const refund = await new this.refundRequestModel({
         trustee_id: school.trustee_id,
         school_id: school_id,
         order_id: new Types.ObjectId(collect_id),
@@ -3157,10 +3161,85 @@ export class ErpController {
         custom_id: custom_id,
       }).save();
 
-      return `Refund Request Created`;
+      return {
+        status: 'success',
+        msg: 'Refund Request Created',
+        refund_id: refund._id,
+        order_id: refund.custom_id,
+        collect_id: refund.order_id,
+        refund_amount: refund.refund_amount,
+        refund_status: refund.status,
+      };
     } catch (e) {
       console.log(e);
-      
+
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @UseGuards(ErpGuard)
+  @Get('get-refund')
+  async getRefund(@Req() req: any) {
+    const { school_id, sign, order_id, collect_id, refund_id } = req.query;
+
+    try {
+      if (!school_id) throw new BadRequestException('School id is missing');
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!school) throw new NotFoundException('Invalid School Id');
+
+      const pg_key = school.pg_key;
+      if (!pg_key)
+        throw new NotFoundException(
+          'Payment Gateway not enabled for this school',
+        );
+
+      const decrypted = this.jwtService.verify(sign, { secret: pg_key });
+      if (decrypted.school_id !== school_id)
+        throw new BadRequestException('Invalid Sign');
+
+      // Helper to format refund response
+      const formatRefunds = (refunds: any[]) =>
+        refunds.map((data: any) => ({
+          refund_id: data._id,
+          order_id: data.custom_id,
+          collect_id: data.order_id,
+          refund_amount: data.refund_amount,
+          order_amount: data.order_amount,
+          refund_status: data.status,
+        }));
+
+      let refunds: any[] = [];
+
+      if (order_id) {
+        refunds = await this.refundRequestModel.find({ custom_id: order_id });
+      } else if (collect_id) {
+        refunds = await this.refundRequestModel.find({
+          order_id: new Types.ObjectId(collect_id),
+        });
+      } else if (refund_id) {
+        refunds = await this.refundRequestModel.find({
+          _id: new Types.ObjectId(refund_id),
+        });
+      }
+
+      if (!refunds || refunds.length === 0) {
+        return {
+          status: 'failed',
+          msg: `refund request not found`,
+          refundRequests: [],
+        };
+      }
+
+      return {
+        status: 'success',
+        msg: `refund request fetched`,
+        refundRequests: formatRefunds(refunds),
+      };
+    } catch (e) {
       throw new BadRequestException(e.message);
     }
   }
