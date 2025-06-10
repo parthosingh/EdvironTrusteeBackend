@@ -988,11 +988,11 @@ export class ErpController {
             worldLine_vendors.push(worldlineVenodr);
           }
         } else {
-          for (const vendor of vendors_info) {
+          for (const vendor of PGVendorInfo) {
             // Check if vendor_id is present
-            // if (!vendor.vendor_id) {
-            //   throw new BadRequestException('Vendor ID is required');
-            // }
+            if (!vendor.vendor_id) {
+              throw new BadRequestException('Vendor ID is required');
+            }
 
             const vendors_data = await this.trusteeService.getVenodrInfo(
               vendor.vendor_id,
