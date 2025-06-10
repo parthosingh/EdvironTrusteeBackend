@@ -938,157 +938,198 @@ export class ErpController {
       if (split_payments && vendors_info && vendors_info.length < 0) {
         throw new BadRequestException('At least one vendor is required');
       }
-      let vendorgateway: any = {};
+     let vendorgateway: any = {};
       const updatedVendorsInfo = [];
       let easebuzzVendors = [];
       let cashfreeVedors = [];
+      let worldLine_vendors: any = [];
       // VENDORS LOGIC FOR MULTIPLE GATEWAYS
       if (split_payments && vendors_info && vendors_info.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
         let splitMethod = null;
         let totalAmount = 0;
         let totalPercentage = 0;
-
-        for (const vendor of vendors_info) {
-          // Check if vendor_id is present
-          if (!vendor.vendor_id) {
-            throw new BadRequestException('Vendor ID is required');
-          }
-
-          const vendors_data = await this.trusteeService.getVenodrInfo(
-            vendor.vendor_id,
-            school_id,
-          );
-
-          if (!vendors_data) {
-            throw new NotFoundException(
-              'Invalid vendor id for ' + vendor.vendor_id,
+        if (school.worldline && school.worldline.encryption_key) {
+          for (const vendor of vendors_info) {
+            if (!vendor.vendor_id) {
+              throw new BadRequestException('Vendor ID is required');
+            }
+            const vendors_data = await this.trusteeService.getVenodrInfo(
+              vendor.vendor_id,
+              school_id,
             );
-          }
+            if (!vendors_data) {
+              throw new NotFoundException(
+                'Invalid vendor id for ' + vendor.vendor_id,
+              );
+            }
 
-          if (
-            vendors_data.gateway &&
-            vendors_data.gateway?.includes(GATEWAY.EASEBUZZ)
-          ) {
+            if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
+              throw new BadRequestException('Split Not configure');
+            }
+            if (vendor.percentage) {
+              throw new BadRequestException(
+                'Please pass Amount for WorldLine schools',
+              );
+            }
             if (
-              !vendors_data.easebuzz_vendor_id ||
-              !school.easebuzz_school_label
+              !vendors_data.worldline_vendor_name &&
+              vendors_data.worldline_vendor_id
             ) {
-              throw new BadRequestException(
-                `Split Information Not Configure Please contact tarun.k@edviron.com`,
+              throw new BadRequestException('Split Not Configure');
+            }
+            vendorgateway.worldline = true;
+            let worldlineVenodr: any = {};
+            (worldlineVenodr.vendor_id = vendor.vendor_id),
+              (worldlineVenodr.amount = vendor.amount),
+              (worldlineVenodr.name = vendors_data.worldline_vendor_name);
+            worldlineVenodr.scheme_code = vendors_data.worldline_vendor_id;
+            worldLine_vendors.push(worldlineVenodr);
+          }
+        } else {
+          for (const vendor of vendors_info) {
+            // Check if vendor_id is present
+            if (!vendor.vendor_id) {
+              throw new BadRequestException('Vendor ID is required');
+            }
+
+            const vendors_data = await this.trusteeService.getVenodrInfo(
+              vendor.vendor_id,
+              school_id,
+            );
+
+            if (!vendors_data) {
+              throw new NotFoundException(
+                'Invalid vendor id for ' + vendor.vendor_id,
               );
             }
-            vendorgateway.easebuzz = true;
-            let easebuzzVen = vendor;
-            easebuzzVen.vendor_id = vendors_data.easebuzz_vendor_id;
-            const updatedEZBVendor = {
-              ...easebuzzVen,
+
+            if (
+              vendors_data.gateway &&
+              vendors_data.gateway?.includes(GATEWAY.EASEBUZZ)
+            ) {
+              if (
+                !vendors_data.easebuzz_vendor_id ||
+                !school.easebuzz_school_label
+              ) {
+                throw new BadRequestException(
+                  `Split Information Not Configure Please contact tarun.k@edviron.com`,
+                );
+              }
+              vendorgateway.easebuzz = true;
+              let easebuzzVen = vendor;
+              easebuzzVen.vendor_id = vendors_data.easebuzz_vendor_id;
+              const updatedEZBVendor = {
+                ...easebuzzVen,
+                name: vendors_data.name,
+              };
+              easebuzzVendors.push(updatedEZBVendor);
+            }
+
+            if (
+              vendors_data.gateway &&
+              vendors_data.gateway?.includes(GATEWAY.CASHFREE)
+            ) {
+              if (!vendors_data.vendor_id) {
+                throw new BadRequestException(
+                  `Split Information Not Configure Please contact tarun.k@edviron.com`,
+                );
+              }
+              vendorgateway.cashfree = true;
+              let CashfreeVen = vendor;
+              CashfreeVen.vendor_id = vendors_data.vendor_id;
+              const updatedCFVendor = {
+                ...CashfreeVen,
+                name: vendors_data.name,
+              };
+              cashfreeVedors.push(updatedCFVendor);
+            }
+
+            if (vendors_data.status !== 'ACTIVE') {
+              throw new BadRequestException(
+                'Vendor is not active. Please approve the vendor first. for ' +
+                  vendor.vendor_id,
+              );
+            }
+
+            const updatedVendor = {
+              ...vendor,
               name: vendors_data.name,
             };
-            easebuzzVendors.push(updatedEZBVendor);
-          }
+            updatedVendorsInfo.push(updatedVendor);
 
-          if (
-            vendors_data.gateway &&
-            vendors_data.gateway?.includes(GATEWAY.CASHFREE)
-          ) {
-            if (!vendors_data.vendor_id) {
+            // Check if both amount and percentage are used
+            const hasAmount = typeof vendor.amount === 'number';
+            const hasPercentage = typeof vendor.percentage === 'number';
+
+            if (hasAmount && hasPercentage) {
               throw new BadRequestException(
-                `Split Information Not Configure Please contact tarun.k@edviron.com`,
+                'Amount and Percentage cannot be present at the same time',
               );
             }
-            vendorgateway.cashfree = true;
-            let CashfreeVen = vendor;
-            CashfreeVen.vendor_id = vendors_data.vendor_id;
-            const updatedCFVendor = {
-              ...CashfreeVen,
-              name: vendors_data.name,
-            };
-            cashfreeVedors.push(updatedCFVendor);
-          }
 
-          if (vendors_data.status !== 'ACTIVE') {
-            throw new BadRequestException(
-              'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
-            );
-          }
+            // Determine and enforce split method consistency
+            const currentMethod = hasAmount
+              ? 'amount'
+              : hasPercentage
+                ? 'percentage'
+                : null;
 
-          const updatedVendor = {
-            ...vendor,
-            name: vendors_data.name,
-          };
-          updatedVendorsInfo.push(updatedVendor);
-
-          // Check if both amount and percentage are used
-          const hasAmount = typeof vendor.amount === 'number';
-          const hasPercentage = typeof vendor.percentage === 'number';
-
-          if (hasAmount && hasPercentage) {
-            throw new BadRequestException(
-              'Amount and Percentage cannot be present at the same time',
-            );
-          }
-
-          // Determine and enforce split method consistency
-          const currentMethod = hasAmount
-            ? 'amount'
-            : hasPercentage
-              ? 'percentage'
-              : null;
-
-          if (!splitMethod) {
-            splitMethod = currentMethod;
-          } else if (currentMethod && currentMethod !== splitMethod) {
-            throw new BadRequestException(
-              'All vendors must use the same split method (either amount or percentage)',
-            );
-          }
-
-          // Ensure either amount or percentage is provided for each vendor
-          if (!hasAmount && !hasPercentage) {
-            throw new BadRequestException(
-              'Each vendor must have either an amount or a percentage',
-            );
-          }
-
-          if (hasAmount) {
-            if (vendor.amount < 0) {
-              throw new BadRequestException('Vendor amount cannot be negative');
-            }
-            totalAmount += vendor.amount;
-          } else if (hasPercentage) {
-            if (vendor.percentage < 0) {
+            if (!splitMethod) {
+              splitMethod = currentMethod;
+            } else if (currentMethod && currentMethod !== splitMethod) {
               throw new BadRequestException(
-                'Vendor percentage cannot be negative',
+                'All vendors must use the same split method (either amount or percentage)',
               );
             }
-            totalPercentage += vendor.percentage;
-          }
-        }
 
-        if (splitMethod === 'amount' && totalAmount > body.amount) {
-          throw new BadRequestException(
-            'Sum of vendor amounts cannot be greater than the order amount',
-          );
-        }
+            // Ensure either amount or percentage is provided for each vendor
+            if (!hasAmount && !hasPercentage) {
+              throw new BadRequestException(
+                'Each vendor must have either an amount or a percentage',
+              );
+            }
 
-        if (splitMethod === 'percentage' && totalPercentage > 100) {
-          throw new BadRequestException(
-            'Sum of vendor percentages cannot be greater than 100%',
-          );
-        }
-
-        // ✅ Convert percentage to amount if gateway is EASEBUZZ
-        if (splitMethod === 'percentage' && vendorgateway.easebuzz) {
-          for (const vendor of easebuzzVendors) {
-            if (typeof vendor.percentage === 'number') {
-              vendor.amount = (vendor.percentage / 100) * body.amount;
-              delete vendor.percentage;
+            if (hasAmount) {
+              if (vendor.amount < 0) {
+                throw new BadRequestException(
+                  'Vendor amount cannot be negative',
+                );
+              }
+              totalAmount += vendor.amount;
+            } else if (hasPercentage) {
+              if (vendor.percentage < 0) {
+                throw new BadRequestException(
+                  'Vendor percentage cannot be negative',
+                );
+              }
+              totalPercentage += vendor.percentage;
             }
           }
-          // Update splitMethod to 'amount' since we converted it
-          splitMethod = 'amount';
+
+          if (splitMethod === 'amount' && totalAmount > body.amount) {
+            throw new BadRequestException(
+              'Sum of vendor amounts cannot be greater than the order amount',
+            );
+          }
+
+          if (splitMethod === 'percentage' && totalPercentage > 100) {
+            throw new BadRequestException(
+              'Sum of vendor percentages cannot be greater than 100%',
+            );
+          }
+
+          // ✅ Convert percentage to amount if gateway is EASEBUZZ
+          if (splitMethod === 'percentage' && vendorgateway.easebuzz) {
+            for (const vendor of easebuzzVendors) {
+              if (typeof vendor.percentage === 'number') {
+                vendor.amount = (vendor.percentage / 100) * body.amount;
+                delete vendor.percentage;
+              }
+            }
+            // Update splitMethod to 'amount' since we converted it
+            splitMethod = 'amount';
+          }
         }
       }
 
