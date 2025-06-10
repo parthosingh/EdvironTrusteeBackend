@@ -561,7 +561,7 @@ export class ErpController {
           name: school.school_name,
         };
         splitPay = true;
-        updatedVendorsInfo.push(updatedVendor);
+        cashfreeVedors.push(updatedVendor);
       }
 
       const adjustedAmount = school.adjustedAmount || 0;
@@ -1142,7 +1142,7 @@ export class ErpController {
         };
         vendorgateway.cashfree=true
         splitPay = true;
-        updatedVendorsInfo.push(updatedVendor);
+        cashfreeVedors.push(updatedVendor);
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
