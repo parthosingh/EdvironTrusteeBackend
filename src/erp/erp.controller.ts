@@ -867,7 +867,7 @@ export class ErpController {
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
       }
-      if (school.easebuzz_id && !school.easebuzz_split_label) {
+      if (school.easebuzz_id && !school.easebuzz_school_label) {
         throw new BadRequestException(
           `Split Information Not Configure Please contact tarun.k@edviron.com`,
         );
