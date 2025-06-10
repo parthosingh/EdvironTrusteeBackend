@@ -554,7 +554,7 @@ export class ErpController {
 
       // FOR SPARK IT CANTEEN SCHOOLS ONLY
       if (school.isVendor && school.vendor_id) {
-        vendorgateway.cashfree=true
+        vendorgateway.cashfree = true;
         const updatedVendor = {
           vendor_id: school.vendor_id,
           percentage: 100,
@@ -568,9 +568,14 @@ export class ErpController {
 
       if (
         school.isAdjustment &&
-        Number(amount) >= school.minAdjustmnentAmount
+        Number(amount) >= school.minAdjustmnentAmount &&
+        !splitPay
       ) {
+        console.log('adjustment');
+
         if (school.advanceAdjustment) {
+          console.log('advance adjustment');
+
           const advanceAdjustementAmount =
             school.targetAdjustmnentAmount - adjustedAmount;
           // if order amt is greater than targetAdjustmentAmount
@@ -939,7 +944,7 @@ export class ErpController {
       if (split_payments && vendors_info && vendors_info.length < 0) {
         throw new BadRequestException('At least one vendor is required');
       }
-     let vendorgateway: any = {};
+      let vendorgateway: any = {};
       const updatedVendorsInfo = [];
       let easebuzzVendors = [];
       let cashfreeVedors = [];
@@ -1140,9 +1145,66 @@ export class ErpController {
           percentage: 100,
           name: school.school_name,
         };
-        vendorgateway.cashfree=true
+        vendorgateway.cashfree = true;
         splitPay = true;
         cashfreeVedors.push(updatedVendor);
+      }
+
+      const adjustedAmount = school.adjustedAmount || 0;
+
+      if (
+        school.isAdjustment &&
+        Number(amount) >= school.minAdjustmnentAmount &&
+        !splitPay
+      ) {
+        console.log('adjustment');
+
+        if (school.advanceAdjustment) {
+          console.log('advance adjustment');
+
+          const advanceAdjustementAmount =
+            school.targetAdjustmnentAmount - adjustedAmount;
+          // if order amt is greater than targetAdjustmentAmount
+          if (amount > advanceAdjustementAmount) {
+            const splitAmount = advanceAdjustementAmount;
+            const updatedVendor = {
+              vendor_id: school.adjustment_vendor_id,
+              amount: splitAmount,
+              name: school.school_name,
+            };
+            splitPay = true;
+            cashfreeVedors.push(updatedVendor);
+            school.adjustedAmount = school.adjustedAmount + splitAmount;
+            school.advanceAdjustment = false;
+            await school.save();
+          } else if (
+            amount <= school.maxAdjustmnentAmount &&
+            adjustedAmount + Number(amount) < school.targetAdjustmnentAmount
+          ) {
+            const updatedVendor = {
+              vendor_id: school.adjustment_vendor_id,
+              percentage: 100,
+              name: school.school_name,
+            };
+            splitPay = true;
+            cashfreeVedors.push(updatedVendor);
+            school.adjustedAmount = school.adjustedAmount + Number(amount);
+            await school.save();
+          }
+        } else if (
+          amount <= school.maxAdjustmnentAmount &&
+          adjustedAmount + Number(amount) <= school.targetAdjustmnentAmount
+        ) {
+          const updatedVendor = {
+            vendor_id: school.adjustment_vendor_id,
+            percentage: 100,
+            name: school.school_name,
+          };
+          splitPay = true;
+          updatedVendorsInfo.push(updatedVendor);
+          school.adjustedAmount = school.adjustedAmount + Number(amount);
+          await school.save();
+        }
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
