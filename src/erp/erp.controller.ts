@@ -830,7 +830,14 @@ export class ErpController {
         vendors_info,
       } = body;
       let { disabled_modes } = body;
-
+      try {
+        await this.webhooksLogsModel.create({
+          type: 'adjustment_check',
+          body: JSON.stringify(body),
+        });
+      } catch (e) {
+        console.log(e);
+      }
       if (disabled_modes) {
         await this.erpService.validateDisabledModes(disabled_modes);
       }
