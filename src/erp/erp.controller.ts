@@ -554,6 +554,7 @@ export class ErpController {
 
       // FOR SPARK IT CANTEEN SCHOOLS ONLY
       if (school.isVendor && school.vendor_id) {
+        vendorgateway.cashfree=true
         const updatedVendor = {
           vendor_id: school.vendor_id,
           percentage: 100,
@@ -1139,6 +1140,7 @@ export class ErpController {
           percentage: 100,
           name: school.school_name,
         };
+        vendorgateway.cashfree=true
         splitPay = true;
         updatedVendorsInfo.push(updatedVendor);
       }
