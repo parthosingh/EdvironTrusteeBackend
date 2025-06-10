@@ -582,7 +582,7 @@ export class ErpController {
               name: school.school_name,
             };
             splitPay = true;
-            updatedVendorsInfo.push(updatedVendor);
+            cashfreeVedors.push(updatedVendor);
             school.adjustedAmount = school.adjustedAmount + splitAmount;
             school.advanceAdjustment = false;
             await school.save();
@@ -596,7 +596,7 @@ export class ErpController {
               name: school.school_name,
             };
             splitPay = true;
-            updatedVendorsInfo.push(updatedVendor);
+            cashfreeVedors.push(updatedVendor);
             school.adjustedAmount = school.adjustedAmount + Number(amount);
             await school.save();
           }
