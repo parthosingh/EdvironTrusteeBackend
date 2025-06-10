@@ -1158,11 +1158,15 @@ export class ErpController {
       }
 
       const adjustedAmount = school.adjustedAmount || 0;
+      let venlength=0
+      if(PGVendorInfo){
+        venlength=PGVendorInfo.length
+      }
 
       if (
         school.isAdjustment &&
         Number(amount) >= school.minAdjustmnentAmount &&
-        !splitPay
+        venlength ===0
       ) {
         console.log('adjustment');
 
