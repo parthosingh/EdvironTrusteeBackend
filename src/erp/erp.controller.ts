@@ -1289,6 +1289,7 @@ export class ErpController {
         vendorgateway: vendorgateway,
         easebuzzVendors,
         cashfreeVedors,
+        split_payments:splitPay,
         // disabled_modes: disabled_modes || null,
         easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
