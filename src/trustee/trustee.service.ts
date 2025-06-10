@@ -1796,17 +1796,23 @@ export class TrusteeService {
   }
 
   async getVenodrInfo(vendor_id: string, school_id: string) {
-    const vendor = await this.vendorsModel.findOne({
-      vendor_id,
-      school_id: new Types.ObjectId(school_id),
-    });
+    const vendor = await this.vendorsModel.findById(
+      vendor_id
+    );
+
+    
+    if(vendor.school_id.toString()!==school_id){
+      console.log(vendor.school_id);
+      
+      throw new BadRequestException(`Invalid vendor Id`)
+    }
     if (!vendor)
       throw new NotFoundException(
         'Vendor not found for vendor_id: ' + vendor_id,
       );
     return vendor;
   }
-
+ 
   async getVendonrSingleTransactions(order_id: string, trustee_id: string) {
     if (!order_id) throw new NotFoundException('Order id not found ');
 

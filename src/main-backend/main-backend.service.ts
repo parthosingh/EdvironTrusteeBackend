@@ -557,4 +557,31 @@ export class MainBackendService {
       }, ttl),
     );
   }
+
+  async updateEzbLabel() {
+    const info = [
+      'S128810SN08',
+      'S12881027VF',
+      'S128810L7I8',
+      'S128810QVUR',
+      'S12881061MN',
+      'S1288106DAG',
+      'S1288104HUA',
+      'S128810PH0W',
+      'S128810Z39T',
+      'S1288105B9V',
+      'S128810I5VQ',
+      'S128810L3ZM',
+      'S128810XEW5',
+    ];
+
+    const easebuzz_school_label = 'Bhavans Mahila Vibhag';
+
+    const data = await this.trusteeSchoolModel.updateMany(
+      { easebuzz_id: { $in: info } },
+      { $set: { easebuzz_school_label: easebuzz_school_label } },
+    );
+
+    return `${data.modifiedCount} documents updated. and total is ${info.length}`;
+  }
 }

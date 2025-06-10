@@ -39,7 +39,7 @@ import { Capture } from '../schema/capture.schema';
 import * as qs from 'qs';
 import { WebhookLogs } from '../schema/webhook.schema';
 import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
-import { Vendors } from '../schema/vendors.schema';
+import { GATEWAY, Vendors } from 'src/schema/vendors.schema';
 import { Context } from '@nestjs/graphql';
 import { PosMachine } from '../schema/pos.machine.schema';
 import * as crypto from 'crypto';
@@ -238,17 +238,6 @@ export class ErpController {
   ) {
     try {
       const trustee_id = req.userTrustee.id;
-      // const trustee_id = new Types.ObjectId('658e759736ba0754ca45d0c2');
-      // try {
-      //   await new this.webhooksLogsModel({
-      //     type: 'COLLECT REQUEST',
-      //     order_id: trustee_id.toString(),
-      //     status: 'CALLED',
-      //     body: JSON.stringify(body),
-      //   }).save();
-      // } catch(e) {
-      //   console.log(e.message);
-      // }
       const {
         school_id,
         amount,
@@ -284,6 +273,7 @@ export class ErpController {
       if (!sign) {
         throw new BadRequestException('sign is required');
       }
+
       // if (body.student_phone_no || body.student_email) {
       //   if (!body.student_name) {
       //     throw new BadRequestException('student name is required');
@@ -307,6 +297,11 @@ export class ErpController {
       if (!school.pg_key) {
         throw new BadRequestException(
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        );
+      }
+      if (school.easebuzz_id && !school.easebuzz_school_label) {
+        throw new BadRequestException(
+          `Split Information Not Configure Please contact tarun.k@edviron.com`,
         );
       }
       if (school.isVBAActive) {
@@ -362,101 +357,199 @@ export class ErpController {
       if (split_payments && vendors_info && vendors_info.length < 0) {
         throw new BadRequestException('At least one vendor is required');
       }
+      let vendorgateway: any = {};
       const updatedVendorsInfo = [];
-      if (vendors_info && vendors_info.length > 0) {
+      let easebuzzVendors = [];
+      let cashfreeVedors = [];
+      let worldLine_vendors:any=[]
+      // VENDORS LOGIC FOR MULTIPLE GATEWAYS
+      if (split_payments && vendors_info && vendors_info.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
         let splitMethod = null;
         let totalAmount = 0;
         let totalPercentage = 0;
-        for (const vendor of vendors_info) {
-          // Check if vendor_id is present
-          if (!vendor.vendor_id) {
-            throw new BadRequestException('Vendor ID is required');
-          }
-
-          const vendors_data = await this.trusteeService.getVenodrInfo(
-            vendor.vendor_id,
-            school_id,
-          );
-          if (!vendors_data) {
-            throw new NotFoundException(
-              'Invalid vendor id for ' + vendor.vendor_id,
-            );
-          }
-
-          if (vendors_data.status !== 'ACTIVE') {
-            throw new BadRequestException(
-              'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
-            );
-          }
-          const updatedVendor = {
-            ...vendor,
-            name: vendors_data.name,
-          };
-          updatedVendorsInfo.push(updatedVendor);
-
-          // Check if both amount and percentage are used
-          const hasAmount = typeof vendor.amount === 'number';
-          const hasPercentage = typeof vendor.percentage === 'number';
-          if (hasAmount && hasPercentage) {
-            throw new BadRequestException(
-              'Amount and Percentage cannot be present at the same time',
-            );
-          }
-
-          // Determine and enforce split method consistency
-          const currentMethod = hasAmount
-            ? 'amount'
-            : hasPercentage
-              ? 'percentage'
-              : null;
-          if (!splitMethod) {
-            splitMethod = currentMethod;
-          } else if (currentMethod && currentMethod !== splitMethod) {
-            throw new BadRequestException(
-              'All vendors must use the same split method (either amount or percentage)',
-            );
-          }
-
-          // Ensure either amount or percentage is provided for each vendor
-          if (!hasAmount && !hasPercentage) {
-            throw new BadRequestException(
-              'Each vendor must have either an amount or a percentage',
-            );
-          }
-
-          if (hasAmount) {
-            if (vendor.amount < 0) {
-              throw new BadRequestException('Vendor amount cannot be negative');
+        if (school.worldline && school.worldline.encryption_key) {
+          for (const vendor of vendors_info) {
+            if (!vendor.vendor_id) {
+              throw new BadRequestException('Vendor ID is required');
             }
-            totalAmount += vendor.amount;
-          } else if (hasPercentage) {
-            if (vendor.percentage < 0) {
-              throw new BadRequestException(
-                'Vendor percentage cannot be negative',
+             const vendors_data = await this.trusteeService.getVenodrInfo(
+              vendor.vendor_id,
+              school_id,
+            );
+            if (!vendors_data) {
+              throw new NotFoundException(
+                'Invalid vendor id for ' + vendor.vendor_id,
               );
             }
-            totalPercentage += vendor.percentage;
-          }
-        }
-        if (splitMethod === 'amount' && totalAmount > body.amount) {
-          throw new BadRequestException(
-            'Sum of vendor amounts cannot be greater than the order amount',
-          );
-        }
 
-        // Check if total percentage exceeds 100%
-        if (splitMethod === 'percentage' && totalPercentage > 100) {
-          throw new BadRequestException(
-            'Sum of vendor percentages cannot be greater than 100%',
-          );
+            if(!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)){
+              throw new BadRequestException('Split Not configure')
+            }
+            if(vendor.percentage){
+              throw new BadRequestException('Please pass Amount for WorldLine schools')
+            }
+            if(!vendors_data.worldline_vendor_name && vendors_data.worldline_vendor_id){
+              throw new BadRequestException('Split Not Configure')
+            }
+            vendorgateway.worldline=true
+           let worldlineVenodr:any={}
+           worldlineVenodr.vendor_id=vendor.vendor_id,
+           worldlineVenodr.amount=vendor.amount,
+           worldlineVenodr.name=vendors_data.worldline_vendor_name
+           worldlineVenodr.scheme_code=vendors_data.worldline_vendor_id
+           worldLine_vendors.push(worldlineVenodr)
+
+          }
+        } else {
+          for (const vendor of vendors_info) {
+            // Check if vendor_id is present
+            if (!vendor.vendor_id) {
+              throw new BadRequestException('Vendor ID is required');
+            }
+
+            const vendors_data = await this.trusteeService.getVenodrInfo(
+              vendor.vendor_id,
+              school_id,
+            );
+
+            if (!vendors_data) {
+              throw new NotFoundException(
+                'Invalid vendor id for ' + vendor.vendor_id,
+              );
+            }
+
+            if (
+              vendors_data.gateway &&
+              vendors_data.gateway?.includes(GATEWAY.EASEBUZZ)
+            ) {
+              if (
+                !vendors_data.easebuzz_vendor_id ||
+                !school.easebuzz_school_label
+              ) {
+                throw new BadRequestException(
+                  `Split Information Not Configure Please contact tarun.k@edviron.com`,
+                );
+              }
+              vendorgateway.easebuzz = true;
+              let easebuzzVen = vendor;
+              easebuzzVen.vendor_id = vendors_data.easebuzz_vendor_id;
+              const updatedEZBVendor = {
+                ...easebuzzVen,
+                name: vendors_data.name,
+              };
+              easebuzzVendors.push(updatedEZBVendor);
+            }
+
+            if (
+              vendors_data.gateway &&
+              vendors_data.gateway?.includes(GATEWAY.CASHFREE)
+            ) {
+              if (!vendors_data.vendor_id) {
+                throw new BadRequestException(
+                  `Split Information Not Configure Please contact tarun.k@edviron.com`,
+                );
+              }
+              vendorgateway.cashfree = true;
+              let CashfreeVen = vendor;
+              CashfreeVen.vendor_id = vendors_data.vendor_id;
+              const updatedCFVendor = {
+                ...CashfreeVen,
+                name: vendors_data.name,
+              };
+              cashfreeVedors.push(updatedCFVendor);
+            }
+
+            if (vendors_data.status !== 'ACTIVE') {
+              throw new BadRequestException(
+                'Vendor is not active. Please approve the vendor first. for ' +
+                  vendor.vendor_id,
+              );
+            }
+
+            const updatedVendor = {
+              ...vendor,
+              name: vendors_data.name,
+            };
+            updatedVendorsInfo.push(updatedVendor);
+
+            // Check if both amount and percentage are used
+            const hasAmount = typeof vendor.amount === 'number';
+            const hasPercentage = typeof vendor.percentage === 'number';
+
+            if (hasAmount && hasPercentage) {
+              throw new BadRequestException(
+                'Amount and Percentage cannot be present at the same time',
+              );
+            }
+
+            // Determine and enforce split method consistency
+            const currentMethod = hasAmount
+              ? 'amount'
+              : hasPercentage
+                ? 'percentage'
+                : null;
+
+            if (!splitMethod) {
+              splitMethod = currentMethod;
+            } else if (currentMethod && currentMethod !== splitMethod) {
+              throw new BadRequestException(
+                'All vendors must use the same split method (either amount or percentage)',
+              );
+            }
+
+            // Ensure either amount or percentage is provided for each vendor
+            if (!hasAmount && !hasPercentage) {
+              throw new BadRequestException(
+                'Each vendor must have either an amount or a percentage',
+              );
+            }
+
+            if (hasAmount) {
+              if (vendor.amount < 0) {
+                throw new BadRequestException(
+                  'Vendor amount cannot be negative',
+                );
+              }
+              totalAmount += vendor.amount;
+            } else if (hasPercentage) {
+              if (vendor.percentage < 0) {
+                throw new BadRequestException(
+                  'Vendor percentage cannot be negative',
+                );
+              }
+              totalPercentage += vendor.percentage;
+            }
+          }
+
+          if (splitMethod === 'amount' && totalAmount > body.amount) {
+            throw new BadRequestException(
+              'Sum of vendor amounts cannot be greater than the order amount',
+            );
+          }
+
+          if (splitMethod === 'percentage' && totalPercentage > 100) {
+            throw new BadRequestException(
+              'Sum of vendor percentages cannot be greater than 100%',
+            );
+          }
+
+          // ✅ Convert percentage to amount if gateway is EASEBUZZ
+          if (splitMethod === 'percentage' && vendorgateway.easebuzz) {
+            for (const vendor of easebuzzVendors) {
+              if (typeof vendor.percentage === 'number') {
+                vendor.amount = (vendor.percentage / 100) * body.amount;
+                delete vendor.percentage;
+              }
+            }
+            // Update splitMethod to 'amount' since we converted it
+            splitMethod = 'amount';
+          }
         }
       }
 
+      // FOR SPARK IT CANTEEN SCHOOLS ONLY
       if (school.isVendor && school.vendor_id) {
-        console.log('ADDING vendor info');
-
         const updatedVendor = {
           vendor_id: school.vendor_id,
           percentage: 100,
@@ -466,9 +559,8 @@ export class ErpController {
         updatedVendorsInfo.push(updatedVendor);
       }
 
-      // console.log(school,'school');
       const adjustedAmount = school.adjustedAmount || 0;
-      // console.log(school,'school');
+
       if (
         school.isAdjustment &&
         Number(amount) >= school.minAdjustmnentAmount
@@ -559,6 +651,7 @@ export class ErpController {
       };
       const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
       const axios = require('axios');
+      console.time('payments1');
       const data = JSON.stringify({
         amount,
         callbackUrl: callback_url,
@@ -604,9 +697,14 @@ export class ErpController {
         worldline_encryption_iV: school?.worldline?.encryption_iV || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
+        vendorgateway: vendorgateway,
+        easebuzzVendors,
+        cashfreeVedors,
         disabled_modes: disabled_modes || null,
+        easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
+        worldLine_vendors:worldLine_vendors||null
       });
       const config = {
         method: 'post',
@@ -618,7 +716,7 @@ export class ErpController {
         data: data,
       };
       const { data: paymentsServiceResp } = await axios.request(config);
-
+      console.timeEnd('payments1');
       const reason = 'fee payment';
 
       //set some variable here (user input [sendPaymentLink:true])
@@ -765,6 +863,11 @@ export class ErpController {
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
       }
+      if (school.easebuzz_id && !school.easebuzz_split_label) {
+        throw new BadRequestException(
+          `Split Information Not Configure Please contact tarun.k@edviron.com`,
+        );
+      }
       if (school.isVBAActive) {
         isVBAPayment = true;
       }
@@ -831,25 +934,73 @@ export class ErpController {
       if (split_payments && vendors_info && vendors_info.length < 0) {
         throw new BadRequestException('At least one vendor is required');
       }
+      let vendorgateway: any = {};
       const updatedVendorsInfo = [];
-      if (PGVendorInfo && PGVendorInfo.length > 0) {
+      let easebuzzVendors = [];
+      let cashfreeVedors = [];
+      // VENDORS LOGIC FOR MULTIPLE GATEWAYS
+      if (split_payments && vendors_info && vendors_info.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
         let splitMethod = null;
         let totalAmount = 0;
         let totalPercentage = 0;
-        for (const vendor of PGVendorInfo) {
+
+        for (const vendor of vendors_info) {
           // Check if vendor_id is present
           if (!vendor.vendor_id) {
             throw new BadRequestException('Vendor ID is required');
           }
+
           const vendors_data = await this.trusteeService.getVenodrInfo(
             vendor.vendor_id,
             school_id,
           );
+
           if (!vendors_data) {
             throw new NotFoundException(
               'Invalid vendor id for ' + vendor.vendor_id,
             );
+          }
+
+          if (
+            vendors_data.gateway &&
+            vendors_data.gateway?.includes(GATEWAY.EASEBUZZ)
+          ) {
+            if (
+              !vendors_data.easebuzz_vendor_id ||
+              !school.easebuzz_school_label
+            ) {
+              throw new BadRequestException(
+                `Split Information Not Configure Please contact tarun.k@edviron.com`,
+              );
+            }
+            vendorgateway.easebuzz = true;
+            let easebuzzVen = vendor;
+            easebuzzVen.vendor_id = vendors_data.easebuzz_vendor_id;
+            const updatedEZBVendor = {
+              ...easebuzzVen,
+              name: vendors_data.name,
+            };
+            easebuzzVendors.push(updatedEZBVendor);
+          }
+
+          if (
+            vendors_data.gateway &&
+            vendors_data.gateway?.includes(GATEWAY.CASHFREE)
+          ) {
+            if (!vendors_data.vendor_id) {
+              throw new BadRequestException(
+                `Split Information Not Configure Please contact tarun.k@edviron.com`,
+              );
+            }
+            vendorgateway.cashfree = true;
+            let CashfreeVen = vendor;
+            CashfreeVen.vendor_id = vendors_data.vendor_id;
+            const updatedCFVendor = {
+              ...CashfreeVen,
+              name: vendors_data.name,
+            };
+            cashfreeVedors.push(updatedCFVendor);
           }
 
           if (vendors_data.status !== 'ACTIVE') {
@@ -858,6 +1009,7 @@ export class ErpController {
                 vendor.vendor_id,
             );
           }
+
           const updatedVendor = {
             ...vendor,
             name: vendors_data.name,
@@ -867,6 +1019,7 @@ export class ErpController {
           // Check if both amount and percentage are used
           const hasAmount = typeof vendor.amount === 'number';
           const hasPercentage = typeof vendor.percentage === 'number';
+
           if (hasAmount && hasPercentage) {
             throw new BadRequestException(
               'Amount and Percentage cannot be present at the same time',
@@ -879,6 +1032,7 @@ export class ErpController {
             : hasPercentage
               ? 'percentage'
               : null;
+
           if (!splitMethod) {
             splitMethod = currentMethod;
           } else if (currentMethod && currentMethod !== splitMethod) {
@@ -908,17 +1062,29 @@ export class ErpController {
             totalPercentage += vendor.percentage;
           }
         }
+
         if (splitMethod === 'amount' && totalAmount > body.amount) {
           throw new BadRequestException(
             'Sum of vendor amounts cannot be greater than the order amount',
           );
         }
 
-        // Check if total percentage exceeds 100%
         if (splitMethod === 'percentage' && totalPercentage > 100) {
           throw new BadRequestException(
             'Sum of vendor percentages cannot be greater than 100%',
           );
+        }
+
+        // ✅ Convert percentage to amount if gateway is EASEBUZZ
+        if (splitMethod === 'percentage' && vendorgateway.easebuzz) {
+          for (const vendor of easebuzzVendors) {
+            if (typeof vendor.percentage === 'number') {
+              vendor.amount = (vendor.percentage / 100) * body.amount;
+              delete vendor.percentage;
+            }
+          }
+          // Update splitMethod to 'amount' since we converted it
+          splitMethod = 'amount';
         }
       }
 
@@ -999,8 +1165,12 @@ export class ErpController {
         ccavenue_access_code: school.ccavenue_access_code || null,
         ccavenue_merchant_id: school.ccavenue_merchant_id || null,
         ccavenue_working_key: school.ccavenue_working_key || null,
-        split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
+        vendorgateway: vendorgateway,
+        easebuzzVendors,
+        cashfreeVedors,
+        // disabled_modes: disabled_modes || null,
+        easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
       });
@@ -2584,124 +2754,266 @@ export class ErpController {
     @Req() req: any,
   ) {
     const { school_id, sign, refund_amount, order_id, refund_note } = body;
-
-    const school = await this.trusteeSchoolModel.findOne({
-      school_id: new Types.ObjectId(school_id),
-    });
-    if (!school) {
-      throw new NotFoundException('Invalid School Id ');
-    }
-
-    const pg_key = school.pg_key;
-    const client_id = school.client_id;
-    if (!pg_key && !client_id) {
-      throw new NotFoundException(
-        'Payment Gateway not enabled for this school',
-      );
-    }
-
-    const decrypted = this.jwtService.verify(sign, { secret: pg_key });
-    if (decrypted.school_id !== school_id && decrypted.order_id !== order_id) {
-      throw new BadRequestException('Invalid Sign');
-    }
-
-    const checkRefundRequest = await this.refundRequestModel
-      .findOne({
-        order_id: new Types.ObjectId(order_id),
-      })
-      .sort({ createdAt: -1 });
-
-    if (checkRefundRequest?.status === refund_status.INITIATED) {
-      throw new BadRequestException(
-        'Refund request already initiated for this order',
-      );
-    }
-    const pg_token = this.jwtService.sign(
-      { school_id, collect_request_id: order_id },
-      { secret: process.env.PAYMENTS_SERVICE_SECRET },
-    );
-    let pgConfig = {
-      method: 'get',
-      maxBodyLength: Infinity,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transaction-info`,
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-      },
-      data: { school_id, collect_request_id: order_id, token: pg_token },
-    };
-
-    const response = await axios.request(pgConfig);
-
-    const custom_id = response.data[0].custom_order_id;
-    const order_amount = response.data[0].order_amount;
-    const transaction_amount = response.data[0].transaction_amount;
-
-    if (refund_amount > order_amount) {
-      throw new BadRequestException(
-        'Refund amount cannot be greater than order amount',
-      );
-    }
-
-    if (checkRefundRequest?.status === refund_status.APPROVED) {
-      const totalRefunds = await this.refundRequestModel.find({
-        order_id: new Types.ObjectId(order_id),
-        status: refund_status.APPROVED,
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
       });
-      let totalRefundAmount = 0;
-      totalRefunds.map((refund: any) => {
-        totalRefundAmount += refund.refund_amount;
-      });
+      if (!school) {
+        throw new NotFoundException('Invalid School Id ');
+      }
 
-      const refundableAmount =
-        checkRefundRequest.transaction_amount - totalRefundAmount;
-
-      if (refund_amount > refundableAmount) {
-        throw new Error(
-          'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+      const pg_key = school.pg_key;
+      // const client_id = school.client_id;
+      if (!pg_key) {
+        throw new NotFoundException(
+          'Payment Gateway not enabled for this school',
         );
       }
+
+      const decrypted = this.jwtService.verify(sign, { secret: pg_key });
+      if (
+        decrypted.school_id !== school_id &&
+        decrypted.order_id !== order_id
+      ) {
+        throw new BadRequestException('Invalid Sign');
+      }
+
+      const checkRefundRequest = await this.refundRequestModel
+        .findOne({
+          order_id: new Types.ObjectId(order_id),
+        })
+        .sort({ createdAt: -1 });
+
+      if (checkRefundRequest?.status === refund_status.INITIATED) {
+        throw new BadRequestException(
+          'Refund request already initiated for this order',
+        );
+      }
+      const pg_token = this.jwtService.sign(
+        { school_id, collect_request_id: order_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      let pgConfig = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transaction-info`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: { school_id, collect_request_id: order_id, token: pg_token },
+      };
+
+      const response = await axios.request(pgConfig);
+
+      const custom_id = response.data[0].custom_order_id;
+      const order_amount = response.data[0].order_amount;
+      const transaction_amount = response.data[0].transaction_amount;
+
+      if (refund_amount > order_amount) {
+        throw new BadRequestException(
+          'Refund amount cannot be greater than order amount',
+        );
+      }
+
+      if (checkRefundRequest?.status === refund_status.APPROVED) {
+        const totalRefunds = await this.refundRequestModel.find({
+          order_id: new Types.ObjectId(order_id),
+          status: refund_status.APPROVED,
+        });
+        let totalRefundAmount = 0;
+        totalRefunds.map((refund: any) => {
+          totalRefundAmount += refund.refund_amount;
+        });
+
+        const refundableAmount =
+          checkRefundRequest.transaction_amount - totalRefundAmount;
+
+        if (refund_amount > refundableAmount) {
+          throw new Error(
+            'Refund amount cannot be more than remaining refundable amount ' +
+              refundableAmount +
+              'Rs',
+          );
+        }
+      }
+
+      const token = this.jwtService.sign(
+        { order_id },
+        { secret: process.env.JWT_SECRET_FOR_TRUSTEE },
+      );
+
+      const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/gatewat-name?token=${token}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+      };
+      const res = await axios.request(config);
+
+      let gateway = res.data;
+      if (gateway === 'EDVIRON_PG') {
+        gateway = 'EDVIRON_CASHFREE';
+      }
+
+      await new this.refundRequestModel({
+        trustee_id: school.trustee_id,
+        school_id: school_id,
+        order_id: new Types.ObjectId(order_id),
+        status: refund_status.INITIATED,
+        refund_amount,
+        order_amount,
+        transaction_amount,
+        gateway: gateway || null,
+        custom_id: custom_id,
+      }).save();
+
+      return `Refund Request Created`;
+    } catch (e) {
+      throw new BadRequestException(e);
     }
-
-    const token = this.jwtService.sign(
-      { order_id },
-      { secret: process.env.JWT_SECRET_FOR_TRUSTEE },
-    );
-
-    const config = {
-      method: 'get',
-      maxBodyLength: Infinity,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/gatewat-name?token=${token}`,
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-      },
-    };
-    const res = await axios.request(config);
-
-    let gateway = res.data;
-    if (gateway === 'EDVIRON_PG') {
-      gateway = 'EDVIRON_CASHFREE';
-    }
-
-    await new this.refundRequestModel({
-      trustee_id: school.trustee_id,
-      school_id: school_id,
-      order_id: new Types.ObjectId(order_id),
-      status: refund_status.INITIATED,
-      refund_amount,
-      order_amount,
-      transaction_amount,
-      gateway: gateway || null,
-      custom_id: custom_id,
-    }).save();
-
-    return `Refund Request Created`;
   }
-  catch(error) {
-    throw new BadRequestException(error.message);
+
+  @UseGuards(ErpGuard)
+  @Post('initiate-refund/order')
+  async initiateCustomRefund(
+    @Body()
+    body: {
+      sign: string;
+      refund_amount: number;
+      school_id: string;
+      order_id: string;
+      refund_note: string;
+    },
+    @Req() req: any,
+  ) {
+    const { school_id, sign, refund_amount, order_id, refund_note } = body;
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new NotFoundException('Invalid School Id ');
+      }
+      const pg_key = school.pg_key;
+      // const client_id = school.client_id;
+      if (!pg_key) {
+        throw new NotFoundException(
+          'Payment Gateway not enabled for this school',
+        );
+      }
+
+      const decrypted = this.jwtService.verify(sign, { secret: pg_key });
+      if (
+        decrypted.school_id !== school_id &&
+        decrypted.order_id !== order_id
+      ) {
+        throw new BadRequestException('Invalid Sign');
+      }
+
+      const checkRefundRequest = await this.refundRequestModel
+        .findOne({
+          custom_id: order_id,
+        })
+        .sort({ createdAt: -1 });
+
+      if (checkRefundRequest?.status === refund_status.INITIATED) {
+        throw new BadRequestException(
+          'Refund request already initiated for this order',
+        );
+      }
+      const pg_token = this.jwtService.sign(
+        { school_id, collect_request_id: order_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      let pgConfig = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/transaction-info/order`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: { school_id, order_id: order_id, token: pg_token },
+      };
+
+      const response = await axios.request(pgConfig);
+
+      const custom_id = order_id;
+      const order_amount = response.data[0].order_amount;
+      const transaction_amount = response.data[0].transaction_amount;
+      const collect_id = response.data[0].collect_id;
+
+      if (refund_amount > order_amount) {
+        throw new BadRequestException(
+          'Refund amount cannot be greater than order amount',
+        );
+      }
+
+      if (checkRefundRequest?.status === refund_status.APPROVED) {
+        const totalRefunds = await this.refundRequestModel.find({
+          order_id: new Types.ObjectId(order_id),
+          status: refund_status.APPROVED,
+        });
+        let totalRefundAmount = 0;
+        totalRefunds.map((refund: any) => {
+          totalRefundAmount += refund.refund_amount;
+        });
+
+        const refundableAmount =
+          checkRefundRequest.transaction_amount - totalRefundAmount;
+
+        if (refund_amount > refundableAmount) {
+          throw new Error(
+            'Refund amount cannot be more than remaining refundable amount ' +
+              refundableAmount +
+              'Rs',
+          );
+        }
+      }
+
+      const token = this.jwtService.sign(
+        { order_id: collect_id.toString() },
+        { secret: process.env.JWT_SECRET_FOR_TRUSTEE },
+      );
+
+      const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/gatewat-name?token=${token}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+      };
+      const res = await axios.request(config);
+
+      let gateway = res.data;
+      if (gateway === 'EDVIRON_PG') {
+        gateway = 'EDVIRON_CASHFREE';
+      }
+
+      await new this.refundRequestModel({
+        trustee_id: school.trustee_id,
+        school_id: school_id,
+        order_id: new Types.ObjectId(collect_id),
+        status: refund_status.INITIATED,
+        refund_amount,
+        order_amount,
+        transaction_amount,
+        gateway: gateway || null,
+        custom_id: custom_id,
+      }).save();
+
+      return `Refund Request Created`;
+    } catch (e) {
+      console.log(e);
+
+      throw new BadRequestException(e.message);
+    }
   }
 
   @Post('settlement-recons')
@@ -3200,7 +3512,6 @@ export class ErpController {
   async getEprTransactions(@Req() req: any, @Body() body: any) {
     const { userTrustee } = req;
     let { start_date, end_date, payment_modes, status, page, limit } = body;
-
     payment_modes = [payment_modes];
     const trustee_id = userTrustee.id;
     let isQRCode = false;
@@ -3409,6 +3720,16 @@ export class ErpController {
       console.error('Error in getSuccessTransactions:', error);
       throw new BadRequestException('Error fetching success transactions');
     }
+  }
+
+  @Post('/update-vendors')
+  async updatevendor() {
+    await this.VendorsModel.updateMany(
+      { status: { $ne: 'ACTIVE' } },
+      { $set: { gateway: [GATEWAY.CASHFREE] } },
+    );
+
+    return { message: 'All active vendors updated with CASHFREE gateway.' };
   }
 
   @UseGuards(ErpGuard)
@@ -3840,8 +4161,6 @@ export class ErpController {
           ? 'CASHFREE'
           : paymentsResponse.data?.gateway;
 
-          
-
       await this.disputeModel.findOneAndUpdate(
         { collect_id: paymentsResponse.data?.collect_id },
         {
@@ -3854,8 +4173,8 @@ export class ErpController {
             dispute_status:
               paymentsResponse.data?.cashfreeDispute[0]?.dispute_status,
             student_name:
-              JSON.parse(paymentsResponse.data.student_detail)
-                ?.student_details?.student_name || '',
+              JSON.parse(paymentsResponse.data.student_detail)?.student_details
+                ?.student_name || '',
           },
         },
         { upsert: true, new: true },

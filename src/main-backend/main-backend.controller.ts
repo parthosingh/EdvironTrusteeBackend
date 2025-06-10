@@ -1056,4 +1056,9 @@ export class MainBackendController {
       throw new BadRequestException(error.message);
     }
   }
+
+  @Get('/update-split')
+  async updateSplit(){
+    return await this.mainBackendService.updateEzbLabel()
+  }
 }

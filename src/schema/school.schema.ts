@@ -344,6 +344,10 @@ export class TrusteeSchool {
   @Field(() => String)
   pay_u_salt: string;
 
+   @Prop({})
+  @Field(() => String)
+  easebuzz_split_label: string;
+
   @Prop({
     required: false,
     type: {
@@ -361,6 +365,11 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => I_Worldline, { nullable: true })
   worldline: I_Worldline;
+
+
+  @Field()
+  @Prop()
+  easebuzz_school_label: string;
 
   @Prop({})
   @Field(() => String)
