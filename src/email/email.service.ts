@@ -316,7 +316,9 @@ export class EmailService {
         } catch (error) {
           console.error(
             `Failed to fetch attachment from ${attachment.file_url}`,
-            error,
+
+            error
+
           );
           // Optionally skip or throw depending on your tolerance for missing files
         }
@@ -332,6 +334,9 @@ export class EmailService {
     });
   }
 
+
+  sendTransactionAlert(emailBody: string, sub: string, emailRecipient: string) {
+    console.log(emailRecipient);
   sendTransactionAlert(
     emailBody: string,
     sub: string,
@@ -343,6 +348,7 @@ export class EmailService {
       ? emailRecipient.join(',')
       : emailRecipient;
     
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: toEmails,
@@ -360,7 +366,29 @@ export class EmailService {
     });
   }
 
+  async sendSettlementMail(emailBody: string, sub: string, emailRecipient: any, csvData: string) {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: emailRecipient,
+      subject: sub,
+      html: emailBody,
+      attachments: [
+        {
+          filename: 'settlement_report.csv',
+          content: csvData,
+          contentType: 'text/csv',
+        },
+      ],
+    };
 
+    this.transporter.sendMail(mailOptions, (err) => {
+      if (err) {
+        console.error('Error sending  alert email:');
+      } else {
+        console.log('alert email sent successfully.');
+      }
+    });
+  }
 
 
 }

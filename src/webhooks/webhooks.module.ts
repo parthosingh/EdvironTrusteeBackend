@@ -42,6 +42,7 @@ import {
 import { PdfService } from '../pdf-service/pdf-service.service';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
+import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 
 @Module({
   imports: [
@@ -87,6 +88,9 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
     MongooseModule.forFeature([
       { name: Reconciliation.name, schema: ReconciliationSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: ErrorLogs.name, schema: ErrorLogsSchema },
+    ]),
   ],
   controllers: [WebhooksController],
   providers: [
@@ -97,4 +101,4 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
     PdfService,
   ],
 })
-export class WebhooksModule {}
+export class WebhooksModule { }

@@ -757,3 +757,127 @@ export function generateTransactionMailReciept(
 </div>
         `;
 }
+
+export function generateEmailHTML2(settlements_transactions) {
+  return `
+  <div style="max-width:700px;margin:0 auto;padding:20px;font-family:sans-serif;background:#f9fafb;">
+    <h2 style="color:#111827;font-size:24px;margin-bottom:20px;">Settlement details</h2>
+    ${settlements_transactions.map(txn => {
+    const status = txn.event_status || 'NA';
+    const transaction_amount = txn.event_amount;
+    const formattedTransactionTime = new Date(txn.event_time).toLocaleString('en-IN');
+    const bankOrProvider = txn.payment_utr || 'NA';
+    const bankOrProviderLabel = txn.payment_group === 'NET_BANKING' ? 'Bank' : 'Provider';
+    const gateway = txn.payment_group;
+    return `
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
+        <div style="margin-bottom:16px;">
+          <strong>Order ID:</strong> ${txn.custom_order_id || 'NA'} <br/>
+          <strong>Order Amount:</strong> ₹${txn.order_amount || 'NA'} <br/>
+          <strong>Status:</strong> 
+          <span style="color:${status === 'SUCCESS' ? '#10b981' : status === 'PENDING' ? '#f59e0b' : '#ef4444'};">
+            ${status}
+          </span>
+        </div>
+        <table style="width:100%;font-size:14px;border-collapse:collapse;">
+          <tr>
+            <td style="padding:6px 0;"><strong>Payment method:</strong></td>
+            <td>${txn.payment_group || 'NA'}</td>
+            <td style="padding:6px 0;"><strong>Transaction amount:</strong></td>
+            <td>₹${transaction_amount || 'NA'}</td>
+          </tr>
+          <tr>
+            <td><strong>Reason:</strong></td>
+            <td>${txn.adjustment_remarks || 'NA'}</td>
+            <td><strong>Bank reference number:</strong></td>
+            <td>${txn.payment_utr || 'NA'}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;"><strong>Currency:</strong></td>
+            <td>${txn.event_currency || 'INR'}</td>
+            <td><strong>Edviron Order ID:</strong></td>
+            <td>${txn.order_id || 'NA'}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;"><strong>Transaction Time</strong></td>
+            <td>${formattedTransactionTime}</td>
+            <td><strong>Remarks:</strong></td>
+            <td>${status}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;"><strong>Student name:</strong></td>
+            <td>${txn.student_name || 'NA'}</td>
+            <td><strong>Student Enrollment ID:</strong></td>
+            <td>${txn.student_id || 'NA'}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;"><strong>Email:</strong></td>
+            <td>${txn.student_email || 'NA'}</td>
+            <td><strong>Phone number:</strong></td>
+            <td>${txn.student_phone_no || 'NA'}</td>
+          </tr>
+      </div>
+      `;
+  }).join('')}
+  </div>
+  `;
+}
+
+export function generateEmailHTML(settlementDate) {
+  const formattedDate = new Date(settlementDate).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  return `
+    <div style="max-width:700px;margin:0 auto;padding:20px;font-family:sans-serif;background:#f9fafb;">
+      <h2 style="color:#111827;font-size:24px;margin-bottom:16px;">
+        Settlement File Acknowledgment
+      </h2>
+      <p style="font-size:16px;color:#374151;">
+        Please find attached the settlement CSV file for <strong>${formattedDate}</strong>.
+      </p>
+    </div>
+  `;
+}
+
+export function generateCSV(settlements_transactions) {
+  const headers = [
+    'Order ID',
+    "Edviron Order ID",
+    'Student Name',
+    'Student ID',
+    'Student Email',
+    'Order Amount',
+    'Transaction Amount',
+    'Payment Method',
+    'Status',
+    'Transaction Time',
+    'Bank Reference No.',
+    'Settlement UTR',
+  ];
+
+  const rows = settlements_transactions.map(txn => [
+    txn.custom_order_id || 'NA',
+    txn.order_id || 'NA',
+    txn.student_name || 'NA',
+    txn.student_id || 'NA',
+    txn.student_email || 'NA',
+    txn.order_amount || 'NA',
+    txn.event_amount || 'NA',
+    txn.payment_group || 'NA',
+    txn.event_status || 'NA',
+    (() => {
+      const d = new Date(txn.event_time);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    })(),
+    txn.payment_utr || 'NA',
+    txn.settlement_utr || 'NA',
+  ]);
+  const csvContent = [headers, ...rows].map(e => e.join(',')).join('\n');
+  return csvContent;
+}
+
+

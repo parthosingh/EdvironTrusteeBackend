@@ -30,10 +30,12 @@ import {
   getCustomerEmailTemplate,
 } from '../email/templates/dipute.template';
 import { PdfService } from '../pdf-service/pdf-service.service';
-import { DISPUT_INVOICE_MAIL_GATEWAY } from '../utils/email.group';
+import { DISPUT_INVOICE_MAIL_GATEWAY, SETTLEMENT_ERROR_EMAIL } from '../utils/email.group';
 import { EmailGroup, EmailGroupType } from '../schema/email.schema';
 import { EmailEvent, Events } from '../schema/email.events.schema';
 import { string1To1000 } from 'aws-sdk/clients/customerprofiles';
+import { generateCSV, generateEmailHTML } from 'src/business-alarm/templates/htmlToSend.format';
+import { ErrorLogs } from 'src/schema/error.log.schema';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -68,6 +70,8 @@ export class WebhooksController {
     private emailService: EmailService,
     private trusteeService: TrusteeService,
     private readonly pdfService: PdfService,
+    @InjectModel(ErrorLogs.name)
+    private ErrorLogsModel: mongoose.Model<ErrorLogs>,
   ) { }
 
   demoData = {
@@ -597,6 +601,21 @@ export class WebhooksController {
       }
       console.log('returning transaction');
 
+      if (merchant.isNotificationOn && merchant.isNotificationOn.for_settlement) {
+        try {
+          const transactionForSettlement =
+            await this.trusteeService.getTransactionsForSettlements(utr, merchant_id, 500)
+          const htmlBody = generateEmailHTML(payment_from);
+          const csvContent = await generateCSV(transactionForSettlement.settlements_transactions)
+          this.emailService.sendSettlementMail(htmlBody, `Settlement File Attached (${merchant.school_name})`, merchant.email, csvContent)
+        } catch (error) {
+          await this.ErrorLogsModel.create({
+            source: 'sendMailAfterSettlement',
+            collect_id: merchant_id,
+            error: error.message || error.toString()
+          });
+        }
+      }
       return res.status(200).send('OK');
     } catch (e) {
       const emailSubject = `Error in CASHFREE SETTLEMENT WEBHOOK "@Post('cashfree/settlements')"`;
@@ -859,17 +878,17 @@ export class WebhooksController {
         // );
         const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
         const htmlBody = 'Please find the attached receipt for dispute details.';
-        
+
         // Generate PDF buffer (you need to implement this part)
         const pdfBuffer = await this.generateDisputePDF(dispute, false);
-        
+
         this.emailService.sendErrorMail2(subject, htmlBody, [
           {
             filename: `Dispute-${dispute.dispute_id}.pdf`,
             content: pdfBuffer,
           },
         ]);
-        
+
 
         // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
 
@@ -929,7 +948,7 @@ export class WebhooksController {
     }
   }
 
-  
+
   async generateDisputePDF(dispute: Disputes, isClosed = false) {
     const html = getAdminEmailTemplate(dispute, isClosed);
     // Use a library to convert HTML to PDF Buffer (example: puppeteer)
@@ -1210,15 +1229,15 @@ export class WebhooksController {
   }
 
   @Post('pay-u/refunds')
-  async payuRefundWebhook(@Body() body: any, @Res() res: any){
-    try{
+  async payuRefundWebhook(@Body() body: any, @Res() res: any) {
+    try {
       await new this.webhooksLogsModel({
         type: 'Refund Webhook',
         status: 'CALLED',
         gateway: 'EDVIRON_PAY-U',
         body: 'data',
       }).save();
-    }catch(e){
+    } catch (e) {
       console.log(`Error in Saving refund`);
     }
     const data = JSON.stringify(body);
@@ -1236,7 +1255,7 @@ export class WebhooksController {
   }
 
   @Post('pay-u/settlements')
-  async payuSettlementWebhook(@Body() body: any, @Res() res: any){
+  async payuSettlementWebhook(@Body() body: any, @Res() res: any) {
     const data = JSON.stringify(body.data);
     // const {txnid, mihpayid} = data
     // let collect_id = txnid;
@@ -1251,7 +1270,7 @@ export class WebhooksController {
   }
 
   @Post('pay-u/disputes')
-  async payuDisputesWebhook(@Body() body: any, @Res() res: any){
+  async payuDisputesWebhook(@Body() body: any, @Res() res: any) {
     const data = JSON.stringify(body.data);
     await new this.webhooksLogsModel({
       type: 'Disputes',
@@ -1262,13 +1281,39 @@ export class WebhooksController {
     return res.status(200).send('OK');
   }
 
- 
+
 
   @Get('/dummy')
-  async dummy(){
-    const res="{\"rows\":1,\"message\":\"1 Settlements found for the 2025-04-22T00:00 and 2025-04-23T00:00\",\"status\":1,\"result\":[{\"settlementId\":\"12678458202504221245\",\"settlementCompletedDate\":\"2025-04-22 15:03:13\",\"settlementAmount\":\"16198.64\",\"merchantId\":12678458,\"utrNumber\":\"AXISCN0964297088\",\"transaction\":[{\"action\":\"capture\",\"payuId\":\"23244908014\",\"requestId\":\"16733631193\",\"transactionAmount\":\"1.00\",\"merchantServiceFee\":\"0.00000\",\"merchantServiceTax\":\"0.00000\",\"merchantNetAmount\":\"-0.18\",\"sgst\":\"0.00000\",\"cgst\":\"0.00000\",\"igst\":\"0.00000\",\"merchantTransactionId\":\"680613d78218d3a8c036fed4\",\"mode\":\"UPI\",\"paymentStatus\":\"captured\",\"transactionDate\":\"2025-04-21 15:16:01\",\"requestDate\":\"2025-04-21 15:16:24\",\"requestedAmount\":\"1.00\",\"bankName\":\"INTENT\",\"offerServiceFee\":\"0.00\",\"offerServiceTax\":\"0.00\",\"forexAmount\":\"0.00\",\"discount\":\"0.00\",\"additionalTdrFee\":\"1.00\",\"totalServiceTax\":\"0.18000\",\"transactionCurrency\":\"INR\",\"settlementCurrency\":\"INR\",\"totalProcessingFee\":\"1.00000\",\"additionalTdrTax\":\"0.18\"},{\"action\":\"capture\",\"payuId\":\"23250070064\",\"requestId\":\"16737918929\",\"transactionAmount\":\"16200.00\",\"merchantServiceFee\":\"0.00000\",\"merchantServiceTax\":\"0.00000\",\"merchantNetAmount\":\"16198.82\",\"sgst\":\"0.00000\",\"cgst\":\"0.00000\",\"igst\":\"0.00000\",\"merchantTransactionId\":\"6806781a8218d3a8c03772ff\",\"mode\":\"UPI\",\"paymentStatus\":\"captured\",\"transactionDate\":\"2025-04-21 22:23:47\",\"requestDate\":\"2025-04-21 22:24:10\",\"requestedAmount\":\"16200.00\",\"bankName\":\"INTENT\",\"offerServiceFee\":\"0.00\",\"offerServiceTax\":\"0.00\",\"forexAmount\":\"0.00\",\"discount\":\"0.00\",\"additionalTdrFee\":\"1.00\",\"totalServiceTax\":\"0.18000\",\"transactionCurrency\":\"INR\",\"settlementCurrency\":\"INR\",\"totalProcessingFee\":\"1.00000\",\"additionalTdrTax\":\"0.18\"}]}]}"
+  async dummy() {
+    const res = "{\"rows\":1,\"message\":\"1 Settlements found for the 2025-04-22T00:00 and 2025-04-23T00:00\",\"status\":1,\"result\":[{\"settlementId\":\"12678458202504221245\",\"settlementCompletedDate\":\"2025-04-22 15:03:13\",\"settlementAmount\":\"16198.64\",\"merchantId\":12678458,\"utrNumber\":\"AXISCN0964297088\",\"transaction\":[{\"action\":\"capture\",\"payuId\":\"23244908014\",\"requestId\":\"16733631193\",\"transactionAmount\":\"1.00\",\"merchantServiceFee\":\"0.00000\",\"merchantServiceTax\":\"0.00000\",\"merchantNetAmount\":\"-0.18\",\"sgst\":\"0.00000\",\"cgst\":\"0.00000\",\"igst\":\"0.00000\",\"merchantTransactionId\":\"680613d78218d3a8c036fed4\",\"mode\":\"UPI\",\"paymentStatus\":\"captured\",\"transactionDate\":\"2025-04-21 15:16:01\",\"requestDate\":\"2025-04-21 15:16:24\",\"requestedAmount\":\"1.00\",\"bankName\":\"INTENT\",\"offerServiceFee\":\"0.00\",\"offerServiceTax\":\"0.00\",\"forexAmount\":\"0.00\",\"discount\":\"0.00\",\"additionalTdrFee\":\"1.00\",\"totalServiceTax\":\"0.18000\",\"transactionCurrency\":\"INR\",\"settlementCurrency\":\"INR\",\"totalProcessingFee\":\"1.00000\",\"additionalTdrTax\":\"0.18\"},{\"action\":\"capture\",\"payuId\":\"23250070064\",\"requestId\":\"16737918929\",\"transactionAmount\":\"16200.00\",\"merchantServiceFee\":\"0.00000\",\"merchantServiceTax\":\"0.00000\",\"merchantNetAmount\":\"16198.82\",\"sgst\":\"0.00000\",\"cgst\":\"0.00000\",\"igst\":\"0.00000\",\"merchantTransactionId\":\"6806781a8218d3a8c03772ff\",\"mode\":\"UPI\",\"paymentStatus\":\"captured\",\"transactionDate\":\"2025-04-21 22:23:47\",\"requestDate\":\"2025-04-21 22:24:10\",\"requestedAmount\":\"16200.00\",\"bankName\":\"INTENT\",\"offerServiceFee\":\"0.00\",\"offerServiceTax\":\"0.00\",\"forexAmount\":\"0.00\",\"discount\":\"0.00\",\"additionalTdrFee\":\"1.00\",\"totalServiceTax\":\"0.18000\",\"transactionCurrency\":\"INR\",\"settlementCurrency\":\"INR\",\"totalProcessingFee\":\"1.00000\",\"additionalTdrTax\":\"0.18\"}]}]}"
 
     return JSON.parse(res)
+  }
+
+  @Get('test-settlement')
+  async testSettlementPost(
+    @Body() body: any, @Res() res: any
+  ) {
+    const {
+      utr,
+      client_id,
+      limit
+    } = body
+
+    try {
+      const transactionForSettlement =
+        await this.trusteeService.getTransactionsForSettlements(utr, client_id, limit)
+      const payment_from = Date.now()
+      const htmlBody = generateEmailHTML(payment_from);
+
+      const csvContent = await generateCSV(transactionForSettlement.settlements_transactions)
+      this.emailService.sendSettlementMail(htmlBody, "TEST SETTLEMENT MAIL", SETTLEMENT_ERROR_EMAIL, csvContent)
+      return "OK"
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Something Went Wrong',
+      );
+    }
   }
 }
 
