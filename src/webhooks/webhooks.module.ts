@@ -43,6 +43,7 @@ import { PdfService } from '../pdf-service/pdf-service.service';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
+import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 
 @Module({
   imports: [
@@ -99,6 +100,7 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
     JwtService,
     AwsS3Service,
     PdfService,
+    BusinessAlarmService
   ],
 })
 export class WebhooksModule { }
