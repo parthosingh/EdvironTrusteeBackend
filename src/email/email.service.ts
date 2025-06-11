@@ -186,8 +186,6 @@ export class EmailService {
     });
   }
 
-
-
   sendMailToTrustee(subject: string, body: string, emails: Array<string>) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -299,7 +297,7 @@ export class EmailService {
     htmlBody: string,
     to: string[],
     cc?: string[],
-    attachments?: any
+    attachments?: any,
   ) {
     const formattedAttachments = [];
 
@@ -318,7 +316,7 @@ export class EmailService {
         } catch (error) {
           console.error(
             `Failed to fetch attachment from ${attachment.file_url}`,
-            error
+            error,
           );
           // Optionally skip or throw depending on your tolerance for missing files
         }
@@ -334,14 +332,21 @@ export class EmailService {
     });
   }
 
-  sendTransactionAlert(emailBody: string, sub: string, emailRecipient: string | string[]) {
-    console.log(emailRecipient);
+  sendTransactionAlert(
+    emailBody: string,
+    sub: string,
+    emailRecipient: string | string[],
+    emailRecipientCC?: string[],
+  ) {
+    // console.log(emailRecipient);
     const toEmails = Array.isArray(emailRecipient)
       ? emailRecipient.join(',')
       : emailRecipient;
+    
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: toEmails,
+      cc: emailRecipientCC,
       subject: sub,
       html: emailBody,
     };
@@ -355,5 +360,7 @@ export class EmailService {
     });
   }
 
-  
+
+
+
 }

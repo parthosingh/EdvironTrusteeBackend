@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model, Types } from 'mongoose';
 import { RefundRequest } from '../schema/refund.schema';
@@ -647,16 +647,15 @@ export class BusinessAlarmService {
     return aggregatedData;
   }
 
-   async getMails(event_name: string, school_id: string) {
+  async getMails(event_name: string, school_id: string) {
     try {
+      console.log({ event_name, school_id });
 
-      console.log({event_name,school_id});
-      
       const event = await this.EmailEventModel.findOne({
         event_name: event_name,
       });
-      console.log({event});
-      
+      console.log({ event });
+
       const groups = await this.EmailGroupModel.find({
         $or: [
           {
@@ -666,18 +665,74 @@ export class BusinessAlarmService {
           },
           {
             event_id: event._id,
-            isCommon: true, 
+            isCommon: true,
           },
         ],
       })
         .select('emails')
         .exec();
       // Flatten and remove duplicates
-      console.log({groups});
-      
+      console.log({ groups });
+
       const emails = [...new Set(groups.flatMap((group) => group.emails))];
-  
+
       return emails;
-    } catch (e) { }
+    } catch (e) {}
+  }
+
+  async getMailsCC(event_name: string, school_id: string) {
+    try {
+      const event = await this.EmailEventModel.findOne({
+        event_name: event_name,
+      });
+      const groups = await this.EmailGroupModel.find({
+        $or: [
+          {
+            event_id: event._id,
+            school_id: new Types.ObjectId(school_id),
+            isCommon: false,
+          },
+          {
+            event_id: event._id,
+            isCommon: true,
+          },
+        ],
+      })
+        .select('cc')
+        .exec();
+      console.log({ groups });
+
+      const emails = [...new Set(groups.flatMap((group) => group.cc))];
+
+      return emails;
+    } catch (e) {}
+  }
+
+  async createEmailGroup(
+    event_name: string,
+    group_name: string,
+    school_id: string,
+    trustee_id: string,
+    emails: string[],
+    cc: string[],
+  ) {
+    try {
+      const event = await this.EmailEventModel.findOne({ event_name });
+      if (!event) {
+        throw new BadRequestException('Event Not found ' + event_name);
+      }
+      const group = await this.EmailGroupModel.create({
+        group_name,
+        school_id: new Types.ObjectId(school_id),
+        emails,
+        event_id: event._id,
+        trustee_id: new Types.ObjectId(trustee_id),
+        isCommon: false,
+        cc,
+      });
+      return group;
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
   }
 }
