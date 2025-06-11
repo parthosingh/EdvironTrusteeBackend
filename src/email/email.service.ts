@@ -186,7 +186,7 @@ export class EmailService {
     });
   }
 
-  
+
 
   sendMailToTrustee(subject: string, body: string, emails: Array<string>) {
     const mailOptions = {
@@ -303,42 +303,45 @@ export class EmailService {
   ) {
     const formattedAttachments = [];
 
-  if (attachments && attachments.length > 0) {
-    for (const attachment of attachments) {
-      try {
-        const response = await axios.get(attachment.file_url, {
-          responseType: 'arraybuffer',
-        });
+    if (attachments && attachments.length > 0) {
+      for (const attachment of attachments) {
+        try {
+          const response = await axios.get(attachment.file_url, {
+            responseType: 'arraybuffer',
+          });
 
-        formattedAttachments.push({
-          filename: attachment.name,
-          content: Buffer.from(response.data),
-          contentType: response.headers['content-type'],
-        });
-      } catch (error) {
-        console.error(
-          `Failed to fetch attachment from ${attachment.file_url}`,
-          error
-        );
-        // Optionally skip or throw depending on your tolerance for missing files
+          formattedAttachments.push({
+            filename: attachment.name,
+            content: Buffer.from(response.data),
+            contentType: response.headers['content-type'],
+          });
+        } catch (error) {
+          console.error(
+            `Failed to fetch attachment from ${attachment.file_url}`,
+            error
+          );
+          // Optionally skip or throw depending on your tolerance for missing files
+        }
       }
     }
+
+    await this.transporter.sendMail({
+      to,
+      cc: cc || [],
+      subject,
+      html: htmlBody,
+      attachments: formattedAttachments,
+    });
   }
 
-  await this.transporter.sendMail({
-    to,
-    cc: cc || [],
-    subject,
-    html: htmlBody,
-    attachments: formattedAttachments,
-  });
-  }
-
-  sendTransactionAlert(emailBody: string, sub: string, emailRecipient:string) {
+  sendTransactionAlert(emailBody: string, sub: string, emailRecipient: string | string[]) {
     console.log(emailRecipient);
+    const toEmails = Array.isArray(emailRecipient)
+      ? emailRecipient.join(',')
+      : emailRecipient;
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: emailRecipient,
+      to: toEmails,
       subject: sub,
       html: emailBody,
     };

@@ -694,7 +694,7 @@ export function generateTransactionMailReciept(
 
   <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
     <div style="margin-bottom:16px;">
-      <strong>Order ID:</strong> ${custom_order_id} <br/>
+      <strong>Order ID:</strong> ${custom_order_id || collect_id} <br/>
       <strong>Order Amount:</strong> ₹${amount} <br/>
       <strong>Status:</strong> <span style="color:${status === 'SUCCESS' ? '#10b981' : status === 'PENDING' ? '#f59e0b' : '#ef4444'};">${status}</span>
     </div>

@@ -147,7 +147,7 @@ export class BusinessAlarmController {
                     error_details
                 )
                 const emailRecipient = school.email
-                this.emailService.sendTransactionAlert(htmlContent, reason, emailRecipient)
+                this.emailService.sendTransactionAlert(htmlContent, `TRANSACTION SUCCESSFUL (${school.school_name})`, emailRecipient)
             }
             return res.status(200).send("ok")
         } catch (error) {
