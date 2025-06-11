@@ -28,7 +28,7 @@ export class BusinessAlarmController {
     private readonly trusteeSchool: mongoose.Model<TrusteeSchool>,
     @InjectModel(EmailEvent.name)
     private EmailEventModel: mongoose.Model<EmailEvent>,
-  ) {}
+  ) { }
 
   @Post('fivepm')
   async checkMerchantSettlement() {
@@ -222,21 +222,19 @@ export class BusinessAlarmController {
       if (!event) {
         throw new BadRequestException('Event Not found ' + event_name);
       }
-      if(!school.isNotificationOn){
-        school.isNotificationOn={
-          for_refund:false,
-          for_settlement:false,
-          for_transaction:false
+      if (!school.isNotificationOn) {
+        school.isNotificationOn = {
+          for_refund: false,
+          for_settlement: false,
+          for_transaction: false
         }
       }
       switch (event_name) {
         case 'SETTLEMENT_ALERT':
           school.isNotificationOn.for_settlement = true;
-          await school.save();
           break;
         case 'TRANSACTION_ALERT':
           school.isNotificationOn.for_transaction = true;
-          await school.save();
           break;
         case 'REFUND_ALERT':
           school.isNotificationOn.for_refund = true;
@@ -244,6 +242,9 @@ export class BusinessAlarmController {
         default:
           throw new BadRequestException('INVALID EVENT NAME');
       }
+
+      school.markModified('isNotificationOn');
+      await school.save();
 
       return await this.businessServices.createEmailGroup(
         event_name,
@@ -259,22 +260,22 @@ export class BusinessAlarmController {
   }
 
   @Post('create-event')
-    async createEvent(@Body() body: { name: string }) {
-      try {
-        const event = await this.EmailEventModel.findOne({
-          event_name: body.name,
-        });
-        
-        if (event) {
-          throw new ConflictException('Event Already present ' + body.name);
-        }
-        const newEvent = await this.EmailEventModel.create({
-          event_name: body.name,
-        });
-  
-        return newEvent;
-      } catch (e) {
-        throw new BadRequestException(e.message);
+  async createEvent(@Body() body: { name: string }) {
+    try {
+      const event = await this.EmailEventModel.findOne({
+        event_name: body.name,
+      });
+
+      if (event) {
+        throw new ConflictException('Event Already present ' + body.name);
       }
+      const newEvent = await this.EmailEventModel.create({
+        event_name: body.name,
+      });
+
+      return newEvent;
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
+  }
 }
