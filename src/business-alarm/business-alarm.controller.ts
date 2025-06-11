@@ -119,7 +119,9 @@ export class BusinessAlarmController {
             if (!school) {
                 throw new BadRequestException("School not found");
             }
-            if (school.isNotificationOn && school.isNotificationOn.for_transaction === true && status === 'SUCCESS') {
+            console.log(school.isNotificationOn,'debug1',status);
+            
+            if (school.isNotificationOn && school.isNotificationOn.for_transaction === true && status.toUpperCase()=== 'SUCCESS') {
                 const htmlContent = await generateTransactionMailReciept(
                     amount,
                     gateway,
@@ -146,11 +148,21 @@ export class BusinessAlarmController {
                     reason,
                     error_details
                 )
-                const emailRecipient = school.email
-                this.emailService.sendTransactionAlert(htmlContent, `TRANSACTION SUCCESSFUL (${school.school_name})`, emailRecipient)
+                let emailRecipient = school.email
+                const eventName='TRANSACTION_ALERT'
+                const emails=await this.businessServices.getMails(eventName,school_id)
+                console.log({emails});     
+                try{
+                    this.emailService.sendTransactionAlert(htmlContent, `TRANSACTION SUCCESSFUL (${school.school_name})`, emails)
+                }   catch(e){
+                    console.log(e);
+                    
+                }    
             }
             return res.status(200).send("ok")
         } catch (error) {
+            console.log(error);
+            
             throw new BadRequestException(error.message);
         }
     }

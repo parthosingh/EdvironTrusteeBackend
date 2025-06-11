@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { RefundRequest } from '../schema/refund.schema';
 import { TrusteeSchool } from '../schema/school.schema';
 import * as jwt from 'jsonwebtoken';
@@ -8,6 +8,8 @@ import axios, { AxiosError } from 'axios';
 import { SettlementReport } from '../schema/settlement.schema';
 import { VendorsSettlement } from '../schema/vendor.settlements.schema';
 import { Vendors } from '../schema/vendors.schema';
+import { EmailGroup } from 'src/schema/email.schema';
+import { EmailEvent } from 'src/schema/email.events.schema';
 
 @Injectable()
 export class BusinessAlarmService {
@@ -22,6 +24,10 @@ export class BusinessAlarmService {
     private readonly vendorsSettlementSchema: Model<VendorsSettlement>,
     @InjectModel(Vendors.name)
     private readonly vendorsSchema: Model<Vendors>,
+    @InjectModel(EmailGroup.name)
+    private EmailGroupModel: mongoose.Model<EmailGroup>,
+    @InjectModel(EmailEvent.name)
+    private EmailEventModel: mongoose.Model<EmailEvent>,
   ) {}
 
   async findAll() {
@@ -639,5 +645,39 @@ export class BusinessAlarmService {
     ]);
 
     return aggregatedData;
+  }
+
+   async getMails(event_name: string, school_id: string) {
+    try {
+
+      console.log({event_name,school_id});
+      
+      const event = await this.EmailEventModel.findOne({
+        event_name: event_name,
+      });
+      console.log({event});
+      
+      const groups = await this.EmailGroupModel.find({
+        $or: [
+          {
+            event_id: event._id,
+            school_id: new Types.ObjectId(school_id),
+            isCommon: false,
+          },
+          {
+            event_id: event._id,
+            isCommon: true, 
+          },
+        ],
+      })
+        .select('emails')
+        .exec();
+      // Flatten and remove duplicates
+      console.log({groups});
+      
+      const emails = [...new Set(groups.flatMap((group) => group.emails))];
+  
+      return emails;
+    } catch (e) { }
   }
 }

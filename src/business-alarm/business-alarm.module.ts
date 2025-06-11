@@ -12,6 +12,8 @@ import {
   VendorsSettlementSchema,
 } from '../schema/vendor.settlements.schema';
 import { Vendors, VendorsSchema } from '../schema/vendors.schema';
+import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
+import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { Vendors, VendorsSchema } from '../schema/vendors.schema';
       { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
       { name: Vendors.name, schema: VendorsSchema },
     ]),
+     MongooseModule.forFeature([{ name: EmailGroup.name, schema: EmailGroupSchema }]),
+        MongooseModule.forFeature([{ name: EmailEvent.name, schema: EmailEventSchema }]),
   ],
   providers: [BusinessAlarmResolver, BusinessAlarmService, EmailService],
   controllers: [BusinessAlarmController],
