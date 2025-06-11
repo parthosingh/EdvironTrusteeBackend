@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Post,
   Res,
@@ -15,6 +16,8 @@ import {
   checkMerchantSettlementnot,
   generateTransactionMailReciept,
 } from './templates/htmlToSend.format';
+import { EmailEvent } from 'src/schema/email.events.schema';
+import { Events } from 'aws-sdk/clients/cognitosync';
 
 @Controller('business-alarm')
 export class BusinessAlarmController {
@@ -23,6 +26,8 @@ export class BusinessAlarmController {
     private readonly emailService: EmailService,
     @InjectModel(TrusteeSchool.name)
     private readonly trusteeSchool: mongoose.Model<TrusteeSchool>,
+    @InjectModel(EmailEvent.name)
+    private EmailEventModel: mongoose.Model<EmailEvent>,
   ) {}
 
   @Post('fivepm')
@@ -202,6 +207,7 @@ export class BusinessAlarmController {
       school_id: string;
       emails: string[];
       cc: string[];
+      isNotification: boolean;
     },
   ) {
     const { event_name, group_name, school_id, emails, cc } = body;
@@ -211,6 +217,32 @@ export class BusinessAlarmController {
       });
       if (!school) {
         throw new BadRequestException('School not found for ' + school_id);
+      }
+      const event = await this.EmailEventModel.findOne({ event_name });
+      if (!event) {
+        throw new BadRequestException('Event Not found ' + event_name);
+      }
+      if(!school.isNotificationOn){
+        school.isNotificationOn={
+          for_refund:false,
+          for_settlement:false,
+          for_transaction:false
+        }
+      }
+      switch (event_name) {
+        case 'SETTLEMENT_ALERT':
+          school.isNotificationOn.for_settlement = true;
+          await school.save();
+          break;
+        case 'TRANSACTION_ALERT':
+          school.isNotificationOn.for_transaction = true;
+          await school.save();
+          break;
+        case 'REFUND_ALERT':
+          school.isNotificationOn.for_refund = true;
+          break;
+        default:
+          throw new BadRequestException('INVALID EVENT NAME');
       }
 
       return await this.businessServices.createEmailGroup(
@@ -225,4 +257,24 @@ export class BusinessAlarmController {
       throw new BadRequestException(e.message);
     }
   }
+
+  @Post('create-event')
+    async createEvent(@Body() body: { name: string }) {
+      try {
+        const event = await this.EmailEventModel.findOne({
+          event_name: body.name,
+        });
+        
+        if (event) {
+          throw new ConflictException('Event Already present ' + body.name);
+        }
+        const newEvent = await this.EmailEventModel.create({
+          event_name: body.name,
+        });
+  
+        return newEvent;
+      } catch (e) {
+        throw new BadRequestException(e.message);
+      }
+    }
 }

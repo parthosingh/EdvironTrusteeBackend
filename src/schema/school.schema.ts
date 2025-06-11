@@ -140,15 +140,15 @@ export class gatewaysEmails{
 @ObjectType()
 export class isNotificationOn{
   @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false })
+  @Prop({ default: false,nullable:true })
   for_transaction: Boolean;
 
   @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false })
+  @Prop({ default: false,nullable:true })
   for_refund: Boolean;
 
   @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false })
+  @Prop({ default: false,nullable:true })
   for_settlement: Boolean;
 }
 

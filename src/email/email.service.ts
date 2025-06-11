@@ -317,8 +317,7 @@ export class EmailService {
           console.error(
             `Failed to fetch attachment from ${attachment.file_url}`,
 
-            error
-
+            error,
           );
           // Optionally skip or throw depending on your tolerance for missing files
         }
@@ -334,9 +333,6 @@ export class EmailService {
     });
   }
 
-
-  sendTransactionAlert(emailBody: string, sub: string, emailRecipient: string) {
-    console.log(emailRecipient);
   sendTransactionAlert(
     emailBody: string,
     sub: string,
@@ -347,7 +343,6 @@ export class EmailService {
     const toEmails = Array.isArray(emailRecipient)
       ? emailRecipient.join(',')
       : emailRecipient;
-    
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -366,7 +361,13 @@ export class EmailService {
     });
   }
 
-  async sendSettlementMail(emailBody: string, sub: string, emailRecipient: any, csvData: string) {
+  async sendSettlementMail(
+    emailBody: string,
+    sub: string,
+    emailRecipient: any,
+    csvData: string,
+    cc:string[]
+  ) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: emailRecipient,
@@ -389,6 +390,4 @@ export class EmailService {
       }
     });
   }
-
-
 }

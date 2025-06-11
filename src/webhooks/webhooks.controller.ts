@@ -30,12 +30,19 @@ import {
   getCustomerEmailTemplate,
 } from '../email/templates/dipute.template';
 import { PdfService } from '../pdf-service/pdf-service.service';
-import { DISPUT_INVOICE_MAIL_GATEWAY, SETTLEMENT_ERROR_EMAIL } from '../utils/email.group';
+import {
+  DISPUT_INVOICE_MAIL_GATEWAY,
+  SETTLEMENT_ERROR_EMAIL,
+} from '../utils/email.group';
 import { EmailGroup, EmailGroupType } from '../schema/email.schema';
 import { EmailEvent, Events } from '../schema/email.events.schema';
 import { string1To1000 } from 'aws-sdk/clients/customerprofiles';
-import { generateCSV, generateEmailHTML } from 'src/business-alarm/templates/htmlToSend.format';
+import {
+  generateCSV,
+  generateEmailHTML,
+} from 'src/business-alarm/templates/htmlToSend.format';
 import { ErrorLogs } from 'src/schema/error.log.schema';
+import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -72,35 +79,9 @@ export class WebhooksController {
     private readonly pdfService: PdfService,
     @InjectModel(ErrorLogs.name)
     private ErrorLogsModel: mongoose.Model<ErrorLogs>,
-  ) { }
+    private readonly businessServices: BusinessAlarmService,
+  ) {}
 
-  demoData = {
-    data: {
-      settlement: {
-        adjustment: 0,
-        amount_settled: 366150,
-        payment_amount: 366150,
-        payment_from: '2024-12-21T02:41:51+05:30',
-        payment_till: '2024-12-22T23:57:10+05:30',
-        reason: null,
-        remarks: null,
-        service_charge: 0,
-        service_tax: 0,
-        settled_on: '2024-12-23T13:52:38+05:30',
-        settlement_amount: 366150,
-        settlement_charge: 0,
-        settlement_id: 111939000,
-        settlement_initiated_on: '2024-12-23T13:52:38+05:30',
-        settlement_tax: 0,
-        settlement_type: 'NORMAL_SETTLEMENT',
-        status: 'SUCCESS',
-        utr: 'UTIBR72024122300097378',
-      },
-    },
-    event_time: '2024-12-23T13:52:38+05:30',
-    merchant: { merchant_id: 'CF_943d6a8b-b575-4418-8fa9-0466b83e9bbd' },
-    type: 'SETTLEMENT_SUCCESS',
-  };
   @Post('/easebuzz/refund')
   async easebuzzRefundWebhook(@Body() body: any, @Res() res: any) {
     try {
@@ -570,49 +551,77 @@ export class WebhooksController {
       }
 
       // saving reconcilation data
-      if (status === 'SUCCESS') {
-        console.log('Success');
+      try {
+        if (status === 'SUCCESS') {
+          console.log('Success');
 
-        setTimeout(
-          async () => {
-            console.log('40 min delay');
-            try {
-              const settlementDate = await this.formatDate(settled_on);
-              const paymentFromDate = await this.formatDate(payment_from);
-              const paymentTillDate = await this.formatDate(payment_till);
-              await this.trusteeService.reconSettlementAndTransaction(
-                merchant.trustee_id.toString(),
-                merchant.school_id.toString(),
-                settlementDate,
-                paymentFromDate,
-                paymentTillDate,
-                payment_from,
-                payment_till,
-                settled_on,
-              );
-            } catch (e) {
-              console.log(e.message);
-              console.log('error in recon save');
-              // ADD mailer here
-            }
-          },
-          40 * 60 * 1000,
-        ); // 40 min delay
+          setTimeout(
+            async () => {
+              console.log('40 min delay');
+              try {
+                const settlementDate = await this.formatDate(settled_on);
+                const paymentFromDate = await this.formatDate(payment_from);
+                const paymentTillDate = await this.formatDate(payment_till);
+                await this.trusteeService.reconSettlementAndTransaction(
+                  merchant.trustee_id.toString(),
+                  merchant.school_id.toString(),
+                  settlementDate,
+                  paymentFromDate,
+                  paymentTillDate,
+                  payment_from,
+                  payment_till,
+                  settled_on,
+                );
+              } catch (e) {
+                console.log(e.message);
+                console.log('error in recon save');
+                // ADD mailer here
+              }
+            },
+            40 * 60 * 1000,
+          ); // 40 min delay
+        }
+      } catch (e) {
+        console.log(e);
       }
       console.log('returning transaction');
 
-      if (merchant.isNotificationOn && merchant.isNotificationOn.for_settlement) {
+      if (
+        merchant.isNotificationOn &&
+        merchant.isNotificationOn.for_settlement
+      ) {
         try {
           const transactionForSettlement =
-            await this.trusteeService.getTransactionsForSettlements(utr, merchant_id, 500)
+            await this.trusteeService.getTransactionsForSettlements(
+              utr,
+              merchant_id,
+              1000,
+            );
           const htmlBody = generateEmailHTML(payment_from);
-          const csvContent = await generateCSV(transactionForSettlement.settlements_transactions)
-          this.emailService.sendSettlementMail(htmlBody, `Settlement File Attached (${merchant.school_name})`, merchant.email, csvContent)
+          const csvContent = await generateCSV(
+            transactionForSettlement.settlements_transactions,
+          );
+          const eventName = 'SETTLEMENT_ALERT';
+          const emails = await this.businessServices.getMails(
+            eventName,
+            merchant.school_id.toString(),
+          );
+          const ccMails = await this.businessServices.getMailsCC(
+            eventName,
+            merchant.school_id.toString(),
+          );
+          this.emailService.sendSettlementMail(
+            htmlBody,
+            `Settlement File Attached for (${merchant.school_name})`,
+            emails,
+            csvContent,
+            ccMails,
+          );
         } catch (error) {
           await this.ErrorLogsModel.create({
             source: 'sendMailAfterSettlement',
             collect_id: merchant_id,
-            error: error.message || error.toString()
+            error: error.message || error.toString(),
           });
         }
       }
@@ -877,7 +886,8 @@ export class WebhooksController {
         //   school.trustee_id,
         // );
         const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
-        const htmlBody = 'Please find the attached receipt for dispute details.';
+        const htmlBody =
+          'Please find the attached receipt for dispute details.';
 
         // Generate PDF buffer (you need to implement this part)
         const pdfBuffer = await this.generateDisputePDF(dispute, false);
@@ -888,7 +898,6 @@ export class WebhooksController {
             content: pdfBuffer,
           },
         ]);
-
 
         // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
 
@@ -944,10 +953,9 @@ export class WebhooksController {
       res.status(200).send('OK');
     } catch (e) {
       console.log(e.message);
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
-
 
   async generateDisputePDF(dispute: Disputes, isClosed = false) {
     const html = getAdminEmailTemplate(dispute, isClosed);
@@ -1225,7 +1233,7 @@ export class WebhooksController {
       // Flatten and remove duplicates
       const emails = [...new Set(groups.flatMap((group) => group.emails))];
       return emails;
-    } catch (e) { }
+    } catch (e) {}
   }
 
   @Post('pay-u/refunds')
@@ -1281,34 +1289,48 @@ export class WebhooksController {
     return res.status(200).send('OK');
   }
 
-
-
   @Get('/dummy')
   async dummy() {
-    const res = "{\"rows\":1,\"message\":\"1 Settlements found for the 2025-04-22T00:00 and 2025-04-23T00:00\",\"status\":1,\"result\":[{\"settlementId\":\"12678458202504221245\",\"settlementCompletedDate\":\"2025-04-22 15:03:13\",\"settlementAmount\":\"16198.64\",\"merchantId\":12678458,\"utrNumber\":\"AXISCN0964297088\",\"transaction\":[{\"action\":\"capture\",\"payuId\":\"23244908014\",\"requestId\":\"16733631193\",\"transactionAmount\":\"1.00\",\"merchantServiceFee\":\"0.00000\",\"merchantServiceTax\":\"0.00000\",\"merchantNetAmount\":\"-0.18\",\"sgst\":\"0.00000\",\"cgst\":\"0.00000\",\"igst\":\"0.00000\",\"merchantTransactionId\":\"680613d78218d3a8c036fed4\",\"mode\":\"UPI\",\"paymentStatus\":\"captured\",\"transactionDate\":\"2025-04-21 15:16:01\",\"requestDate\":\"2025-04-21 15:16:24\",\"requestedAmount\":\"1.00\",\"bankName\":\"INTENT\",\"offerServiceFee\":\"0.00\",\"offerServiceTax\":\"0.00\",\"forexAmount\":\"0.00\",\"discount\":\"0.00\",\"additionalTdrFee\":\"1.00\",\"totalServiceTax\":\"0.18000\",\"transactionCurrency\":\"INR\",\"settlementCurrency\":\"INR\",\"totalProcessingFee\":\"1.00000\",\"additionalTdrTax\":\"0.18\"},{\"action\":\"capture\",\"payuId\":\"23250070064\",\"requestId\":\"16737918929\",\"transactionAmount\":\"16200.00\",\"merchantServiceFee\":\"0.00000\",\"merchantServiceTax\":\"0.00000\",\"merchantNetAmount\":\"16198.82\",\"sgst\":\"0.00000\",\"cgst\":\"0.00000\",\"igst\":\"0.00000\",\"merchantTransactionId\":\"6806781a8218d3a8c03772ff\",\"mode\":\"UPI\",\"paymentStatus\":\"captured\",\"transactionDate\":\"2025-04-21 22:23:47\",\"requestDate\":\"2025-04-21 22:24:10\",\"requestedAmount\":\"16200.00\",\"bankName\":\"INTENT\",\"offerServiceFee\":\"0.00\",\"offerServiceTax\":\"0.00\",\"forexAmount\":\"0.00\",\"discount\":\"0.00\",\"additionalTdrFee\":\"1.00\",\"totalServiceTax\":\"0.18000\",\"transactionCurrency\":\"INR\",\"settlementCurrency\":\"INR\",\"totalProcessingFee\":\"1.00000\",\"additionalTdrTax\":\"0.18\"}]}]}"
+    const res =
+      '{"rows":1,"message":"1 Settlements found for the 2025-04-22T00:00 and 2025-04-23T00:00","status":1,"result":[{"settlementId":"12678458202504221245","settlementCompletedDate":"2025-04-22 15:03:13","settlementAmount":"16198.64","merchantId":12678458,"utrNumber":"AXISCN0964297088","transaction":[{"action":"capture","payuId":"23244908014","requestId":"16733631193","transactionAmount":"1.00","merchantServiceFee":"0.00000","merchantServiceTax":"0.00000","merchantNetAmount":"-0.18","sgst":"0.00000","cgst":"0.00000","igst":"0.00000","merchantTransactionId":"680613d78218d3a8c036fed4","mode":"UPI","paymentStatus":"captured","transactionDate":"2025-04-21 15:16:01","requestDate":"2025-04-21 15:16:24","requestedAmount":"1.00","bankName":"INTENT","offerServiceFee":"0.00","offerServiceTax":"0.00","forexAmount":"0.00","discount":"0.00","additionalTdrFee":"1.00","totalServiceTax":"0.18000","transactionCurrency":"INR","settlementCurrency":"INR","totalProcessingFee":"1.00000","additionalTdrTax":"0.18"},{"action":"capture","payuId":"23250070064","requestId":"16737918929","transactionAmount":"16200.00","merchantServiceFee":"0.00000","merchantServiceTax":"0.00000","merchantNetAmount":"16198.82","sgst":"0.00000","cgst":"0.00000","igst":"0.00000","merchantTransactionId":"6806781a8218d3a8c03772ff","mode":"UPI","paymentStatus":"captured","transactionDate":"2025-04-21 22:23:47","requestDate":"2025-04-21 22:24:10","requestedAmount":"16200.00","bankName":"INTENT","offerServiceFee":"0.00","offerServiceTax":"0.00","forexAmount":"0.00","discount":"0.00","additionalTdrFee":"1.00","totalServiceTax":"0.18000","transactionCurrency":"INR","settlementCurrency":"INR","totalProcessingFee":"1.00000","additionalTdrTax":"0.18"}]}]}';
 
-    return JSON.parse(res)
+    return JSON.parse(res);
   }
 
   @Get('test-settlement')
-  async testSettlementPost(
-    @Body() body: any, @Res() res: any
-  ) {
-    const {
-      utr,
-      client_id,
-      limit
-    } = body
+  async testSettlementPost(@Body() body: any, @Res() res: any) {
+    const { utr, client_id, limit, school_id } = body;
 
     try {
       const transactionForSettlement =
-        await this.trusteeService.getTransactionsForSettlements(utr, client_id, limit)
-      const payment_from = Date.now()
+        await this.trusteeService.getTransactionsForSettlements(
+          utr,
+          client_id,
+          limit,
+        );
+      const payment_from = Date.now();
       const htmlBody = generateEmailHTML(payment_from);
 
-      const csvContent = await generateCSV(transactionForSettlement.settlements_transactions)
-      this.emailService.sendSettlementMail(htmlBody, "TEST SETTLEMENT MAIL", SETTLEMENT_ERROR_EMAIL, csvContent)
-      return "OK"
+      const csvContent = await generateCSV(
+        transactionForSettlement.settlements_transactions,
+      );
+      const eventName = 'SETTLEMENT_ALERT';
+      const emails = await this.businessServices.getMails(
+        eventName,
+        school_id.toString(),
+      );
+      const ccMails = await this.businessServices.getMailsCC(
+        eventName,
+        school_id.toString(),
+      );
+      this.emailService.sendSettlementMail(
+        htmlBody,
+        `Settlement File Attached for `,
+        emails,
+        csvContent,
+        ccMails,
+      );
+      return 'OK';
     } catch (error) {
       throw new InternalServerErrorException(
         error.message || 'Something Went Wrong',
@@ -1316,37 +1338,3 @@ export class WebhooksController {
     }
   }
 }
-
-// Dispute payload
-const payloadTest = {
-  data: {
-    dispute: {
-      dispute_id: '377208',
-      dispute_type: 'CHARGEBACK',
-      reason_code: '4855',
-      reason_description: 'Goods or Services Not Provided',
-      dispute_amount: 13849,
-      created_at: '2025-05-20T21:16:03+05:30',
-      updated_at: '2025-05-20T21:16:51+05:30',
-      respond_by: '2025-05-23T00:00:00+05:30',
-      // resolved_at: '2023-06-15T21:16:51.682836678+05:30',
-      dispute_status: 'DISPUTE_CREATED',
-      cf_dispute_remarks: '4853-Cardholder Disputes',
-    },
-    order_details: {
-      order_id: '681ddea8d4dca49136ad7d17',
-      order_amount: 13790,
-      order_currency: 'INR',
-      cf_payment_id: 885457437,
-      payment_amount: 13849,
-      payment_currency: 'INR',
-    },
-    customer_details: {
-      customer_name: 'EDVIRON',
-      customer_phone: '9898989898',
-      customer_email: '',
-    },
-  },
-  event_time: '2023-06-15T21:17:14+05:30',
-  type: 'DISPUTE_CREATED',
-};
