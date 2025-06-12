@@ -94,7 +94,7 @@ export class MerchantResolver {
     private readonly awsS3Service: AwsS3Service,
     @InjectModel(PosMachine.name)
     private posMachineModel: mongoose.Model<PosMachine>,
-  ) { }
+  ) {}
   // private emailService: EmailService,
   // ) { }
 
@@ -966,8 +966,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -1014,21 +1014,58 @@ export class MerchantResolver {
     return `Refund Request Created`;
   }
   @UseGuards(MerchantGuard)
-  @Query(() => [MerchantRefundRequestRes])
+  @Query(() => PaginatedRefundRequestResponse)
   async getRefundRequests(
-    @Args('page', { nullable: true }) pages: number = 1,
-    @Args('limit', { nullable: true }) limit: number = 10,
+    @Args('page', { type: () => Int, defaultValue: 1 }) page: number,
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
     @Context() context: any,
+    @Args('startDate', { nullable: true }) startDate?: string,
+    @Args('endDate', { nullable: true }) endDate?: string,
+    @Args('status', { nullable: true, defaultValue: null }) status?: string,
+    @Args('isCustomSearch', { nullable: true, defaultValue: null })
+    isCustomSearch?: boolean,
   ) {
-    const skip = (pages - 1) * limit;
-    const refundRequests = await this.refundRequestModel
-      .find({
-        school_id: context.req.merchant,
-      })
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-    return refundRequests;
+    const skip = (page - 1) * limit;
+
+    const match: any = {
+      school_id: context.req.merchant,
+    };
+
+    if (isCustomSearch) {
+      if (status) match.status = status;
+      if (startDate || endDate) {
+        const createdAt: any = {};
+        if (startDate) createdAt.$gte = new Date(`${startDate}T00:00:00.000Z`);
+        if (endDate) createdAt.$lte = new Date(`${endDate}T23:59:59.999Z`);
+        match.createdAt = createdAt;
+      }
+    }
+
+    const pipeline = [
+      { $match: match },
+      { $sort: { createdAt: -1 as -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const countPipeline = [{ $match: match }, { $count: 'total' }];
+
+    const [refundRequests, totalCountResult] = await Promise.all([
+      this.refundRequestModel.aggregate(pipeline as mongoose.PipelineStage[]),
+      this.refundRequestModel.aggregate(
+        countPipeline as mongoose.PipelineStage[],
+      ),
+    ]);
+
+    const totalCount = totalCountResult[0]?.total || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return {
+      refundRequests,
+      totalPages,
+      page,
+      totalCountResult : totalCount
+    };
   }
 
   @UseGuards(MerchantGuard)
@@ -1094,11 +1131,11 @@ export class MerchantResolver {
       ...(vendor_id && { vendor_id }),
       ...(startDate &&
         endDate && {
-        updatedAt: {
-          $gte: new Date(startDate),
-          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
-        },
-      }),
+          updatedAt: {
+            $gte: new Date(startDate),
+            $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     console.log(query, ':query');
@@ -1237,11 +1274,11 @@ export class MerchantResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-        settled_on: {
-          $gte: new Date(start_date),
-          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-        },
-      }),
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -1292,7 +1329,7 @@ export class MerchantResolver {
     if (
       checkRefundRequest &&
       checkRefundRequest.split_refund_details[0]?.vendor_id ===
-      split_refund_details[0].vendor_id &&
+        split_refund_details[0].vendor_id &&
       checkRefundRequest.status === refund_status.INITIATED
     ) {
       throw new ConflictException(
@@ -1332,8 +1369,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -1383,10 +1420,8 @@ export class MerchantResolver {
     @Args('order_id') order_id: string,
     @Context() context: any,
   ) {
-
-    const transactions = this.trusteeService.getVendonrMerchantSingleTransactions(
-      order_id,
-    );
+    const transactions =
+      this.trusteeService.getVendonrMerchantSingleTransactions(order_id);
 
     return transactions;
   }
@@ -1457,42 +1492,42 @@ export class MerchantResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-            files
-              .map(async (data) => {
-                try {
-                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                  if (!matches || matches.length !== 3) {
-                    throw new Error('Invalid base64 file format.');
+              files
+                .map(async (data) => {
+                  try {
+                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                    if (!matches || matches.length !== 3) {
+                      throw new Error('Invalid base64 file format.');
+                    }
+
+                    const contentType = matches[1];
+                    const base64Data = matches[2];
+                    const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                    const last4DigitsOfMs = Date.now().toString().slice(-4);
+                    const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
+
+                    const file_url = await this.awsS3Service.uploadToS3(
+                      fileBuffer,
+                      key,
+                      contentType,
+                      'edviron-backend-dev',
+                    );
+
+                    return {
+                      document_type: data.extension,
+                      file_url,
+                      name: data.name,
+                    };
+                  } catch (error) {
+                    throw new InternalServerErrorException(
+                      error.message || 'File upload failed',
+                    );
                   }
-
-                  const contentType = matches[1];
-                  const base64Data = matches[2];
-                  const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const last4DigitsOfMs = Date.now().toString().slice(-4);
-                  const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
-
-                  const file_url = await this.awsS3Service.uploadToS3(
-                    fileBuffer,
-                    key,
-                    contentType,
-                    'edviron-backend-dev',
-                  );
-
-                  return {
-                    document_type: data.extension,
-                    file_url,
-                    name: data.name
-                  };
-                } catch (error) {
-                  throw new InternalServerErrorException(
-                    error.message || 'File upload failed',
-                  );
-                }
-              })
-              .filter((file) => file !== null),
-          )
+                })
+                .filter((file) => file !== null),
+            )
           : [];
       const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
         { collect_id: collect_id },
@@ -1512,7 +1547,7 @@ export class MerchantResolver {
         });
       } else {
         const school_details = await this.trusteeSchoolModel.findOne({
-          school_id: disputDetails.school_id
+          school_id: disputDetails.school_id,
         });
         // await this.trusteeService.handleCashfreeDispute({
         //   dispute_id: disputDetails.dispute_id,
@@ -1530,19 +1565,23 @@ export class MerchantResolver {
         //   client_id: school_details.client_id,
         // });
 
-        const { email, cc } = await this.trusteeService.getMails(disputDetails.school_id.toString(), "DISPUTE")
+        const { email, cc } = await this.trusteeService.getMails(
+          disputDetails.school_id.toString(),
+          'DISPUTE',
+        );
 
-        const htmlBody = await this.trusteeService.generateDisputePDF(disputDetails)
+        const htmlBody =
+          await this.trusteeService.generateDisputePDF(disputDetails);
 
-        const subject = `A dispute has been raised against ${school_details.school_name} : (${school_details.kyc_mail})`
+        const subject = `A dispute has been raised against ${school_details.school_name} : (${school_details.kyc_mail})`;
 
         await this.emailService.sendAlertMail2(
           subject,
           htmlBody,
           email,
           cc,
-          dusputeUpdate.documents
-        )
+          dusputeUpdate.documents,
+        );
       }
 
       const teamMailSubject = `Dispute documents received for dispute id: ${disputDetails.dispute_id}`;
@@ -1582,7 +1621,7 @@ export class MerchantResolver {
       //     ]);
       //   }
       // }
-      console.log(error)
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -1591,9 +1630,12 @@ export class MerchantResolver {
   @Query(() => String)
   async updateMerchantTransactionNotification(
     @Context() context: any,
-    @Args('for_transaction', { type: () => Boolean, nullable: true }) for_transaction?: boolean,
-    @Args('for_refund', { type: () => Boolean, nullable: true }) for_refund?: boolean,
-    @Args('for_settlement', { type: () => Boolean, nullable: true }) for_settlement?: boolean,
+    @Args('for_transaction', { type: () => Boolean, nullable: true })
+    for_transaction?: boolean,
+    @Args('for_refund', { type: () => Boolean, nullable: true })
+    for_refund?: boolean,
+    @Args('for_settlement', { type: () => Boolean, nullable: true })
+    for_settlement?: boolean,
   ) {
     const schoolId = context.req.merchant;
     const school = await this.trusteeSchoolModel.findById(schoolId);
@@ -1622,11 +1664,9 @@ export class MerchantResolver {
     return `Transaction notification setting updated to ${school.school_name}`;
   }
 
-   @UseGuards(MerchantGuard)
+  @UseGuards(MerchantGuard)
   @Query(() => [PosMachineQuery])
-  async getMerchantSchoolPOS(
-    @Context() context: any,
-  ) {
+  async getMerchantSchoolPOS(@Context() context: any) {
     try {
       const schoolId = context.req.merchant;
       const school = await this.trusteeSchoolModel.findById(schoolId);
@@ -1637,7 +1677,7 @@ export class MerchantResolver {
       // if(!schoolsPosMachine || schoolsPosMachine.length === 0) {
       //   throw new NotFoundException('No POS machines found for this school');
       // }
-      return schoolsPosMachine
+      return schoolsPosMachine;
     } catch (error) {
       console.error(error);
       throw new BadRequestException(error.message || 'Something went wrong');
@@ -1645,14 +1685,14 @@ export class MerchantResolver {
   }
 
   @UseGuards(MerchantGuard)
-  @Query(()=>SettlementsTransactionsPaginatedResponse)
+  @Query(() => SettlementsTransactionsPaginatedResponse)
   async getmerchnatSettlementsTransacions(
     @Args('utr', { type: () => String }) utr: string,
     @Args('limit', { type: () => Int }) limit: number,
     @Args('cursor', { type: () => String, nullable: true })
     cursor: string | null,
-  ){
-     try {
+  ) {
+    try {
       const settlement = await this.settlementReportModel.findOne({
         utrNumber: utr,
       });
@@ -1672,7 +1712,6 @@ export class MerchantResolver {
   }
 }
 
-
 @ObjectType()
 export class MerchantRefundRequestRes {
   @Field({ nullable: true })
@@ -1682,10 +1721,10 @@ export class MerchantRefundRequestRes {
   trustee_id: string;
 
   @Field({ nullable: true })
-  createdAt: string;
+  createdAt: Date;
 
   @Field({ nullable: true })
-  updatedAt: string;
+  updatedAt: Date;
 
   @Field({ nullable: true })
   school_id: string;
@@ -1713,6 +1752,21 @@ export class MerchantRefundRequestRes {
 
   @Field({ nullable: true })
   reason?: string;
+}
+
+@ObjectType()
+export class PaginatedRefundRequestResponse {
+  @Field(() => [MerchantRefundRequestRes], { nullable: true })
+  refundRequests: MerchantRefundRequestRes[];
+
+  @Field({ nullable: true })
+  totalCountResult: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
+
+  @Field({ nullable: true })
+  page: number;
 }
 
 @ObjectType()
@@ -1813,8 +1867,6 @@ class MerchantUser {
   @Field(() => BankDetails, { nullable: true })
   bank_details?: BankDetails;
 }
-
-
 
 @ObjectType()
 class MerchantMemberesResponse {
