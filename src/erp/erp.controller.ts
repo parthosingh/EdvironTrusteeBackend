@@ -1158,15 +1158,15 @@ export class ErpController {
       }
 
       const adjustedAmount = school.adjustedAmount || 0;
-      let venlength=0
-      if(PGVendorInfo){
-        venlength=PGVendorInfo.length
+      let venlength = 0;
+      if (PGVendorInfo) {
+        venlength = PGVendorInfo.length;
       }
 
       if (
         school.isAdjustment &&
         Number(amount) >= school.minAdjustmnentAmount &&
-        venlength ===0
+        venlength === 0
       ) {
         console.log('adjustment');
 
@@ -1289,7 +1289,7 @@ export class ErpController {
         vendorgateway: vendorgateway,
         easebuzzVendors,
         cashfreeVedors,
-        split_payments:splitPay,
+        split_payments: splitPay,
         // disabled_modes: disabled_modes || null,
         easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
@@ -4232,6 +4232,9 @@ export class ErpController {
             student_name:
               JSON.parse(paymentsResponse.data.student_detail)?.student_details
                 ?.student_name || '',
+            dispute_type:
+              paymentsResponse.data?.cashfreeDispute[0]?.dispute_type,
+            // dispute_status:paymentsResponse.data?.cashfreeDispute[0]?.dispute_status
           },
         },
         { upsert: true, new: true },
