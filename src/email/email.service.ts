@@ -371,6 +371,7 @@ export class EmailService {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: emailRecipient,
+      cc:cc,
       subject: sub,
       html: emailBody,
       attachments: [

@@ -182,7 +182,7 @@ export class BusinessAlarmController {
         try {
           this.emailService.sendTransactionAlert(
             htmlContent,
-            `TRANSACTION SUCCESSFUL (${school.school_name})`,
+            `Edviron | Transaction Success Report - ${school.school_name}`,
             emails,
             ccMails,
           );

@@ -693,10 +693,20 @@ export function generateTransactionMailReciept(
   <h2 style="color:#111827;font-size:24px;margin-bottom:20px;">Payment details</h2>
 
   <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
-    <div style="margin-bottom:16px;">
-      <strong>Order ID:</strong> ${custom_order_id || collect_id} <br/>
-      <strong>Order Amount:</strong> ₹${amount} <br/>
-      <strong>Status:</strong> <span style="color:${status === 'SUCCESS' ? '#10b981' : status === 'PENDING' ? '#f59e0b' : '#ef4444'};">${status}</span>
+
+    <div style="margin-bottom: 16px;">
+      <div style="margin-bottom: 8px;">
+        <strong>Order ID:</strong> ${custom_order_id || collect_id}
+      </div>
+      <div style="margin-bottom: 8px;">
+        <strong>Order Amount:</strong> ₹${amount}
+      </div>
+      <div style="margin-bottom: 8px;">
+        <strong>Status:</strong>
+        <span style="color: ${status.toUpperCase() === 'SUCCESS' ? '#10b981' : status === 'PENDING' ? '#f59e0b' : '#ef4444'};">
+          ${status.toUpperCase()}
+        </span>
+      </div>
     </div>
 
     <table style="width:100%;font-size:14px;border-collapse:collapse;">
@@ -707,8 +717,9 @@ export function generateTransactionMailReciept(
         <td>₹${transaction_amount || 'NA'}</td>
       </tr>
       <tr>
-        <td style="padding:6px 0;"><strong>Payment Gateway:</strong></td>
-        <td>${gateway || 'Pending'}</td>
+       <td style="padding:6px 0;"><strong>Transaction Time</strong></td>
+        <td>${formattedTransactionTime || 'NA'}</td>
+
         <td><strong>${bankOrProviderLabel}:</strong></td>
         <td>${bankOrProvider}</td>
       </tr>
@@ -730,10 +741,6 @@ export function generateTransactionMailReciept(
         <td><strong>Remarks:</strong></td>
         <td>${status}</td>
       </tr>
-      </tr>
-       <tr>
-        <td style="padding:6px 0;"><strong>Transaction Time</strong></td>
-        <td>${formattedTransactionTime || 'NA'}</td>
       </tr>
     </table>
   </div>

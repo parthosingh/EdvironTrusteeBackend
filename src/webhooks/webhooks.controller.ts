@@ -610,9 +610,17 @@ export class WebhooksController {
             eventName,
             merchant.school_id.toString(),
           );
+          const formattedDate = new Date(payment_from).toLocaleDateString(
+            'en-IN',
+            {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            },
+          );
           this.emailService.sendSettlementMail(
             htmlBody,
-            `Settlement File Attached for (${merchant.school_name})`,
+            `Edviron | Settlement Report of ${merchant.school_name} for ${formattedDate}`,
             emails,
             csvContent,
             ccMails,
@@ -1325,7 +1333,7 @@ export class WebhooksController {
       );
       this.emailService.sendSettlementMail(
         htmlBody,
-        `Settlement File Attached for `,
+        `Edviron | Settlement Report of ${'school name'} for ${'DDth MM YYYY'}`,
         emails,
         csvContent,
         ccMails,
