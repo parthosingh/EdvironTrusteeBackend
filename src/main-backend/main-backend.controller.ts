@@ -655,7 +655,8 @@ export class MainBackendController {
       }
       return {
         email: school.email,
-        school_name:school.school_name
+        school_name:school.school_name,
+        number:school.phone_number
       };
     } catch (e) {
       console.log(e.message);
