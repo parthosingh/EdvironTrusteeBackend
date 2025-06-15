@@ -383,6 +383,13 @@ export class ErpController {
               );
             }
 
+
+          if (vendors_data.status !== 'ACTIVE') {
+            throw new BadRequestException(
+              'Vendor is not active. Please approve the vendor first. for ' +
+              vendor.vendor_id,
+            );
+
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
               throw new BadRequestException('Split Not configure');
             }
@@ -404,6 +411,7 @@ export class ErpController {
               (worldlineVenodr.name = vendors_data.worldline_vendor_name);
             worldlineVenodr.scheme_code = vendors_data.worldline_vendor_id;
             worldLine_vendors.push(worldlineVenodr);
+
           }
         } else {
           for (const vendor of vendors_info) {
@@ -659,6 +667,8 @@ export class ErpController {
           ...additional_data,
         },
       };
+
+
       const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
       const axios = require('axios');
       console.time('payments1');
@@ -714,6 +724,11 @@ export class ErpController {
         easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
+        razorpay_credentials: {
+          razorpay_id: school.razorpay.razorpay_id || null,
+          razorpay_secret: school.razorpay.razorpay_secret || null,
+          razorpay_mid: school.razorpay.razorpay_mid || null,
+        },
         worldLine_vendors: worldLine_vendors || null,
       });
       const config = {
@@ -977,6 +992,12 @@ export class ErpController {
               );
             }
 
+
+          if (vendors_data.status !== 'ACTIVE') {
+            throw new BadRequestException(
+              'Vendor is not active. Please approve the vendor first. for ' +
+              vendor.vendor_id,
+            );
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
               throw new BadRequestException('Split Not configure');
             }
@@ -1475,7 +1496,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -1709,14 +1730,13 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -1780,16 +1800,15 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2718,7 +2737,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -2949,6 +2968,7 @@ export class ErpController {
 
         const refundableAmount =
           checkRefundRequest.transaction_amount - totalRefundAmount;
+
 
         if (refund_amount > refundableAmount) {
           throw new Error(
@@ -4027,7 +4047,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -4098,8 +4118,6 @@ export class ErpController {
     const { vba_account_number, school_id, amount, collect_id, token } =
       req.query;
     try {
-      console.log({ vba_account_number, school_id, amount, collect_id, token });
-
       const decodedPayload = await this.jwtService.verify(token, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
       });
@@ -4195,6 +4213,15 @@ export class ErpController {
       throw new BadRequestException(e.message);
     }
   }
+
+
+  @Post('test-razorpay-settlement')
+  async razorpayRecon(
+    @Query("date") date: string
+  ) {
+    const settlementDate = date ? new Date(date) : undefined;
+    return await this.erpService.sendSettlementsRazorpay(settlementDate);
+  };
 
   @Get('get-dispute-byOrderId')
   async getDisputesbyOrderId(@Query('collect_id') collect_id: string) {

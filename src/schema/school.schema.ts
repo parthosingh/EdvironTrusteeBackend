@@ -49,6 +49,20 @@ export class I_Worldline {
   encryption_iV: string;
 }
 
+@ObjectType()
+export class I_Razorpay {
+
+
+  @Field(() => String)
+  razorpay_id: string;
+
+  @Field(() => String)
+  razorpay_secret: string;
+
+  @Field(() => String)
+  razorpay_mid: string;
+}
+
 registerEnumType(MinKycStatus, {
   name: 'MinKycStatus',
   description: 'Status of min kyc',
@@ -90,12 +104,12 @@ export class PlatformCharge {
 export enum DisabledModes {
   CARDLESS = "cardless",
   PAY_LATER = "pay_later",
-  WALLET="wallet",
-  NET_BANKING="net_banking",
-  UPI="upi",
-  CREDIT_CARD="credit_card",
-  DEBIT_CARD="debit_card",
-  CARD='card'
+  WALLET = "wallet",
+  NET_BANKING = "net_banking",
+  UPI = "upi",
+  CREDIT_CARD = "credit_card",
+  DEBIT_CARD = "debit_card",
+  CARD = 'card'
 }
 
 @ObjectType()
@@ -118,7 +132,7 @@ export class bank_Details {
 }
 
 @ObjectType()
-export class gatewaysEmails{
+export class gatewaysEmails {
   @Field(() => String, { nullable: true })
   @Prop()
   cashfree: string;
@@ -299,7 +313,7 @@ export class TrusteeSchool {
   @Field(() => Boolean, { defaultValue: false })
   advanceAdjustment: boolean;
 
-  
+
   @Prop({})
   @Field(() => Boolean, { defaultValue: false })
   isVBAActive: boolean;
@@ -361,7 +375,7 @@ export class TrusteeSchool {
     _id: false,
   })
   ntt_data: I_NTT_DATA;
-  
+
   @Prop({})
   @Field(() => I_Worldline, { nullable: true })
   worldline: I_Worldline;
@@ -372,6 +386,10 @@ export class TrusteeSchool {
   easebuzz_school_label: string;
 
   @Prop({})
+  @Field(() => I_Razorpay, { nullable: true })
+  razorpay: I_Razorpay;
+
+  @Prop({})
   @Field(() => String)
   cf_x_client_id: string;
 
@@ -379,9 +397,9 @@ export class TrusteeSchool {
   @Field(() => String)
   cf_x_client_secret: string;
 
-  
+
   @Prop({})
-  @Field(() => String,{ nullable: true })
+  @Field(() => String, { nullable: true })
   kyc_mail: string;
 
   createdAt?: Date;
