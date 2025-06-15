@@ -37,6 +37,13 @@ interface I_NTT_DATA {
   nttdata_req_salt: string;
 }
 
+interface EZB_NON_PARTNER {
+  easebuzz_key: string;
+  easebuzz_salt: string;
+  easebuzz_submerchant_id: string;
+  easebuzz_merchant_email: string;
+}
+
 @ObjectType()
 export class I_Worldline {
   @Field(() => String)
@@ -51,8 +58,6 @@ export class I_Worldline {
 
 @ObjectType()
 export class I_Razorpay {
-
-
   @Field(() => String)
   razorpay_id: string;
 
@@ -100,16 +105,15 @@ export class PlatformCharge {
   range_charge: rangeCharge[];
 }
 
-
 export enum DisabledModes {
-  CARDLESS = "cardless",
-  PAY_LATER = "pay_later",
-  WALLET = "wallet",
-  NET_BANKING = "net_banking",
-  UPI = "upi",
-  CREDIT_CARD = "credit_card",
-  DEBIT_CARD = "debit_card",
-  CARD = 'card'
+  CARDLESS = 'cardless',
+  PAY_LATER = 'pay_later',
+  WALLET = 'wallet',
+  NET_BANKING = 'net_banking',
+  UPI = 'upi',
+  CREDIT_CARD = 'credit_card',
+  DEBIT_CARD = 'debit_card',
+  CARD = 'card',
 }
 
 @ObjectType()
@@ -150,19 +154,18 @@ export class gatewaysEmails {
   pay_u: string;
 }
 
-
 @ObjectType()
-export class isNotificationOn{
+export class isNotificationOn {
   @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false,nullable:true })
+  @Prop({ default: false, nullable: true })
   for_transaction: Boolean;
 
   @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false,nullable:true })
+  @Prop({ default: false, nullable: true })
   for_refund: Boolean;
 
   @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false,nullable:true })
+  @Prop({ default: false, nullable: true })
   for_settlement: Boolean;
 }
 
@@ -237,7 +240,7 @@ export class TrusteeSchool {
   @Field(() => FullKycStatus)
   pgFullKYC: FullKycStatus;
 
-  @Prop({ type: [String], required: true, enum: DisabledModes, default: [], })
+  @Prop({ type: [String], required: true, enum: DisabledModes, default: [] })
   @Field(() => [String])
   disabled_modes: DisabledModes[];
 
@@ -313,7 +316,6 @@ export class TrusteeSchool {
   @Field(() => Boolean, { defaultValue: false })
   advanceAdjustment: boolean;
 
-
   @Prop({})
   @Field(() => Boolean, { defaultValue: false })
   isVBAActive: boolean;
@@ -358,7 +360,7 @@ export class TrusteeSchool {
   @Field(() => String)
   pay_u_salt: string;
 
-   @Prop({})
+  @Prop({})
   @Field(() => String)
   easebuzz_split_label: string;
 
@@ -380,7 +382,6 @@ export class TrusteeSchool {
   @Field(() => I_Worldline, { nullable: true })
   worldline: I_Worldline;
 
-
   @Field()
   @Prop()
   easebuzz_school_label: string;
@@ -397,10 +398,24 @@ export class TrusteeSchool {
   @Field(() => String)
   cf_x_client_secret: string;
 
-
   @Prop({})
   @Field(() => String, { nullable: true })
   kyc_mail: string;
+
+  @Prop({
+    required: false,
+    type: {
+      easebuzz_key: { type: String, required: false, default: null },
+      easebuzz_salt: { type: String, required: false, default: null },
+      easebuzz_submerchant_id: { type: String, required: false, default: null },
+    },
+    _id: false,
+  })
+  easebuzz_non_partner: EZB_NON_PARTNER;
+
+  @Prop({})
+  @Field(() => Boolean, { defaultValue: false })
+  isEasebuzzNonPartner: boolean;
 
   createdAt?: Date;
   updatedAt?: Date;

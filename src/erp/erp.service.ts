@@ -1296,150 +1296,150 @@ export class ErpService {
     }
   }
 
-  @Cron('0 1 * * *')
-  async sendSettlementsRazorpay(settlementDate?: Date) {
-    if (!settlementDate) {
-      settlementDate = new Date();
-    }
-    const merchants = await this.trusteeSchoolModel.find({
-      'razorpay.razorpay_id': { $exists: true, $ne: null },
-    });
-    for (const merchant of merchants) {
-      console.log(
-        `Getting report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
-      );
-      const start = new Date(settlementDate);
-      start.setUTCDate(start.getUTCDate() - 1); 
-      start.setUTCHours(0, 0, 0, 0);
+  // @Cron('0 1 * * *')
+  // async sendSettlementsRazorpay(settlementDate?: Date) {
+  //   if (!settlementDate) {
+  //     settlementDate = new Date();
+  //   }
+  //   const merchants = await this.trusteeSchoolModel.find({
+  //     'razorpay.razorpay_id': { $exists: true, $ne: null },
+  //   });
+  //   for (const merchant of merchants) {
+  //     console.log(
+  //       `Getting report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
+  //     );
+  //     const start = new Date(settlementDate);
+  //     start.setUTCDate(start.getUTCDate() - 1); 
+  //     start.setUTCHours(0, 0, 0, 0);
 
-      const day = String(start.getDate()).padStart(2, '0');
-      const month = String(start.getMonth() + 1).padStart(2, '0');
-      const year = start.getFullYear();
-      console.log(start);
-      const axios = require('axios');
-      const config = {
-        method: 'get',
-        url: `https://api.razorpay.com/v1/settlements/recon/combined?year=${year}&month=${month}&day=${day}`,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        auth: {
-          username: merchant.razorpay.razorpay_id,
-          password: merchant.razorpay.razorpay_secret,
-        },
-      };
+  //     const day = String(start.getDate()).padStart(2, '0');
+  //     const month = String(start.getMonth() + 1).padStart(2, '0');
+  //     const year = start.getFullYear();
+  //     console.log(start);
+  //     const axios = require('axios');
+  //     const config = {
+  //       method: 'get',
+  //       url: `https://api.razorpay.com/v1/settlements/recon/combined?year=${year}&month=${month}&day=${day}`,
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       auth: {
+  //         username: merchant.razorpay.razorpay_id,
+  //         password: merchant.razorpay.razorpay_secret,
+  //       },
+  //     };
 
-      const promise = () =>
-        new Promise(async (resolve) => {
-          try {
-            const response = await axios.request(config);
+  //     const promise = () =>
+  //       new Promise(async (resolve) => {
+  //         try {
+  //           const response = await axios.request(config);
 
-            console.log(response.data, 'response.data');
-            // if (!response.data) return resolve({});
-            // for (const entry of response) {
-            //   if (!entry['Txn Date'] || !entry['Settlement Date']) continue;
+  //           console.log(response.data, 'response.data');
+  //           // if (!response.data) return resolve({});
+  //           // for (const entry of response) {
+  //           //   if (!entry['Txn Date'] || !entry['Settlement Date']) continue;
 
-            //   const gross = parseFloat(entry['Gross Txn Amount'] || '0');
-            //   const net = parseFloat(entry['Net Amount to be Paid'] || '0');
-            //   totalSettlementAmount += gross;
-            //   totalNetAmount += net;
+  //           //   const gross = parseFloat(entry['Gross Txn Amount'] || '0');
+  //           //   const net = parseFloat(entry['Net Amount to be Paid'] || '0');
+  //           //   totalSettlementAmount += gross;
+  //           //   totalNetAmount += net;
 
-            //   const txnDate = new Date(entry['Txn Date']);
-            //   if (!fromDate || txnDate < fromDate) fromDate = txnDate;
-            //   if (!tillDate || txnDate > tillDate) tillDate = txnDate;
+  //           //   const txnDate = new Date(entry['Txn Date']);
+  //           //   if (!fromDate || txnDate < fromDate) fromDate = txnDate;
+  //           //   if (!tillDate || txnDate > tillDate) tillDate = txnDate;
 
-            //   if (!settlementDateFinal) {
-            //     const rawDate = entry['Settlement Date'];
-            //     const [dayStr, monthStr, yearStr] = rawDate.split(/[\s-]/);
-            //     const monthMap = {
-            //       Jan: 0,
-            //       Feb: 1,
-            //       Mar: 2,
-            //       Apr: 3,
-            //       May: 4,
-            //       Jun: 5,
-            //       Jul: 6,
-            //       Aug: 7,
-            //       Sep: 8,
-            //       Oct: 9,
-            //       Nov: 10,
-            //       Dec: 11,
-            //     };
+  //           //   if (!settlementDateFinal) {
+  //           //     const rawDate = entry['Settlement Date'];
+  //           //     const [dayStr, monthStr, yearStr] = rawDate.split(/[\s-]/);
+  //           //     const monthMap = {
+  //           //       Jan: 0,
+  //           //       Feb: 1,
+  //           //       Mar: 2,
+  //           //       Apr: 3,
+  //           //       May: 4,
+  //           //       Jun: 5,
+  //           //       Jul: 6,
+  //           //       Aug: 7,
+  //           //       Sep: 8,
+  //           //       Oct: 9,
+  //           //       Nov: 10,
+  //           //       Dec: 11,
+  //           //     };
 
-            //     const monthNum = monthMap[monthStr];
-            //     if (monthNum === undefined) continue;
+  //           //     const monthNum = monthMap[monthStr];
+  //           //     if (monthNum === undefined) continue;
 
-            //     const dateIST = new Date(
-            //       Date.UTC(
-            //         parseInt(yearStr),
-            //         monthNum,
-            //         parseInt(dayStr),
-            //         0,
-            //         0,
-            //         0,
-            //       ),
-            //     );
-            //     dateIST.setHours(
-            //       dateIST.getHours() + 5,
-            //       dateIST.getMinutes() + 30,
-            //     );
-            //     settlementDateFinal = dateIST;
-            //   }
-            // }
+  //           //     const dateIST = new Date(
+  //           //       Date.UTC(
+  //           //         parseInt(yearStr),
+  //           //         monthNum,
+  //           //         parseInt(dayStr),
+  //           //         0,
+  //           //         0,
+  //           //         0,
+  //           //       ),
+  //           //     );
+  //           //     dateIST.setHours(
+  //           //       dateIST.getHours() + 5,
+  //           //       dateIST.getMinutes() + 30,
+  //           //     );
+  //           //     settlementDateFinal = dateIST;
+  //           //   }
+  //           // }
 
-            // if (!settlementDateFinal) return resolve({});
+  //           // if (!settlementDateFinal) return resolve({});
 
-            // todo after getting utrNumber
-            // const existing = await this.settlementReportModel.findOne({
-            //   schoolId: merchant.school_id,
-            //   trustee: merchant.trustee_id,
-            //   settlementDate: settlementDateFinal,
-            // });
+  //           // todo after getting utrNumber
+  //           // const existing = await this.settlementReportModel.findOne({
+  //           //   schoolId: merchant.school_id,
+  //           //   trustee: merchant.trustee_id,
+  //           //   settlementDate: settlementDateFinal,
+  //           // });
 
-            // if (!existing) {
-            //   const report = new this.settlementReportModel({
-            //     settlementAmount: totalSettlementAmount.toFixed(2),
-            //     adjustment: 0.0,
-            //     netSettlementAmount: totalNetAmount.toFixed(2),
-            //     nttMerchantId: merchant.ntt_data.nttdata_id,
-            //     fromDate,
-            //     tillDate,
-            //     status: 'PAYMENT GIVEN',
-            //     utrNumber: '',
-            //     settlementDate: settlementDateFinal,
-            //     trustee: merchant.trustee_id,
-            //     schoolId: merchant.school_id,
-            //   });
-            console.log(
-              `Saving consolidated settlement report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
-            );
-            //   console.log(report, 'report');
-            //   await report.save();
-            // } else {
-            console.log(
-              `Consolidated report already exists for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
-            );
-            // }
+  //           // if (!existing) {
+  //           //   const report = new this.settlementReportModel({
+  //           //     settlementAmount: totalSettlementAmount.toFixed(2),
+  //           //     adjustment: 0.0,
+  //           //     netSettlementAmount: totalNetAmount.toFixed(2),
+  //           //     nttMerchantId: merchant.ntt_data.nttdata_id,
+  //           //     fromDate,
+  //           //     tillDate,
+  //           //     status: 'PAYMENT GIVEN',
+  //           //     utrNumber: '',
+  //           //     settlementDate: settlementDateFinal,
+  //           //     trustee: merchant.trustee_id,
+  //           //     schoolId: merchant.school_id,
+  //           //   });
+  //           console.log(
+  //             `Saving consolidated settlement report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
+  //           );
+  //           //   console.log(report, 'report');
+  //           //   await report.save();
+  //           // } else {
+  //           console.log(
+  //             `Consolidated report already exists for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
+  //           );
+  //           // }
 
-            resolve({});
-          } catch (error) {
-            console.log(
-              `Error fetching settlement report for ${merchant.school_name} (${merchant.client_id}) on ${settlementDate}`,
-              error.message,
-            );
-            resolve({});
-          }
-        });
+  //           resolve({});
+  //         } catch (error) {
+  //           console.log(
+  //             `Error fetching settlement report for ${merchant.school_name} (${merchant.client_id}) on ${settlementDate}`,
+  //             error.message,
+  //           );
+  //           resolve({});
+  //         }
+  //       });
 
-      this.cashfreeService.enqueue(promise);
-      );
-      return true;
-    } catch (e) {
-      return false;
-    }
+  //     this.cashfreeService.enqueue(promise);
+  //     );
+  //     return true;
+  //   } catch (e) {
+  //     return false;
+  //   }
 
-    console.log('Settlement processing initiated.');
-  }
+  //   console.log('Settlement processing initiated.');
+  // }
 
   async createPosMachine(
     school_id: string,
