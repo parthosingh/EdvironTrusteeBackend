@@ -590,48 +590,53 @@ export class WebhooksController {
         merchant.isNotificationOn &&
         merchant.isNotificationOn.for_settlement
       ) {
-        try {
-          const transactionForSettlement =
-            await this.trusteeService.getTransactionsForSettlements(
-              utr,
-              merchant_id,
-              1000,
-            );
-          const htmlBody = generateEmailHTML(payment_from);
-          const csvContent = await generateCSV(
-            transactionForSettlement.settlements_transactions,
-          );
-          const eventName = 'SETTLEMENT_ALERT';
-          const emails = await this.businessServices.getMails(
-            eventName,
-            merchant.school_id.toString(),
-          );
-          const ccMails = await this.businessServices.getMailsCC(
-            eventName,
-            merchant.school_id.toString(),
-          );
-          const formattedDate = new Date(payment_from).toLocaleDateString(
-            'en-IN',
-            {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            },
-          );
-          this.emailService.sendSettlementMail(
-            htmlBody,
-            `Edviron | Settlement Report of ${merchant.school_name} for ${formattedDate}`,
-            emails,
-            csvContent,
-            ccMails,
-          );
-        } catch (error) {
-          await this.ErrorLogsModel.create({
-            source: 'sendMailAfterSettlement',
-            collect_id: merchant_id,
-            error: error.message || error.toString(),
-          });
-        }
+        setTimeout(
+          async () => {
+            try {
+              const transactionForSettlement =
+                await this.trusteeService.getTransactionsForSettlements(
+                  utr,
+                  merchant_id,
+                  1000,
+                );
+              const htmlBody = generateEmailHTML(payment_from);
+              const csvContent = await generateCSV(
+                transactionForSettlement.settlements_transactions,
+              );
+              const eventName = 'SETTLEMENT_ALERT';
+              const emails = await this.businessServices.getMails(
+                eventName,
+                merchant.school_id.toString(),
+              );
+              const ccMails = await this.businessServices.getMailsCC(
+                eventName,
+                merchant.school_id.toString(),
+              );
+              const formattedDate = new Date(payment_from).toLocaleDateString(
+                'en-IN',
+                {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                },
+              );
+              this.emailService.sendSettlementMail(
+                htmlBody,
+                `Edviron | Settlement Report of ${merchant.school_name} for ${formattedDate}`,
+                emails,
+                csvContent,
+                ccMails,
+              );
+            } catch (error) {
+              await this.ErrorLogsModel.create({
+                source: 'sendMailAfterSettlement',
+                collect_id: merchant_id,
+                error: error.message || error.toString(),
+              });
+            }
+          },
+          45 * 60 * 1000,
+        );
       }
       return res.status(200).send('OK');
     } catch (e) {
