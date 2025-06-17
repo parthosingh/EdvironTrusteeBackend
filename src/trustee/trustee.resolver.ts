@@ -221,7 +221,7 @@ export class TrusteeResolver {
     private virtualAccSchema: mongoose.Model<VirtualAccount>,
     @InjectModel(PosMachine.name)
     private posMachineModel: mongoose.Model<PosMachine>,
-  ) { }
+  ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -255,7 +255,12 @@ export class TrusteeResolver {
       let userId = context.req.trustee;
 
       const role = context.req.role;
-      if (role !== 'owner' && role !== 'admin' && role !== 'finance_team') {
+      if (
+        role !== 'owner' &&
+        role !== 'admin' &&
+        role !== 'finance_team' &&
+        role !== 'developer'
+      ) {
         throw new UnauthorizedException(
           'You are not Authorized to perform this action',
         );
@@ -309,7 +314,8 @@ export class TrusteeResolver {
 
       const trustee = await this.trusteeModel.findById(id);
       const role = context.req.role;
-      if (role !== 'owner' && role !== 'admin') {
+
+      if (role !== 'owner' && role !== 'admin' && role !== 'developer') {
         throw new UnauthorizedException(
           'You are not Authorized to perform this action',
         );
@@ -384,7 +390,7 @@ export class TrusteeResolver {
     let id = context.req.trustee;
 
     const role = context.req.role;
-    if (role !== 'owner' && role !== 'admin') {
+    if (role !== 'owner' && role !== 'admin' && role !== 'developer') {
       throw new UnauthorizedException(
         'You are not Authorized to perform this action',
       );
@@ -660,7 +666,8 @@ export class TrusteeResolver {
     @Context() context,
     @Args('collect_id') collect_id: string,
     @Args('school_id', { nullable: true }) school_id?: string,
-    @Args('isVBAPaymentComplete', { nullable: true, defaultValue: false }) isVBAPaymentComplete?: boolean,
+    @Args('isVBAPaymentComplete', { nullable: true, defaultValue: false })
+    isVBAPaymentComplete?: boolean,
   ) {
     try {
       const trustee_id = context.req.trustee;
@@ -677,10 +684,10 @@ export class TrusteeResolver {
       let vbaPayment;
       if (isVBAPaymentComplete) {
         vbaPayment = await this.virtualAccSchema.findOne({
-          collect_id: collect_id
-        })
+          collect_id: collect_id,
+        });
         if (!vbaPayment) {
-          throw new BadRequestException("vba payment not found")
+          throw new BadRequestException('vba payment not found');
         }
       }
 
@@ -852,29 +859,37 @@ export class TrusteeResolver {
     @Args('admin_name') admin_name: string,
     @Context() context,
   ) {
-    let id = context.req.trustee;
-
-    const role = context.req.role;
-    if (role !== 'owner' && role !== 'admin' && role !== 'finance_team') {
-      throw new UnauthorizedException(
-        'You are not Authorized to perform this action',
+    try {
+      let id = context.req.trustee;
+      const role = context.req.role;
+      if (
+        role !== 'owner' &&
+        role !== 'admin' &&
+        role !== 'finance_team' &&
+        role !== 'developer'
+      ) {
+        throw new UnauthorizedException(
+          'You are not Authorized to perform this action',
+        );
+      }
+      const school = await this.erpService.createSchool(
+        phone_number,
+        admin_name,
+        email,
+        school_name,
+        id,
       );
+
+      const response: createSchoolResponse = {
+        admin_id: school.adminInfo._id,
+        school_id: school.adminInfo.school_id,
+        school_name: school.updatedSchool.updates.name,
+      };
+
+      return response;
+    } catch (error) {
+      throw new Error(error.message)
     }
-    const school = await this.erpService.createSchool(
-      phone_number,
-      admin_name,
-      email,
-      school_name,
-      id,
-    );
-
-    const response: createSchoolResponse = {
-      admin_id: school.adminInfo._id,
-      school_id: school.adminInfo.school_id,
-      school_name: school.updatedSchool.updates.name,
-    };
-
-    return response;
   }
 
   @UseGuards(TrusteeGuard)
@@ -892,7 +907,12 @@ export class TrusteeResolver {
       let result = '';
       const role = context.req.role;
 
-      if (role !== 'owner' && role !== 'admin' && role !== 'finance_team') {
+      if (
+        role !== 'owner' &&
+        role !== 'admin' &&
+        role !== 'finance_team' &&
+        role !== 'developer'
+      ) {
         throw new UnauthorizedException(
           'You are not Authorized to perform this action',
         );
@@ -953,7 +973,7 @@ export class TrusteeResolver {
     @Context() context,
   ) {
     const role = context.req.role;
-    if (role !== 'owner' && role !== 'admin' && role !== 'finance_team') {
+    if (role !== 'owner' && role !== 'admin' && role !== 'finance_team' && role !== 'developer') {
       throw new UnauthorizedException(
         'You are not Authorized to perform this action',
       );
@@ -1372,15 +1392,15 @@ export class TrusteeResolver {
     }
     let trustee = await this.trusteeModel.findById(id);
     if (!trustee) {
-      const member = await this.trusteeMemberModel.findById(id)
+      const member = await this.trusteeMemberModel.findById(id);
       if (!member) {
         throw new NotFoundException('Account not found Not Found');
       }
-      const trusteenew = await this.trusteeModel.findById(member.trustee_id)
+      const trusteenew = await this.trusteeModel.findById(member.trustee_id);
       if (!trusteenew) {
         throw new NotFoundException('Account not found Not Found');
       }
-      trustee = trusteenew
+      trustee = trusteenew;
     }
 
     const email = trustee.email_id;
@@ -2468,11 +2488,11 @@ export class TrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-        settled_on: {
-          $gte: new Date(start_date),
-          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-        },
-      }),
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -2709,7 +2729,6 @@ export class TrusteeResolver {
     } catch (error) {
       throw new BadRequestException(error.message || 'Something went wrong');
     }
-
   }
 
   @UseGuards(TrusteeGuard)
@@ -2806,42 +2825,42 @@ export class TrusteeResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-            files
-              .map(async (data) => {
-                try {
-                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                  if (!matches || matches.length !== 3) {
-                    throw new Error('Invalid base64 file format.');
+              files
+                .map(async (data) => {
+                  try {
+                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                    if (!matches || matches.length !== 3) {
+                      throw new Error('Invalid base64 file format.');
+                    }
+
+                    const contentType = matches[1];
+                    const base64Data = matches[2];
+                    const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                    const last4DigitsOfMs = Date.now().toString().slice(-4);
+                    const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
+
+                    const file_url = await this.awsS3Service.uploadToS3(
+                      fileBuffer,
+                      key,
+                      contentType,
+                      'edviron-backend-dev',
+                    );
+
+                    return {
+                      document_type: data.extension,
+                      file_url,
+                      name: data.name,
+                    };
+                  } catch (error) {
+                    throw new InternalServerErrorException(
+                      error.message || 'File upload failed',
+                    );
                   }
-
-                  const contentType = matches[1];
-                  const base64Data = matches[2];
-                  const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const last4DigitsOfMs = Date.now().toString().slice(-4);
-                  const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
-
-                  const file_url = await this.awsS3Service.uploadToS3(
-                    fileBuffer,
-                    key,
-                    contentType,
-                    'edviron-backend-dev',
-                  );
-
-                  return {
-                    document_type: data.extension,
-                    file_url,
-                    name: data.name
-                  };
-                } catch (error) {
-                  throw new InternalServerErrorException(
-                    error.message || 'File upload failed',
-                  );
-                }
-              })
-              .filter((file) => file !== null),
-          )
+                })
+                .filter((file) => file !== null),
+            )
           : [];
 
       const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
@@ -2884,20 +2903,23 @@ export class TrusteeResolver {
         //   client_id: school_details?.client_id || null,
         // });
 
-        const { email, cc } = await this.trusteeService.getMails(disputDetails.school_id.toString(), "DISPUTE")
+        const { email, cc } = await this.trusteeService.getMails(
+          disputDetails.school_id.toString(),
+          'DISPUTE',
+        );
 
-        const htmlBody = await this.trusteeService.generateDisputePDF(disputDetails)
+        const htmlBody =
+          await this.trusteeService.generateDisputePDF(disputDetails);
 
-        const subject = `A dispute has been raised against ${school_details.school_name} : (${school_details.kyc_mail})`
+        const subject = `A dispute has been raised against ${school_details.school_name} : (${school_details.kyc_mail})`;
 
         await this.emailService.sendAlertMail2(
           subject,
           htmlBody,
           email,
           cc,
-          dusputeUpdate.documents
-        )
-
+          dusputeUpdate.documents,
+        );
       }
       const teamMailSubject = `Dispute documents received for dispute id: ${disputDetails.dispute_id}`;
 
@@ -2920,7 +2942,7 @@ export class TrusteeResolver {
       //   uploadedFiles,
       // );
 
-      console.log('before return')
+      console.log('before return');
 
       return { success: true, message: 'Files uploaded successfully' };
     } catch (error) {
@@ -2948,7 +2970,7 @@ export class TrusteeResolver {
       //     ]);
       //   }
       // }
-      console.log(error)
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -2969,55 +2991,32 @@ export class TrusteeResolver {
       if (!url) {
         throw new NotFoundException('Url Not Found');
       }
-      const token = this.jwtService.sign({ trustee_id: trustee_id.toString() }, {
-        secret: process.env.PAYMENTS_SERVICE_SECRET,
-      });
+      const token = this.jwtService.sign(
+        { trustee_id: trustee_id.toString() },
+        {
+          secret: process.env.PAYMENTS_SERVICE_SECRET,
+        },
+      );
 
       let base64Header = '';
       if (type === WebhookType.SETTLEMENTS) {
         const dummyData = {
-          adjustment: "150.25",
+          adjustment: '150.25',
           amount_settled: 1250.75,
-          payment_amount: 1400.00,
-          payment_from: "2024-12-01T10:00:00Z",
-          payment_till: "2024-12-31T18:00:00Z",
-          service_charge: 25.50,
+          payment_amount: 1400.0,
+          payment_from: '2024-12-01T10:00:00Z',
+          payment_till: '2024-12-31T18:00:00Z',
+          service_charge: 25.5,
           service_tax: 18.75,
-          settled_on: "2024-09-18T10:11:39.630Z",
-          settlement_amount: 1232.50,
-          settlement_charge: 50.00,
-          settlement_id: "SET123456789",
-          settlement_initiated_on: "2024-12-30T12:00:00Z",
-          status: "Completed",
-          utr: "UTR987654321"
+          settled_on: '2024-09-18T10:11:39.630Z',
+          settlement_amount: 1232.5,
+          settlement_charge: 50.0,
+          settlement_id: 'SET123456789',
+          settlement_initiated_on: '2024-12-30T12:00:00Z',
+          status: 'Completed',
+          utr: 'UTR987654321',
         };
-        let webhook_key = trusteeDetails?.webhook_key || ""
-        if (webhook_key) {
-          base64Header = 'Basic ' + Buffer.from(webhook_key).toString('base64');
-        }
-        const config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: url,
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-            authorization: base64Header,
-          },
-          data: dummyData
-        };
-        const res = await axios.request(config);
-        // return res.data;
-      }
-      else if (type === WebhookType.REFUNDS) {
-        const dummyData = {
-          refund_id: "REF123456789",
-          refund_amount: 1250.75,
-          status_description: "Refund processed successfully",
-          school_id: "123",
-          order_id: "1254"
-        };
-        let webhook_key = trusteeDetails?.webhook_key || ""
+        let webhook_key = trusteeDetails?.webhook_key || '';
         if (webhook_key) {
           base64Header = 'Basic ' + Buffer.from(webhook_key).toString('base64');
         }
@@ -3034,9 +3033,37 @@ export class TrusteeResolver {
         };
         const res = await axios.request(config);
         // return res.data;
-      }
-      else if (type === WebhookType.PAYMENTS) {
-        const response = await this.trusteeService.testUrl(trustee_id, token, url)
+      } else if (type === WebhookType.REFUNDS) {
+        const dummyData = {
+          refund_id: 'REF123456789',
+          refund_amount: 1250.75,
+          status_description: 'Refund processed successfully',
+          school_id: '123',
+          order_id: '1254',
+        };
+        let webhook_key = trusteeDetails?.webhook_key || '';
+        if (webhook_key) {
+          base64Header = 'Basic ' + Buffer.from(webhook_key).toString('base64');
+        }
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: url,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authorization: base64Header,
+          },
+          data: dummyData,
+        };
+        const res = await axios.request(config);
+        // return res.data;
+      } else if (type === WebhookType.PAYMENTS) {
+        const response = await this.trusteeService.testUrl(
+          trustee_id,
+          token,
+          url,
+        );
         // return response.data;
       }
       return `Webhook hit successfully`;
@@ -3063,8 +3090,8 @@ export class TrusteeResolver {
       const schoolsPosMachine = await this.posMachineModel.find({
         school_id: new Types.ObjectId(school_id),
       });
-      
-      return schoolsPosMachine
+
+      return schoolsPosMachine;
     } catch (error) {
       console.error(error);
       throw new BadRequestException(error.message || 'Something went wrong');
@@ -3075,46 +3102,46 @@ export class TrusteeResolver {
 @ObjectType()
 export class MachineDetails {
   @Field(() => String, { nullable: true })
-  device_mid: string
+  device_mid: string;
 
   @Field(() => String, { nullable: true })
-  merchant_key: string
+  merchant_key: string;
 
   @Field(() => String, { nullable: true })
-  Device_serial_no: string
+  Device_serial_no: string;
 
   @Field(() => String, { nullable: true })
-  device_tid: string
+  device_tid: string;
 
   @Field(() => String, { nullable: true })
-  channel_id: string
+  channel_id: string;
 
   @Field(() => String, { nullable: true })
-  device_id: string
+  device_id: string;
 }
 
 @ObjectType()
 export class PosMachineQuery {
   @Field(() => String, { nullable: true })
-  _id: string
+  _id: string;
 
   @Field(() => String, { nullable: true })
-  school_id: string
+  school_id: string;
 
   @Field(() => String, { nullable: true })
-  trustee_id: string
+  trustee_id: string;
 
   @Field(() => String, { nullable: true })
-  machine_name: string
+  machine_name: string;
 
   @Field(() => MachineDetails, { nullable: true })
   machine_details: MachineDetails;
 
   @Field(() => String, { nullable: true })
-  firmware_version: string
+  firmware_version: string;
 
   @Field(() => String, { nullable: true })
-  status: string
+  status: string;
 
   @Field(() => Date, { nullable: true })
   installation_date?: Date;
@@ -3122,7 +3149,6 @@ export class PosMachineQuery {
   @Field(() => Date, { nullable: true })
   last_maintenance_at?: Date;
 }
-
 
 export enum WebhookType {
   PAYMENTS = 'PAYMENTS',
@@ -3134,9 +3160,6 @@ registerEnumType(WebhookType, {
   name: 'WebhookType',
   description: 'Allowed webhook event types',
 });
-
-
-
 
 @ObjectType()
 export class DisputeResponse {
