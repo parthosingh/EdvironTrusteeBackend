@@ -723,9 +723,9 @@ export class ErpController {
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
         razorpay_credentials: {
-          razorpay_id: school.razorpay.razorpay_id || null,
-          razorpay_secret: school.razorpay.razorpay_secret || null,
-          razorpay_mid: school.razorpay.razorpay_mid || null,
+          razorpay_id: school.razorpay?.razorpay_id || null,
+          razorpay_secret: school.razorpay?.razorpay_secret || null,
+          razorpay_mid: school.razorpay?.razorpay_mid || null,
         }, 
         worldLine_vendors: worldLine_vendors || null,
       });
