@@ -48,7 +48,9 @@ export class MerchantService {
     try {
       const lowerCaseEmail = email.toLowerCase();
       var res = false;
-      const merchant = await this.trusteeSchoolModel.findOne({ email: lowerCaseEmail });
+      const merchant = await this.trusteeSchoolModel.findOne({
+        email: lowerCaseEmail,
+      });
       var email_id = merchant?.email;
       var passwordMatch;
 
@@ -147,8 +149,8 @@ export class MerchantService {
       const decodedPayload = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
       });
-      console.log(decodedPayload,'payload');
-      
+      console.log(decodedPayload, 'payload');
+
       const merchant = await this.trusteeSchoolModel.findById(
         decodedPayload.id,
       );
@@ -166,11 +168,11 @@ export class MerchantService {
           user: merchant.super_admin_name,
           apiKey: trustee.apiKey,
           merchant: merchant._id,
-          trustee_id:trustee._id,
-          trustee_logo:trustee.logo || null,
-          school_id:merchant.school_id,
-          school_logo:merchant.logo,
-          bank_details:merchant.bank_details || null,
+          trustee_id: trustee._id,
+          trustee_logo: trustee.logo || null,
+          school_id: merchant.school_id,
+          school_logo: merchant.logo,
+          bank_details: merchant.bank_details || null,
         };
         return userMerchant;
       }
@@ -195,8 +197,10 @@ export class MerchantService {
           user: member.name,
           apiKey: trustee.apiKey,
           merchant: merchant._id,
-          trustee_id:trustee._id,
-          trustee_logo:trustee.logo || null
+          trustee_id: trustee._id,
+          trustee_logo: trustee.logo || null,
+          school_id: merchant.school_id,
+          school_logo: merchant.logo,
         };
         return userMerchant;
       }
@@ -440,22 +444,26 @@ export class MerchantService {
     );
     return true;
   }
-  
-  async getRefundRequest(order_id:string){
-    const refundRequests = await this.refundRequestModel.find({
-      order_id: new Types.ObjectId(order_id),
-      status:{$ne:refund_status.DELETED}
-    }).sort({createdAt:-1});  
+
+  async getRefundRequest(order_id: string) {
+    const refundRequests = await this.refundRequestModel
+      .find({
+        order_id: new Types.ObjectId(order_id),
+        status: { $ne: refund_status.DELETED },
+      })
+      .sort({ createdAt: -1 });
     return refundRequests;
   }
 
-  async updateRefundRequest(trustee_id:string){
-    const refundRequest = await this.refundRequestModel.find({trustee_id:new Types.ObjectId(trustee_id)})
+  async updateRefundRequest(trustee_id: string) {
+    const refundRequest = await this.refundRequestModel.find({
+      trustee_id: new Types.ObjectId(trustee_id),
+    });
     if (refundRequest.length > 0) {
       console.log(refundRequest.length);
-      
-      refundRequest.map(async(info:any)=>{
-        try{
+
+      refundRequest.map(async (info: any) => {
+        try {
           let config = {
             method: 'get',
             maxBodyLength: Infinity,
@@ -463,22 +471,21 @@ export class MerchantService {
             headers: {
               accept: 'application/json',
               'content-type': 'application/json',
-            }
+            },
           };
-          const refundRequests=await this.refundRequestModel.findOne({order_id:info.order_id})
+          const refundRequests = await this.refundRequestModel.findOne({
+            order_id: info.order_id,
+          });
           const response = await axios.request(config);
           console.log(response.data, 'res');
-          refundRequests.custom_id=response.data
-          await refundRequests.save()
-        }catch(err){
+          refundRequests.custom_id = response.data;
+          await refundRequests.save();
+        } catch (err) {
           console.log(`Error in getting custom id: ${err.message}`);
-          
         }
-        
-      })
-      return 'found'
+      });
+      return 'found';
     }
     return 'not found';
   }
-  
 }
