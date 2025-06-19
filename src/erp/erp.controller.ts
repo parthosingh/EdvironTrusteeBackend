@@ -4288,11 +4288,92 @@ export class ErpController {
     }
   }
 
-  // @Post('test-razorpay-settlement')
-  // async razorpayRecon(@Query('date') date: string) {
-  //   const settlementDate = date ? new Date(date) : undefined;
-  //   return await this.erpService.sendSettlementsRazorpay(settlementDate);
-  // }
+  @Post('test-razorpay-settlement')
+  async razorpayRecon(@Query('date') date: string) {
+    const settlementDate = date ? new Date(date) : undefined;
+    return await this.erpService.sendSettlementsRazorpay(settlementDate);
+  }
+
+  @Post('bulk-settlement')
+  async bulkSettlement(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('authId') authId: string,
+    @Query('authSecret') authSecret: string,
+    @Query('trusteeId') trusteeId: string,
+    @Query('schoolId') schoolId: string,
+  ) {
+    if (!from || !to) {
+      throw new BadRequestException(
+        'Both "from" and "to" date parameters are required',
+      );
+    }
+    const getUTCUnix = (dateStr: string, isEnd = false): number => {
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) {
+        throw new BadRequestException(
+          `Invalid date format: ${dateStr}. Use YYYY-MM-DD.`,
+        );
+      }
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        throw new BadRequestException(
+          `Invalid date format: ${dateStr}. Must contain valid numbers.`,
+        );
+      }
+      const date = new Date(Date.UTC(year, month - 1, day));
+      if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+      ) {
+        throw new BadRequestException(`Invalid date value: ${dateStr}`);
+      }
+      if (isEnd) {
+        date.setUTCHours(23, 59, 59, 999);
+      } else {
+        date.setUTCHours(0, 0, 0, 0);
+      }
+      return Math.floor(date.getTime() / 1000);
+    };
+    try {
+      const startDate = getUTCUnix(from);
+      const endDate = getUTCUnix(to, true);
+      console.log('Unix timestamps:', startDate, endDate);
+      const allSettlements = [];
+      let skip = 0;
+      const count = 100; 
+      let hasMore = true;
+      while (hasMore) {
+        const config = {
+          url: `https://api.razorpay.com/v1/settlements?from=${startDate}&to=${endDate}&count=100&skip=${skip}`,
+          headers: { 'Content-Type': 'application/json' },
+          auth: { username: authId, password: authSecret },
+        };
+        const response = await axios.request(config)
+        if (!response.data.items || response.data.items.length === 0) {
+          hasMore = false;
+        } else {
+          allSettlements.push(...response.data.items);
+          skip += response.data.items.length;
+          if (response.data.items.length < count) {
+            hasMore = false;
+          }
+        }
+      }
+     await this.erpService.updateBulkSettlement(allSettlements, trusteeId, schoolId, authId)
+      return allSettlements;
+    } catch (error) {
+      console.error('Razorpay settlement error:', error);
+      throw new BadRequestException(
+        error.error?.description ||
+          error.message ||
+          'Failed to fetch settlements',
+      );
+    }
+  }
 
   @Get('get-dispute-byOrderId')
   async getDisputesbyOrderId(@Query('collect_id') collect_id: string) {

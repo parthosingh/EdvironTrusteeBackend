@@ -5,7 +5,7 @@ import { Document, Types } from 'mongoose';
 import { Trustee, TrusteeSchema } from './trustee.schema';
 
 @ObjectType()
-@Schema({ timestamps: true })
+@Schema()
 export class SettlementReport {
   @Prop({ required: true, type: Number })
   @Field(() => Number)
@@ -23,6 +23,13 @@ export class SettlementReport {
   @Field(() => Date)
   fromDate: Date;
 
+  @Prop({ required: true, type: Date })
+  @Field(() => Date)
+  createdAt: Date;
+
+  @Prop({ required: true, type: Date })
+  @Field(() => Date)
+  updatedAt: Date;
 
   @Prop({  type: Date , nullable: true})
   @Field(() => Date, {nullable: true})
@@ -48,9 +55,17 @@ export class SettlementReport {
   @Field(() => Date)
   settlementDate: Date;
 
-  @Prop({ required: true, type: String })
+  @Prop({ required: false, type: String })
   @Field(() => String)
   clientId: string;
+
+  @Prop({ required: false, type: String })
+  @Field(() => String)
+  gateway: string;
+
+  @Prop({ required: false, type: String })
+  @Field(() => String)
+  razorpay_id: string;
 
   @Prop({ type: String })
   @Field(() => String, { nullable: true })

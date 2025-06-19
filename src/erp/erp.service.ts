@@ -1296,151 +1296,6 @@ export class ErpService {
     }
   }
 
-  // @Cron('0 1 * * *')
-  // async sendSettlementsRazorpay(settlementDate?: Date) {
-  //   if (!settlementDate) {
-  //     settlementDate = new Date();
-  //   }
-  //   const merchants = await this.trusteeSchoolModel.find({
-  //     'razorpay.razorpay_id': { $exists: true, $ne: null },
-  //   });
-  //   for (const merchant of merchants) {
-  //     console.log(
-  //       `Getting report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
-  //     );
-  //     const start = new Date(settlementDate);
-  //     start.setUTCDate(start.getUTCDate() - 1); 
-  //     start.setUTCHours(0, 0, 0, 0);
-
-  //     const day = String(start.getDate()).padStart(2, '0');
-  //     const month = String(start.getMonth() + 1).padStart(2, '0');
-  //     const year = start.getFullYear();
-  //     console.log(start);
-  //     const axios = require('axios');
-  //     const config = {
-  //       method: 'get',
-  //       url: `https://api.razorpay.com/v1/settlements/recon/combined?year=${year}&month=${month}&day=${day}`,
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       auth: {
-  //         username: merchant.razorpay.razorpay_id,
-  //         password: merchant.razorpay.razorpay_secret,
-  //       },
-  //     };
-
-  //     const promise = () =>
-  //       new Promise(async (resolve) => {
-  //         try {
-  //           const response = await axios.request(config);
-
-  //           console.log(response.data, 'response.data');
-  //           // if (!response.data) return resolve({});
-  //           // for (const entry of response) {
-  //           //   if (!entry['Txn Date'] || !entry['Settlement Date']) continue;
-
-  //           //   const gross = parseFloat(entry['Gross Txn Amount'] || '0');
-  //           //   const net = parseFloat(entry['Net Amount to be Paid'] || '0');
-  //           //   totalSettlementAmount += gross;
-  //           //   totalNetAmount += net;
-
-  //           //   const txnDate = new Date(entry['Txn Date']);
-  //           //   if (!fromDate || txnDate < fromDate) fromDate = txnDate;
-  //           //   if (!tillDate || txnDate > tillDate) tillDate = txnDate;
-
-  //           //   if (!settlementDateFinal) {
-  //           //     const rawDate = entry['Settlement Date'];
-  //           //     const [dayStr, monthStr, yearStr] = rawDate.split(/[\s-]/);
-  //           //     const monthMap = {
-  //           //       Jan: 0,
-  //           //       Feb: 1,
-  //           //       Mar: 2,
-  //           //       Apr: 3,
-  //           //       May: 4,
-  //           //       Jun: 5,
-  //           //       Jul: 6,
-  //           //       Aug: 7,
-  //           //       Sep: 8,
-  //           //       Oct: 9,
-  //           //       Nov: 10,
-  //           //       Dec: 11,
-  //           //     };
-
-  //           //     const monthNum = monthMap[monthStr];
-  //           //     if (monthNum === undefined) continue;
-
-  //           //     const dateIST = new Date(
-  //           //       Date.UTC(
-  //           //         parseInt(yearStr),
-  //           //         monthNum,
-  //           //         parseInt(dayStr),
-  //           //         0,
-  //           //         0,
-  //           //         0,
-  //           //       ),
-  //           //     );
-  //           //     dateIST.setHours(
-  //           //       dateIST.getHours() + 5,
-  //           //       dateIST.getMinutes() + 30,
-  //           //     );
-  //           //     settlementDateFinal = dateIST;
-  //           //   }
-  //           // }
-
-  //           // if (!settlementDateFinal) return resolve({});
-
-  //           // todo after getting utrNumber
-  //           // const existing = await this.settlementReportModel.findOne({
-  //           //   schoolId: merchant.school_id,
-  //           //   trustee: merchant.trustee_id,
-  //           //   settlementDate: settlementDateFinal,
-  //           // });
-
-  //           // if (!existing) {
-  //           //   const report = new this.settlementReportModel({
-  //           //     settlementAmount: totalSettlementAmount.toFixed(2),
-  //           //     adjustment: 0.0,
-  //           //     netSettlementAmount: totalNetAmount.toFixed(2),
-  //           //     nttMerchantId: merchant.ntt_data.nttdata_id,
-  //           //     fromDate,
-  //           //     tillDate,
-  //           //     status: 'PAYMENT GIVEN',
-  //           //     utrNumber: '',
-  //           //     settlementDate: settlementDateFinal,
-  //           //     trustee: merchant.trustee_id,
-  //           //     schoolId: merchant.school_id,
-  //           //   });
-  //           console.log(
-  //             `Saving consolidated settlement report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
-  //           );
-  //           //   console.log(report, 'report');
-  //           //   await report.save();
-  //           // } else {
-  //           console.log(
-  //             `Consolidated report already exists for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
-  //           );
-  //           // }
-
-  //           resolve({});
-  //         } catch (error) {
-  //           console.log(
-  //             `Error fetching settlement report for ${merchant.school_name} (${merchant.client_id}) on ${settlementDate}`,
-  //             error.message,
-  //           );
-  //           resolve({});
-  //         }
-  //       });
-
-  //     this.cashfreeService.enqueue(promise);
-  //     );
-  //     return true;
-  //   } catch (e) {
-  //     return false;
-  //   }
-
-  //   console.log('Settlement processing initiated.');
-  // }
-
   async createPosMachine(
     school_id: string,
     trustee_id: string,
@@ -1456,13 +1311,15 @@ export class ErpService {
 
     status: string,
   ) {
-    try{
-      const checkDevice=await this.posMachineModel.findOne({
-        'machine_details.device_id':machine_details.device_id
-      })
+    try {
+      const checkDevice = await this.posMachineModel.findOne({
+        'machine_details.device_id': machine_details.device_id,
+      });
 
-      if(checkDevice){
-        throw new BadRequestException(`Device already added for ${checkDevice.school_id}`)
+      if (checkDevice) {
+        throw new BadRequestException(
+          `Device already added for ${checkDevice.school_id}`,
+        );
       }
       const newPosMachine = await new this.posMachineModel({
         school_id: new Types.ObjectId(school_id),
@@ -1480,10 +1337,184 @@ export class ErpService {
         created_at: new Date(),
         updated_at: new Date(),
       });
-      
+
       return newPosMachine.save();
-    }catch(e){
-      throw new BadRequestException(e.message)
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
+  }
+
+  @Cron('0 1 * * *')
+  async sendSettlementsRazorpay(settlementDate?: Date) {
+    try {
+      if (!settlementDate) {
+        settlementDate = new Date();
+      }
+
+      const merchants = await this.trusteeSchoolModel.find({
+        'razorpay.razorpay_id': { $exists: true, $ne: null },
+      });
+
+      for (const merchant of merchants) {
+        console.log(
+          `Getting report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
+        );
+
+        const start = new Date(settlementDate);
+        start.setUTCDate(start.getUTCDate() - 1);
+        start.setUTCHours(0, 0, 0, 0);
+
+        const day = String(start.getDate()).padStart(2, '0');
+        const month = String(start.getMonth() + 1).padStart(2, '0');
+        const year = start.getFullYear();
+
+        const config = {
+          method: 'get',
+          url: `https://api.razorpay.com/v1/settlements/recon/combined?year=${year}&month=${month}&day=${day}`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          auth: {
+            username: merchant.razorpay.razorpay_id,
+            password: merchant.razorpay.razorpay_secret,
+          },
+        };
+
+        const promise = () =>
+          new Promise(async (resolve) => {
+            let totalSettlementAmount = 0;
+            let totalNetAmount = 0;
+            let fromDate: Date | null = null;
+            let tillDate: Date | null = null;
+            let settlementDateFinal: Date | null = null;
+
+            try {
+              const response = await axios.request(config);
+              // console.log(response.data, 'response.data');
+              if (
+                !response.data.items ||
+                response.data.items.length === 0 ||
+                !Array.isArray(response.data.items)
+              )
+                return resolve({});
+              const entries: any[] = response.data.items;
+              console.log(entries, 'entries');
+              let utrNumber = '';
+              let status = 'SUCCESS';
+              for (const entry of entries) {
+                const credit = entry.credit || 0;
+                const fee = entry.fee || 0;
+                totalSettlementAmount += credit;
+                totalNetAmount += credit;
+                const entryCreatedAt = new Date(entry.created_at * 1000);
+                const entrySettledAt = new Date(entry.settled_at * 1000);
+                if (!fromDate || entryCreatedAt < fromDate)
+                  fromDate = entryCreatedAt;
+                if (!tillDate || entryCreatedAt > tillDate)
+                  tillDate = entryCreatedAt;
+                if (
+                  !settlementDateFinal ||
+                  entrySettledAt > settlementDateFinal
+                ) {
+                  settlementDateFinal = entrySettledAt;
+                  utrNumber = entry.settlement_utr || '';
+                }
+
+                if (!entry.settled) status = 'PENDING';
+              }
+              const existing = await this.settlementReportModel.findOne({
+                utrNumber: utrNumber,
+              });
+              if (!existing) {
+                const report = new this.settlementReportModel({
+                  settlementAmount: (totalSettlementAmount / 100).toFixed(2),
+                  adjustment: 0.0,
+                  netSettlementAmount: (totalNetAmount / 100).toFixed(2),
+                  razorpay_id: merchant.razorpay.razorpay_id,
+                  fromDate,
+                  tillDate,
+                  status,
+                  gateway: 'EDVIRON_RAZORPAY',
+                  utrNumber: utrNumber,
+                  settlementDate: settlementDateFinal,
+                  trustee: merchant.trustee_id,
+                  schoolId: merchant.school_id,
+                });
+
+                console.log(
+                  `Saving consolidated settlement report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
+                );
+                // console.log(report, 'report');
+                await report.save();
+              } else {
+                console.log(
+                  `Consolidated report already exists for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
+                );
+              }
+              resolve({});
+            } catch (error: any) {
+              console.log(
+                `Error fetching settlement report for ${merchant.school_name} (${merchant.client_id}) on ${settlementDate}`,
+                error.message,
+              );
+              resolve({});
+            }
+          });
+
+        this.cashfreeService.enqueue(promise);
+      }
+      console.log('Settlement processing initiated.');
+      return true;
+    } catch (e) {
+      console.log('Error in settlement cron job:', e.message);
+      return false;
     }
+  }
+
+  async updateBulkSettlement(
+    allSettlements: any,
+    trusteeId: string,
+    schoolId: string,
+    authId: string,
+  ) {
+    await Promise.all(
+      allSettlements.map(async (data) => {
+        const existingSettlement = await this.settlementReportModel.findOne({
+          utrNumber: data.utr,
+        });
+        if (!existingSettlement) {
+          try {
+            const settlementDate = new Date(data.created_at * 1000); 
+            const createdAtDate = new Date(data.created_at * 1000);
+            const status = data.status === "processed" ? "SUCCESS" : data.status === "created" ? 'Settled' : "fail"
+            const settlementReport = new this.settlementReportModel({
+              settlementAmount: data.amount / 100,
+              adjustment: '0.0',
+              netSettlementAmount: data.amount / 100,
+              fromDate: createdAtDate,
+              tillDate: createdAtDate,
+              status: status,
+              remarks:"N/A",
+              settlementInitiatedOn:settlementDate,
+              utrNumber: data.utr,
+              razorpay_id: authId,
+              settlementDate: settlementDate,
+              gateway: 'EDVIRON_RAZORPAY',
+              trustee: new Types.ObjectId(trusteeId),
+              schoolId: new Types.ObjectId(schoolId),
+              createdAt:createdAtDate,
+              updatedAt:createdAtDate
+            });
+            console.log(settlementReport, 'settlementReport');
+            await settlementReport.save();
+            console.log('Inserted:', data.utr);
+          } catch (err) {
+            console.error('Error saving settlement:', data.utr, err);
+          }
+        } else {
+          console.log('Already exists:', data.utr);
+        }
+      }),
+    );
+  }
 }
