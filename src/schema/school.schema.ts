@@ -54,6 +54,9 @@ export class I_Worldline {
 
   @Field(() => String)
   encryption_iV: string;
+
+  @Field(() => String)
+  worldline_scheme_code: string;
 }
 
 @ObjectType()

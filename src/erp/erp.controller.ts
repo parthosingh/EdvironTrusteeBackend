@@ -713,6 +713,7 @@ export class ErpController {
         worldline_merchant_id: school?.worldline?.merchant_code || null,
         worldline_encryption_key: school?.worldline?.encryption_key || null,
         worldline_encryption_iV: school?.worldline?.encryption_iV || null,
+        worldline_scheme_code: school?.worldline?.worldline_scheme_code || null,
         split_payments: splitPay || false,
         vendors_info: updatedVendorsInfo || null,
         vendorgateway: vendorgateway,
@@ -726,7 +727,7 @@ export class ErpController {
           razorpay_id: school.razorpay?.razorpay_id || null,
           razorpay_secret: school.razorpay?.razorpay_secret || null,
           razorpay_mid: school.razorpay?.razorpay_mid || null,
-        }, 
+        },
         worldLine_vendors: worldLine_vendors || null,
       });
       const config = {
