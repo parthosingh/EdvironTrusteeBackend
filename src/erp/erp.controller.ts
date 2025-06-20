@@ -4292,7 +4292,7 @@ export class ErpController {
   @Post('test-razorpay-settlement')
   async razorpayRecon(@Query('date') date: string) {
     const settlementDate = date ? new Date(date) : undefined;
-    return await this.erpService.sendSettlementsRazorpay(settlementDate);
+    return await this.erpService.settlementRazorpay(settlementDate);
   }
 
   @Post('bulk-settlement')

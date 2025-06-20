@@ -93,7 +93,7 @@ export class TrusteeService {
     private EmailGroupModel: mongoose.Model<EmailGroup>,
     @InjectModel(EmailEvent.name)
     private EmailEventModel: mongoose.Model<EmailEvent>,
-  ) { }
+  ) {}
 
   async loginAndGenerateToken(
     emailId: string,
@@ -1630,8 +1630,9 @@ export class TrusteeService {
       if (chequeExtension === 'pdf') {
         mimeType = 'application/pdf';
       } else if (['jpg', 'jpeg', 'png'].includes(chequeExtension)) {
-        mimeType = `image/${chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
-          }`;
+        mimeType = `image/${
+          chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
+        }`;
       } else {
         throw new Error('Unsupported file type file type.');
       }
@@ -1796,15 +1797,12 @@ export class TrusteeService {
   }
 
   async getVenodrInfo(vendor_id: string, school_id: string) {
-    const vendor = await this.vendorsModel.findById(
-      vendor_id
-    );
+    const vendor = await this.vendorsModel.findById(vendor_id);
 
-    
-    if(vendor.school_id.toString()!==school_id){
+    if (vendor.school_id.toString() !== school_id) {
       console.log(vendor.school_id);
-      
-      throw new BadRequestException(`Invalid vendor Id`)
+
+      throw new BadRequestException(`Invalid vendor Id`);
     }
     if (!vendor)
       throw new NotFoundException(
@@ -1812,7 +1810,7 @@ export class TrusteeService {
       );
     return vendor;
   }
- 
+
   async getVendonrSingleTransactions(order_id: string, trustee_id: string) {
     if (!order_id) throw new NotFoundException('Order id not found ');
 
@@ -2678,18 +2676,18 @@ export class TrusteeService {
         trustee_id: new Types.ObjectId(trustee_id),
         ...(school_id && { school_id: new Types.ObjectId(school_id) }),
         ...(order_id && { collect_id: order_id }),
-        ...(custom_id && { custom_order_id :custom_id }),
-        ...(dispute_id && { dispute_id :dispute_id }),
+        ...(custom_id && { custom_order_id: custom_id }),
+        ...(dispute_id && { dispute_id: dispute_id }),
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-            dispute_created_date: {
-              ...(start_date && { $gte: new Date(start_date) }),
-              ...(end_date && {
-                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-              }),
-            },
-          }
+              dispute_created_date: {
+                ...(start_date && { $gte: new Date(start_date) }),
+                ...(end_date && {
+                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+                }),
+              },
+            }
           : {}),
       };
       const skip = (page - 1) * limit;
@@ -2729,13 +2727,13 @@ export class TrusteeService {
         ...(school_id && { schoolId: new Types.ObjectId(school_id) }),
         ...(start_date || end_date
           ? {
-            settlementDate: {
-              ...(start_date && { $gte: new Date(start_date) }),
-              ...(end_date && {
-                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-              }),
-            },
-          }
+              settlementDate: {
+                ...(start_date && { $gte: new Date(start_date) }),
+                ...(end_date && {
+                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+                }),
+              },
+            }
           : {}),
       };
 
@@ -2753,7 +2751,7 @@ export class TrusteeService {
         totalCount,
         totalPages,
       };
-    } catch (e) { }
+    } catch (e) {}
   }
 
   async fetchTransactionInfo(collect_id: string) {
@@ -2897,8 +2895,8 @@ export class TrusteeService {
       const data = {
         trustee_id,
         token,
-        url
-      }
+        url,
+      };
       const testWebhookconfig = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -2907,7 +2905,7 @@ export class TrusteeService {
           accept: 'application/json',
           'content-type': 'application/json',
         },
-        data: data
+        data: data,
       };
       const testwebhook = await axios.request(testWebhookconfig);
       return testwebhook;
@@ -2918,35 +2916,92 @@ export class TrusteeService {
     }
   }
 
-  async getMails(
-    school_id: string,
-    event_name: string
-  ) {
+  async getMails(school_id: string, event_name: string) {
     try {
-      const event = await this.EmailEventModel.findOne({ event_name: event_name })
+      const event = await this.EmailEventModel.findOne({
+        event_name: event_name,
+      });
       if (!event) {
-        throw new BadRequestException('Event Not found')
+        throw new BadRequestException('Event Not found');
       }
       const emailGroups = await this.EmailGroupModel.findOne({
         school_id: new Types.ObjectId(school_id),
-        event_id: event._id
-      })
+        event_id: event._id,
+      });
 
       return {
         email: emailGroups.emails || [],
-        cc: emailGroups.cc || ['tarun.k@edviron.com']
-      }
+        cc: emailGroups.cc || ['tarun.k@edviron.com'],
+      };
     } catch (e) {
-      throw new BadRequestException('Error in getting mail')
+      throw new BadRequestException('Error in getting mail');
     }
   }
 
   async generateDisputePDF(dispute: Disputes, isClosed = false) {
     const html = getAdminEmailTemplate(dispute, isClosed);
-    return html
+    return html;
     // Use a library to convert HTML to PDF Buffer (example: puppeteer)
   }
 
+  async getRazorpayTransactionForSettlement(
+    utr:string, 
+    razorpay_id:string, 
+    razropay_secret:string, 
+    limit:number, 
+    cursor:string,
+    skip:number,
+    fromDate:Date,
+  ) {
+     const token = this.jwtService.sign(
+      { utr, razorpay_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    const paginationData = {
+      cursor: cursor,
+      limit: limit,
+      skip:skip,
+      fromDate
+    };
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay-nonseamless/settlements-transactions?token=${token}&utr=${utr}&razorpay_id=${razorpay_id}&razropay_secret=${razropay_secret}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: paginationData,
+    };
+    try {
+      const { data: transactions } = await axios.request(config);
+
+      const settlements_transactions = transactions.settlements_transactions;
+      const school = await this.trusteeSchoolModel.findOne({ 
+        'razorpay.razorpay_id':razorpay_id
+       });
+      let settlementTransactions = [];
+      if (!school) throw new BadRequestException(`Could not find school `);
+      settlements_transactions.forEach((transaction: any) => {
+        if (transaction?.order_id) {
+          transaction.school_name = school.school_name;
+        }
+      });
+      // console.log(transactions, 'datadagsjdgajk');
+
+      // console.log(settlements_transactions, 'settlements_transactions');
+
+      return {
+        limit: transactions.limit,
+        cursor: transactions.cursor,
+        settlements_transactions,
+      };
+    } catch (e) {
+      console.log(e.message)
+      throw new BadRequestException(e.message)
+    }
+
+  }
 }
 
 const transaction = {
