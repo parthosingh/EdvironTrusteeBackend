@@ -1064,7 +1064,7 @@ export class MerchantResolver {
       refundRequests,
       totalPages,
       page,
-      totalCountResult : totalCount
+      totalCountResult: totalCount,
     };
   }
 
@@ -1706,6 +1706,53 @@ export class MerchantResolver {
         limit,
         cursor,
       );
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @UseGuards(MerchantGuard)
+  @Query(() => SettlementsTransactionsPaginatedResponse)
+  async getMerchantSettlementsTransactions(
+    @Args('utr', { type: () => String }) utr: string,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Args('cursor', { type: () => String, nullable: true })
+    cursor: string | null,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+  ) {
+    try {
+      const settlement = await this.settlementReportModel.findOne({
+        utrNumber: utr,
+      });
+      if (!settlement) {
+        throw new Error('Settlement not found');
+      }
+      const client_id = settlement.clientId;
+      const razorpay_id = settlement.razorpay_id;
+      if (client_id) {
+        return await this.trusteeService.getTransactionsForSettlements(
+          utr,
+          client_id,
+          limit,
+          cursor,
+        );
+      }
+      if (razorpay_id) {
+        console.log('inside razorpay');
+        const school = await this.trusteeSchoolModel.findOne({
+          'razorpay.razorpay_id': razorpay_id,
+        });
+        const razropay_secret = school?.razorpay?.razorpay_secret;
+        return await this.trusteeService.getRazorpayTransactionForSettlement(
+          utr,
+          razorpay_id,
+          razropay_secret,
+          limit,
+          cursor,
+          skip,
+          settlement.fromDate,
+        );
+      }
     } catch (e) {
       throw new BadRequestException(e.message);
     }
