@@ -5,7 +5,7 @@ import { Document, Types } from 'mongoose';
 import { Trustee, TrusteeSchema } from './trustee.schema';
 
 @ObjectType()
-@Schema()
+@Schema({ timestamps: true })
 export class SettlementReport {
   @Prop({ required: true, type: Number })
   @Field(() => Number)
