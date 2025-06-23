@@ -77,7 +77,6 @@ export class MainBackendController {
     }
   }
 
-
   @Get('find-all-trustee')
   async findTrustee(@Query('token') token: string) {
     const paginationInfo: JwtPayload = this.jwtService.verify(token, {
@@ -655,8 +654,8 @@ export class MainBackendController {
       }
       return {
         email: school.email,
-        school_name:school.school_name,
-        number:school.phone_number
+        school_name: school.school_name,
+        number: school.phone_number,
       };
     } catch (e) {
       console.log(e.message);
@@ -790,13 +789,19 @@ export class MainBackendController {
       reason,
     } = body;
     try {
-      const school = await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
       if (!school) {
         throw new NotFoundException('School not found');
       }
-      const checkrefund=await this.refundRequestModel.findOne({ order_id: new Types.ObjectId(collect_id)})
-      if(checkrefund){
-        throw new BadRequestException('Refund request already initiated for this order');
+      const checkrefund = await this.refundRequestModel.findOne({
+        order_id: new Types.ObjectId(collect_id),
+      });
+      if (checkrefund) {
+        throw new BadRequestException(
+          'Refund request already initiated for this order',
+        );
       }
       const refunds = await this.refundRequestModel.create({
         trustee_id: new Types.ObjectId(trustee_id),
@@ -809,14 +814,14 @@ export class MainBackendController {
         reason,
         gateway,
         custom_id,
-        isAutoRedund:true,
+        isAutoRedund: true,
       });
       // mail for autorefund
       this.emailService.sendAutoRefundInitiatedAlert(
         school.school_name,
         refunds._id.toString(),
         refund_amount,
-        collect_id
+        collect_id,
       );
       return refunds;
     } catch (e) {
@@ -977,7 +982,7 @@ export class MainBackendController {
       });
     }
     const user = merchant ? merchant : trustee;
- 
+
     const debounceKey = `sendError-${queryName}-${user.id}`;
     const existingRequest =
       await this.mainBackendService.getDebounceRequest(debounceKey);
@@ -1005,11 +1010,14 @@ export class MainBackendController {
   @Post('update-school-info')
   async updateSchoolInfo(
     @Body()
-    body: { school_id: string; residence_state: string; bank_details: bank_Details; gstIn: string },
+    body: {
+      school_id: string;
+      residence_state: string;
+      bank_details: bank_Details;
+      gstIn: string;
+    },
   ): Promise<any> {
     try {
-     
-
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(body.school_id),
       });
@@ -1059,7 +1067,21 @@ export class MainBackendController {
   }
 
   @Get('/update-split')
-  async updateSplit(){
-    return await this.mainBackendService.updateEzbLabel()
+  async updateSplit() {
+    return await this.mainBackendService.updateEzbLabel();
+  }
+
+  @Get('trustee-token')
+  async trusteeToken(@Body() body: any) {
+    const { id, role, secretKey } = body;
+    const token = this.jwtService.sign({ id, role }, { secret: secretKey });
+    return token;
+  }
+
+  @Get('payment-sign-token')
+  async paymentSignToken(@Body() body: any) {
+    const { school_id, amount, callback_url, secretKey } = body;
+   const token = this.jwtService.sign({ school_id, amount, callback_url }, { secret: secretKey });
+    return token;
   }
 }
