@@ -17,6 +17,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Trustee } from '../schema/trustee.schema';
 import { SchoolMdr } from '../schema/school_mdr.schema';
 import { RequestMDR } from '../schema/mdr.request.schema';
+import axios from 'axios';
 // import pMap from 'p-map';
 @Controller('platform-charges')
 export class PlatformChargesController {
@@ -384,6 +385,30 @@ export class PlatformChargesController {
             $set: { platform_charges: mdrRequest.platform_charges },
           },
         );
+
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/update-school-mdr`,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          data: {
+            token: '',
+            trustee_id: schools.trustee_id,
+            school_id: schools.school_id,
+            platform_charges: schools.platform_charges,
+          },
+        };
+        try{
+
+          await axios.request(config)
+        }catch(e){
+          console.log(e,'update error');
+          throw new BadRequestException(e.message)
+          
+        }
       });
 
       await this.platformChargeService.createUpdateSchoolMdr(
