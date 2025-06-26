@@ -60,6 +60,21 @@ export class I_Worldline {
 }
 
 @ObjectType()
+export class I_Gatepay {
+  @Field(() => String, {nullable:true})
+  gatepay_mid: string;
+
+  @Field(() => String , {nullable:true})
+  gatepay_terminal_id: string;
+
+  @Field(() => String , {nullable:true})
+  gatepay_key: string;
+
+  @Field(() => String , {nullable:true})
+  gatepay_iv: string;
+}
+
+@ObjectType()
 export class I_Razorpay {
   @Field(() => String)
   razorpay_id: string;
@@ -384,6 +399,10 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => I_Worldline, { nullable: true })
   worldline: I_Worldline;
+
+  @Prop({})
+  @Field(() => I_Gatepay, { nullable: true })
+  gatepay: I_Gatepay;
 
   @Field()
   @Prop()

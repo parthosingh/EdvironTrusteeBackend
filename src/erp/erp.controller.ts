@@ -304,6 +304,7 @@ export class ErpController {
           `Split Information Not Configure Please contact tarun.k@edviron.com`,
         );
       }
+      
       if (school.isVBAActive) {
         isVBAPayment = true;
       }
@@ -636,7 +637,6 @@ export class ErpController {
       ) {
         throw new ForbiddenException('request forged');
       }
-
       const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
       const trustee = await this.trusteeModel.findById(trusteeObjId);
       const webHookUrl = req_webhook_urls?.length;
@@ -723,12 +723,17 @@ export class ErpController {
         easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
-        razorpay_credentials: {
-          razorpay_id: school.razorpay?.razorpay_id || null,
+        razorpay_credentials: { razorpay_id: school.razorpay?.razorpay_id || null,
           razorpay_secret: school.razorpay?.razorpay_secret || null,
           razorpay_mid: school.razorpay?.razorpay_mid || null,
         },
         worldLine_vendors: worldLine_vendors || null,
+        gatepay_credentials : {
+          gatepay_mid : school?.gatepay?.gatepay_mid || null,
+          gatepay_terminal_id : school?.gatepay?.gatepay_terminal_id || null,
+          gatepay_key : school?.gatepay?.gatepay_key || null,
+          gatepay_iv : school?.gatepay?.gatepay_iv || null,
+        }
       });
       const config = {
         method: 'post',
