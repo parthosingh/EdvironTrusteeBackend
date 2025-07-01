@@ -357,47 +357,70 @@ export class WebhooksController {
       }).save();
       const info = body.data;
       const data = JSON.parse(info);
-      data.submerchant_payouts.map(async (payout) => {
-        const merchant = await this.TrusteeSchoolmodel.findOne({
-          easebuzz_id: payout.submerchant_id,
-        });
-        if (!merchant) {
-          console.log(
-            `Merchant not found for easebuzz_id: ${payout.submerchant_id}`,
-          );
-          return;
-        }
-        const easebuzzDate = new Date(payout.submerchant_payout_date);
-        const saveSettlements =
-          await this.SettlementReportModel.findOneAndUpdate(
-            { utrNumber: payout.bank_transaction_id },
-            {
-              $set: {
-                settlementAmount: payout.payout_amount + payout.refund_amount,
-                adjustment: payout.refund_amount,
-                netSettlementAmount: payout.payout_amount,
-                fromDate: new Date(
-                  easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
-                ),
-                tillDate: new Date(
-                  easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
-                ),
-                settlementInitiatedOn: new Date(payout.submerchant_payout_date),
-                status: 'SUCCESS',
-                utrNumber: payout.bank_transaction_id,
-                settlementDate: new Date(payout.submerchant_payout_date),
-                clientId: payout.submerchant_id || 'NA',
-                trustee: merchant.trustee_id,
-                schoolId: merchant.school_id,
-                remarks: 'NA',
+      await Promise.all(
+        data.submerchant_payouts.map(async (payout: any) => {
+          const merchant = await this.TrusteeSchoolmodel.findOne({
+            easebuzz_id: payout.submerchant_id,
+          });
+          if (!merchant) {
+            console.log(
+              `Merchant not found for easebuzz_id: ${payout.submerchant_id}`,
+            );
+            return;
+          }
+          let utr = payout.bank_transaction_id;
+          const easebuzzDate = new Date(payout.submerchant_payout_date);
+          if (payout.bank_transaction_id === 'SPLIT') {
+            const matchingSplit = data.split_payouts.find(
+              (split: any) => split.account_number === payout.account_number,
+            );
+
+            if (matchingSplit) {
+              utr = matchingSplit.bank_transaction_id;
+              console.log(
+                'Updated bank_transaction_id:',
+                utr,
+              );
+            } else {
+              console.log(
+                'No matching split_payout found for account_number:',
+                payout.account_number,
+              );
+            }
+          }
+          const saveSettlements =
+            await this.SettlementReportModel.findOneAndUpdate(
+              { utrNumber: utr },
+              {
+                $set: {
+                  settlementAmount: payout.payout_amount + payout.refund_amount,
+                  adjustment: payout.refund_amount,
+                  netSettlementAmount: payout.payout_amount,
+                  fromDate: new Date(
+                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                  ),
+                  tillDate: new Date(
+                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                  ),
+                  settlementInitiatedOn: new Date(
+                    payout.submerchant_payout_date,
+                  ),
+                  status: 'SUCCESS',
+                  utrNumber: utr,
+                  settlementDate: new Date(payout.submerchant_payout_date),
+                  clientId: payout.submerchant_id || 'NA',
+                  trustee: merchant.trustee_id,
+                  schoolId: merchant.school_id,
+                  remarks: 'NA',
+                },
               },
-            },
-            {
-              upsert: true,
-              new: true,
-            },
-          );
-      });
+              {
+                upsert: true,
+                new: true,
+              },
+            );
+        }),
+      );
       console.log('called');
       res.status(200).send('OK');
     } catch (e) {
@@ -420,6 +443,96 @@ export class WebhooksController {
       );
     }
   }
+
+@Post('/fix-easebuzz-settlement')
+async fixEasebuzzSettlement() {
+  const webhooks = await this.webhooksLogsModel.find({
+    body: { $regex: 'S128810O8YH' },
+    createdAt: {
+      $gte: new Date('2025-06-10T06:34:13.486+00:00'),
+    },
+  });
+
+  await Promise.all(
+    webhooks.map(async (webhook) => {
+      try {
+        const webhookData = JSON.parse(webhook.body);
+        const data = JSON.parse(webhookData.data);
+        await Promise.all(
+          data.submerchant_payouts.map(async (payout: any) => {
+            const merchant = await this.TrusteeSchoolmodel.findOne({
+              easebuzz_id: payout.submerchant_id,
+            });
+
+            if (!merchant) {
+              console.log(
+                `Merchant not found for easebuzz_id: ${payout.submerchant_id}`,
+              );
+              return;
+            }
+
+            let utr = payout.bank_transaction_id;
+            const easebuzzDate = new Date(payout.submerchant_payout_date);
+
+            if (payout.bank_transaction_id === 'SPLIT') {
+              const matchingSplit = data.split_payouts.find(
+                (split: any) =>
+                  split.account_number === payout.account_number,
+              );
+
+              if (matchingSplit) {
+                utr = matchingSplit.bank_transaction_id;
+                console.log(
+                  `Updated SPLIT bank_transaction_id for ${payout.account_number}: ${utr}`,
+                );
+              } else {
+                console.log(
+                  `No matching split_payout found for account_number: ${payout.account_number}`,
+                );
+                return;
+              }
+            }
+
+            await this.SettlementReportModel.findOneAndUpdate(
+              { utrNumber: utr },
+              {
+                $set: {
+                  settlementAmount:
+                    payout.payout_amount + payout.refund_amount,
+                  adjustment: payout.refund_amount,
+                  netSettlementAmount: payout.payout_amount,
+                  fromDate: new Date(
+                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                  ),
+                  tillDate: new Date(
+                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                  ),
+                  settlementInitiatedOn: easebuzzDate,
+                  status: 'SUCCESS',
+                  utrNumber: utr,
+                  settlementDate: easebuzzDate,
+                  clientId: payout.submerchant_id || 'NA',
+                  trustee: merchant.trustee_id,
+                  schoolId: merchant.school_id,
+                  remarks: 'NA',
+                },
+              },
+              {
+                upsert: true,
+                new: true,
+              },
+            );
+          }),
+        );
+      } catch (error) {
+        console.error(`Failed to process webhook ${webhook._id}`, error);
+      }
+    }),
+  );
+
+  return { processedWebhooks: webhooks.length };
+}
+
 
   @Post('cashfree/settlements')
   async cashfreeSettlements(@Body() body: any, @Res() res: any) {
@@ -1351,3 +1464,115 @@ export class WebhooksController {
     }
   }
 }
+
+const easebuzzSplit = {
+  status: '1',
+  data: {
+    hash: '4ed406134cb71b9d4fceb2055ccc688203a291f802e5cd98a380598d148487ca1bcbec2ba7e52601e28c86101f57dbf9cbb48e9f0bbdd870f7836fa74de6fbb4',
+    paid_out: 1,
+    bank_name: 'HDFC Bank',
+    ifsc_code: 'HDFC0001203',
+    payout_id: 'PTDIHTE61Y',
+    payout_date: '2025-06-25 11:52:01.047649',
+    name_on_bank: 'THRIVEDGE EDUTECH PRIVATE LIMITED',
+    total_amount: 37169.19,
+    payout_amount: 37000.0,
+    refund_amount: 0.0,
+    split_payouts: [
+      {
+        paid_out: 1,
+        bank_name: 'Kanakamahalakshmi Co operative Bank',
+        payout_date: '2025-06-25 11:52:01.021813',
+        account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
+        payout_amount: 37000.0,
+        account_number: '1016014000064',
+        split_payout_id: 'SPBPOOVPHJ',
+        bank_transaction_id: 'YESB51764261092',
+      },
+    ],
+    account_number: '50200080534081',
+    service_tax_amount: 13.7,
+    bank_transaction_id: 'NA',
+    refund_transactions: [],
+    submerchant_payouts: [
+      {
+        bank_name: 'Kanakamahalakshmi Co operative Bank',
+        ifsc_code: 'IBKL0150KMC',
+        name_on_bank: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
+        total_amount: 37169.19,
+        payout_amount: 37000.0,
+        refund_amount: 0.0,
+        account_number: '1016014000064',
+        submerchant_id: 'S128810O8YH',
+        service_tax_amount: 13.7,
+        bank_transaction_id: 'SPLIT',
+        service_charge_amount: 76.09,
+        submerchant_payout_id: 'PTSRGAWI1I',
+        submerchant_payout_date: '2025-06-25 06:22:01.037714',
+      },
+    ],
+    settled_transactions: [
+      {
+        txnid: '685a619b1e5ad99715cb71a5',
+        easepayid: 'E2506240I2W7XW',
+        service_tax: 0.0,
+        service_charge: 0.0,
+        submerchant_id: 'S128810O8YH',
+        transaction_type: 'UPI',
+        settlement_amount: 12000.0,
+        split_transactions: [
+          {
+            amount: 12000.0,
+            service_tax: 0.0,
+            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
+            service_charge: 0.0,
+            split_payout_id: 'SPBPOOVPHJ',
+            split_payout_percentage: 100.0,
+          },
+        ],
+        transaction_amount: 12011.8,
+      },
+      {
+        txnid: '685a62291e5ad99715cb729c',
+        easepayid: 'E2506240I2WCYG',
+        service_tax: 0.0,
+        service_charge: 0.0,
+        submerchant_id: 'S128810O8YH',
+        transaction_type: 'UPI',
+        settlement_amount: 15000.0,
+        split_transactions: [
+          {
+            amount: 15000.0,
+            service_tax: 0.0,
+            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
+            service_charge: 0.0,
+            split_payout_id: 'SPBPOOVPHJ',
+            split_payout_percentage: 100.0,
+          },
+        ],
+        transaction_amount: 15011.8,
+      },
+      {
+        txnid: '685acd3adbdb777a505e7c06',
+        easepayid: 'E2506240I3NVSE',
+        service_tax: 13.7,
+        service_charge: 76.09,
+        submerchant_id: 'S128810O8YH',
+        transaction_type: 'Credit Card',
+        settlement_amount: 10000.0,
+        split_transactions: [
+          {
+            amount: 10089.79,
+            service_tax: 13.7,
+            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
+            service_charge: 76.09,
+            split_payout_id: 'SPBPOOVPHJ',
+            split_payout_percentage: 100.0,
+          },
+        ],
+        transaction_amount: 10145.59,
+      },
+    ],
+    service_charge_amount: 76.09,
+  },
+};

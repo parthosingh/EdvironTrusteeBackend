@@ -304,7 +304,7 @@ export class ErpController {
           `Split Information Not Configure Please contact tarun.k@edviron.com`,
         );
       }
-      
+
       if (school.isVBAActive) {
         isVBAPayment = true;
       }
@@ -670,83 +670,6 @@ export class ErpController {
       const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
       const axios = require('axios');
       console.time('payments1');
-      const data = JSON.stringify({
-        amount,
-        callbackUrl: callback_url,
-        jwt: this.jwtService.sign(
-          {
-            amount,
-            callbackUrl: callback_url,
-            clientId: school.client_id || null,
-            clientSecret: school.client_secret,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        ),
-        clientId: school.client_id || null,
-        clientSecret: school.client_secret || null,
-        school_id: school_id,
-        trustee_id: trustee_id,
-        webHook: webHookUrl || null,
-        platform_charges: school.platform_charges,
-        additional_data: additionalInfo || {},
-        custom_order_id: custom_order_id || null,
-        req_webhook_urls: all_webhooks || null,
-        school_name: school.school_name || null,
-        easebuzz_sub_merchant_id: school.easebuzz_id || null,
-        ccavenue_access_code: school.ccavenue_access_code || null,
-        ccavenue_merchant_id: school.ccavenue_merchant_id || null,
-        ccavenue_working_key: school.ccavenue_working_key || null,
-        smartgateway_merchant_id: school.smartgateway_merchant_id || null,
-        smartgateway_customer_id: school.smartgateway_customer_id || null,
-        smart_gateway_api_key: school?.smart_gateway_api_key || null,
-        hdfc_razorpay_id: school.hdfc_razorpay_id || null,
-        hdfc_razorpay_secret: school.hdfc_razorpay_secret || null,
-        hdfc_razorpay_mid: school.hdfc_razorpay_mid || null,
-        pay_u_key: school.pay_u_key || null,
-        pay_u_salt: school.pay_u_salt || null,
-        nttdata_id: school?.ntt_data?.nttdata_id || null,
-        nttdata_secret: school?.ntt_data?.nttdata_secret || null,
-        nttdata_hash_req_key: school?.ntt_data?.nttdata_hash_req_key || null,
-        nttdata_hash_res_key: school?.ntt_data?.nttdata_hash_res_key || null,
-        nttdata_res_salt: school?.ntt_data?.nttdata_res_salt || null,
-        nttdata_req_salt: school?.ntt_data?.nttdata_req_salt || null,
-        worldline_merchant_id: school?.worldline?.merchant_code || null,
-        worldline_encryption_key: school?.worldline?.encryption_key || null,
-        worldline_encryption_iV: school?.worldline?.encryption_iV || null,
-        worldline_scheme_code: school?.worldline?.worldline_scheme_code || null,
-        split_payments: splitPay || false,
-        vendors_info: updatedVendorsInfo || null,
-        vendorgateway: vendorgateway,
-        easebuzzVendors,
-        cashfreeVedors,
-        disabled_modes: disabled_modes || null,
-        easebuzz_school_label: school.easebuzz_school_label || null,
-        isVBAPayment: isVBAPayment || false,
-        vba_account_number: vba_account_number || 'NA',
-        razorpay_credentials: { razorpay_id: school.razorpay?.razorpay_id || null,
-          razorpay_secret: school.razorpay?.razorpay_secret || null,
-          razorpay_mid: school.razorpay?.razorpay_mid || null,
-        },
-        worldLine_vendors: worldLine_vendors || null,
-        gatepay_credentials : {
-          gatepay_mid : school?.gatepay?.gatepay_mid || null,
-          gatepay_terminal_id : school?.gatepay?.gatepay_terminal_id || null,
-          gatepay_key : school?.gatepay?.gatepay_key || null,
-          gatepay_iv : school?.gatepay?.gatepay_iv || null,
-        }
-      });
-      const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect`,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        data: data,
-      };
-      const { data: paymentsServiceResp } = await axios.request(config);
-      console.timeEnd('payments1');
-      const reason = 'fee payment';
       if (school.isEasebuzzNonPartner) {
         console.log('non partner');
 
@@ -823,21 +746,85 @@ export class ErpController {
 
         return res.data;
       }
-      //set some variable here (user input [sendPaymentLink:true])
-      // to send link to student
-      // if (body.student_phone_no || body.student_email) {
-      //   if (body.sendPaymentLink) {
-      //     await this.erpService.sendPaymentLink({
-      //       student_name: body.student_name || ' ',
-      //       phone_no: body.student_phone_no,
-      //       amount: body.amount,
-      //       reason: reason,
-      //       school_id: body.school_id,
-      //       mail_id: body.student_email,
-      //       paymentURL: paymentsServiceResp.url,
-      //     });
-      //   }
-      // }
+      const data = JSON.stringify({
+        amount,
+        callbackUrl: callback_url,
+        jwt: this.jwtService.sign(
+          {
+            amount,
+            callbackUrl: callback_url,
+            clientId: school.client_id || null,
+            clientSecret: school.client_secret,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        ),
+        clientId: school.client_id || null,
+        clientSecret: school.client_secret || null,
+        school_id: school_id,
+        trustee_id: trustee_id,
+        webHook: webHookUrl || null,
+        platform_charges: school.platform_charges,
+        additional_data: additionalInfo || {},
+        custom_order_id: custom_order_id || null,
+        req_webhook_urls: all_webhooks || null,
+        school_name: school.school_name || null,
+        easebuzz_sub_merchant_id: school.easebuzz_id || null,
+        ccavenue_access_code: school.ccavenue_access_code || null,
+        ccavenue_merchant_id: school.ccavenue_merchant_id || null,
+        ccavenue_working_key: school.ccavenue_working_key || null,
+        smartgateway_merchant_id: school.smartgateway_merchant_id || null,
+        smartgateway_customer_id: school.smartgateway_customer_id || null,
+        smart_gateway_api_key: school?.smart_gateway_api_key || null,
+        hdfc_razorpay_id: school.hdfc_razorpay_id || null,
+        hdfc_razorpay_secret: school.hdfc_razorpay_secret || null,
+        hdfc_razorpay_mid: school.hdfc_razorpay_mid || null,
+        pay_u_key: school.pay_u_key || null,
+        pay_u_salt: school.pay_u_salt || null,
+        nttdata_id: school?.ntt_data?.nttdata_id || null,
+        nttdata_secret: school?.ntt_data?.nttdata_secret || null,
+        nttdata_hash_req_key: school?.ntt_data?.nttdata_hash_req_key || null,
+        nttdata_hash_res_key: school?.ntt_data?.nttdata_hash_res_key || null,
+        nttdata_res_salt: school?.ntt_data?.nttdata_res_salt || null,
+        nttdata_req_salt: school?.ntt_data?.nttdata_req_salt || null,
+        worldline_merchant_id: school?.worldline?.merchant_code || null,
+        worldline_encryption_key: school?.worldline?.encryption_key || null,
+        worldline_encryption_iV: school?.worldline?.encryption_iV || null,
+        worldline_scheme_code: school?.worldline?.worldline_scheme_code || null,
+        split_payments: splitPay || false,
+        vendors_info: updatedVendorsInfo || null,
+        vendorgateway: vendorgateway,
+        easebuzzVendors,
+        cashfreeVedors,
+        disabled_modes: disabled_modes || null,
+        easebuzz_school_label: school.easebuzz_school_label || null,
+        isVBAPayment: isVBAPayment || false,
+        vba_account_number: vba_account_number || 'NA',
+        razorpay_credentials: {
+          razorpay_id: school.razorpay?.razorpay_id || null,
+          razorpay_secret: school.razorpay?.razorpay_secret || null,
+          razorpay_mid: school.razorpay?.razorpay_mid || null,
+        },
+        worldLine_vendors: worldLine_vendors || null,
+        gatepay_credentials: {
+          gatepay_mid: school?.gatepay?.gatepay_mid || null,
+          gatepay_terminal_id: school?.gatepay?.gatepay_terminal_id || null,
+          gatepay_key: school?.gatepay?.gatepay_key || null,
+          gatepay_iv: school?.gatepay?.gatepay_iv || null,
+        },
+      });
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: data,
+      };
+      const { data: paymentsServiceResp } = await axios.request(config);
+      console.timeEnd('payments1');
+      const reason = 'fee payment';
+      
 
       if (isVBAPayment) {
         try {
@@ -1455,8 +1442,592 @@ export class ErpController {
     }
   }
 
-  @Post('/:reseller_name/create-collect-request')
+  // CASHFREE COLLECT REQUEST FOR SEPERATE PARTNERS V2
+  @Post('create-collect-request/v21')
   @UseGuards(ErpGuard)
+  async cashfreeCollectRequest(
+    @Body()
+    body: {
+      school_id: string;
+      amount: number;
+      callback_url: string;
+      sign: string;
+      student_phone_no?: string;
+      student_email?: string;
+      student_name?: string;
+      student_id?: string;
+      receipt?: string;
+      sendPaymentLink?: boolean;
+      additional_data?: {};
+      custom_order_id?: string;
+      req_webhook_urls?: [string];
+      split_payments?: boolean;
+      disabled_modes?: DisabledModes[];
+      vendors_info?: [
+        {
+          vendor_id: string;
+          percentage?: number;
+          amount?: number;
+          name?: string;
+        },
+      ];
+    },
+    @Req() req,
+  ) {
+    try {
+      const trustee_id = req.userTrustee.id;
+      const {
+        school_id,
+        amount,
+        callback_url,
+        
+        additional_data,
+        student_id,
+        student_email,
+        student_name,
+        student_phone_no,
+        receipt,
+        custom_order_id,
+        req_webhook_urls,
+        split_payments,
+        vendors_info,
+      } = body;
+      let { disabled_modes } = body;
+
+      if (disabled_modes) {
+        await this.erpService.validateDisabledModes(disabled_modes);
+      }
+
+      let splitPay = split_payments;
+      if (!school_id) {
+        throw new BadRequestException('School id is required');
+      }
+      if (!amount) {
+        throw new BadRequestException('Amount is required');
+      }
+      if (!callback_url) {
+        throw new BadRequestException('Callback url is required');
+      }
+      // if (!sign) {
+      //   throw new BadRequestException('sign is required');
+      // }
+
+      // if (body.student_phone_no || body.student_email) {
+      //   if (!body.student_name) {
+      //     throw new BadRequestException('student name is required');
+      //   }
+      //   // if (!body.reason) {
+      //   //   throw new BadRequestException('reason is required');
+      //   // }
+      // }
+      let isVBAPayment = false;
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!school) {
+        throw new NotFoundException('Inalid Institute id');
+      }
+
+      if (school.trustee_id.toString() !== trustee_id.toString()) {
+        throw new UnauthorizedException('Unauthorized');
+      }
+      if (!school.pg_key) {
+        throw new BadRequestException(
+          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        );
+      }
+      if (school.easebuzz_id && !school.easebuzz_school_label) {
+        throw new BadRequestException(
+          `Split Information Not Configure Please contact tarun.k@edviron.com`,
+        );
+      }
+
+      if(!school.cashfree_credentials || !school.cashfree_credentials.cf_x_client_id || !school.cashfree_credentials.cf_x_client_secret) {
+        throw new BadRequestException('credentials are not configured please contact support');
+      }
+
+      
+
+      if (school.isVBAActive) {
+        isVBAPayment = true;
+      }
+      let vba_account_number = 'NA';
+      if (isVBAPayment) {
+        try {
+          if (
+            !student_id ||
+            !student_email ||
+            !student_name ||
+            !student_phone_no
+          ) {
+            throw new BadRequestException(
+              `Student details required for NEFT/RTGS`,
+            );
+          }
+          const vba = await this.erpService.createStudentVBA(
+            student_id,
+            student_name,
+            student_email,
+            student_phone_no,
+            school_id,
+            Number(amount),
+          );
+          vba_account_number = vba.vba_account_number;
+        } catch (e) {
+          console.log(e);
+        }
+      }
+      disabled_modes = Array.from(
+        new Set([...school.disabled_modes, ...(disabled_modes || [])]),
+      ).map((mode) => {
+        const lowerMode = mode.toLowerCase();
+        const validMode = Object.keys(DisabledModes).find(
+          (enumValue) => enumValue.toLowerCase() === lowerMode,
+        ) as keyof typeof DisabledModes;
+        if (!validMode) {
+          throw new BadRequestException(`Invalid payment mode: ${mode}`);
+        }
+        return DisabledModes[validMode];
+      });
+
+      // console.log(disabled_modes, 'disabled_modes');
+
+      if (split_payments && !vendors_info) {
+        throw new BadRequestException(
+          'Vendors information is required for split payments',
+        );
+      }
+
+      if (split_payments && vendors_info && vendors_info.length < 0) {
+        throw new BadRequestException('At least one vendor is required');
+      }
+      let vendorgateway: any = {};
+      const updatedVendorsInfo = [];
+      let easebuzzVendors = [];
+      let cashfreeVedors = [];
+      let worldLine_vendors: any = [];
+      // VENDORS LOGIC FOR MULTIPLE GATEWAYS
+      if (split_payments && vendors_info && vendors_info.length > 0) {
+        // Determine the split method (amount or percentage) based on the first vendor
+        let splitMethod = null;
+        let totalAmount = 0;
+        let totalPercentage = 0;
+        if (school.worldline && school.worldline.encryption_key) {
+          for (const vendor of vendors_info) {
+            if (!vendor.vendor_id) {
+              throw new BadRequestException('Vendor ID is required');
+            }
+            const vendors_data = await this.trusteeService.getVenodrInfo(
+              vendor.vendor_id,
+              school_id,
+            );
+            if (!vendors_data) {
+              throw new NotFoundException(
+                'Invalid vendor id for ' + vendor.vendor_id,
+              );
+            }
+
+            if (vendors_data.status !== 'ACTIVE') {
+              throw new BadRequestException(
+                'Vendor is not active. Please approve the vendor first. for ' +
+                  vendor.vendor_id,
+              );
+            }
+
+            if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
+              throw new BadRequestException('Split Not configure');
+            }
+            if (vendor.percentage) {
+              throw new BadRequestException(
+                'Please pass Amount for WorldLine schools',
+              );
+            }
+            if (
+              !vendors_data.worldline_vendor_name &&
+              vendors_data.worldline_vendor_id
+            ) {
+              throw new BadRequestException('Split Not Configure');
+            }
+            vendorgateway.worldline = true;
+            let worldlineVenodr: any = {};
+            (worldlineVenodr.vendor_id = vendor.vendor_id),
+              (worldlineVenodr.amount = vendor.amount),
+              (worldlineVenodr.name = vendors_data.worldline_vendor_name);
+            worldlineVenodr.scheme_code = vendors_data.worldline_vendor_id;
+            worldLine_vendors.push(worldlineVenodr);
+          }
+        } else {
+          for (const vendor of vendors_info) {
+            // Check if vendor_id is present
+            if (!vendor.vendor_id) {
+              throw new BadRequestException('Vendor ID is required');
+            }
+
+            const vendors_data = await this.trusteeService.getVenodrInfo(
+              vendor.vendor_id,
+              school_id,
+            );
+
+            if (!vendors_data) {
+              throw new NotFoundException(
+                'Invalid vendor id for ' + vendor.vendor_id,
+              );
+            }
+
+            if (
+              vendors_data.gateway &&
+              vendors_data.gateway?.includes(GATEWAY.EASEBUZZ)
+            ) {
+              if (
+                !vendors_data.easebuzz_vendor_id ||
+                !school.easebuzz_school_label
+              ) {
+                throw new BadRequestException(
+                  `Split Information Not Configure Please contact tarun.k@edviron.com`,
+                );
+              }
+              vendorgateway.easebuzz = true;
+              let easebuzzVen = vendor;
+              easebuzzVen.vendor_id = vendors_data.easebuzz_vendor_id;
+              const updatedEZBVendor = {
+                ...easebuzzVen,
+                name: vendors_data.name,
+              };
+              easebuzzVendors.push(updatedEZBVendor);
+            }
+
+            if (
+              vendors_data.gateway &&
+              vendors_data.gateway?.includes(GATEWAY.CASHFREE)
+            ) {
+              if (!vendors_data.vendor_id) {
+                throw new BadRequestException(
+                  `Split Information Not Configure Please contact tarun.k@edviron.com`,
+                );
+              }
+              vendorgateway.cashfree = true;
+              let CashfreeVen = vendor;
+              CashfreeVen.vendor_id = vendors_data.vendor_id;
+              const updatedCFVendor = {
+                ...CashfreeVen,
+                name: vendors_data.name,
+              };
+              cashfreeVedors.push(updatedCFVendor);
+            }
+
+            if (vendors_data.status !== 'ACTIVE') {
+              throw new BadRequestException(
+                'Vendor is not active. Please approve the vendor first. for ' +
+                  vendor.vendor_id,
+              );
+            }
+
+            const updatedVendor = {
+              ...vendor,
+              name: vendors_data.name,
+            };
+            updatedVendorsInfo.push(updatedVendor);
+
+            // Check if both amount and percentage are used
+            const hasAmount = typeof vendor.amount === 'number';
+            const hasPercentage = typeof vendor.percentage === 'number';
+
+            if (hasAmount && hasPercentage) {
+              throw new BadRequestException(
+                'Amount and Percentage cannot be present at the same time',
+              );
+            }
+
+            // Determine and enforce split method consistency
+            const currentMethod = hasAmount
+              ? 'amount'
+              : hasPercentage
+                ? 'percentage'
+                : null;
+
+            if (!splitMethod) {
+              splitMethod = currentMethod;
+            } else if (currentMethod && currentMethod !== splitMethod) {
+              throw new BadRequestException(
+                'All vendors must use the same split method (either amount or percentage)',
+              );
+            }
+
+            // Ensure either amount or percentage is provided for each vendor
+            if (!hasAmount && !hasPercentage) {
+              throw new BadRequestException(
+                'Each vendor must have either an amount or a percentage',
+              );
+            }
+
+            if (hasAmount) {
+              if (vendor.amount < 0) {
+                throw new BadRequestException(
+                  'Vendor amount cannot be negative',
+                );
+              }
+              totalAmount += vendor.amount;
+            } else if (hasPercentage) {
+              if (vendor.percentage < 0) {
+                throw new BadRequestException(
+                  'Vendor percentage cannot be negative',
+                );
+              }
+              totalPercentage += vendor.percentage;
+            }
+          }
+
+          if (splitMethod === 'amount' && totalAmount > body.amount) {
+            throw new BadRequestException(
+              'Sum of vendor amounts cannot be greater than the order amount',
+            );
+          }
+
+          if (splitMethod === 'percentage' && totalPercentage > 100) {
+            throw new BadRequestException(
+              'Sum of vendor percentages cannot be greater than 100%',
+            );
+          }
+
+          // ✅ Convert percentage to amount if gateway is EASEBUZZ
+          if (splitMethod === 'percentage' && vendorgateway.easebuzz) {
+            for (const vendor of easebuzzVendors) {
+              if (typeof vendor.percentage === 'number') {
+                vendor.amount = (vendor.percentage / 100) * body.amount;
+                delete vendor.percentage;
+              }
+            }
+            // Update splitMethod to 'amount' since we converted it
+            splitMethod = 'amount';
+          }
+        }
+      }
+
+      // FOR SPARK IT CANTEEN SCHOOLS ONLY
+      if (school.isVendor && school.vendor_id) {
+        vendorgateway.cashfree = true;
+        const updatedVendor = {
+          vendor_id: school.vendor_id,
+          percentage: 100,
+          name: school.school_name,
+        };
+        splitPay = true;
+        cashfreeVedors.push(updatedVendor);
+      }
+
+  
+      // const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      // if (
+      //   decoded.amount != amount ||
+      //   decoded.callback_url != callback_url ||
+      //   decoded.school_id != school_id
+      // ) {
+      //   throw new ForbiddenException('request forged');
+      // }
+      const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
+      const trustee = await this.trusteeModel.findById(trusteeObjId);
+      const webHookUrl = req_webhook_urls?.length;
+      // if (trustee.webhook_urls.length || req_webhook_urls?.length) {
+      //   webHookUrl = `${process.env.VANILLA_SERVICE}/erp/webhook`;
+      // }
+
+      let all_webhooks: string[] = [];
+      if (trustee.webhook_urls.length || req_webhook_urls?.length) {
+        const trusteeUrls = trustee.webhook_urls.map((item) => item.url);
+        all_webhooks = [...(req_webhook_urls || []), ...trusteeUrls];
+      }
+
+      if (trustee.webhook_urls.length === 0) {
+        all_webhooks = req_webhook_urls || [];
+      }
+
+      const additionalInfo = {
+        student_details: {
+          student_id: student_id,
+          student_email: student_email,
+          student_name: student_name,
+          student_phone_no: student_phone_no,
+          receipt: receipt,
+        },
+        additional_fields: {
+          ...additional_data,
+        },
+      };
+
+      const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
+      const axios = require('axios');
+      console.time('payments1');
+
+      if (school.isEasebuzzNonPartner) {
+        console.log('non partner');
+
+        if (
+          !school.easebuzz_non_partner ||
+          !school.easebuzz_non_partner?.easebuzz_key ||
+          !school.easebuzz_non_partner?.easebuzz_salt ||
+          !school.easebuzz_non_partner?.easebuzz_submerchant_id
+        ) {
+          throw new BadRequestException('Gateway Configration Error');
+        }
+
+        if (splitPay && !school.easebuzz_school_label) {
+          throw new BadRequestException('Split payment Not Configure');
+        }
+        const webHookUrl = req_webhook_urls?.length;
+        const additionalInfo = {
+          student_details: {
+            student_id: student_id,
+            student_email: student_email,
+            student_name: student_name,
+            student_phone_no: student_phone_no,
+            receipt: receipt,
+          },
+          additional_fields: {
+            ...additional_data,
+          },
+        };
+
+        const trustee = await this.trusteeModel.findById(school.trustee_id);
+        let all_webhooks: string[] = [];
+        if (trustee.webhook_urls.length || req_webhook_urls?.length) {
+          const trusteeUrls = trustee.webhook_urls.map((item) => item.url);
+          all_webhooks = [...(req_webhook_urls || []), ...trusteeUrls];
+        }
+
+        if (trustee.webhook_urls.length === 0) {
+          all_webhooks = req_webhook_urls || [];
+        }
+
+        const bodydata = {
+          amount,
+          callbackUrl: callback_url,
+          jwt: this.jwtService.sign(
+          {
+            amount,
+            callbackUrl: callback_url,
+            clientId: school.client_id || null,
+            clientSecret: school.client_secret,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        ),
+          webHook: webHookUrl || null,
+          disabled_modes,
+          platform_charges: school.platform_charges,
+          additional_data: additionalInfo,
+          school_id,
+          trustee_id,
+          custom_order_id,
+          req_webhook_urls,
+          school_name: school.school_name,
+          split_payments,
+          easebuzzVendors,
+          easebuzz_school_label: school.easebuzz_school_label,
+          easebuzz_non_partner_cred: school.easebuzz_non_partner,
+        };
+        console.log('cashfree create order v2');
+        
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-v2`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: bodydata,
+        };
+
+        const res = await axios.request(config);
+        console.log(res);
+
+        return res.data;
+      }
+      const data = JSON.stringify({
+        amount,
+        callbackUrl: callback_url,
+        jwt: this.jwtService.sign(
+          {
+            amount,
+            callbackUrl: callback_url,
+            clientId: school.client_id || null,
+            clientSecret: school.client_secret,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        ),
+        clientId: school.client_id || null,
+        clientSecret: school.client_secret || null,
+        school_id: school_id,
+        trustee_id: trustee_id,
+        webHook: webHookUrl || null,
+        platform_charges: school.platform_charges,
+        additional_data: additionalInfo || {},
+        custom_order_id: custom_order_id || null,
+        req_webhook_urls: all_webhooks || null,
+        school_name: school.school_name || null,
+        split_payments: splitPay || false,
+        vendors_info: updatedVendorsInfo || null,
+        vendorgateway: vendorgateway,
+        cashfreeVedors,
+        disabled_modes: disabled_modes || null,
+        easebuzz_school_label: school.easebuzz_school_label || null,
+        isVBAPayment: isVBAPayment || false,
+        vba_account_number: vba_account_number || 'NA',
+        worldLine_vendors: worldLine_vendors || null,
+        cashfree_credentials: school.cashfree_credentials || null,
+      });
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/create-order-v2`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: data,
+      };
+      const { data: paymentsServiceResp } = await axios.request(config);
+      console.timeEnd('payments1');
+      const reason = 'fee payment';
+      
+    
+
+      if (isVBAPayment) {
+        try {
+          await this.erpService.updateVBA(
+            paymentsServiceResp.request._id.toString(),
+            vba_account_number,
+          );
+        } catch (e) {
+          console.log(e);
+        } 
+      }
+      console.log(paymentsServiceResp);
+      
+      return {
+        collect_request_id: paymentsServiceResp._id,
+        collect_request_url: paymentsServiceResp.url,
+        sign: this.jwtService.sign(
+          {
+            collect_request_id: paymentsServiceResp._id,
+            collect_request_url: paymentsServiceResp.url,
+            custom_order_id: paymentsServiceResp.request?.custom_order_id,
+          },
+          { noTimestamp: true, secret: school.pg_key },
+        ),
+      };
+    } catch (error) {
+      // console.log(error);
+      if (error.name === 'JsonWebTokenError')
+        throw new BadRequestException('Invalid sign');
+      if (error?.response?.data?.message) {
+        throw new ConflictException(error.response.data.message);
+      }
+      console.log('error in create collect request', error);
+      throw error;  
+    }
+  }
+
+  @Post('/:reseller_name/create-collect-request')
+  @UseGuards(ErpGuard) 
   async resellerCreateCollectRequest(
     @Body()
     body: {
@@ -4350,7 +4921,7 @@ export class ErpController {
       console.log('Unix timestamps:', startDate, endDate);
       const allSettlements = [];
       let skip = 0;
-      const count = 100; 
+      const count = 100;
       let hasMore = true;
       while (hasMore) {
         const config = {
@@ -4358,7 +4929,7 @@ export class ErpController {
           headers: { 'Content-Type': 'application/json' },
           auth: { username: authId, password: authSecret },
         };
-        const response = await axios.request(config)
+        const response = await axios.request(config);
         if (!response.data.items || response.data.items.length === 0) {
           hasMore = false;
         } else {
@@ -4369,7 +4940,12 @@ export class ErpController {
           }
         }
       }
-     await this.erpService.updateBulkSettlement(allSettlements, trusteeId, schoolId, authId)
+      await this.erpService.updateBulkSettlement(
+        allSettlements,
+        trusteeId,
+        schoolId,
+        authId,
+      );
       return allSettlements;
     } catch (error) {
       console.error('Razorpay settlement error:', error);

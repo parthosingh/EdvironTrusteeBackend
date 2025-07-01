@@ -44,6 +44,12 @@ interface EZB_NON_PARTNER {
   easebuzz_merchant_email: string;
 }
 
+interface CASHFREE_CREDENTIALS {
+  cf_x_client_id: string;
+  cf_x_client_secret: string;
+  cf_api_key: string;
+}
+
 @ObjectType()
 export class I_Worldline {
   @Field(() => String)
@@ -434,6 +440,16 @@ export class TrusteeSchool {
     _id: false,
   })
   easebuzz_non_partner: EZB_NON_PARTNER;
+
+  @Prop({
+    required: false,
+    type: {
+      cf_x_client_id: { type: String, required: false, default: null },
+      cf_x_client_secret: { type: String, required: false, default: null },
+    },
+    _id: false,
+  })
+  cashfree_credentials: CASHFREE_CREDENTIALS;
 
   @Prop({})
   @Field(() => Boolean, { defaultValue: false })
