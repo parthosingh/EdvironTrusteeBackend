@@ -15,6 +15,7 @@ import {
   Param,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { ErpService } from './erp.service';
 import { JwtService } from '@nestjs/jwt';
 import { ErpGuard } from './erp.guard';
@@ -5056,5 +5057,343 @@ export class ErpController {
       machine_details,
       status,
     );
+  }
+
+  @Get('commision-report')
+  async getTransactionReport(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('status') status?: string,
+    @Query('trustee_id') trustee_id?: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit?: string,
+    @Query('school_id') school_id?: string,
+    @Query('format') format?: string,
+  ) {
+    const merchants = await this.trusteeSchoolModel.find({
+      trustee_id: new Types.ObjectId(trustee_id),
+    });
+    if(!limit){
+      limit = "100"
+    }
+
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const first = startDate || firstDay.toISOString().split('T')[0];
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const last = endDate || lastDay.toISOString().split('T')[0];
+
+    const merchant_ids_to_merchant_map = {};
+    merchants.map((merchant: any) => {
+      merchant_ids_to_merchant_map[merchant.school_id] = merchant;
+    });
+
+    const token = this.jwtService.sign(
+      { trustee_id: trustee_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+
+    let allTransactions: any[] = [];
+    let currentPage = 1;
+    let hasMorePages = true;
+
+    const initConfig = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=1&status=${status}&school_id=${school_id}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: {
+        trustee_id: trustee_id,
+        token,
+        searchParams: null,
+        isCustomSearch: false,
+        seachFilter: null,
+        payment_modes: null,
+        isQRCode: null,
+        gateway: null,
+      },
+    };
+
+    const initResponse = await axios.request(initConfig);
+    const totalTransactions = initResponse.data.totalTransactions || 0;
+    const totalPages = Math.ceil(totalTransactions / Number(limit));
+    allTransactions = [...(initResponse.data.transactions || [])];
+
+    const remainingRequests = [];
+   const batchSize = 5;
+
+for (let i = 2; i <= totalPages; i += batchSize) {
+  const batch = [];
+  for (let j = 0; j < batchSize && i + j <= totalPages; j++) {
+    const page = i + j;
+    const pageConfig = {
+      ...initConfig,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
+    };
+
+    batch.push(await this.erpService.safeAxios(pageConfig));
+  }
+
+  try {
+    const results = await Promise.all(batch);
+    for (const response of results) {
+      allTransactions.push(...(response.data.transactions || []));
+    }
+  } catch (error) {
+    console.error('Batch failed completely:', error.message || error);
+    // Optional: add logging to file or alert
+  }
+}
+
+    const transactionReport = await Promise.all(
+      allTransactions.map(async (item: any) => {
+        let remark = null;
+        const comms = await this.commissionModel.findOne({
+          collect_id: new Types.ObjectId(item.collect_id),
+        });
+        let comms_amt = comms?.commission_amount || 0;
+        if (comms_amt < 0) {
+          comms_amt = 0;
+        }
+        const schoolCard = await this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(item.merchant_id),
+        });
+        let platformType = comms?.platform_type;
+        let payment_mode = comms?.payment_mode;
+        if (platformType === 'DebitCard' && payment_mode === 'rupay') {
+          payment_mode = 'Rupay';
+        }
+        if (platformType === 'CreditCard' && payment_mode === 'amex') {
+          payment_mode = 'Amex';
+        }
+
+        if (platformType === 'Wallet' && payment_mode === 'AmazonPay') {
+          payment_mode = 'Amazon';
+        }
+        // if (platformType === 'DebitCard' && payment_mode !== "Rupay") {
+        //   payment_mode = "Others"
+        // }
+        // if (platformType === "CreditCard" && payment_mode !== "Amex") {
+        //   payment_mode = "Others"
+        // }
+
+        let trustee_id = schoolCard.trustee_id;
+        const partnerCard = await this.baseMdrModel.findOne({
+          trustee_id: trustee_id,
+        });
+
+        let matchPartnerCharge = partnerCard?.platform_charges?.find(
+          (charge) =>
+            charge.platform_type === platformType &&
+            charge.payment_mode === payment_mode,
+        );
+        if (!matchPartnerCharge) {
+          matchPartnerCharge = partnerCard?.platform_charges?.find(
+            (charge) =>
+              charge.platform_type === platformType &&
+              charge.payment_mode === 'Others',
+          );
+        }
+        // console.log(payment_mode, 'payment_mode');
+        // console.log(matchPartnerCharge, 'matchPartnerCharge');
+
+        let matchedCharge = schoolCard?.platform_charges?.find(
+          (charge) =>
+            charge.platform_type === platformType &&
+            charge.payment_mode === payment_mode,
+        );
+        if (!matchedCharge) {
+          matchedCharge = schoolCard?.platform_charges?.find(
+            (charge) =>
+              charge.platform_type === platformType &&
+              charge.payment_mode === 'Others',
+          );
+        }
+
+        let debit_credit_type = '';
+        let pricing_type = '';
+        let partner_pricing_type = '';
+        let merchant_pricing = 0;
+        let partner_pricing = 0;
+        let tax = 0;
+        let partner_commission_excl_tax = 0;
+        const DEFAULT_TAX_PERCENT = 18;
+
+        if (matchedCharge && matchedCharge.range_charge?.length > 0) {
+          const amount = item.order_amount || 0;
+
+          const sortedMerchantRange = [...matchedCharge.range_charge].sort(
+            (a, b) => {
+              if (a.upto === null) return 1;
+              if (b.upto === null) return -1;
+              return a.upto - b.upto;
+            },
+          );
+
+          const range = sortedMerchantRange.find(
+            (r) => r.upto === null || amount <= r.upto,
+          );
+
+          const sortedPartnerRange = [...matchPartnerCharge.range_charge].sort(
+            (a, b) => {
+              if (a.upto === null) return 1;
+              if (b.upto === null) return -1;
+              return a.upto - b.upto;
+            },
+          );
+
+          const partnerRange = sortedPartnerRange.find(
+            (r) => r.upto === null || amount <= r.upto,
+          );
+
+          if (range && partnerRange) {
+            debit_credit_type = matchedCharge.payment_mode || '';
+            pricing_type = range.charge_type || '';
+            partner_pricing_type = partnerRange.charge_type || '';
+            merchant_pricing = range.charge || 0;
+            partner_pricing = partnerRange.charge || 0;
+
+            // partner_commission_excl_tax = parseFloat((comms_amt - tax).toFixed(2));
+
+            if (pricing_type === 'FLAT' && partner_pricing_type === 'FLAT') {
+              partner_commission_excl_tax = parseFloat(
+                (merchant_pricing - partner_pricing).toFixed(2),
+              );
+            } else if (
+              pricing_type === 'PERCENT' &&
+              partner_pricing_type === 'FLAT'
+            ) {
+              const merchantPrice = (amount * merchant_pricing) / 100;
+              partner_commission_excl_tax = parseFloat(
+                (merchantPrice - partner_pricing).toFixed(2),
+              );
+            } else if (
+              pricing_type === 'FLAT' &&
+              partner_pricing_type === 'PERCENT'
+            ) {
+              const partnerPrice = (amount * partner_pricing) / 100;
+              partner_commission_excl_tax = parseFloat(
+                (merchant_pricing - partnerPrice).toFixed(2),
+              );
+            } else if (
+              pricing_type === 'PERCENT' &&
+              partner_pricing_type === 'PERCENT'
+            ) {
+              const partnerPrice = (amount * partner_pricing) / 100;
+              const merchantPrice = (amount * merchant_pricing) / 100;
+              partner_commission_excl_tax = parseFloat(
+                (merchantPrice - partnerPrice).toFixed(2),
+              );
+            }
+          }
+          tax = parseFloat(
+            ((partner_commission_excl_tax * DEFAULT_TAX_PERCENT) / 100).toFixed(
+              2,
+            ),
+          );
+        }
+
+        return {
+          ...item,
+          merchant_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          student_id:
+            JSON.parse(item?.additional_data).student_details?.student_id || '',
+          student_name:
+            JSON.parse(item?.additional_data).student_details?.student_name ||
+            '',
+          student_email:
+            JSON.parse(item?.additional_data).student_details?.student_email ||
+            '',
+          student_phone:
+            JSON.parse(item?.additional_data).student_details
+              ?.student_phone_no || '',
+          receipt:
+            JSON.parse(item?.additional_data).student_details?.receipt || '',
+          additional_data:
+            JSON.parse(item?.additional_data).additional_fields || '',
+          currency: 'INR',
+          school_id: item.merchant_id,
+          school_name:
+            merchant_ids_to_merchant_map[item.merchant_id].school_name,
+          remarks: remark,
+          // commission: commissionAmount,
+          custom_order_id: item?.custom_order_id || null,
+          commission: comms_amt || null,
+          merchant_pricing_type: pricing_type || null,
+          partner_pricing_type: partner_pricing_type || null,
+          merchant_pricing: merchant_pricing || null,
+          partner_pricing: partner_pricing || null,
+          tax: tax || null,
+          partner_commission_excl_tax: partner_commission_excl_tax || null,
+          payment_mode: payment_mode || null,
+        };
+      }),
+    );
+
+    transactionReport.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    if (format === 'csv') {
+      const { Parser } = require('json2csv');
+      const formattedReport = transactionReport.map((tx, index) => ({
+        'Sr.No': index + 1,
+        'Institute Name': tx.school_name || '',
+        'Date & Time': new Date(tx.createdAt).toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+        }),
+        'Order ID': tx.custom_order_id || tx.collect_id || '',
+        'Order Amt': tx.order_amount || '',
+        'Transaction Amt': tx.transaction_amount || '',
+        'Payment Method': tx.payment_method || '',
+        payment_mode: tx.payment_mode || '',
+        Status: tx.status || '',
+        'Student Name': tx.student_name || '',
+        'Phone No.': tx.student_phone || '',
+        'Vendor Amount': 'NA', // Add real value if available
+        Gateway: tx.gateway || '',
+        'Capture Status': tx.capture_status || '',
+        Commission: tx.commission?.toFixed(2) || 0,
+        'Card Type': JSON.parse(tx?.details)?.card?.card_network || '-', // or use platform_type
+        'Merchant Pricing':
+          tx.merchant_pricing_type === 'PERCENT'
+            ? `${tx.merchant_pricing}%`
+            : tx.merchant_pricing || '',
+        'Merchant Pricing Type': tx.merchant_pricing_type || '',
+        'Partner Pricing':
+          tx.partner_pricing_type === 'PERCENT'
+            ? `${tx.partner_pricing}%`
+            : tx.partner_pricing || '',
+        'Partner Pricing Type': tx.partner_pricing_type || '',
+        Tax: tx.tax || '',
+        'Partner Commission Excluding Tax':
+          tx.partner_commission_excl_tax || '',
+      }));
+
+      const fields = Object.keys(formattedReport[0] || {});
+      const parser = new Parser({ fields });
+      const csv = parser.parse(formattedReport);
+
+      res.setHeader(
+        'Content-disposition',
+        'attachment; filename=transaction_report.csv',
+      );
+      res.setHeader('Content-Type', 'text/csv');
+      return res.status(200).send(csv);
+    }
+
+    // else return JSON
+    return res.status(200).json({
+      transactionReport,
+      total_pages: Math.ceil(allTransactions.length / Number(limit)),
+      current_page: 1,
+    });
   }
 }

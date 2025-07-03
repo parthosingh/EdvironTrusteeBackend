@@ -1502,4 +1502,23 @@ export class ErpService {
       }),
     );
   }
+
+  async delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async safeAxios(config, retries = 3, delayMs = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await axios.request({ ...config });
+      return response;
+    } catch (err) {
+      console.error(`Retry ${i + 1}/${retries} failed:`, err.message || err);
+      if (i < retries - 1) await this.delay(delayMs); // wait before retry
+    }
+  }
+  throw new Error('All retries failed for request: ' + config.url);
+}
+
+
 }
