@@ -52,6 +52,7 @@ import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
+import { ApiKeyLogs, ApiKeyLogsSchema } from 'src/schema/apiKey.logs.schema';
 config();
 
 @Module({
@@ -106,6 +107,9 @@ config();
 
     MongooseModule.forFeature([
       { name: VirtualAccount.name, schema: VirtualAccountSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: ApiKeyLogs.name, schema: ApiKeyLogsSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({

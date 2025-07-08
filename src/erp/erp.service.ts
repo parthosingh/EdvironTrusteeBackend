@@ -53,11 +53,12 @@ export class ErpService {
     private readonly cashfreeService: CashfreeService,
   ) {}
 
-  async createApiKey(trusteeId: string): Promise<string> {
+  async createApiKey(trusteeId: string,otp:string): Promise<string> {
     try {
       if (!Types.ObjectId.isValid(trusteeId)) {
         throw new BadRequestException('Invalid trusteeId input');
       }
+  
       const trustee = await this.trusteeModel.findById(trusteeId, {
         password_hash: 0,
       });

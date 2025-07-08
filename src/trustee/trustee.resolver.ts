@@ -66,6 +66,7 @@ import {
 import { EmailService } from '../email/email.service';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { PosMachine } from 'src/schema/pos.machine.schema';
+import { ApiKeyLogs } from 'src/schema/apiKey.logs.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -221,6 +222,8 @@ export class TrusteeResolver {
     private virtualAccSchema: mongoose.Model<VirtualAccount>,
     @InjectModel(PosMachine.name)
     private posMachineModel: mongoose.Model<PosMachine>,
+    @InjectModel(ApiKeyLogs.name)
+    private apiKeyLogsModel: mongoose.Model<ApiKeyLogs>,
   ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
@@ -311,9 +314,11 @@ export class TrusteeResolver {
   ): Promise<ApiKey> {
     try {
       let id = context.req.trustee;
+      const role = context.req.role;
+      const req = context.req;
+      const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
       const trustee = await this.trusteeModel.findById(id);
-      const role = context.req.role;
 
       if (role !== 'owner' && role !== 'admin' && role !== 'developer') {
         throw new UnauthorizedException(
@@ -328,7 +333,21 @@ export class TrusteeResolver {
       if (!validate) {
         throw new Error('Invalid OTP');
       }
-      const apiKey = await this.erpService.createApiKey(id);
+      const apiKey = await this.erpService.createApiKey(id, otp);
+      if (!apiKey) {
+        throw new Error('Failed to create API key');
+      }
+      const istOffset = 5.5 * 60 * 60 * 1000; // IST offset in milliseconds
+      const currentISTTime = new Date(Date.now() + istOffset).toISOString();
+      await this.apiKeyLogsModel.create({
+        user_id: id,
+        trustee_id: trustee._id,
+        otp: otp,
+        email: trustee.email_id,
+        time: currentISTTime,
+        ip: ip,
+        role: role,
+      });
       return { key: apiKey };
     } catch (error) {
       const customError = {
