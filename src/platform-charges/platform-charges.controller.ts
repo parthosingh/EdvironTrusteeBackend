@@ -385,7 +385,7 @@ export class PlatformChargesController {
             $set: { platform_charges: mdrRequest.platform_charges },
           },
         );
-
+ 
         const config = {
           method: 'post',
           maxBodyLength: Infinity,
@@ -398,7 +398,7 @@ export class PlatformChargesController {
             token: '',
             trustee_id: schools.trustee_id,
             school_id: schools.school_id,
-            platform_charges: schools.platform_charges,
+            platform_charges: mdrRequest.platform_charges,
           },
         };
         try{
