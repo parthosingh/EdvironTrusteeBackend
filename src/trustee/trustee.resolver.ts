@@ -323,7 +323,7 @@ export class TrusteeResolver {
       if (role !== 'owner' && role !== 'admin' && role !== 'developer') {
         throw new UnauthorizedException(
           'You are not Authorized to perform this action',
-        );
+        ); 
       }
 
       const validate = await this.trusteeService.validateApidOtp(

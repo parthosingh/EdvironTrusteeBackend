@@ -346,7 +346,7 @@ export class PlatformChargesController {
   //call this after request approval
   @Post('add-school-mdr')
   async bulkAddSchoolMdr(
-    @Body()
+    @Body() 
     token: {
       token: string;
     },
