@@ -347,6 +347,7 @@ export class TrusteeResolver {
         time: currentISTTime,
         ip: ip,
         role: role,
+        api: apiKey,
       });
       return { key: apiKey };
     } catch (error) {
