@@ -5402,7 +5402,7 @@ export class ErpController {
   async getMerchantToken(
     @Req() req: any,
     @Query('school_id') school_id: string,
-    @Query('token') token: string,
+    @Query('sign') sign: string,
   ) {
     try {
       const merchant = await this.trusteeSchoolModel.findOne({
@@ -5416,7 +5416,7 @@ export class ErpController {
       if (!merchant.pg_key) {
         throw new BadRequestException('PG Not enabled for this merchant');
       }
-      const decoded = this.jwtService.verify(token, {
+      const decoded = this.jwtService.verify(sign, {
         secret: merchant.pg_key,
       });
       if (decoded.school_id.toString() !== school_id) {
