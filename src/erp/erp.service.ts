@@ -53,12 +53,12 @@ export class ErpService {
     private readonly cashfreeService: CashfreeService,
   ) {}
 
-  async createApiKey(trusteeId: string,otp:string): Promise<string> {
+  async createApiKey(trusteeId: string, otp: string): Promise<string> {
     try {
       if (!Types.ObjectId.isValid(trusteeId)) {
         throw new BadRequestException('Invalid trusteeId input');
       }
-  
+
       const trustee = await this.trusteeModel.findById(trusteeId, {
         password_hash: 0,
       });
@@ -1505,21 +1505,27 @@ export class ErpService {
   }
 
   async delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async safeAxios(config, retries = 3, delayMs = 1000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const response = await axios.request({ ...config });
-      return response;
-    } catch (err) {
-      console.error(`Retry ${i + 1}/${retries} failed:`, err.message || err);
-      if (i < retries - 1) await this.delay(delayMs); // wait before retry
-    }
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
-  throw new Error('All retries failed for request: ' + config.url);
-}
 
+  async safeAxios(config, retries = 3, delayMs = 1000) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await axios.request({ ...config });
+        return response;
+      } catch (err) {
+        console.error(`Retry ${i + 1}/${retries} failed:`, err.message || err);
+        if (i < retries - 1) await this.delay(delayMs); // wait before retry
+      }
+    }
+    throw new Error('All retries failed for request: ' + config.url);
+  }
 
+  async generateMerchantDashboardToken(id: Types.ObjectId) {
+    const payload = { id };
+    return this.jwtService.sign(payload, {
+      secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
+      expiresIn: '1d',
+    });
+  }
 }

@@ -825,7 +825,6 @@ export class ErpController {
       const { data: paymentsServiceResp } = await axios.request(config);
       console.timeEnd('payments1');
       const reason = 'fee payment';
-      
 
       if (isVBAPayment) {
         try {
@@ -1481,7 +1480,7 @@ export class ErpController {
         school_id,
         amount,
         callback_url,
-        
+
         additional_data,
         student_id,
         student_email,
@@ -1544,11 +1543,15 @@ export class ErpController {
         );
       }
 
-      if(!school.cashfree_credentials || !school.cashfree_credentials.cf_x_client_id || !school.cashfree_credentials.cf_x_client_secret) {
-        throw new BadRequestException('credentials are not configured please contact support');
+      if (
+        !school.cashfree_credentials ||
+        !school.cashfree_credentials.cf_x_client_id ||
+        !school.cashfree_credentials.cf_x_client_secret
+      ) {
+        throw new BadRequestException(
+          'credentials are not configured please contact support',
+        );
       }
-
-      
 
       if (school.isVBAActive) {
         isVBAPayment = true;
@@ -1817,7 +1820,6 @@ export class ErpController {
         cashfreeVedors.push(updatedVendor);
       }
 
-  
       // const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       // if (
       //   decoded.amount != amount ||
@@ -1904,14 +1906,14 @@ export class ErpController {
           amount,
           callbackUrl: callback_url,
           jwt: this.jwtService.sign(
-          {
-            amount,
-            callbackUrl: callback_url,
-            clientId: school.client_id || null,
-            clientSecret: school.client_secret,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        ),
+            {
+              amount,
+              callbackUrl: callback_url,
+              clientId: school.client_id || null,
+              clientSecret: school.client_secret,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          ),
           webHook: webHookUrl || null,
           disabled_modes,
           platform_charges: school.platform_charges,
@@ -1927,7 +1929,7 @@ export class ErpController {
           easebuzz_non_partner_cred: school.easebuzz_non_partner,
         };
         console.log('cashfree create order v2');
-        
+
         const config = {
           method: 'post',
           maxBodyLength: Infinity,
@@ -1988,8 +1990,6 @@ export class ErpController {
       const { data: paymentsServiceResp } = await axios.request(config);
       console.timeEnd('payments1');
       const reason = 'fee payment';
-      
-    
 
       if (isVBAPayment) {
         try {
@@ -1999,10 +1999,10 @@ export class ErpController {
           );
         } catch (e) {
           console.log(e);
-        } 
+        }
       }
       console.log(paymentsServiceResp);
-      
+
       return {
         collect_request_id: paymentsServiceResp._id,
         collect_request_url: paymentsServiceResp.url,
@@ -2023,12 +2023,12 @@ export class ErpController {
         throw new ConflictException(error.response.data.message);
       }
       console.log('error in create collect request', error);
-      throw error;  
+      throw error;
     }
   }
 
   @Post('/:reseller_name/create-collect-request')
-  @UseGuards(ErpGuard) 
+  @UseGuards(ErpGuard)
   async resellerCreateCollectRequest(
     @Body()
     body: {
@@ -5075,8 +5075,8 @@ export class ErpController {
     const merchants = await this.trusteeSchoolModel.find({
       trustee_id: new Types.ObjectId(trustee_id),
     });
-    if(!limit){
-      limit = "100"
+    if (!limit) {
+      limit = '100';
     }
 
     const now = new Date();
@@ -5125,30 +5125,30 @@ export class ErpController {
     allTransactions = [...(initResponse.data.transactions || [])];
 
     const remainingRequests = [];
-   const batchSize = 5;
+    const batchSize = 5;
 
-for (let i = 2; i <= totalPages; i += batchSize) {
-  const batch = [];
-  for (let j = 0; j < batchSize && i + j <= totalPages; j++) {
-    const page = i + j;
-    const pageConfig = {
-      ...initConfig,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
-    };
+    for (let i = 2; i <= totalPages; i += batchSize) {
+      const batch = [];
+      for (let j = 0; j < batchSize && i + j <= totalPages; j++) {
+        const page = i + j;
+        const pageConfig = {
+          ...initConfig,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
+        };
 
-    batch.push(await this.erpService.safeAxios(pageConfig));
-  }
+        batch.push(await this.erpService.safeAxios(pageConfig));
+      }
 
-  try {
-    const results = await Promise.all(batch);
-    for (const response of results) {
-      allTransactions.push(...(response.data.transactions || []));
+      try {
+        const results = await Promise.all(batch);
+        for (const response of results) {
+          allTransactions.push(...(response.data.transactions || []));
+        }
+      } catch (error) {
+        console.error('Batch failed completely:', error.message || error);
+        // Optional: add logging to file or alert
+      }
     }
-  } catch (error) {
-    console.error('Batch failed completely:', error.message || error);
-    // Optional: add logging to file or alert
-  }
-}
 
     const transactionReport = await Promise.all(
       allTransactions.map(async (item: any) => {
@@ -5395,5 +5395,48 @@ for (let i = 2; i <= totalPages; i += batchSize) {
       total_pages: Math.ceil(allTransactions.length / Number(limit)),
       current_page: 1,
     });
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('/merchant-dashboard')
+  async getMerchantToken(
+    @Req() req: any,
+    @Query('school_id') school_id: string,
+    @Query('token') token: string,
+  ) {
+    try {
+      const merchant = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!merchant) {
+        throw new NotFoundException('Merchant not found');
+      }
+
+      if (!merchant.pg_key) {
+        throw new BadRequestException('PG Not enabled for this merchant');
+      }
+      const decoded = this.jwtService.verify(token, {
+        secret: merchant.pg_key,
+      });
+      if (decoded.school_id.toString() !== school_id) {
+        throw new BadRequestException('request forged');
+      }
+      const trustee_id = req.userTrustee.id;
+      const validateTrustee =
+        trustee_id.toString() === merchant.trustee_id.toString();
+      if (!validateTrustee) {
+        throw new BadRequestException('you are not authorized');
+      }
+      const dashboardToken =
+        await this.erpService.generateMerchantDashboardToken(merchant._id);
+      const redirectLink = `https://merchant.edviron.com/admin?token=${dashboardToken}`;
+      return {
+        url: redirectLink,
+        message: 'Merchant dashboard link generated successfully',
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

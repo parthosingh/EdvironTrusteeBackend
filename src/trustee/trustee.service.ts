@@ -2945,23 +2945,23 @@ export class TrusteeService {
   }
 
   async getRazorpayTransactionForSettlement(
-    utr:string, 
-    razorpay_id:string, 
-    razropay_secret:string, 
-    limit:number, 
-    cursor:string,
-    skip:number,
-    fromDate:Date,
+    utr: string,
+    razorpay_id: string,
+    razropay_secret: string,
+    limit: number,
+    cursor: string,
+    skip: number,
+    fromDate: Date,
   ) {
-     const token = this.jwtService.sign(
+    const token = this.jwtService.sign(
       { utr, razorpay_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
     const paginationData = {
       cursor: cursor,
       limit: limit,
-      skip:skip,
-      fromDate
+      skip: skip,
+      fromDate,
     };
     const config = {
       method: 'post',
@@ -2977,9 +2977,9 @@ export class TrusteeService {
       const { data: transactions } = await axios.request(config);
 
       const settlements_transactions = transactions.settlements_transactions;
-      const school = await this.trusteeSchoolModel.findOne({ 
-        'razorpay.razorpay_id':razorpay_id
-       });
+      const school = await this.trusteeSchoolModel.findOne({
+        'razorpay.razorpay_id': razorpay_id,
+      });
       let settlementTransactions = [];
       if (!school) throw new BadRequestException(`Could not find school `);
       settlements_transactions.forEach((transaction: any) => {
@@ -2997,11 +2997,11 @@ export class TrusteeService {
         settlements_transactions,
       };
     } catch (e) {
-      console.log(e.message)
-      throw new BadRequestException(e.message)
+      console.log(e.message);
+      throw new BadRequestException(e.message);
     }
-
   }
+
 }
 
 const transaction = {
