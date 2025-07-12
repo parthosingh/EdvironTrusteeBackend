@@ -391,4 +391,27 @@ export class EmailService {
       }
     });
   }
+
+  async sendSRefundMail(
+    emailBody: string,
+    sub: string,
+    emailRecipient: any,
+    cc:string[]
+  ) {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: emailRecipient,
+      cc:cc,
+      subject: sub,
+      html: emailBody
+    };
+
+    this.transporter.sendMail(mailOptions, (err) => {
+      if (err) {
+        console.error('Error sending  alert email:');
+      } else {
+        console.log('alert email sent successfully.');
+      }
+    });
+  }
 }

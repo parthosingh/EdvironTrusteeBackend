@@ -62,6 +62,8 @@ import { DisputeGateways, Disputes } from '../schema/disputes.schema';
 import { AwsS3Service } from '../aws.s3/aws.s3.service';
 import { getDisputeReceivedEmailForTeam } from 'src/email/templates/dipute.template';
 import { PosMachine } from 'src/schema/pos.machine.schema';
+import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
+import { ErrorLogs } from 'src/schema/error.log.schema';
 
 @InputType()
 export class SplitRefundDetails {
@@ -94,6 +96,9 @@ export class MerchantResolver {
     private readonly awsS3Service: AwsS3Service,
     @InjectModel(PosMachine.name)
     private posMachineModel: mongoose.Model<PosMachine>,
+    private readonly businessServices: BusinessAlarmService,
+    @InjectModel(ErrorLogs.name)
+    private ErrorLogsModel: mongoose.Model<ErrorLogs>,
   ) {}
   // private emailService: EmailService,
   // ) { }
@@ -1010,7 +1015,15 @@ export class MerchantResolver {
       refund._id.toString(),
       refund_amount,
     );
-
+    if (school.isNotificationOn && school.isNotificationOn.for_refund) {
+      this.trusteeService.scheduleRefundNotificationEmail(
+        school,
+        refund,
+        refund.status,
+        refund.order_id.toString(),
+        refund.trustee_id.toString(),
+      );
+    }
     return `Refund Request Created`;
   }
   @UseGuards(MerchantGuard)

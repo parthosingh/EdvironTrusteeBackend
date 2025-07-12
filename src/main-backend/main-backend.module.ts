@@ -22,6 +22,8 @@ import { Disputes, DisputesSchema } from '../schema/disputes.schema';
 import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
+import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
+import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 
 @Module({
   imports: [
@@ -61,6 +63,9 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
     MongooseModule.forFeature([
       { name: EmailEvent.name, schema: EmailEventSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: ErrorLogs.name, schema: ErrorLogsSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_INTRANET,
@@ -68,7 +73,7 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
       }),
     }),
   ],
-  providers: [MainBackendService, TrusteeService, EmailService, AwsS3Service],
+  providers: [MainBackendService, TrusteeService, EmailService, AwsS3Service, BusinessAlarmService],
   controllers: [MainBackendController],
 })
 export class MainBackendModule { }

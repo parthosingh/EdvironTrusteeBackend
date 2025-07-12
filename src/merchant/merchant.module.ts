@@ -31,6 +31,8 @@ import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.s
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
+import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
+import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 
 @Module({
   imports: [
@@ -90,6 +92,9 @@ import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
     MongooseModule.forFeature([
       { name: PosMachine.name, schema: PosMachineSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: ErrorLogs.name, schema: ErrorLogsSchema },
+    ]),
   ],
   controllers: [],
   providers: [
@@ -99,6 +104,7 @@ import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
     MerchantService,
     EmailService,
     AwsS3Service,
+    BusinessAlarmService
   ],
   exports: [MerchantService],
 })

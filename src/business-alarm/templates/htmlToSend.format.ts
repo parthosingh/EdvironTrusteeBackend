@@ -39,25 +39,30 @@ export function htmlToSend(
                 </thead>
                 <tbody>
                   ${data
-      .flatMap((trustee, index) =>
-        trustee.school.map(
-          (school, i) => `
-                          <tr style="background-color: ${i % 2 === 0 ? '#f9f9f9' : '#eaf3fc'
-            }; text-align: left;">
-                            <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${index + 1
-            }.${i + 1}</td>
-                            <td style="padding: 12px; font-size: 14px; color: #333;">${school.school_name
-            }</td>
-                            <td style="padding: 12px; font-size: 14px; color: #333;">${school?.email || 'N/A'
-            }</td>
-                            <td style="padding: 12px; font-size: 14px; color: #333;">${school?.client_id || 'N/A'
-            }</td>
+                    .flatMap((trustee, index) =>
+                      trustee.school.map(
+                        (school, i) => `
+                          <tr style="background-color: ${
+                            i % 2 === 0 ? '#f9f9f9' : '#eaf3fc'
+                          }; text-align: left;">
+                            <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                              index + 1
+                            }.${i + 1}</td>
+                            <td style="padding: 12px; font-size: 14px; color: #333;">${
+                              school.school_name
+                            }</td>
+                            <td style="padding: 12px; font-size: 14px; color: #333;">${
+                              school?.email || 'N/A'
+                            }</td>
+                            <td style="padding: 12px; font-size: 14px; color: #333;">${
+                              school?.client_id || 'N/A'
+                            }</td>
                             <td style="padding: 12px; font-size: 14px; color: #333;">${school?.trustee_id}</td>
                           </tr>
                         `,
-        ),
-      )
-      .join('')}
+                      ),
+                    )
+                    .join('')}
                 </tbody>
               </table>
             </div>
@@ -109,32 +114,42 @@ export function refundAmountAndTransactionAmountMismatchTemplate(
               </thead>
               <tbody>
                 ${data
-      .map((item, index) => {
-        return `
-                      <tr style="background-color: ${index % 2 === 0 ? '#f9f9f9' : '#eaf3fc'
-          }; text-align: left;">
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${index + 1
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item._id
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.order_id
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.order_amount
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #e74c3c; text-align: center;">${item.transaction_amount
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #e74c3c; text-align: center;">${item.refund_amount
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.trustee_id
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.school_id
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.status
-          }</td>
+                  .map((item, index) => {
+                    return `
+                      <tr style="background-color: ${
+                        index % 2 === 0 ? '#f9f9f9' : '#eaf3fc'
+                      }; text-align: left;">
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          index + 1
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item._id
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item.order_id
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item.order_amount
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #e74c3c; text-align: center;">${
+                          item.transaction_amount
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #e74c3c; text-align: center;">${
+                          item.refund_amount
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item.trustee_id
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item.school_id
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item.status
+                        }</td>
                       </tr>
                     `;
-      })
-      .join('')}
+                  })
+                  .join('')}
               </tbody>
             </table>
           </div>
@@ -179,24 +194,30 @@ export function Pg_keyMismatchTemplate(
               </thead>
               <tbody>
                 ${data
-      .map((item, index) => {
-        return `
-                      <tr style="background-color: ${index % 2 === 0 ? '#f9f9f9' : '#eaf3fc'
-          }; text-align: left;">
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${index + 1
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.school_id
-          }</td>
-                         <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.trustee_id
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.school_name
-          }</td>
-                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${item.pg_key
-          }
+                  .map((item, index) => {
+                    return `
+                      <tr style="background-color: ${
+                        index % 2 === 0 ? '#f9f9f9' : '#eaf3fc'
+                      }; text-align: left;">
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          index + 1
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item.school_id
+                        }</td>
+                         <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                           item.trustee_id
+                         }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item.school_name
+                        }</td>
+                        <td style="padding: 12px; font-size: 14px; color: #333; text-align: center;">${
+                          item.pg_key
+                        }
                       </tr>
                     `;
-      })
-      .join('')}
+                  })
+                  .join('')}
               </tbody>
             </table>
           </div>
@@ -243,14 +264,17 @@ export function generateSettlementFaildEmail(
           <h2 style="color: ${headerColor}; text-align: center;">${title}</h2>
           <p style="text-align: center; font-size: 14px; color: #555;">${subTitle}</p>
           ${schools
-      .map(
-        (school) => `
+            .map(
+              (school) => `
             <div style="padding: 10px; margin: 10px 0; border-bottom: 2px solid #ccc;">
-              <h3 style="color: ${headerColor};">School Name: ${school.school_name
-          }</h3>
-              <p style="color: #555;">Email: ${school.school_email} | Phone: ${school.school_phone_number
-          } | Client ID: ${school.client_id} | School ID: ${school.school_id
-          }</p>
+              <h3 style="color: ${headerColor};">School Name: ${
+                school.school_name
+              }</h3>
+              <p style="color: #555;">Email: ${school.school_email} | Phone: ${
+                school.school_phone_number
+              } | Client ID: ${school.client_id} | School ID: ${
+                school.school_id
+              }</p>
               <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 800px;">
                   <thead>
@@ -269,70 +293,80 @@ export function generateSettlementFaildEmail(
                   </thead>
                   <tbody>
                     ${school.settlements
-            .map(
-              (settlement) => `
+                      .map(
+                        (settlement) => `
                       <tr>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.vendor_name || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.settlement_id || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.settled_on).toLocaleString(
-                  'en-US',
-                  {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  },
-                ) || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.status || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.utr || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.vendor_transaction_amount || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.net_settlement_amount || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.adjustment || 'N/A'
-                }</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.payment_from).toLocaleString(
-                  'en-US',
-                  {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  },
-                ) || 'N/A'
-                }</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.payment_till).toLocaleString(
-                  'en-US',
-                  {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  },
-                ) || 'N/A'
-                } </td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.vendor_name || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.settlement_id || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          new Date(settlement.settled_on).toLocaleString(
+                            'en-US',
+                            {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            },
+                          ) || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.status || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.utr || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.vendor_transaction_amount || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.net_settlement_amount || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.adjustment || 'N/A'
+                        }</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${
+                            new Date(settlement.payment_from).toLocaleString(
+                              'en-US',
+                              {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              },
+                            ) || 'N/A'
+                          }</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${
+                            new Date(settlement.payment_till).toLocaleString(
+                              'en-US',
+                              {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              },
+                            ) || 'N/A'
+                          } </td>
                       </tr>
                     `,
-            )
-            .join('')}
+                      )
+                      .join('')}
                   </tbody>
                 </table>
               </div>
             </div>
           `,
-      )
-      .join('')}
+            )
+            .join('')}
           <p style="text-align: center; font-size: 14px; color: #555; margin-top: 20px;">
             This email was auto-generated. Please review the records and take necessary actions.
           </p>
@@ -367,21 +401,25 @@ export function checkMerchantSettlementnot(missMatched) {
       </thead>
       <tbody>
             ${missMatched
-      .map(
-        (school) => `
+              .map(
+                (school) => `
           <tr style="background-color: #f9fafb; color: #1f2937;">
-            <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center;">${missMatched.indexOf(school) + 1
-          }</td>
-            <td style="padding: 10px; border: 1px solid #e5e7eb; white-space: normal;">${school.school_name
-          }</td>
-            <td style="padding: 10px; border: 1px solid #e5e7eb;">${school.school_id
-          }</td>
-            <td style="padding: 10px; border: 1px solid #e5e7eb;">${school.email || 'N/A'
-          }</td>
+            <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center;">${
+              missMatched.indexOf(school) + 1
+            }</td>
+            <td style="padding: 10px; border: 1px solid #e5e7eb; white-space: normal;">${
+              school.school_name
+            }</td>
+            <td style="padding: 10px; border: 1px solid #e5e7eb;">${
+              school.school_id
+            }</td>
+            <td style="padding: 10px; border: 1px solid #e5e7eb;">${
+              school.email || 'N/A'
+            }</td>
           </tr>
         `,
-      )
-      .join('')}
+              )
+              .join('')}
       </tbody>
     </table>
 
@@ -422,14 +460,17 @@ export function generateZeroSettlementEmail(
           <h2 style="color: ${headerColor}; text-align: center;">${title}</h2>
           <p style="text-align: center; font-size: 14px; color: #555;">${subTitle}</p>
           ${schools
-      .map(
-        (school) => `
+            .map(
+              (school) => `
             <div style="padding: 10px; margin: 10px 0; border-bottom: 2px solid #ccc;">
-              <h3 style="color: ${headerColor};">School Name: ${school.school_name
-          }</h3>
-              <p style="color: #555;">Email: ${school.school_email} | Phone: ${school.school_phone_number
-          } | Client ID: ${school.client_id} | School ID: ${school.school_id
-          }</p>
+              <h3 style="color: ${headerColor};">School Name: ${
+                school.school_name
+              }</h3>
+              <p style="color: #555;">Email: ${school.school_email} | Phone: ${
+                school.school_phone_number
+              } | Client ID: ${school.client_id} | School ID: ${
+                school.school_id
+              }</p>
               <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 800px;">
                   <thead>
@@ -444,32 +485,38 @@ export function generateZeroSettlementEmail(
                   </thead>
                   <tbody>
                     ${school.vendor
-            .map(
-              (v) => `
+                      .map(
+                        (v) => `
                       <tr>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${v.name || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${v._id || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${v.status || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${v.email || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${v.phone || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${v.vendor_id || 'N/A'
-                }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          v.name || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          v._id || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          v.status || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          v.email || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          v.phone || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          v.vendor_id || 'N/A'
+                        }</td>
                       </tr>
                     `,
-            )
-            .join('')}
+                      )
+                      .join('')}
                   </tbody>
                 </table>
               </div>
             </div>
           `,
-      )
-      .join('')}
+            )
+            .join('')}
         </div>
       </body>
     </html>`;
@@ -509,14 +556,17 @@ export function generateSettlementEmail(
           <h2 style="color: ${headerColor}; text-align: center;">${title}</h2>
           <p style="text-align: center; font-size: 14px; color: #555;">${subTitle}</p>
           ${schools
-      .map(
-        (school) => `
+            .map(
+              (school) => `
             <div style="padding: 10px; margin: 10px 0; border-bottom: 2px solid #ccc;">
-              <h3 style="color: ${headerColor};">School Name: ${school.school_name
-          }</h3>
-              <p style="color: #555;">Email: ${school.school_email} | Phone: ${school.school_phone_number
-          } | Client ID: ${school.client_id} | School ID: ${school.school_id
-          }</p>
+              <h3 style="color: ${headerColor};">School Name: ${
+                school.school_name
+              }</h3>
+              <p style="color: #555;">Email: ${school.school_email} | Phone: ${
+                school.school_phone_number
+              } | Client ID: ${school.client_id} | School ID: ${
+                school.school_id
+              }</p>
               <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 800px;">
                   <thead>
@@ -535,70 +585,80 @@ export function generateSettlementEmail(
                   </thead>
                   <tbody>
                     ${school.settlements
-            .map(
-              (settlement) => `
+                      .map(
+                        (settlement) => `
                       <tr>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.vendor_name || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.settlement_id || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.settled_on).toLocaleString(
-                  'en-US',
-                  {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  },
-                ) || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.status || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.utr || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.vendor_transaction_amount || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.net_settlement_amount || 'N/A'
-                }</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${settlement.adjustment || 'N/A'
-                }</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.payment_from).toLocaleString(
-                  'en-US',
-                  {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  },
-                ) || 'N/A'
-                }</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">${new Date(settlement.payment_till).toLocaleString(
-                  'en-US',
-                  {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  },
-                ) || 'N/A'
-                } </td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.vendor_name || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.settlement_id || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          new Date(settlement.settled_on).toLocaleString(
+                            'en-US',
+                            {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            },
+                          ) || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.status || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.utr || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.vendor_transaction_amount || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.net_settlement_amount || 'N/A'
+                        }</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${
+                          settlement.adjustment || 'N/A'
+                        }</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${
+                            new Date(settlement.payment_from).toLocaleString(
+                              'en-US',
+                              {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              },
+                            ) || 'N/A'
+                          }</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${
+                            new Date(settlement.payment_till).toLocaleString(
+                              'en-US',
+                              {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              },
+                            ) || 'N/A'
+                          } </td>
                       </tr>
                     `,
-            )
-            .join('')}
+                      )
+                      .join('')}
                   </tbody>
                 </table>
               </div>
             </div>
           `,
-      )
-      .join('')}
+            )
+            .join('')}
           <p style="text-align: center; font-size: 14px; color: #555; margin-top: 20px;">
             This email was auto-generated. Please review the records and take necessary actions.
           </p>
@@ -606,7 +666,6 @@ export function generateSettlementEmail(
       </body>
     </html>`;
 }
-
 
 export function generateTransactionMailReciept(
   amount: string,
@@ -632,7 +691,7 @@ export function generateTransactionMailReciept(
   order_amount: string,
   isAutoRefund: string,
   reason: string,
-  error_details: string
+  error_details: string,
 ) {
   interface StudentDetails {
     student_name?: string;
@@ -645,7 +704,10 @@ export function generateTransactionMailReciept(
     if (typeof additional_data === 'string') {
       const parsed = JSON.parse(additional_data);
       student = parsed?.student_details || {};
-    } else if (typeof additional_data === 'object' && additional_data !== null) {
+    } else if (
+      typeof additional_data === 'object' &&
+      additional_data !== null
+    ) {
       student = additional_data?.student_details || {};
     }
   } catch (e) {
@@ -684,8 +746,13 @@ export function generateTransactionMailReciept(
 
   // Format transactionTime to remove 'T' and 'Z'
   let formattedTransactionTime = transactionTime;
-  if (formattedTransactionTime && typeof formattedTransactionTime === 'string') {
-    formattedTransactionTime = formattedTransactionTime.replace('T', ' ').replace('Z', '');
+  if (
+    formattedTransactionTime &&
+    typeof formattedTransactionTime === 'string'
+  ) {
+    formattedTransactionTime = formattedTransactionTime
+      .replace('T', ' ')
+      .replace('Z', '');
   }
 
   return `
@@ -703,7 +770,13 @@ export function generateTransactionMailReciept(
       </div>
       <div style="margin-bottom: 8px;">
         <strong>Status:</strong>
-        <span style="color: ${status.toUpperCase() === 'SUCCESS' ? '#10b981' : status === 'PENDING' ? '#f59e0b' : '#ef4444'};">
+        <span style="color: ${
+          status.toUpperCase() === 'SUCCESS'
+            ? '#10b981'
+            : status === 'PENDING'
+              ? '#f59e0b'
+              : '#ef4444'
+        };">
           ${status.toUpperCase()}
         </span>
       </div>
@@ -765,24 +838,259 @@ export function generateTransactionMailReciept(
         `;
 }
 
+export async function generateRefundMailReciept(
+  data: any,
+  school_name: string,
+  refund_amount: string,
+  order_id: string,
+  status: string,
+  refund_id: string,
+  refund_initiated: string,
+  refund_remark: string,
+  splitDetail : any
+) {
+  const {
+    amount,
+    gateway,
+    additional_data,
+    school_id,
+    trustee_id,
+    custom_order_id,
+    vendors_info,
+    isQRPayment,
+    createdAt,
+    updatedAt,
+    collect_id,
+    bank_reference,
+    details,
+    transactionAmount,
+    transactionStatus,
+    transactionTime,
+    payment_method,
+    payment_time,
+    transaction_amount,
+    order_amount,
+    isAutoRefund,
+    reason,
+    error_details,
+  } = data;
+  interface StudentDetails {
+    student_name?: string;
+    student_id?: string;
+    student_email?: string;
+    student_phone_no?: string;
+  }
+  let student: StudentDetails = {};
+  try {
+    if (typeof additional_data === 'string') {
+      const parsed = JSON.parse(additional_data);
+      student = parsed?.student_details || {};
+    } else if (
+      typeof additional_data === 'object' &&
+      additional_data !== null
+    ) {
+      student = additional_data?.student_details || {};
+    }
+  } catch (e) {
+    student = {};
+  }
+
+  const bankDetails = JSON.parse(details);
+
+  // Determine bank/provider/upi_id based on payment method
+  let bankOrProvider = 'NA';
+  let bankOrProviderLabel = 'Bank';
+  if (payment_method === 'net_banking') {
+    bankOrProviderLabel = 'Bank';
+    if (bankDetails?.netbanking?.netbanking_bank_name) {
+      bankOrProvider = bankDetails.netbanking.netbanking_bank_name;
+    }
+  } else if (payment_method === 'upi') {
+    bankOrProviderLabel = 'UPI ID';
+    if (bankDetails?.upi?.upi_id) {
+      bankOrProvider = bankDetails.upi.upi_id;
+    }
+  } else if (payment_method === 'wallet') {
+    bankOrProviderLabel = 'Provider';
+    if (bankDetails?.app?.provider) {
+      bankOrProvider = bankDetails.app.provider;
+    }
+  } else if (
+    payment_method === 'credit_card' ||
+    payment_method === 'debit_Card'
+  ) {
+    bankOrProviderLabel = 'Bank';
+    if (bankDetails?.card?.card_bank_name) {
+      bankOrProvider = bankDetails.card.card_bank_name;
+    }
+  }
+
+  // Format transactionTime to remove 'T' and 'Z'
+  let formattedTransactionTime = transactionTime;
+  if (
+    formattedTransactionTime &&
+    typeof formattedTransactionTime === 'string'
+  ) {
+    formattedTransactionTime = formattedTransactionTime
+      .replace('T', ' ')
+      .replace('Z', '');
+  }
+
+  return `
+<div style="max-width:700px;margin:0 auto;padding:20px;font-family:sans-serif;background:#f9fafb;">
+  <h2 style="color:#111827;font-size:24px;margin-bottom:20px;">Refund details</h2>
+
+  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
+
+    <div style="margin-bottom: 16px;">
+      <div style="margin-bottom: 8px;">
+        <strong>Order ID:</strong> ${custom_order_id || collect_id}
+      </div>
+      <div style="margin-bottom: 8px;">
+        <strong>Order Amount:</strong> ₹${amount}
+      </div>
+      <div style="margin-bottom: 8px;">
+        <strong>Refund Status:</strong>
+<span style="color: ${
+    status === 'APPROVED'
+      ? '#10b981'
+      : status === 'INITIATED' ||
+          status === 'PROCESSING' ||
+          status === 'AUTO_REFUND_INITIATED'
+        ? '#f59e0b'
+        : status === 'REJECTED' || status === 'DELETED BY USER'
+          ? '#ef4444'
+          : '#6b7280'
+  };">
+  ${status === 'APPROVED' ? 'Processed/Approved' : status}
+</span>
+      </div>
+    </div>
+
+    <table style="width:100%;font-size:14px;border-collapse:collapse;">
+      <tr>
+        <td style="padding:6px 0;"><strong>Refund Id :</strong></td>
+        <td>${refund_id || 'NA'}</td>
+        <td style="padding:6px 0;"><strong>Refund amount:</strong></td>
+        <td>₹${refund_amount || 'NA'}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;"><strong>Refund initiated on :</strong></td>
+        <td>${refund_initiated || 'NA'}</td>
+        <td style="padding:6px 0;"><strong>Refund message:</strong></td>
+        <td>${refund_remark || 'NA'}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;"><strong>Payment method:</strong></td>
+        <td>${payment_method || 'NA'}</td>
+        <td style="padding:6px 0;"><strong>Transaction amount:</strong></td>
+        <td>₹${transaction_amount || 'NA'}</td>
+      </tr>
+      <tr>
+       <td style="padding:6px 0;"><strong>Transaction Time</strong></td>
+        <td>${formattedTransactionTime || 'NA'}</td>
+
+        <td><strong>${bankOrProviderLabel}:</strong></td>
+        <td>${bankOrProvider}</td>
+      </tr>
+      <tr>
+       <td><strong>Reason:</strong></td>
+        <td>${reason || 'NA'}</td>
+        <td><strong>Bank reference number:</strong></td>
+        <td>${bank_reference || 'NA'}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;"><strong>Currency:</strong></td>
+        <td>INR</td>
+        <td><strong>Edviron Order ID:</strong></td>
+        <td>${collect_id || 'NA'}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;"><strong>Merchant Order ID:</strong></td>
+        <td>${custom_order_id || 'NA'}</td>
+        <td><strong>Remarks:</strong></td>
+        <td>${status === 'APPROVED' ? 'Processed/Approved' : status}</td>
+      </tr>
+       <tr>
+        <td style="padding:6px 0;"><strong>School Name:</strong></td>
+        <td>${school_name  || 'NA'}</td>
+        <td><strong>School ID:</strong></td>
+        <td>${school_id || 'NA'}</td>
+      </tr>
+      </tr>
+    </table>
+  </div>
+
+  <h3 style="color:#111827;font-size:20px;margin-bottom:12px;">User details</h3>
+  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
+    <table style="width:100%;font-size:14px;border-collapse:collapse;">
+      <tr>
+        <td style="padding:6px 0;"><strong>Student name:</strong></td>
+        <td>${student?.student_name || 'NA'}</td>
+        <td><strong>Student Enrollment ID:</strong></td>
+        <td>${student?.student_id || 'NA'}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;"><strong>Email:</strong></td>
+        <td>${student?.student_email || 'NA'}</td>
+        <td><strong>Phone number:</strong></td>
+        <td>${student?.student_phone_no || 'NA'}</td>
+    </table>
+  </div>
+${ splitDetail.length > 0 ? `
+  <h3 style="color:#111827;font-size:20px;margin-bottom:12px;">Split details</h3>
+  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
+    <table style="width:100%;font-size:14px;border-collapse:collapse;">
+      <thead>
+        <tr>
+        <th style="text-align:left;padding:6px 0;border-bottom:1px solid #e5e7eb;">Vendor Id</th>
+          <th style="text-align:left;padding:6px 0;border-bottom:1px solid #e5e7eb;">Vendor Name</th>
+          <th style="text-align:left;padding:6px 0;border-bottom:1px solid #e5e7eb;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${splitDetail.map(detail => `
+          <tr>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">${detail.id}</td>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">${detail.vendor_name}</td>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">${detail.amount}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+` : ""}
+        `;
+}
+
 export function generateEmailHTML2(settlements_transactions) {
   return `
   <div style="max-width:700px;margin:0 auto;padding:20px;font-family:sans-serif;background:#f9fafb;">
     <h2 style="color:#111827;font-size:24px;margin-bottom:20px;">Settlement details</h2>
-    ${settlements_transactions.map(txn => {
-    const status = txn.event_status || 'NA';
-    const transaction_amount = txn.event_amount;
-    const formattedTransactionTime = new Date(txn.event_time).toLocaleString('en-IN');
-    const bankOrProvider = txn.payment_utr || 'NA';
-    const bankOrProviderLabel = txn.payment_group === 'NET_BANKING' ? 'Bank' : 'Provider';
-    const gateway = txn.payment_group;
-    return `
+    ${settlements_transactions
+      .map((txn) => {
+        const status = txn.event_status || 'NA';
+        const transaction_amount = txn.event_amount;
+        const formattedTransactionTime = new Date(
+          txn.event_time,
+        ).toLocaleString('en-IN');
+        const bankOrProvider = txn.payment_utr || 'NA';
+        const bankOrProviderLabel =
+          txn.payment_group === 'NET_BANKING' ? 'Bank' : 'Provider';
+        const gateway = txn.payment_group;
+        return `
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
         <div style="margin-bottom:16px;">
           <strong>Order ID:</strong> ${txn.custom_order_id || 'NA'} <br/>
           <strong>Order Amount:</strong> ₹${txn.order_amount || 'NA'} <br/>
           <strong>Status:</strong> 
-          <span style="color:${status === 'SUCCESS' ? '#10b981' : status === 'PENDING' ? '#f59e0b' : '#ef4444'};">
+          <span style="color:${
+            status === 'SUCCESS'
+              ? '#10b981'
+              : status === 'PENDING'
+                ? '#f59e0b'
+                : '#ef4444'
+          };">
             ${status}
           </span>
         </div>
@@ -825,7 +1133,8 @@ export function generateEmailHTML2(settlements_transactions) {
           </tr>
       </div>
       `;
-  }).join('')}
+      })
+      .join('')}
   </div>
   `;
 }
@@ -852,7 +1161,7 @@ export function generateEmailHTML(settlementDate) {
 export function generateCSV(settlements_transactions) {
   const headers = [
     'Order ID',
-    "Edviron Order ID",
+    'Edviron Order ID',
     'Student Name',
     'Student ID',
     'Student Email',
@@ -865,7 +1174,7 @@ export function generateCSV(settlements_transactions) {
     'Settlement UTR',
   ];
 
-  const rows = settlements_transactions.map(txn => [
+  const rows = settlements_transactions.map((txn) => [
     txn.custom_order_id || 'NA',
     txn.order_id || 'NA',
     txn.student_name || 'NA',
@@ -878,13 +1187,13 @@ export function generateCSV(settlements_transactions) {
     (() => {
       const d = new Date(txn.event_time);
       const pad = (n: number) => n.toString().padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+        d.getDate(),
+      )} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     })(),
     txn.payment_utr || 'NA',
     txn.settlement_utr || 'NA',
   ]);
-  const csvContent = [headers, ...rows].map(e => e.join(',')).join('\n');
+  const csvContent = [headers, ...rows].map((e) => e.join(',')).join('\n');
   return csvContent;
 }
-
-

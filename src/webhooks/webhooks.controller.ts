@@ -40,9 +40,11 @@ import { string1To1000 } from 'aws-sdk/clients/customerprofiles';
 import {
   generateCSV,
   generateEmailHTML,
+  generateRefundMailReciept,
 } from 'src/business-alarm/templates/htmlToSend.format';
 import { ErrorLogs } from 'src/schema/error.log.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
+import { JwtService } from '@nestjs/jwt';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -133,6 +135,9 @@ export class WebhooksController {
           console.log(`Refund request not Found`);
         }
         let status = refund_status.INITIATED;
+        const merchant = await this.TrusteeSchoolmodel.findOne({
+          _id: refundRequest.school_id,
+        });
         if (
           easebuzz_refund_status === 'accepted' ||
           easebuzz_refund_status === 'refunded'
@@ -193,11 +198,34 @@ export class WebhooksController {
               school_id: refundRequest.school_id,
             });
           }
+          if (
+            merchant?.isNotificationOn &&
+            merchant?.isNotificationOn.for_refund
+          ) {
+            this.trusteeService.scheduleRefundNotificationEmail(
+              merchant,
+              refundRequest,
+              status,
+              refundRequest.order_id.toString(),
+              refundRequest.trustee_id.toString()
+            );
+          }
           return res.status(200).send('OK');
         } catch (err) {
           console.log('Error sending ERP webhooks', err);
         }
-
+        if (
+          merchant?.isNotificationOn &&
+          merchant?.isNotificationOn.for_refund
+        ) {
+          this.trusteeService.scheduleRefundNotificationEmail(
+            merchant,
+            refundRequest,
+            status,
+            refundRequest.order_id.toString(),
+            refundRequest.trustee_id.toString(),
+          );
+        }
         res.status(200).send('OK');
       } catch (e) {
         await new this.webhooksLogsModel({
@@ -255,6 +283,10 @@ export class WebhooksController {
         if (!refundRequest) {
           console.log(`Refund request not Found`);
         }
+
+        const merchant = await this.TrusteeSchoolmodel.findOne({
+          _id: refundRequest.school_id,
+        });
         let status = refund_status.INITIATED;
         if (cf_refund_status === 'SUCCESS') {
           status = refund_status.APPROVED;
@@ -314,11 +346,34 @@ export class WebhooksController {
               school_id: refundRequest.school_id,
             });
           }
+          if (
+            merchant?.isNotificationOn &&
+            merchant?.isNotificationOn.for_refund
+          ) {
+           this.trusteeService.scheduleRefundNotificationEmail(
+              merchant,
+              refundRequest,
+              status,
+              refundRequest.order_id.toString(),
+              refundRequest.trustee_id.toString()
+            );
+          }
           return res.status(200).send('OK');
         } catch (e) {
           console.log('Error sending ERP webhooks', e);
         }
-
+        if (
+          merchant?.isNotificationOn &&
+          merchant?.isNotificationOn.for_refund
+        ) {
+          this.trusteeService.scheduleRefundNotificationEmail(
+            merchant,
+            refundRequest,
+            status,
+            refundRequest.order_id.toString(),
+            refundRequest.trustee_id.toString()
+          );
+        }
         res.status(200).send('OK');
       } catch (e) {
         console.error('Error saving webhook logs', e);
@@ -377,10 +432,7 @@ export class WebhooksController {
 
             if (matchingSplit) {
               utr = matchingSplit.bank_transaction_id;
-              console.log(
-                'Updated bank_transaction_id:',
-                utr,
-              );
+              console.log('Updated bank_transaction_id:', utr);
             } else {
               console.log(
                 'No matching split_payout found for account_number:',
@@ -444,95 +496,94 @@ export class WebhooksController {
     }
   }
 
-@Post('/fix-easebuzz-settlement')
-async fixEasebuzzSettlement() {
-  const webhooks = await this.webhooksLogsModel.find({
-    body: { $regex: 'S128810O8YH' },
-    createdAt: {
-      $gte: new Date('2025-06-10T06:34:13.486+00:00'),
-    },
-  });
+  @Post('/fix-easebuzz-settlement')
+  async fixEasebuzzSettlement() {
+    const webhooks = await this.webhooksLogsModel.find({
+      body: { $regex: 'S128810O8YH' },
+      createdAt: {
+        $gte: new Date('2025-06-10T06:34:13.486+00:00'),
+      },
+    });
 
-  await Promise.all(
-    webhooks.map(async (webhook) => {
-      try {
-        const webhookData = JSON.parse(webhook.body);
-        const data = JSON.parse(webhookData.data);
-        await Promise.all(
-          data.submerchant_payouts.map(async (payout: any) => {
-            const merchant = await this.TrusteeSchoolmodel.findOne({
-              easebuzz_id: payout.submerchant_id,
-            });
+    await Promise.all(
+      webhooks.map(async (webhook) => {
+        try {
+          const webhookData = JSON.parse(webhook.body);
+          const data = JSON.parse(webhookData.data);
+          await Promise.all(
+            data.submerchant_payouts.map(async (payout: any) => {
+              const merchant = await this.TrusteeSchoolmodel.findOne({
+                easebuzz_id: payout.submerchant_id,
+              });
 
-            if (!merchant) {
-              console.log(
-                `Merchant not found for easebuzz_id: ${payout.submerchant_id}`,
-              );
-              return;
-            }
-
-            let utr = payout.bank_transaction_id;
-            const easebuzzDate = new Date(payout.submerchant_payout_date);
-
-            if (payout.bank_transaction_id === 'SPLIT') {
-              const matchingSplit = data.split_payouts.find(
-                (split: any) =>
-                  split.account_number === payout.account_number,
-              );
-
-              if (matchingSplit) {
-                utr = matchingSplit.bank_transaction_id;
+              if (!merchant) {
                 console.log(
-                  `Updated SPLIT bank_transaction_id for ${payout.account_number}: ${utr}`,
-                );
-              } else {
-                console.log(
-                  `No matching split_payout found for account_number: ${payout.account_number}`,
+                  `Merchant not found for easebuzz_id: ${payout.submerchant_id}`,
                 );
                 return;
               }
-            }
 
-            await this.SettlementReportModel.findOneAndUpdate(
-              { utrNumber: utr },
-              {
-                $set: {
-                  settlementAmount:
-                    payout.payout_amount + payout.refund_amount,
-                  adjustment: payout.refund_amount,
-                  netSettlementAmount: payout.payout_amount,
-                  fromDate: new Date(
-                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
-                  ),
-                  tillDate: new Date(
-                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
-                  ),
-                  settlementInitiatedOn: easebuzzDate,
-                  status: 'SUCCESS',
-                  utrNumber: utr,
-                  settlementDate: easebuzzDate,
-                  clientId: payout.submerchant_id || 'NA',
-                  trustee: merchant.trustee_id,
-                  schoolId: merchant.school_id,
-                  remarks: 'NA',
+              let utr = payout.bank_transaction_id;
+              const easebuzzDate = new Date(payout.submerchant_payout_date);
+
+              if (payout.bank_transaction_id === 'SPLIT') {
+                const matchingSplit = data.split_payouts.find(
+                  (split: any) =>
+                    split.account_number === payout.account_number,
+                );
+
+                if (matchingSplit) {
+                  utr = matchingSplit.bank_transaction_id;
+                  console.log(
+                    `Updated SPLIT bank_transaction_id for ${payout.account_number}: ${utr}`,
+                  );
+                } else {
+                  console.log(
+                    `No matching split_payout found for account_number: ${payout.account_number}`,
+                  );
+                  return;
+                }
+              }
+
+              await this.SettlementReportModel.findOneAndUpdate(
+                { utrNumber: utr },
+                {
+                  $set: {
+                    settlementAmount:
+                      payout.payout_amount + payout.refund_amount,
+                    adjustment: payout.refund_amount,
+                    netSettlementAmount: payout.payout_amount,
+                    fromDate: new Date(
+                      easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                    ),
+                    tillDate: new Date(
+                      easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                    ),
+                    settlementInitiatedOn: easebuzzDate,
+                    status: 'SUCCESS',
+                    utrNumber: utr,
+                    settlementDate: easebuzzDate,
+                    clientId: payout.submerchant_id || 'NA',
+                    trustee: merchant.trustee_id,
+                    schoolId: merchant.school_id,
+                    remarks: 'NA',
+                  },
                 },
-              },
-              {
-                upsert: true,
-                new: true,
-              },
-            );
-          }),
-        );
-      } catch (error) {
-        console.error(`Failed to process webhook ${webhook._id}`, error);
-      }
-    }),
-  );
+                {
+                  upsert: true,
+                  new: true,
+                },
+              );
+            }),
+          );
+        } catch (error) {
+          console.error(`Failed to process webhook ${webhook._id}`, error);
+        }
+      }),
+    );
 
-  return { processedWebhooks: webhooks.length };
-}
-
+    return { processedWebhooks: webhooks.length };
+  }
 
   @Post('cashfree/settlements')
   async cashfreeSettlements(@Body() body: any, @Res() res: any) {

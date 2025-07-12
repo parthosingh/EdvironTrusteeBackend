@@ -46,6 +46,9 @@ import { generateVendorRequestEmailTemplate } from '../email/templates/vendor_cr
 import { EmailGroup } from 'src/schema/email.schema';
 import { EmailEvent } from 'src/schema/email.events.schema';
 import { getAdminEmailTemplate } from 'src/email/templates/dipute.template';
+import { generateRefundMailReciept } from 'src/business-alarm/templates/htmlToSend.format';
+import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
+import { ErrorLogs } from 'src/schema/error.log.schema';
 
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
@@ -93,6 +96,9 @@ export class TrusteeService {
     private EmailGroupModel: mongoose.Model<EmailGroup>,
     @InjectModel(EmailEvent.name)
     private EmailEventModel: mongoose.Model<EmailEvent>,
+    private businessServices: BusinessAlarmService,
+    @InjectModel(ErrorLogs.name)
+    private ErrorLogsModel: mongoose.Model<ErrorLogs>,
   ) {}
 
   async loginAndGenerateToken(
@@ -3002,6 +3008,74 @@ export class TrusteeService {
     }
   }
 
+  async scheduleRefundNotificationEmail(
+    merchant: any,
+    refundRequest: any,
+    status: string,
+    collect_id: string,
+    trustee_id:string
+  ) {
+      try {
+        const token = this.jwtService.sign(
+          { trustee_id, collect_id },
+          { secret: process.env.PAYMENTS_SERVICE_SECRET },
+        );
+        const data = await this.getSingleTransaction(
+          trustee_id,
+          collect_id,
+          token,
+        );
+  
+        const splitDetail = []
+  
+        if(refundRequest.split_refund_details.length > 0){
+          for(const vendorDetail of refundRequest.split_refund_details){
+            const vendor = await this.vendorsModel.findById(vendorDetail.vendor_id)
+            const data = {
+              id:vendorDetail.vendor_id,
+              amount : vendorDetail.amount,
+              vendor_name : vendor.name
+            }
+            splitDetail.push(data)
+          }
+        }
+  
+        const htmlBody = await generateRefundMailReciept(
+          data[0],
+          merchant.school_name,
+          refundRequest.refund_amount,
+          refundRequest.order_id.toString(),
+          status.toUpperCase(),
+          refundRequest._id,
+          refundRequest.createdAt,
+          refundRequest.additonalInfo,
+          splitDetail
+        );
+  
+        const eventName = 'REFUND_ALERT';
+        const emails = await this.businessServices.getMails(
+          eventName,
+          merchant.school_id.toString(),
+        );
+        const ccMails = await this.businessServices.getMailsCC(
+          eventName,
+          merchant.school_id.toString(),
+        );
+  
+        await this.emailService.sendSRefundMail(
+          htmlBody,
+          `Edviron | Refund Status of ${merchant.school_name}`,
+          emails,
+          ccMails,
+        );
+      } catch (error) {
+        await this.ErrorLogsModel.create({
+          source: 'sendMailAfterRefund',
+          collect_id: merchant.school_id?.toString(),
+          error: error.message || error.toString(),
+        });
+      }
+    }
 }
 
 const transaction = {

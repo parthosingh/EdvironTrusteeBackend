@@ -53,6 +53,8 @@ import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
 import { ApiKeyLogs, ApiKeyLogsSchema } from 'src/schema/apiKey.logs.schema';
+import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
+import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 config();
 
 @Module({
@@ -139,6 +141,9 @@ config();
     MongooseModule.forFeature([
       { name: PosMachine.name, schema: PosMachineSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: ErrorLogs.name, schema: ErrorLogsSchema },
+    ]),
   ],
   controllers: [],
   providers: [
@@ -150,6 +155,7 @@ config();
     EmailService,
     AwsS3Service,
     PdfService,
+    BusinessAlarmService
   ],
 })
 export class TrusteeModule { }
