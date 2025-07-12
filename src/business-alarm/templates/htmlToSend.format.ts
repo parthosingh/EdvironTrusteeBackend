@@ -847,7 +847,8 @@ export async function generateRefundMailReciept(
   refund_id: string,
   refund_initiated: string,
   refund_remark: string,
-  splitDetail : any
+  splitDetail : any,
+  refund_reason: string,
 ) {
   const {
     amount,
@@ -1008,8 +1009,8 @@ export async function generateRefundMailReciept(
       <tr>
         <td style="padding:6px 0;"><strong>Merchant Order ID:</strong></td>
         <td>${custom_order_id || 'NA'}</td>
-        <td><strong>Remarks:</strong></td>
-        <td>${status === 'APPROVED' ? 'Processed/Approved' : status}</td>
+        <td><strong>Refund Reason:</strong></td>
+        <td>${refund_reason || "N/A"}</td>
       </tr>
        <tr>
         <td style="padding:6px 0;"><strong>School Name:</strong></td>

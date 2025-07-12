@@ -1681,6 +1681,7 @@ export class TrusteeResolver {
       'pay_later',
       'upi',
       'card',
+      'neft_rtgs_imps',
     ];
     if (!validModes.includes(mode)) {
       throw new Error(`Invalid payment mode: ${mode}.`);

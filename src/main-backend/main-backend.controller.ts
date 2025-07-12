@@ -421,25 +421,36 @@ export class MainBackendController {
     const decodedPayload = await this.jwtService.verify(body.token, {
       secret: process.env.JWT_SECRET_FOR_INTRANET,
     });
-
     const request = await this.refundRequestModel.findById(
       decodedPayload.refund_id,
     );
-
+    if (!request) {
+      throw new NotFoundException('Refund request not found');
+    }
+    const merchant = await this.trusteeSchoolModel.findOne({
+      _id: request.school_id,
+    });
+    if (!merchant) {
+      throw new NotFoundException('Merchant not found');
+    }
     if (request.status === refund_status.DELETED) {
       throw new BadRequestException('Refund request has been deleted by user');
     }
-
     if (request.status === refund_status.APPROVED) {
       throw new BadRequestException('Refund request is already approved');
-    }
-
-    if (!request) {
-      throw new NotFoundException('Refund request not found');
     }
     request.status = decodedPayload.status;
     await request.save();
 
+    if (merchant?.isNotificationOn && merchant?.isNotificationOn.for_refund) {
+      this.trusteeService.scheduleRefundNotificationEmail(
+        merchant,
+        request,
+        request.status,
+        request.order_id.toString(),
+        request.trustee_id.toString(),
+      );
+    }
     return `Request updated to ${decodedPayload.status}`;
   }
 
@@ -1081,7 +1092,10 @@ export class MainBackendController {
   @Get('payment-sign-token')
   async paymentSignToken(@Body() body: any) {
     const { school_id, amount, callback_url, secretKey } = body;
-   const token = this.jwtService.sign({ school_id, amount, callback_url }, { secret: secretKey });
+    const token = this.jwtService.sign(
+      { school_id, amount, callback_url },
+      { secret: secretKey },
+    );
     return token;
   }
 }

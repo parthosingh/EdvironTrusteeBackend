@@ -138,6 +138,7 @@ export enum DisabledModes {
   CREDIT_CARD = 'credit_card',
   DEBIT_CARD = 'debit_card',
   CARD = 'card',
+  NEFT_RTGS_IMPS = 'neft_rtgs_imps',
 }
 
 @ObjectType()
