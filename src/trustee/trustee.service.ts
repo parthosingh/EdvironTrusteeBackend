@@ -222,28 +222,70 @@ export class TrusteeService {
         throw new ConflictException(`no trustee found`);
       }
       const schools = await this.trusteeSchoolModel
-        .find(
-          { trustee_id: trusteeObjectId },
+        .aggregate([
           {
-            school_id: 1,
-            school_name: 1,
-            merchantStatus: 1,
-            _id: 0,
-            email: 1,
-            pg_key: 1,
-            disabled_modes: 1,
-            platform_charges: 1,
-            phone_number: 1,
-            updatedAt: 1,
-            bank_details: 1,
-            gstIn: 1,
-            residence_state: 1,
+            $match: { trustee_id: trusteeObjectId },
           },
-        )
-        .sort({ createdAt: -1 })
+          {
+            $project: {
+              school_id: 1,
+              school_name: 1,
+              merchantStatus: 1,
+              _id: 0,
+              email: 1,
+              pg_key: 1,
+              disabled_modes: 1,
+              platform_charges: 1,
+              phone_number: 1,
+              updatedAt: 1,
+              bank_details: 1,
+              gstIn: 1,
+              residence_state: 1,
+            },
+          },
+          {
+            $sort: { createdAt: -1 },
+          },
+        ])
         .exec();
 
-      return { schoolData: schools };
+      const schoolsWithBankDetails = await Promise.all(
+        schools.map(async (school) => {
+          try {
+            const school_id = school.school_id.toString();
+            const tokenAuth = this.jwtService.sign(
+              { school_id },
+              { secret: process.env.JWT_SECRET_FOR_INTRANET! },
+            );
+            const response = await axios.get(
+              `${process.env.MAIN_BACKEND}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
+            );
+
+            const bankDetails = {
+              account_holder_name:
+                response?.data?.bankDetails?.account_holder_name || null,
+              account_number:
+                response?.data?.bankDetails?.account_number || null,
+              ifsc_code: response?.data?.bankDetails?.ifsc_code || null,
+            };
+            return {
+              ...school,
+              bank_details: bankDetails,
+            };
+          } catch (error) {
+            console.error(
+              `Failed to fetch bank details for school_id: ${school.school_id}`,
+              error.message,
+            );
+            return {
+              ...school,
+              bank_details: null,
+            };
+          }
+        }),
+      );
+
+      return { schoolData: schoolsWithBankDetails };
     } catch (error) {
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);

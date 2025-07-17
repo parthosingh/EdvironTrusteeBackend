@@ -28,6 +28,7 @@ import { SettlementReport } from '../schema/settlement.schema';
 import { MerchantGuard } from './merchant.guard';
 import axios from 'axios';
 import { MerchantService } from './merchant.service';
+import jwt from 'jsonwebtoken';
 import {
   AuthResponse,
   Dispute_Actions,
@@ -140,7 +141,25 @@ export class MerchantResolver {
       const token = context.req.headers.authorization.split(' ')[1]; // Extract the token from the authorization header
       const userMerchant = await this.merchantService.validateMerchant(token);
       console.log(userMerchant, 'merchant');
-
+      const school_id = userMerchant.school_id.toString();
+      const tokenAuth = this.jwtService.sign(
+        { school_id },
+        { secret: process.env.JWT_SECRET_FOR_INTRANET! },
+      );
+      const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.MAIN_BACKEND}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
+        headers: {
+          accept: 'application/json',
+        },
+      };
+      const response = await axios.request(config);
+      const bankDetails = {
+        account_holder_name: response?.data?.bankDetails?.account_holder_name || null,
+        account_number: response?.data?.bankDetails?.account_number|| null,
+        ifsc_code: response?.data?.bankDetails?.ifsc_code|| null,
+      };
       // Map the trustee data to the User type
       const user: MerchantUser = {
         _id: userMerchant.id,
@@ -154,7 +173,7 @@ export class MerchantResolver {
         trustee_logo: userMerchant.trustee_logo,
         school_id: userMerchant.school_id,
         school_logo: userMerchant.school_logo,
-        bank_details: userMerchant.bank_details || null,
+        bank_details: bankDetails,
       };
       console.log(user, 'userrr');
 
