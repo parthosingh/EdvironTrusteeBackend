@@ -149,7 +149,7 @@ export class MerchantResolver {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.MAIN_BACKEND}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
+        url: `${process.env.MAIN_BACKEND_URL}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
         headers: {
           accept: 'application/json',
         },

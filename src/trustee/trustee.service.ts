@@ -258,7 +258,7 @@ export class TrusteeService {
               { secret: process.env.JWT_SECRET_FOR_INTRANET! },
             );
             const response = await axios.get(
-              `${process.env.MAIN_BACKEND}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
+              `${process.env.MAIN_BACKEND_URL}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
             );
 
             const bankDetails = {
