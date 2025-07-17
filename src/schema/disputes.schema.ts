@@ -86,6 +86,10 @@ export class Disputes extends Document {
 
   @Field({ nullable: true })
   @Prop()
+  dispute_settled_date: Date;
+
+  @Field({ nullable: true })
+  @Prop()
   dispute_respond_by_date: Date;
 
   @Field({ nullable: true })
@@ -115,6 +119,14 @@ export class Disputes extends Document {
   @Field({ nullable: true })
   @Prop()
   case_id: string;
+
+  @Field({ nullable: true })
+  @Prop()
+  settlement_id: string;
+
+  @Field({ nullable: true })
+  @Prop()
+  utr_number: string;
 
   @Field({ nullable: true })
   @Prop()
