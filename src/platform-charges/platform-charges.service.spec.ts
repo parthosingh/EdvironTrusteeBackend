@@ -3,7 +3,14 @@ import { PlatformChargesController } from './platform-charges.controller';
 import { PlatformChargeService } from './platform-charges.service';
 import { MainBackendService } from '../main-backend/main-backend.service';
 import { Trustee, TrusteeSchema } from '../schema/trustee.schema';
-import { FullKycStatus, MerchantStatus, MinKycStatus, SchoolSchema, TrusteeSchool, charge_type } from '../schema/school.schema';
+import {
+  FullKycStatus,
+  MerchantStatus,
+  MinKycStatus,
+  SchoolSchema,
+  TrusteeSchool,
+  charge_type,
+} from '../schema/school.schema';
 import { Connection, Model, Types, Schema } from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { connect } from 'mongoose';
@@ -19,21 +26,21 @@ describe('PlatformChargesController', () => {
   let mongod: MongoMemoryServer;
   let mongoConnection: Connection;
 
-    const mockTrusteeSchools = {
-        school_id: new Schema.Types.ObjectId('6099438e651824001f168b50', {
-            suppressWarning: true,
-        }),
-        trustee_id: new Schema.Types.ObjectId('6099438e651824001f168b51', {
-            suppressWarning: true,
-        }),
-        school_name: 'School A',
-        merchantId: 'merchantId',
-        merchantName: 'merchantName',
-        merchantEmail: 'merchantemail@edviron.com',
-        merchantStatus: MerchantStatus.KYC_APPROVED,
-        pgMinKYC: MinKycStatus.MIN_KYC_APPROVED,
-        pgFullKYC: FullKycStatus.FULL_KYC_PENDING
-    };
+  const mockTrusteeSchools = {
+    school_id: new Schema.Types.ObjectId('6099438e651824001f168b50', {
+      suppressWarning: true,
+    }),
+    trustee_id: new Schema.Types.ObjectId('6099438e651824001f168b51', {
+      suppressWarning: true,
+    }),
+    school_name: 'School A',
+    merchantId: 'merchantId',
+    merchantName: 'merchantName',
+    merchantEmail: 'merchantemail@edviron.com',
+    merchantStatus: MerchantStatus.KYC_APPROVED,
+    pgMinKYC: MinKycStatus.MIN_KYC_APPROVED,
+    pgFullKYC: FullKycStatus.FULL_KYC_PENDING,
+  };
 
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
@@ -78,6 +85,4 @@ describe('PlatformChargesController', () => {
   it('should be defined', () => {
     expect(platformChargesController).toBeDefined();
   });
-
-
 });

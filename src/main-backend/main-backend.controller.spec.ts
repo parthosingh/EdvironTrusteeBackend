@@ -57,7 +57,6 @@ import { WebhookLogs } from '../schema/webhook.schema';
 import { MainBackendController } from './main-backend.controller';
 import { PdfService } from '../pdf-service/pdf-service.service';
 
-
 const mockMainbackenService = {
   createTrustee: jest.fn(),
   findTrustee: jest.fn(),
@@ -101,8 +100,8 @@ describe('MainBackendController', () => {
   let DisputesModel: Model<Disputes>;
   let ReconciliationModel: Model<Reconciliation>;
   let EarningsModel: Model<Earnings>;
-  let CapturetModel:Model<Capture>;
-  let WebhookLogsModel:Model<WebhookLogs>;
+  let CapturetModel: Model<Capture>;
+  let WebhookLogsModel: Model<WebhookLogs>;
   let emailService: EmailService;
 
   beforeAll(async () => {
@@ -235,6 +234,4 @@ describe('MainBackendController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
-
- 
 });

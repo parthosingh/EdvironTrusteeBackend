@@ -67,16 +67,16 @@ export class I_Worldline {
 
 @ObjectType()
 export class I_Gatepay {
-  @Field(() => String, {nullable:true})
+  @Field(() => String, { nullable: true })
   gatepay_mid: string;
 
-  @Field(() => String , {nullable:true})
+  @Field(() => String, { nullable: true })
   gatepay_terminal_id: string;
 
-  @Field(() => String , {nullable:true})
+  @Field(() => String, { nullable: true })
   gatepay_key: string;
 
-  @Field(() => String , {nullable:true})
+  @Field(() => String, { nullable: true })
   gatepay_iv: string;
 }
 

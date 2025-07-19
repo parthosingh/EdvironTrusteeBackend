@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Document, ObjectId,Types } from 'mongoose';
+import { Document, ObjectId, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 
 @ObjectType() // Define GraphQL object type
@@ -33,7 +33,6 @@ export class OnboarderERP extends Document {
   @Field()
   @Prop()
   logo: string;
-
 }
 
 export const OnboarderERPSchema = SchemaFactory.createForClass(OnboarderERP);

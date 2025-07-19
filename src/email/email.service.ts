@@ -366,12 +366,12 @@ export class EmailService {
     sub: string,
     emailRecipient: any,
     csvData: string,
-    cc:string[]
+    cc: string[],
   ) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: emailRecipient,
-      cc:cc,
+      cc: cc,
       subject: sub,
       html: emailBody,
       attachments: [
@@ -396,14 +396,14 @@ export class EmailService {
     emailBody: string,
     sub: string,
     emailRecipient: any,
-    cc:string[]
+    cc: string[],
   ) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: emailRecipient,
-      cc:cc,
+      cc: cc,
       subject: sub,
-      html: emailBody
+      html: emailBody,
     };
 
     this.transporter.sendMail(mailOptions, (err) => {

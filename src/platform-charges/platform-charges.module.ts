@@ -10,7 +10,10 @@ import { TrusteeMemberSchema } from '../schema/partner.member.schema';
 import { SchoolMdr, SchoolMdrSchema } from '../schema/school_mdr.schema';
 import { RequestMDR, RequestMDRSchema } from '../schema/mdr.request.schema';
 import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
-import { SettlementReport, SettlementSchema } from '../schema/settlement.schema';
+import {
+  SettlementReport,
+  SettlementSchema,
+} from '../schema/settlement.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Trustee', schema: TrusteeSchema }]),
@@ -27,7 +30,9 @@ import { SettlementReport, SettlementSchema } from '../schema/settlement.schema'
       { name: RequestMDR.name, schema: RequestMDRSchema },
     ]),
     MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
-        MongooseModule.forFeature([{ name: SettlementReport.name, schema: SettlementSchema }]),
+    MongooseModule.forFeature([
+      { name: SettlementReport.name, schema: SettlementSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_INTRANET,

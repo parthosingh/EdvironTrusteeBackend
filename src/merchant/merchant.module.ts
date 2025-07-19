@@ -27,7 +27,10 @@ import {
   VendorsSettlementSchema,
 } from '../schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from '../schema/disputes.schema';
-import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
+import {
+  Reconciliation,
+  ReconciliationSchema,
+} from '../schema/Reconciliation.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
@@ -104,8 +107,8 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
     MerchantService,
     EmailService,
     AwsS3Service,
-    BusinessAlarmService
+    BusinessAlarmService,
   ],
   exports: [MerchantService],
 })
-export class MerchantModule { }
+export class MerchantModule {}

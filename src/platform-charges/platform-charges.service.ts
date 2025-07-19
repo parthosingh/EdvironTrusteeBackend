@@ -37,7 +37,7 @@ export class PlatformChargeService {
     @InjectModel(RequestMDR.name)
     private mdrRequestModel: mongoose.Model<RequestMDR>,
     @InjectModel(BaseMdr.name)
-    private baseMdrModel: mongoose.Model<BaseMdr>
+    private baseMdrModel: mongoose.Model<BaseMdr>,
   ) {}
 
   async AddPlatformCharge(
@@ -115,9 +115,7 @@ export class PlatformChargeService {
           $set: { pg_key: pgKey },
         });
       }
-      await this.updatePlatformChargesInPg(
-        trusteeSchool.school_id.toString()
-      )
+      await this.updatePlatformChargesInPg(trusteeSchool.school_id.toString());
       return { platform_charges: res.platform_charges };
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -170,9 +168,7 @@ export class PlatformChargeService {
         },
         { returnDocument: 'after' },
       );
-      await this.updatePlatformChargesInPg(
-        school_id.toString()
-      )
+      await this.updatePlatformChargesInPg(school_id.toString());
       return res;
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -224,9 +220,7 @@ export class PlatformChargeService {
       } else if ((platformCharge.charge_type = charge_type.PERCENT)) {
         finalAmount += (amount * platformCharge.charge) / 100;
       }
-      await this.updatePlatformChargesInPg(
-        trusteeSchool.school_id.toString()
-      )
+      await this.updatePlatformChargesInPg(trusteeSchool.school_id.toString());
       return finalAmount.toFixed(2);
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -307,9 +301,7 @@ export class PlatformChargeService {
         },
         { returnDocument: 'after' },
       );
-      await this.updatePlatformChargesInPg(
-        trusteeSchool.school_id.toString()
-      )
+      await this.updatePlatformChargesInPg(trusteeSchool.school_id.toString());
       return { platform_charges: res.platform_charges };
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -391,11 +383,11 @@ export class PlatformChargeService {
         }
       });
       await Promise.all(
-        trusteeSchoolIds.map((school_id: string) => 
-          this.updatePlatformChargesInPg(school_id)
-        )
+        trusteeSchoolIds.map((school_id: string) =>
+          this.updatePlatformChargesInPg(school_id),
+        ),
       );
-      
+
       return {
         platform_charges: mdr2,
       };
@@ -447,9 +439,7 @@ export class PlatformChargeService {
         },
         { returnDocument: 'after' },
       );
-      await this.updatePlatformChargesInPg(
-        trusteeSchool.school_id.toString()
-      )
+      await this.updatePlatformChargesInPg(trusteeSchool.school_id.toString());
       return res;
     } catch (err) {
       if (err.response?.statusCode === 400) {
@@ -551,9 +541,7 @@ export class PlatformChargeService {
       }
       let commission = finalAmount - baseAmount;
 
-      await this.updatePlatformChargesInPg(
-        trusteeSchool.school_id.toString()
-      )
+      await this.updatePlatformChargesInPg(trusteeSchool.school_id.toString());
       return {
         finalAmount: finalAmount.toFixed(2),
         commission: commission.toFixed(2),
@@ -574,22 +562,21 @@ export class PlatformChargeService {
       $set: { status: mdr_status.APPROVED },
     });
 
-    
     if (!res) {
       throw new Error('Something went wrong while updating MDR request');
     }
   }
 
-  async updatePlatformChargesInPg(
-    schoolId: string,
-  ) {
+  async updatePlatformChargesInPg(schoolId: string) {
     try {
-      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(schoolId)})
-      if(!school){
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(schoolId),
+      });
+      if (!school) {
         throw new NotFoundException('School not found');
       }
-      const trusteeId=school.trustee_id.toString();
-      const platformCharges = school.platform_charges
+      const trusteeId = school.trustee_id.toString();
+      const platformCharges = school.platform_charges;
       const token = jwt.sign(
         {
           trustee_id: trusteeId,

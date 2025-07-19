@@ -30,7 +30,6 @@ export class Earnings extends Document {
   @Field()
   @Prop()
   platform_type: string;
-  
 }
 
 export const EarningsSchema = SchemaFactory.createForClass(Earnings);

@@ -15,7 +15,7 @@ export enum Events {
 
 @Schema({ timestamps: true })
 export class EmailEvent {
- @Prop({ })
+  @Prop({})
   @Field(() => String)
   event_name: string;
 

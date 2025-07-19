@@ -207,7 +207,7 @@ export class WebhooksController {
               refundRequest,
               status,
               refundRequest.order_id.toString(),
-              refundRequest.trustee_id.toString()
+              refundRequest.trustee_id.toString(),
             );
           }
           return res.status(200).send('OK');
@@ -350,12 +350,12 @@ export class WebhooksController {
             merchant?.isNotificationOn &&
             merchant?.isNotificationOn.for_refund
           ) {
-           this.trusteeService.scheduleRefundNotificationEmail(
+            this.trusteeService.scheduleRefundNotificationEmail(
               merchant,
               refundRequest,
               status,
               refundRequest.order_id.toString(),
-              refundRequest.trustee_id.toString()
+              refundRequest.trustee_id.toString(),
             );
           }
           return res.status(200).send('OK');
@@ -371,7 +371,7 @@ export class WebhooksController {
             refundRequest,
             status,
             refundRequest.order_id.toString(),
-            refundRequest.trustee_id.toString()
+            refundRequest.trustee_id.toString(),
           );
         }
         res.status(200).send('OK');

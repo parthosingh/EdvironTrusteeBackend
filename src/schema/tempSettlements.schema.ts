@@ -7,47 +7,47 @@ import { Trustee, TrusteeSchema } from './trustee.schema';
 @ObjectType()
 @Schema({ timestamps: true })
 export class TempSettlementReport {
-  @Prop({  type: Number })
+  @Prop({ type: Number })
   @Field(() => Number)
   settlementAmount: number;
 
-  @Prop({  type: Number })
+  @Prop({ type: Number })
   @Field(() => Number)
   adjustment: number;
 
-  @Prop({  type: Number })
+  @Prop({ type: Number })
   @Field(() => Number)
   netSettlementAmount: number;
 
-  @Prop({  type: Date })
+  @Prop({ type: Date })
   @Field(() => Date)
   fromDate: Date;
 
-  @Prop({  type: Date })
+  @Prop({ type: Date })
   @Field(() => Date)
   tillDate: Date;
 
-  @Prop({  type: String })
+  @Prop({ type: String })
   @Field(() => String)
   status: string;
 
-  @Prop({  type: String, unique: true })
+  @Prop({ type: String, unique: true })
   @Field(() => String)
   utrNumber: string;
 
-  @Prop({  type: Date })
+  @Prop({ type: Date })
   @Field(() => Date)
   settlementDate: Date;
 
-  @Prop( {  type: String })
-  @Field(() => String,{nullable: true})
+  @Prop({ type: String })
+  @Field(() => String, { nullable: true })
   clientId: string;
 
-  @Prop({  type: Types.ObjectId, ref: 'Trustee' })
+  @Prop({ type: Types.ObjectId, ref: 'Trustee' })
   @Field(() => ID)
   trustee: ObjectId;
 
-  @Prop({  type: Types.ObjectId, ref: 'TrusteeSchool' })
+  @Prop({ type: Types.ObjectId, ref: 'TrusteeSchool' })
   @Field(() => ID)
   schoolId: ObjectId;
 }

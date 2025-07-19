@@ -173,8 +173,8 @@ export class MerchantResolver {
       } catch (error) {
         bankDetails = {
           account_holder_name: null,
-          account_number:  null,
-          ifsc_code:  null,
+          account_number: null,
+          ifsc_code: null,
         };
       }
       // Map the trustee data to the User type
@@ -1806,7 +1806,7 @@ export class MerchantResolver {
       throw new BadRequestException(e.message);
     }
   }
-   @UseGuards(MerchantGuard)
+  @UseGuards(MerchantGuard)
   @Query(() => [batchTransactionsReport])
   async getMerchantBatchTransactionReport(
     @Args('year') year: string,
@@ -1815,7 +1815,7 @@ export class MerchantResolver {
     const merchant = await this.trusteeSchoolModel.findById(
       context.req.merchant,
     );
-    if(!merchant){
+    if (!merchant) {
       throw new BadRequestException('Merchant not found');
     }
     const school_id = merchant.school_id;

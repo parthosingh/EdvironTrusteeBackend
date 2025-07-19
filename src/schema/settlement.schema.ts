@@ -31,8 +31,8 @@ export class SettlementReport {
   @Field(() => Date)
   updatedAt: Date;
 
-  @Prop({  type: Date , nullable: true})
-  @Field(() => Date, {nullable: true})
+  @Prop({ type: Date, nullable: true })
+  @Field(() => Date, { nullable: true })
   settlementInitiatedOn: Date;
 
   @Prop({ required: true, type: Date })
@@ -40,7 +40,7 @@ export class SettlementReport {
   tillDate: Date;
 
   @Prop({ required: false, type: Date })
-  @Field(() => Date,{nullable: true})
+  @Field(() => Date, { nullable: true })
   settlement_initiated_on: Date;
 
   @Prop({ required: true, type: String })

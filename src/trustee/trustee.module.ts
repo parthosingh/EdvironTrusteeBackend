@@ -48,7 +48,10 @@ import {
   TempSettlementReportSchema,
 } from '../schema/tempSettlements.schema';
 import { PdfService } from '../pdf-service/pdf-service.service';
-import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
+import {
+  VirtualAccount,
+  VirtualAccountSchema,
+} from 'src/schema/virtual.account.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
@@ -157,7 +160,7 @@ config();
     EmailService,
     AwsS3Service,
     PdfService,
-    BusinessAlarmService
+    BusinessAlarmService,
   ],
 })
-export class TrusteeModule { }
+export class TrusteeModule {}

@@ -346,7 +346,7 @@ export class PlatformChargesController {
   //call this after request approval
   @Post('add-school-mdr')
   async bulkAddSchoolMdr(
-    @Body() 
+    @Body()
     token: {
       token: string;
     },
@@ -385,7 +385,7 @@ export class PlatformChargesController {
             $set: { platform_charges: mdrRequest.platform_charges },
           },
         );
- 
+
         const config = {
           method: 'post',
           maxBodyLength: Infinity,
@@ -401,13 +401,11 @@ export class PlatformChargesController {
             platform_charges: mdrRequest.platform_charges,
           },
         };
-        try{
-
-          await axios.request(config)
-        }catch(e){
-          console.log(e,'update error');
-          throw new BadRequestException(e.message)
-          
+        try {
+          await axios.request(config);
+        } catch (e) {
+          console.log(e, 'update error');
+          throw new BadRequestException(e.message);
         }
       });
 

@@ -1507,7 +1507,6 @@ export class ErpService {
     );
   }
 
-
   chunkArray<T>(array: T[], size: number): T[][] {
     const result: T[][] = [];
     for (let i = 0; i < array.length; i += size) {
@@ -1668,11 +1667,10 @@ export class ErpService {
       errorCount,
       totalMerchants: merchants.length,
     };
-
+  }
   async delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
-
   async safeAxios(config, retries = 3, delayMs = 1000) {
     for (let i = 0; i < retries; i++) {
       try {
@@ -1692,6 +1690,5 @@ export class ErpService {
       secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
       expiresIn: '1d',
     });
-
   }
 }

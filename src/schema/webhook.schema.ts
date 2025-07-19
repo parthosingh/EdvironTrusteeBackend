@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, ObjectId,Types } from 'mongoose';
+import { Document, ObjectId, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class WebhookLogs extends Document {
@@ -12,15 +12,15 @@ export class WebhookLogs extends Document {
   @Field(() => String)
   gateway: string;
 
-  @Prop({type: Types.ObjectId})
+  @Prop({ type: Types.ObjectId })
   @Field(() => ID)
   order_id: ObjectId;
 
-  @Prop({type: Types.ObjectId})
+  @Prop({ type: Types.ObjectId })
   @Field(() => ID)
   trustee_id: ObjectId;
 
-  @Prop({type: Types.ObjectId})
+  @Prop({ type: Types.ObjectId })
   @Field(() => ID)
   school_id: ObjectId;
 

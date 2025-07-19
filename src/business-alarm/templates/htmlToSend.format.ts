@@ -847,7 +847,7 @@ export async function generateRefundMailReciept(
   refund_id: string,
   refund_initiated: string,
   refund_remark: string,
-  splitDetail : any,
+  splitDetail: any,
   refund_reason: string,
 ) {
   const {
@@ -1010,11 +1010,11 @@ export async function generateRefundMailReciept(
         <td style="padding:6px 0;"><strong>Merchant Order ID:</strong></td>
         <td>${custom_order_id || 'NA'}</td>
         <td><strong>Refund Reason:</strong></td>
-        <td>${refund_reason || "N/A"}</td>
+        <td>${refund_reason || 'N/A'}</td>
       </tr>
        <tr>
         <td style="padding:6px 0;"><strong>School Name:</strong></td>
-        <td>${school_name  || 'NA'}</td>
+        <td>${school_name || 'NA'}</td>
         <td><strong>School ID:</strong></td>
         <td>${school_id || 'NA'}</td>
       </tr>
@@ -1038,7 +1038,9 @@ export async function generateRefundMailReciept(
         <td>${student?.student_phone_no || 'NA'}</td>
     </table>
   </div>
-${ splitDetail.length > 0 ? `
+${
+  splitDetail.length > 0
+    ? `
   <h3 style="color:#111827;font-size:20px;margin-bottom:12px;">Split details</h3>
   <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
     <table style="width:100%;font-size:14px;border-collapse:collapse;">
@@ -1050,17 +1052,23 @@ ${ splitDetail.length > 0 ? `
         </tr>
       </thead>
       <tbody>
-        ${splitDetail.map(detail => `
+        ${splitDetail
+          .map(
+            (detail) => `
           <tr>
             <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">${detail.id}</td>
             <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">${detail.vendor_name}</td>
             <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">${detail.amount}</td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join('')}
       </tbody>
     </table>
   </div>
-` : ""}
+`
+    : ''
+}
         `;
 }
 

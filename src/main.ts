@@ -32,7 +32,7 @@ async function bootstrap() {
     'https://qa.pg.edviron.com',
     'https://pg.edviron.com',
     'https://dev.pg.edviron.com',
-    'https://dev.dqeoas0bnp0pl.amplifyapp.com'
+    'https://dev.dqeoas0bnp0pl.amplifyapp.com',
   ];
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));

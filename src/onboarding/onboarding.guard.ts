@@ -32,7 +32,7 @@ export class OnboardingGuard implements CanActivate {
     request.user = request.user || (await validateToken(token)).id;
     request.trustee =
       request.trustee || (await validateToken(token)).head_trustee;
-  
+
     return !!request.trustee;
   }
 }

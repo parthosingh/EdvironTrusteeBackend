@@ -63,8 +63,6 @@ const mockErpService = {
   createSchool: jest.fn(),
 };
 
-
-
 jest.mock('@nestjs/jwt');
 
 const mockToken = 'mocktoken';
@@ -117,10 +115,9 @@ describe('ErpService', () => {
   let DisputesModel: Model<Disputes>;
   let ReconciliationModel: Model<Reconciliation>;
   let EarningsModel: Model<Earnings>;
-  let CapturetModel:Model<Capture>;
-  let WebhookLogsModel:Model<WebhookLogs>;
+  let CapturetModel: Model<Capture>;
+  let WebhookLogsModel: Model<WebhookLogs>;
   let emailService: EmailService;
-
 
   const mockStudent = {
     _id: '658e759736ba0754ca45d0a4',
@@ -263,5 +260,4 @@ describe('ErpService', () => {
   it('should be defined', () => {
     expect(erpService).toBeDefined();
   });
-
 });

@@ -774,7 +774,9 @@ export class ErpController {
         ccavenue_merchant_id: school.ccavenue_merchant_id || null,
         ccavenue_working_key: school.ccavenue_working_key || null,
         smartgateway_merchant_id: school.smartgateway_merchant_id || null,
-        smartgateway_customer_id: additionalInfo?.student_details?.student_id ? `${additionalInfo.student_details.student_id}_${Date.now()}` : `${Date.now()}`,
+        smartgateway_customer_id: additionalInfo?.student_details?.student_id
+          ? `${additionalInfo.student_details.student_id}_${Date.now()}`
+          : `${Date.now()}`,
         smart_gateway_api_key: school?.smart_gateway_api_key || null,
         hdfc_razorpay_id: school.hdfc_razorpay_id || null,
         hdfc_razorpay_secret: school.hdfc_razorpay_secret || null,
@@ -5059,7 +5061,6 @@ export class ErpController {
     );
   }
 
-
   @Post('/update-monthly-data')
   async updateBatchData(@Query('date') date?: string) {
     return await this.erpService.updateBatchData(date);
@@ -5069,7 +5070,6 @@ export class ErpController {
   async updateMerchantBatchData(@Query('date') date?: string) {
     return await this.erpService.updateMerchantBatchData(date);
   }
-
 
   @Get('commision-report')
   async getTransactionReport(
@@ -5451,5 +5451,4 @@ export class ErpController {
       throw new BadRequestException(error.message);
     }
   }
-
 }

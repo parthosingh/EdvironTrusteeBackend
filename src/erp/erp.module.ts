@@ -39,12 +39,14 @@ import {
 } from '../schema/Reconciliation.schema';
 import { WebhookLogs, WebhookLogsSchema } from '../schema/webhook.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
-import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
+import {
+  VirtualAccount,
+  VirtualAccountSchema,
+} from 'src/schema/virtual.account.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
-
 
 @Module({
   imports: [
@@ -116,8 +118,7 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
     MongooseModule.forFeature([
       { name: EmailEvent.name, schema: EmailEventSchema },
     ]),
-     MongooseModule.forFeature([
-
+    MongooseModule.forFeature([
       { name: ErrorLogs.name, schema: ErrorLogsSchema },
     ]),
   ],
@@ -127,8 +128,8 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
     TrusteeService,
     EmailService,
     AwsS3Service,
-    BusinessAlarmService
+    BusinessAlarmService,
   ],
   controllers: [ErpController],
 })
-export class ErpModule { }
+export class ErpModule {}

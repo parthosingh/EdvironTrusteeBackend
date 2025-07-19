@@ -24,8 +24,12 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
       { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
       { name: Vendors.name, schema: VendorsSchema },
     ]),
-     MongooseModule.forFeature([{ name: EmailGroup.name, schema: EmailGroupSchema }]),
-        MongooseModule.forFeature([{ name: EmailEvent.name, schema: EmailEventSchema }]),
+    MongooseModule.forFeature([
+      { name: EmailGroup.name, schema: EmailGroupSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: EmailEvent.name, schema: EmailEventSchema },
+    ]),
   ],
   providers: [BusinessAlarmResolver, BusinessAlarmService, EmailService],
   controllers: [BusinessAlarmController],

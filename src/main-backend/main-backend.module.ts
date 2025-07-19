@@ -16,10 +16,19 @@ import { RefundRequest, RefundRequestSchema } from '../schema/refund.schema';
 import { Invoice, InvoiceSchema } from '../schema/invoice.schema';
 import { Vendors, VendorsSchema } from '../schema/vendors.schema';
 import { AwsS3Service } from '../aws.s3/aws.s3.service';
-import { SettlementReport, SettlementSchema } from '../schema/settlement.schema';
-import { VendorsSettlement, VendorsSettlementSchema } from '../schema/vendor.settlements.schema';
+import {
+  SettlementReport,
+  SettlementSchema,
+} from '../schema/settlement.schema';
+import {
+  VendorsSettlement,
+  VendorsSettlementSchema,
+} from '../schema/vendor.settlements.schema';
 import { Disputes, DisputesSchema } from '../schema/disputes.schema';
-import { Reconciliation, ReconciliationSchema } from '../schema/Reconciliation.schema';
+import {
+  Reconciliation,
+  ReconciliationSchema,
+} from '../schema/Reconciliation.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
@@ -45,12 +54,14 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
     MongooseModule.forFeature([
       { name: RefundRequest.name, schema: RefundRequestSchema },
     ]),
-    MongooseModule.forFeature([
-      { name: Invoice.name, schema: InvoiceSchema },
-    ]),
+    MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]),
     MongooseModule.forFeature([{ name: Vendors.name, schema: VendorsSchema }]),
-    MongooseModule.forFeature([{ name: SettlementReport.name, schema: SettlementSchema }]),
-    MongooseModule.forFeature([{ name: VendorsSettlement.name, schema: VendorsSettlementSchema }]),
+    MongooseModule.forFeature([
+      { name: SettlementReport.name, schema: SettlementSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
+    ]),
     MongooseModule.forFeature([
       { name: Disputes.name, schema: DisputesSchema },
     ]),
@@ -73,7 +84,13 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
       }),
     }),
   ],
-  providers: [MainBackendService, TrusteeService, EmailService, AwsS3Service, BusinessAlarmService],
+  providers: [
+    MainBackendService,
+    TrusteeService,
+    EmailService,
+    AwsS3Service,
+    BusinessAlarmService,
+  ],
   controllers: [MainBackendController],
 })
-export class MainBackendModule { }
+export class MainBackendModule {}

@@ -100,7 +100,7 @@ export class ReconRefundInfo {
   @Prop()
   @Field(() => Number, { nullable: true })
   refund_amount: number;
- 
+
   @Prop()
   @Field(() => Boolean, { nullable: true })
   inSettlements: boolean;
@@ -235,31 +235,31 @@ export class Reconciliation {
   tillDate: Date;
 
   @Prop({ nullable: true, type: Number })
-   @Field(() => Number, { nullable: true })
+  @Field(() => Number, { nullable: true })
   settlementAmount: number;
 
   @Prop({ nullable: true, type: Number })
-   @Field(() => Number, { nullable: true })
+  @Field(() => Number, { nullable: true })
   totaltransactionAmount: number;
 
   @Prop({ nullable: true, type: Number })
-   @Field(() => Number, { nullable: true })
+  @Field(() => Number, { nullable: true })
   merchantOtherAdjustment: number;
 
   @Prop({ nullable: true, type: Number })
-   @Field(() => Number, { nullable: true })
+  @Field(() => Number, { nullable: true })
   merchantAdjustment: number;
 
   @Prop({ nullable: true, type: Number })
-   @Field(() => Number, { nullable: true })
+  @Field(() => Number, { nullable: true })
   splitTransactionAmount: number;
 
   @Prop({ nullable: true, type: Number })
-   @Field(() => Number, { nullable: true })
+  @Field(() => Number, { nullable: true })
   splitSettlementAmount: number;
 
   @Prop({ nullable: true, type: Number })
-   @Field(() => Number, { nullable: true })
+  @Field(() => Number, { nullable: true })
   refundSum: number;
 
   @Prop({ nullable: true, type: Number })
@@ -267,11 +267,11 @@ export class Reconciliation {
   vendor_refund_sum: number;
 
   @Prop()
-  @Field(() => Number,{ nullable: true })
+  @Field(() => Number, { nullable: true })
   payment_service_tax: number;
 
   @Prop()
-  @Field(() => Number,{ nullable: true })
+  @Field(() => Number, { nullable: true })
   payment_service_charge: number;
 
   @Prop()
@@ -329,9 +329,9 @@ export class Reconciliation {
   @Field(() => String, { nullable: true })
   @Prop({ required: true, type: String })
   utrNumber: string;
-  
+
   @Prop({ type: String })
-  @Field(() => String,{ nullable: true })
+  @Field(() => String, { nullable: true })
   remarks: string;
 }
 

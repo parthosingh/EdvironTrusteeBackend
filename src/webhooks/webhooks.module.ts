@@ -84,8 +84,12 @@ import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service'
     ]),
     MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
     MongooseModule.forFeature([{ name: SchoolMdr.name, schema: SchoolSchema }]),
-    MongooseModule.forFeature([{ name: EmailGroup.name, schema: EmailGroupSchema }]),
-    MongooseModule.forFeature([{ name: EmailEvent.name, schema: EmailEventSchema }]),
+    MongooseModule.forFeature([
+      { name: EmailGroup.name, schema: EmailGroupSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: EmailEvent.name, schema: EmailEventSchema },
+    ]),
     MongooseModule.forFeature([
       { name: Reconciliation.name, schema: ReconciliationSchema },
     ]),
@@ -100,7 +104,7 @@ import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service'
     JwtService,
     AwsS3Service,
     PdfService,
-    BusinessAlarmService
+    BusinessAlarmService,
   ],
 })
-export class WebhooksModule { }
+export class WebhooksModule {}

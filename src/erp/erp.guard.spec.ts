@@ -11,7 +11,7 @@ import { getModelToken } from '@nestjs/mongoose';
 describe('ErpGuard', () => {
   let erpGuard: ErpGuard;
   let erpService: ErpService;
-  let trusteeModel: Model<Trustee>; 
+  let trusteeModel: Model<Trustee>;
   let mongod: MongoMemoryServer;
   let mongoConnection: Connection;
 

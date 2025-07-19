@@ -22,7 +22,7 @@ export class SplitRefundsDetails {
 
 @ObjectType()
 @Schema({ timestamps: true })
-export class RefundRequest  {
+export class RefundRequest {
   @Prop({ type: Types.ObjectId })
   @Field(() => ID)
   trustee_id: ObjectId;
@@ -89,4 +89,3 @@ export class RefundRequest  {
 }
 
 export const RefundRequestSchema = SchemaFactory.createForClass(RefundRequest);
- 

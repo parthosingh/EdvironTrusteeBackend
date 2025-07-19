@@ -28,7 +28,7 @@ export class BusinessAlarmController {
     private readonly trusteeSchool: mongoose.Model<TrusteeSchool>,
     @InjectModel(EmailEvent.name)
     private EmailEventModel: mongoose.Model<EmailEvent>,
-  ) { }
+  ) {}
 
   @Post('fivepm')
   async checkMerchantSettlement() {
@@ -226,8 +226,8 @@ export class BusinessAlarmController {
         school.isNotificationOn = {
           for_refund: false,
           for_settlement: false,
-          for_transaction: false
-        }
+          for_transaction: false,
+        };
       }
       switch (event_name) {
         case 'SETTLEMENT_ALERT':

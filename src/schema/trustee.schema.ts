@@ -1,38 +1,35 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { ObjectType, Field,ID } from '@nestjs/graphql';
-import { Document, ObjectId,Types } from 'mongoose';
+import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { Document, ObjectId, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-
 
 @ObjectType()
 export class WebhookUrlType {
-  @Prop() 
-  @Field(() => Number,{ nullable: true })
+  @Prop()
+  @Field(() => Number, { nullable: true })
   id: number;
 
-  @Prop() 
+  @Prop()
   @Field(() => String, { nullable: true })
   url: string;
 
-  @Prop() 
+  @Prop()
   @Field(() => String, { nullable: true })
   type?: string;
 }
 
-
-
 @ObjectType()
 export class bankDetails {
   @Field(() => String, { nullable: true })
-  @Prop() 
+  @Prop()
   account_holder_name: string;
 
   @Field(() => String, { nullable: true })
-  @Prop() 
+  @Prop()
   account_number: string;
 
   @Field(() => String, { nullable: true })
-  @Prop() 
+  @Prop()
   ifsc_code: string;
 }
 
@@ -84,15 +81,15 @@ export class Trustee extends Document {
   webhook_urls: WebhookUrlType[];
 
   @Prop({})
-  @Field(() => String,{ nullable: true })
+  @Field(() => String, { nullable: true })
   gstIn: string;
 
   @Prop({})
-  @Field(() => String,{ nullable: true })
+  @Field(() => String, { nullable: true })
   residence_state: string;
 
   @Prop({})
-  @Field(() => bankDetails,{ nullable: true })
+  @Field(() => bankDetails, { nullable: true })
   bank_details: bankDetails;
 
   @Field()
@@ -108,7 +105,7 @@ export class Trustee extends Document {
   refund_webhook_url: string;
 
   @Prop({})
-  @Field(() => Boolean,{defaultValue:false})
+  @Field(() => Boolean, { defaultValue: false })
   isOnboarder: boolean;
 
   @Prop({ type: Types.ObjectId })
@@ -116,9 +113,8 @@ export class Trustee extends Document {
   onboarder: ObjectId;
 
   @Prop({})
-  @Field(() => String,{ nullable: true })
+  @Field(() => String, { nullable: true })
   webhook_key: string;
-
 }
 
 export const TrusteeSchema = SchemaFactory.createForClass(Trustee);

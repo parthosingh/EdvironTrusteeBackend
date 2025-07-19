@@ -53,7 +53,6 @@ import { Reconciliation } from '../schema/Reconciliation.schema';
 import { MerchantResolver } from './merchant.resolver';
 import { PdfService } from '../pdf-service/pdf-service.service';
 
-
 describe('MerchantService', () => {
   let service: MerchantService;
   let resolver: MerchantResolver;
@@ -80,7 +79,6 @@ describe('MerchantService', () => {
   let VendorsModel: Model<Vendors>;
   let DisputesModel: Model<Disputes>;
   let ReconciliationModel: Model<Reconciliation>;
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

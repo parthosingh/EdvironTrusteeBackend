@@ -69,7 +69,6 @@ const MockJwtService = {
 };
 
 describe('ErpController', () => {
-
   let controller: ErpController;
   let jwtService: JwtService;
   let resolver: TrusteeResolver;
@@ -96,8 +95,8 @@ describe('ErpController', () => {
   let DisputesModel: Model<Disputes>;
   let ReconciliationModel: Model<Reconciliation>;
   let EarningsModel: Model<Earnings>;
-  let CapturetModel:Model<Capture>;
-  let WebhookLogsModel:Model<WebhookLogs>;
+  let CapturetModel: Model<Capture>;
+  let WebhookLogsModel: Model<WebhookLogs>;
   let emailService: EmailService;
 
   const mockRequest = {

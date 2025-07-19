@@ -1,5 +1,5 @@
 export function sendEnablePgInfotemp(data) {
-    return `
+  return `
 <div style="max-width: 600px; margin: auto; padding: 20px; font-family: Arial, sans-serif; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9;">
     <h2 style="color: #4CAF50; text-align: center;">${data.status}</h2>
     <p style="text-align: center; font-size: 16px; color: #555;">Here is the data summary:</p>
@@ -28,7 +28,3 @@ export function sendEnablePgInfotemp(data) {
 </div>
 `;
 }
-
-
-
-
