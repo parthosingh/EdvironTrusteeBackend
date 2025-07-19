@@ -4040,6 +4040,10 @@ export class TransactionReport {
   error_details?: Error_Details;
   @Field({ nullable: true })
   isVBAPaymentComplete: boolean;
+  @Field({ nullable: true })
+  utr_number: string;
+  @Field({ nullable: true })
+  settlement_transfer_time: string;
 }
 
 @ObjectType()
