@@ -1533,7 +1533,7 @@ export class ErpService {
       .padStart(2, '0')}`;
 
     const trustees = await this.trusteeModel.find({
-      apiKey: { $exists: true, $ne: null },
+      apiKey: { $exists: true },
     });
 
     // const trustees = await this.trusteeModel.find({

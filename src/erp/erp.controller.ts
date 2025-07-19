@@ -291,7 +291,8 @@ export class ErpController {
       if (!school) {
         throw new NotFoundException('Inalid Institute id');
       }
-
+      console.log(trustee_id, school.trustee_id.toString(), 'trustee_id');
+      
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
