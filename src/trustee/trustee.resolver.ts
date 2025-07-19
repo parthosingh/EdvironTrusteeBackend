@@ -3391,6 +3391,9 @@ export class SettlementsTransactions {
 
   @Field({ nullable: true })
   school_id: string;
+
+  @Field({ nullable: true })
+  additional_data: string;
 }
 
 @ObjectType()
