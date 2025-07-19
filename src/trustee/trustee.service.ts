@@ -209,7 +209,12 @@ export class TrusteeService {
     }
   }
 
-  async getSchools(trusteeId: string) {
+  async getSchools(
+    trusteeId: string,
+    searchQuery: string,
+    page: number,
+    limit: number,
+  ) {
     try {
       if (!Types.ObjectId.isValid(trusteeId)) {
         throw new BadRequestException('Invalid trusteeID format');
@@ -218,13 +223,36 @@ export class TrusteeService {
 
       const trustee = await this.trusteeModel.findById(trusteeId);
 
+      const pageNumber = page || 1;
+      const pageSize = limit || 10;
+      const skip = (pageNumber - 1) * pageSize;
+
+      let searchFilter: any = {
+        trustee_id: trusteeObjectId,
+        ...(searchQuery
+          ? Types.ObjectId.isValid(searchQuery)
+            ? { school_id: new mongoose.Types.ObjectId(searchQuery) }
+            : {
+                $or: [
+                  { school_name: { $regex: searchQuery, $options: 'i' } },
+                  { email: { $regex: searchQuery, $options: 'i' } },
+                  { pg_key: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
+          : {}),
+      };
       if (!trustee) {
         throw new ConflictException(`no trustee found`);
       }
+
+      const totalItems =
+        await this.trusteeSchoolModel.countDocuments(searchFilter);
+      const totalPages = Math.ceil(totalItems / pageSize);
+
       const schools = await this.trusteeSchoolModel
         .aggregate([
           {
-            $match: { trustee_id: trusteeObjectId },
+            $match: searchFilter,
           },
           {
             $project: {
@@ -245,6 +273,12 @@ export class TrusteeService {
           },
           {
             $sort: { createdAt: -1 },
+          },
+          {
+            $skip: skip,
+          },
+          {
+            $limit: pageSize,
           },
         ])
         .exec();
@@ -285,7 +319,14 @@ export class TrusteeService {
         }),
       );
 
-      return { schoolData: schoolsWithBankDetails };
+      return {
+        schoolData: schoolsWithBankDetails,
+        pagination: {
+          currentPage: pageNumber,
+          totalPages,
+          totalItems,
+        },
+      };
     } catch (error) {
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);

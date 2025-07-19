@@ -287,12 +287,26 @@ export class TrusteeResolver {
 
   @Query(() => getSchool)
   @UseGuards(TrusteeGuard)
-  async getSchoolQuery(@Context() context): Promise<any> {
+  async getSchoolQuery(
+    @Context() context,
+    @Args('searchQuery', { nullable: true, defaultValue: null })
+    searchQuery?: string,
+    @Args('page', { nullable: true, defaultValue: 1 }) page?: number,
+    @Args('limit', { nullable: true, defaultValue: 10 }) limit?: number,
+  ): Promise<any> {
     try {
       let id = context.req.trustee;
-      const schools = await this.trusteeService.getSchools(id);
+      const schools = await this.trusteeService.getSchools(
+        id,
+        searchQuery,
+        page,
+        limit,
+      );
       return {
         schools: schools.schoolData,
+        total_pages: schools.pagination.totalPages,
+        page: schools.pagination.currentPage,
+        totalItems: schools.pagination.totalItems,
       };
     } catch (error) {
       const customError = {
@@ -323,7 +337,7 @@ export class TrusteeResolver {
       if (role !== 'owner' && role !== 'admin' && role !== 'developer') {
         throw new UnauthorizedException(
           'You are not Authorized to perform this action',
-        ); 
+        );
       }
 
       const validate = await this.trusteeService.validateApidOtp(
@@ -3953,6 +3967,8 @@ class getSchool {
   total_pages: number;
   @Field({ nullable: true })
   page: number;
+  @Field({ nullable: true })
+  totalItems: number;
 }
 
 @ObjectType()
