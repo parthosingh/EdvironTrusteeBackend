@@ -5059,6 +5059,18 @@ export class ErpController {
     );
   }
 
+
+  @Post('/update-monthly-data')
+  async updateBatchData(@Query('date') date?: string) {
+    return await this.erpService.updateBatchData(date);
+  }
+
+  @Post('/update-monthly-data-merchant')
+  async updateMerchantBatchData(@Query('date') date?: string) {
+    return await this.erpService.updateMerchantBatchData(date);
+  }
+
+
   @Get('commision-report')
   async getTransactionReport(
     @Req() req: Request,
@@ -5439,4 +5451,5 @@ export class ErpController {
       throw new BadRequestException(error.message);
     }
   }
+
 }

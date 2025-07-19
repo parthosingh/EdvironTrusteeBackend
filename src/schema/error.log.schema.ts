@@ -8,6 +8,11 @@ export class ErrorLogs {
   @Prop({})
   collect_id: string;
 
+  @Prop({ nullable: true })
+  trustee_id: string;
+  @Prop({ nullable: true })
+  school_id: string;
+
   @Prop({})
   error: string;
 }

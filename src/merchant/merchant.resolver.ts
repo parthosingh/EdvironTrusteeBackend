@@ -31,6 +31,7 @@ import { MerchantService } from './merchant.service';
 import jwt from 'jsonwebtoken';
 import {
   AuthResponse,
+  batchTransactionsReport,
   Dispute_Actions,
   DisputeResponse,
   DisputesRes,
@@ -1801,6 +1802,28 @@ export class MerchantResolver {
           settlement.fromDate,
         );
       }
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+   @UseGuards(MerchantGuard)
+  @Query(() => [batchTransactionsReport])
+  async getMerchantBatchTransactionReport(
+    @Args('year') year: string,
+    @Context() context: any,
+  ) {
+    const merchant = await this.trusteeSchoolModel.findById(
+      context.req.merchant,
+    );
+    if(!merchant){
+      throw new BadRequestException('Merchant not found');
+    }
+    const school_id = merchant.school_id;
+    try {
+      return await this.merchantService.getMerchantBatchTransactions(
+        school_id.toString(),
+        year,
+      );
     } catch (e) {
       throw new BadRequestException(e.message);
     }

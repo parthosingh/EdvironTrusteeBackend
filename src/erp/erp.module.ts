@@ -116,7 +116,8 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
     MongooseModule.forFeature([
       { name: EmailEvent.name, schema: EmailEventSchema },
     ]),
-    MongooseModule.forFeature([
+     MongooseModule.forFeature([
+
       { name: ErrorLogs.name, schema: ErrorLogsSchema },
     ]),
   ],

@@ -52,9 +52,11 @@ import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
+import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ApiKeyLogs, ApiKeyLogsSchema } from 'src/schema/apiKey.logs.schema';
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
+
 config();
 
 @Module({

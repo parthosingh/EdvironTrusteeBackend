@@ -32,6 +32,7 @@ import * as crypto from 'crypto';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
 import { ObjectType } from '@nestjs/graphql';
+import { ErrorLogs } from 'src/schema/error.log.schema';
 @Injectable()
 export class ErpService {
   constructor(
@@ -51,6 +52,8 @@ export class ErpService {
     @InjectModel(PosMachine.name)
     private posMachineModel: mongoose.Model<PosMachine>,
     private readonly cashfreeService: CashfreeService,
+    @InjectModel(ErrorLogs.name)
+    private errorLogModel: mongoose.Model<ErrorLogs>,
   ) {}
 
   async createApiKey(trusteeId: string, otp: string): Promise<string> {
@@ -1504,6 +1507,168 @@ export class ErpService {
     );
   }
 
+
+  chunkArray<T>(array: T[], size: number): T[][] {
+    const result: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      result.push(array.slice(i, i + size));
+    }
+    return result;
+  }
+
+  @Cron('0 1 1 * *')
+  async updateBatchData(date?: string) {
+    let now = new Date();
+    if (date) {
+      now = new Date(date);
+    }
+    const previousDate = new Date(now);
+    previousDate.setDate(previousDate.getDate() - 1);
+    const year = previousDate.getFullYear();
+    const month = previousDate.getMonth() + 1;
+    const lastDay = new Date(year, month, 0).getDate();
+
+    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay
+      .toString()
+      .padStart(2, '0')}`;
+
+    const trustees = await this.trusteeModel.find({
+      apiKey: { $exists: true, $ne: null },
+    });
+
+    // const trustees = await this.trusteeModel.find({
+    //   _id: new Types.ObjectId('65d43e124174f07e3e3f8967'),
+    // });
+
+    let successCount = 0;
+    let errorCount = 0;
+    const BATCH_SIZE = 10;
+
+    const trusteeChunks = this.chunkArray(trustees, BATCH_SIZE);
+
+    for (const chunk of trusteeChunks) {
+      const promises = chunk.map(async (trustee) => {
+        const config = {
+          method: 'post',
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/save-transactions`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: {
+            trustee_id: trustee._id.toString(),
+            start_date: startDate,
+            end_date: endDate,
+            status: 'SUCCESS',
+          },
+        };
+
+        try {
+          const response = await axios(config);
+          console.log(response.data, 'response.data');
+          const totalTransactions = response.data.totalTransactions;
+          console.log(
+            `Batch Transaction save for ${trustee.name} completed successfully, total transactions: ${totalTransactions}`,
+          );
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          await this.errorLogModel.create({
+            source: 'Batch Transaction Error',
+            collect_id: 'n/a',
+            trustee_id: trustee._id.toString(),
+            error: error.message,
+          });
+          console.error('Error fetching settlements:', error.message);
+        }
+      });
+
+      await Promise.all(promises);
+    }
+
+    return {
+      successCount,
+      errorCount,
+      totalTrustees: trustees.length,
+    };
+  }
+
+  @Cron('0 3 1 * *')
+  async updateMerchantBatchData(date?: string) {
+    let now = new Date();
+    if (date) {
+      now = new Date(date);
+    }
+    const previousDate = new Date(now);
+    previousDate.setDate(previousDate.getDate() - 1);
+    const year = previousDate.getFullYear();
+    const month = previousDate.getMonth() + 1;
+    const lastDay = new Date(year, month, 0).getDate();
+
+    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay
+      .toString()
+      .padStart(2, '0')}`;
+
+    const merchants = await this.trusteeSchoolModel.find({
+      pg_key: { $exists: true, $ne: null },
+    });
+    // const merchants = await this.trusteeSchoolModel.find({
+    //   trustee_id: new Types.ObjectId('65d43e124174f07e3e3f8967'),
+    //   pg_key: { $exists: true, $ne: null },
+    // });
+
+    let successCount = 0;
+    let errorCount = 0;
+    const BATCH_SIZE = 10;
+
+    const merchantChunks = this.chunkArray(merchants, BATCH_SIZE);
+
+    for (const chunk of merchantChunks) {
+      const promises = chunk.map(async (merchant) => {
+        const config = {
+          method: 'post',
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/save-merchant-transactions`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: {
+            school_id: merchant.school_id.toString(),
+            start_date: startDate,
+            end_date: endDate,
+            status: 'SUCCESS',
+          },
+        };
+
+        try {
+          const response = await axios(config);
+          console.log(response.data, 'response.data');
+          const totalTransactions = response.data.totalTransactions;
+          console.log(
+            `Batch Transaction save for ${merchant.school_name} completed successfully, total transactions: ${totalTransactions}`,
+          );
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          await this.errorLogModel.create({
+            source: 'Batch Transaction Error',
+            collect_id: 'n/a',
+            trustee_id: merchant.trustee_id.toString(),
+            school_id: merchant.school_id.toString(),
+            error: error.message,
+          });
+          console.error('Error fetching settlements:', error.message);
+        }
+      });
+      await Promise.all(promises);
+    }
+
+    return {
+      successCount,
+      errorCount,
+      totalMerchants: merchants.length,
+    };
+
   async delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -1527,5 +1692,6 @@ export class ErpService {
       secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
       expiresIn: '1d',
     });
+
   }
 }

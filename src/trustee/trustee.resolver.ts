@@ -3255,6 +3255,9 @@ export class batchTransactionsReport {
   trustee_id: string;
 
   @Field({ nullable: true })
+  school_id: string;
+
+  @Field({ nullable: true })
   total_order_amount: number;
 
   @Field({ nullable: true })
