@@ -3411,6 +3411,9 @@ export class SettlementsTransactions {
 
   @Field({ nullable: true })
   additional_data: string;
+
+  @Field({ nullable: true })
+  payment_id: string;
 }
 
 @ObjectType()
@@ -4002,6 +4005,8 @@ class Error_Details {
 export class TransactionReport {
   @Field({ nullable: true })
   collect_id: string;
+  @Field({ nullable: true })
+  payment_id: string;
   @Field({ nullable: true })
   updatedAt: string;
   @Field({ nullable: true })

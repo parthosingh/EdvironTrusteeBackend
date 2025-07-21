@@ -1746,6 +1746,7 @@ export class MerchantResolver {
     @Args('limit', { type: () => Int }) limit: number,
     @Args('cursor', { type: () => String, nullable: true })
     cursor: string | null,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
   ) {
     try {
       const settlement = await this.settlementReportModel.findOne({
@@ -1755,12 +1756,31 @@ export class MerchantResolver {
         throw new Error('Settlement not found');
       }
       const client_id = settlement.clientId;
-      return await this.trusteeService.getTransactionsForSettlements(
-        utr,
-        client_id,
-        limit,
-        cursor,
-      );
+      const razorpay_id = settlement.razorpay_id;
+      if (client_id) {
+        return await this.trusteeService.getTransactionsForSettlements(
+          utr,
+          client_id,
+          limit,
+          cursor,
+        );
+      }
+      if (razorpay_id) {
+        console.log('inside razorpay');
+        const school = await this.trusteeSchoolModel.findOne({
+          'razorpay.razorpay_id': razorpay_id,
+        });
+        const razropay_secret = school?.razorpay?.razorpay_secret;
+        return await this.trusteeService.getRazorpayTransactionForSettlement(
+          utr,
+          razorpay_id,
+          razropay_secret,
+          limit,
+          cursor,
+          skip,
+          settlement.fromDate,
+        );
+      }
     } catch (e) {
       throw new BadRequestException(e.message);
     }
