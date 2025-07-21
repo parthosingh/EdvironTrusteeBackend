@@ -149,34 +149,40 @@ export class MerchantResolver {
       );
 
       let bankDetails = {
-        account_holder_name: null,
-        account_number: null,
-        ifsc_code: null,
+        account_holder_name:
+          userMerchant?.bank_details?.account_holder_name || null,
+        account_number: userMerchant?.bank_details?.account_number || null,
+        ifsc_code: userMerchant?.bank_details?.ifsc_code || null,
       };
-
-      try {
-        const config = {
-          method: 'get',
-          maxBodyLength: Infinity,
-          url: `${process.env.MAIN_BACKEND_URL}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
-          headers: {
-            accept: 'application/json',
-          },
-        };
-        const response = await axios.request(config);
-        bankDetails = {
-          account_holder_name:
-            response?.data?.bankDetails?.account_holder_name || null,
-          account_number: response?.data?.bankDetails?.account_number || null,
-          ifsc_code: response?.data?.bankDetails?.ifsc_code || null,
-        };
-      } catch (error) {
-        bankDetails = {
-          account_holder_name: null,
-          account_number: null,
-          ifsc_code: null,
-        };
+      if (
+        bankDetails.account_holder_name === null &&
+        bankDetails.account_number === null
+      ) {
+        try {
+          const config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `${process.env.MAIN_BACKEND_URL}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
+            headers: {
+              accept: 'application/json',
+            },
+          };
+          const response = await axios.request(config);
+          bankDetails = {
+            account_holder_name:
+              response?.data?.bankDetails?.account_holder_name || null,
+            account_number: response?.data?.bankDetails?.account_number || null,
+            ifsc_code: response?.data?.bankDetails?.ifsc_code || null,
+          };
+        } catch (error) {
+          bankDetails = {
+            account_holder_name: null,
+            account_number: null,
+            ifsc_code: null,
+          };
+        }
       }
+
       // Map the trustee data to the User type
       const user: MerchantUser = {
         _id: userMerchant.id,
