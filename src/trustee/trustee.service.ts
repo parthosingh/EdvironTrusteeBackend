@@ -269,6 +269,7 @@ export class TrusteeService {
               bank_details: 1,
               gstIn: 1,
               residence_state: 1,
+               createdAt: 1,
             },
           },
           {
@@ -3165,30 +3166,15 @@ export class TrusteeService {
       });
     }
   }
-}
 
-const transaction = {
-  additional_data:
-    '{"student_details":{"student_id":"bvbmva1409","student_email":"trkrishnamaya8@gmail.com","student_name":"DEVNAND T R","student_phone_no":"9605575149"},"additional_fields":{}}',
-  custom_order_id: '608A173583829534048358',
-  req_webhook_urls: [
-    'https://bvbmva.amserp.in/index.php/user/login/pg_webhook_api/?pg=edviron&order_id=608A173583829534048358&',
-  ],
-  vendors_info: [],
-  isSplitPayments: false,
-  isQRPayment: false,
-  status: 'SUCCESS',
-  transaction_amount: 8855.9,
-  payment_method: 'upi',
-  details: '{"upi":{"channel":null,"upi_id":"trkrishnaja8@oksbi"}}',
-  bank_reference: '500235129815',
-  collect_id: '6776ca4014d26ebf58d2b37e',
-  order_amount: 8850,
-  merchant_id: '6692338a25ce10ce85cddac3',
-  currency: 'INR',
-  createdAt: '2025-01-02T17:17:52.240Z',
-  updatedAt: '2025-01-02T17:18:48.526Z',
-  transaction_time: '2025-01-02T17:18:48.526Z',
-  isAutoRefund: false,
-  payment_time: '2025-01-02T17:18:15.000Z',
-};
+  async generateTransactionsReport(
+    trustee_id: string,
+    start_date: string,
+    end_date: string,
+    school_id?: string,
+    status?: string,
+    gateway?: string,
+  ){
+
+  }
+}
