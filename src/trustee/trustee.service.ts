@@ -314,7 +314,7 @@ export class TrusteeService {
             );
             return {
               ...school,
-              bank_details: null,
+              // bank_details: null,
             };
           }
         }),
