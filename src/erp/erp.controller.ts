@@ -79,7 +79,7 @@ export class ErpController {
     @InjectModel(VirtualAccount.name)
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
     @InjectModel(Disputes.name)
-    private disputeModel: mongoose.Model<Disputes>,
+    private disputeModel: mongoose.Model<Disputes>
   ) {}
 
   @Get('payment-link')
@@ -4987,18 +4987,28 @@ export class ErpController {
         { collect_id: paymentsResponse.data?.collect_id },
         {
           $set: {
-            dispute_id: paymentsResponse.data?.cashfreeDispute[0].cf_dispute_id,
-            custom_order_id: paymentsResponse.data?.custom_order_id,
-            school_id: new Types.ObjectId(paymentsResponse.data?.school_id),
-            trustee_id: new Types.ObjectId(paymentsResponse.data?.trustee_id),
-            gateway: gateway,
+            dispute_id: paymentsResponse.data?.cashfreeDispute[0].cf_dispute_id || null,
+            custom_order_id: paymentsResponse.data?.custom_order_id || null,
+            school_id: new Types.ObjectId(paymentsResponse.data?.school_id) || null,
+            trustee_id: new Types.ObjectId(paymentsResponse.data?.trustee_id) || null,
+            gateway: gateway || null,
             dispute_status:
-              paymentsResponse.data?.cashfreeDispute[0]?.dispute_status,
+              paymentsResponse.data?.cashfreeDispute[0]?.dispute_status || null,
             student_name:
               JSON.parse(paymentsResponse.data.student_detail)?.student_details
                 ?.student_name || '',
             dispute_type:
-              paymentsResponse.data?.cashfreeDispute[0]?.dispute_type,
+              paymentsResponse.data?.cashfreeDispute[0]?.dispute_type || null,
+            dispute_created_date:new Date(
+              paymentsResponse.data?.cashfreeDispute[0]?.created_at) || null,
+            dispute_updated_date: new Date
+              (paymentsResponse.data?.cashfreeDispute[0]?.updated_at) || null,
+            dispute_respond_by_date : new Date(paymentsResponse.data?.cashfreeDispute[0]?.respond_by) || null,
+            dispute_remark:paymentsResponse.data?.cashfreeDispute[0]?.cf_dispute_remarks || null,
+            reason_description:paymentsResponse.data?.cashfreeDispute[0]?.reason_description || null,
+            dispute_amount:paymentsResponse.data?.cashfreeDispute[0]?.dispute_amount || null,
+            order_amount:paymentsResponse.data?.cashfreeDispute[0]?.order_details?.order_amount || null,
+            payment_amount:paymentsResponse.data?.cashfreeDispute[0]?.order_details?.payment_amount || null,
             // dispute_status:paymentsResponse.data?.cashfreeDispute[0]?.dispute_status
           },
         },
