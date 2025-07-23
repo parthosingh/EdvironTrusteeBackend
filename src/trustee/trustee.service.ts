@@ -298,10 +298,10 @@ export class TrusteeService {
 
             const bankDetails = {
               account_holder_name:
-                response?.data?.bankDetails?.account_holder_name || null,
+                response?.data?.bankDetails?.account_holder_name || school.bank_details?.account_holder_name || null,
               account_number:
-                response?.data?.bankDetails?.account_number || null,
-              ifsc_code: response?.data?.bankDetails?.ifsc_code || null,
+                response?.data?.bankDetails?.account_number || school.bank_details?.account_number || null,
+              ifsc_code: response?.data?.bankDetails?.ifsc_code || school.bank_details?.ifsc_code || null,
             };
             return {
               ...school,
