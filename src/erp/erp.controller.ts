@@ -2418,6 +2418,7 @@ export class ErpController {
   @UseGuards(ErpGuard)
   async getCollectRequest(@Req() req) {
     try {
+      
       const trustee_id = req.userTrustee.id;
       const { order_id } = req.params;
       const { school_id, sign } = req.query;
@@ -2441,7 +2442,7 @@ export class ErpController {
         throw new UnauthorizedException('Unauthorized');
       }
 
-      if (!school.client_id || !school.client_secret || !school.pg_key) {
+      if (!school.pg_key) {
         throw new BadRequestException(
           'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
         );
@@ -2451,7 +2452,7 @@ export class ErpController {
       if (decoded.custom_order_id != order_id) {
         throw new ForbiddenException('request forged');
       }
-
+ 
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
@@ -2473,6 +2474,10 @@ export class ErpController {
       const { data: paymentsServiceResp } = await axios.request(config);
       return paymentsServiceResp;
     } catch (error) {
+      if(error.response?.data?.message) {
+        throw new BadRequestException(error.response.data.message);
+      }
+      
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       throw error;
