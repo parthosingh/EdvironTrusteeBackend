@@ -58,6 +58,7 @@ import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ApiKeyLogs, ApiKeyLogsSchema } from 'src/schema/apiKey.logs.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
+import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 
 config();
 
@@ -116,6 +117,9 @@ config();
     ]),
     MongooseModule.forFeature([
       { name: ApiKeyLogs.name, schema: ApiKeyLogsSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: ReportsLogs.name, schema: ReportsLogsSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({

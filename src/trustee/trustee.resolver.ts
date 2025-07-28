@@ -3157,6 +3157,42 @@ export class TrusteeResolver {
       throw new BadRequestException(error.message || 'Something went wrong');
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => String)
+  async getReports(
+    @Context() context: any,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate: string,
+    @Args('type', { type: () => String, nullable: true }) type: string,
+    @Args('school_id', { type: () => String, nullable: true })
+    school_id: string,
+  ) {
+    try {
+      const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const diffInMs = Math.abs(end.getTime() - start.getTime());
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24); // Convert ms to days
+
+    if (diffInDays > 31) {
+      throw new BadRequestException(
+        'Date range cannot exceed 31 days.',
+      );
+    }
+      await this.trusteeService.generateReport(
+        type,
+        startDate,
+        endDate,
+        context.req.trustee,
+        school_id,
+      );
+      return 'Report generation initiated successfully';
+    } catch (e) {
+     throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
 }
 
 @ObjectType()
@@ -4312,29 +4348,3 @@ class SchoolMDRINFO {
   @Field(() => [PlatformCharge], { nullable: true })
   schoolMdr: PlatformCharge[];
 }
-
-const test = {
-  status: '1',
-  data: {
-    hash: 'ee41f254f93f20709e5e7ac798426981e0d7c8f1c2b82509fa8d1756ccd530ac46ec22b986413e2504d82219c3825d9c9aca7722f798451460bd5a4215483e13',
-    udf1: null,
-    udf2: null,
-    udf3: null,
-    udf4: null,
-    udf5: null,
-    udf6: null,
-    udf7: null,
-    txnid: 'upi_67adc37c944c98402d6d112d',
-    easepayid: 'E2502130D7XCF3',
-    refund_id: 'RU6W1MGG64',
-    arn_number: '504542487412',
-    refund_amount: 1.0,
-    refund_status: 'accepted',
-    transaction_date: '2025-02-13 15:33:40.000000',
-    transaction_type: 'UPI',
-    merchant_refund_id: 'E2502130D7XCF3-17394414',
-    transaction_amount: 1.0,
-    refund_request_date: '2025-02-13 15:40:50.308912',
-    chargeback_description: '',
-  },
-};

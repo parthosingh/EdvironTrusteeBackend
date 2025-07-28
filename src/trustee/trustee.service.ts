@@ -21,6 +21,7 @@ import axios from 'axios';
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 import * as path from 'path';
+import * as csvWriter from 'csv-writer';
 import * as fs from 'fs';
 import * as handlebars from 'handlebars';
 import { TrusteeMember } from '../schema/partner.member.schema';
@@ -49,6 +50,8 @@ import { getAdminEmailTemplate } from 'src/email/templates/dipute.template';
 import { generateRefundMailReciept } from 'src/business-alarm/templates/htmlToSend.format';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ErrorLogs } from 'src/schema/error.log.schema';
+import { ReportsLogs } from 'src/schema/reports.logs.schmea';
+import { Parser } from 'json2csv';
 
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
@@ -99,6 +102,8 @@ export class TrusteeService {
     private businessServices: BusinessAlarmService,
     @InjectModel(ErrorLogs.name)
     private ErrorLogsModel: mongoose.Model<ErrorLogs>,
+    @InjectModel(ReportsLogs.name)
+    private ReportsLogsModel: mongoose.Model<ReportsLogs>,
   ) {}
 
   async loginAndGenerateToken(
@@ -269,7 +274,7 @@ export class TrusteeService {
               bank_details: 1,
               gstIn: 1,
               residence_state: 1,
-               createdAt: 1,
+              createdAt: 1,
             },
           },
           {
@@ -298,10 +303,17 @@ export class TrusteeService {
 
             const bankDetails = {
               account_holder_name:
-                response?.data?.bankDetails?.account_holder_name || school.bank_details?.account_holder_name || null,
+                response?.data?.bankDetails?.account_holder_name ||
+                school.bank_details?.account_holder_name ||
+                null,
               account_number:
-                response?.data?.bankDetails?.account_number || school.bank_details?.account_number || null,
-              ifsc_code: response?.data?.bankDetails?.ifsc_code || school.bank_details?.ifsc_code || null,
+                response?.data?.bankDetails?.account_number ||
+                school.bank_details?.account_number ||
+                null,
+              ifsc_code:
+                response?.data?.bankDetails?.ifsc_code ||
+                school.bank_details?.ifsc_code ||
+                null,
             };
             return {
               ...school,
@@ -3167,14 +3179,132 @@ export class TrusteeService {
     }
   }
 
-  async generateTransactionsReport(
+  async generateSettlementReport(
     trustee_id: string,
     start_date: string,
     end_date: string,
     school_id?: string,
-    status?: string,
-    gateway?: string,
-  ){
+  ) {
+    try {
+      if (!trustee_id || !start_date || !end_date) {
+        throw new BadRequestException('Missing required parameters');
+      }
+      let query: any = {
+        trustee: new Types.ObjectId(trustee_id),
+        settlementDate: {
+          $gte: new Date(start_date),
+          $lte: new Date(end_date),
+        },
+      };
+      console.log({ start_date, end_date });
 
+      console.log(query, 'query for settlement report');
+
+      setTimeout(async () => {
+        console.log('waiting');
+ 
+        // Process settlements
+      }, 50000);
+
+      if (school_id) {
+        query.schoolId = new Types.ObjectId(school_id);
+      }
+
+      const settlements = await this.settlementReportModel
+        .find(query)
+        .sort({ settlementDate: -1 });
+
+      const requiredFields = [
+        '_id',
+        'utrNumber',
+        'adjustment',
+        'createdAt',
+        'fromDate',
+        'netSettlementAmount',
+        'remarks',
+        'schoolId',
+        'settlementAmount',
+        'settlementDate',
+        'settlementInitiatedOn',
+        'status',
+        'tillDate',
+      ];
+      const parser = new Parser({ fields: requiredFields });
+      const csv = parser.parse(settlements); // csv is a string
+      const fileBuffer = Buffer.from(csv, 'utf-8');
+      const fileKey = `reports/settlements-report-${Date.now()}.csv`;
+      const s3Url = await this.awsS3Service.uploadToS3(
+        fileBuffer,
+        fileKey,
+        'text/csv',
+        process.env.REPORT_BUCKET || 'edviron-reports',
+      );
+      return s3Url;
+    } catch (e) {
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
   }
+
+  async generateReport(
+    type: string,
+    start_date: string,
+    end_date: string,
+    trustee_id: string,
+    school_id?: string,
+  ) {
+    try {
+      console.log({ trustee_id });
+
+      const report = await this.ReportsLogsModel.create({
+        type,
+        start_date,
+        end_date,
+        trustee_id: new Types.ObjectId(trustee_id),
+        school_id: school_id ? new Types.ObjectId(school_id) : null,
+        status: 'PENDING',
+      });
+      setImmediate(async () => {
+        try {
+          if (type === 'SETTLEMENT_REPORT') {
+            const data = await this.generateSettlementReport(
+              trustee_id,
+              start_date,
+              end_date,
+              school_id,
+            );
+
+            await this.ReportsLogsModel.updateOne(
+              { _id: report._id },
+              { status: 'COMPLETED', url: data },
+            );
+          }
+        } catch (err) {
+          await this.ReportsLogsModel.updateOne(
+            { _id: report._id },
+            { status: 'FAILED', error: err.message },
+          );
+        }
+      });
+    } catch (e) {
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
+
+  async generateCSVBuffer(data: any[]): Promise<Buffer> {
+    const createCsvWriter = csvWriter.createObjectCsvStringifier;
+    const header = Object.keys(data[0] || {}).map((key) => ({
+      id: key,
+      title: key,
+    }));
+
+    const csvStringifier = createCsvWriter({ header });
+
+    const csvContent =
+      csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(data);
+
+    return Buffer.from(csvContent, 'utf-8');
+  }
+
+  async getCsvReport() {}
 }
+ 

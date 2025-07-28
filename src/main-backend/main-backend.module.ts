@@ -33,6 +33,7 @@ import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
+import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 
 @Module({
   imports: [
@@ -77,6 +78,9 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
     MongooseModule.forFeature([
       { name: ErrorLogs.name, schema: ErrorLogsSchema },
     ]),
+    MongooseModule.forFeature([
+          { name: ReportsLogs.name, schema: ReportsLogsSchema },
+        ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_INTRANET,
