@@ -3164,7 +3164,7 @@ export class TrusteeResolver {
 
   @UseGuards(TrusteeGuard)
   @Query(() => String)
-  async getReports(
+  async generateReport(
     @Context() context: any,
     @Args('startDate', { type: () => String, nullable: true })
     startDate: string,
