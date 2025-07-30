@@ -3163,7 +3163,7 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(() => String)
+  @Mutation(() => String)
   async generateReport(
     @Context() context: any,
     @Args('startDate', { type: () => String, nullable: true })
