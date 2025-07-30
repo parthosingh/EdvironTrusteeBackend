@@ -67,6 +67,7 @@ import { EmailService } from '../email/email.service';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { PosMachine } from 'src/schema/pos.machine.schema';
 import { ApiKeyLogs } from 'src/schema/apiKey.logs.schema';
+import { ReportsLogs } from 'src/schema/reports.logs.schmea';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -303,7 +304,7 @@ export class TrusteeResolver {
         searchQuery,
         page,
         limit,
-        kycStatus
+        kycStatus,
       );
       return {
         schools: schools.schoolData,
@@ -3174,16 +3175,14 @@ export class TrusteeResolver {
   ) {
     try {
       const start = new Date(startDate);
-    const end = new Date(endDate);
+      const end = new Date(endDate);
 
-    const diffInMs = Math.abs(end.getTime() - start.getTime());
-    const diffInDays = diffInMs / (1000 * 60 * 60 * 24); // Convert ms to days
+      const diffInMs = Math.abs(end.getTime() - start.getTime());
+      const diffInDays = diffInMs / (1000 * 60 * 60 * 24); // Convert ms to days
 
-    if (diffInDays > 31) {
-      throw new BadRequestException(
-        'Date range cannot exceed 31 days.',
-      );
-    }
+      if (diffInDays > 31) {
+        throw new BadRequestException('Date range cannot exceed 31 days.');
+      }
       await this.trusteeService.generateReport(
         type,
         startDate,
@@ -3193,9 +3192,80 @@ export class TrusteeResolver {
       );
       return 'Report generation initiated successfully';
     } catch (e) {
-     throw new BadRequestException(e.message || 'Something went wrong');
+      throw new BadRequestException(e.message || 'Something went wrong');
     }
   }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => ReportsLogsResponse)
+  async getReportsLogs(
+    @Context() context: any,
+    @Args('school_id', { type: () => String, nullable: true })
+    school_id: string,
+    @Args('type', { type: () => String, nullable: true }) type: string,
+    @Args('page', { type: () => Int, defaultValue: 0 }) page: number,
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      console.log(trustee_id);
+
+      return await this.trusteeService.getReports(
+        trustee_id.toString(),
+        page,
+        limit,
+        type,
+        school_id,
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
+}
+
+@ObjectType()
+export class ReportsLogsRes {
+  @Field(() => String, { nullable: true })
+  _id: string;
+
+  @Field(() => String, { nullable: true })
+  type: string;
+
+  @Field(() => String, { nullable: true })
+  url: string;
+
+  @Field(() => String, { nullable: true })
+  status: string;
+
+  @Field(() => String, { nullable: true })
+  start_date: string;
+
+  @Field(() => String, { nullable: true })
+  school_id: string;
+
+  @Field(() => String, { nullable: true })
+  end_date: string;
+
+  @Field(() => Date, { nullable: true })
+  createdAt?: Date;
+
+  @Field(() => Date, { nullable: true })
+  updatedAt?: Date;
+}
+
+@ObjectType()
+export class ReportsLogsResponse {
+  @Field(() => [ReportsLogsRes], { nullable: true })
+  reports: ReportsLogsRes[];
+
+  @Field({ nullable: true })
+  totalCount: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
+
+  @Field({ nullable: true })
+  limit: number;
 }
 
 @ObjectType()

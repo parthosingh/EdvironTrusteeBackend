@@ -250,7 +250,7 @@ export class TrusteeService {
       if (kycStatus && kycStatus.length > 0) {
         searchFilter = {
           ...searchFilter,
-          merchantStatus: { $in: kycStatus }, 
+          merchantStatus: { $in: kycStatus },
         };
       }
       if (!trustee) {
@@ -3211,7 +3211,7 @@ export class TrusteeService {
 
       setTimeout(async () => {
         console.log('waiting');
- 
+
         // Process settlements
       }, 50000);
 
@@ -3314,6 +3314,44 @@ export class TrusteeService {
     return Buffer.from(csvContent, 'utf-8');
   }
 
-  async getCsvReport() {}
+  async getReports(
+    trustee_id: string,
+    page: number,
+    limit: number,
+    type?: string,
+    school_id?: string,
+    start_date?: string,
+    end_date?: string,
+  ) {
+    try {
+      const query: any = { trustee_id: new Types.ObjectId(trustee_id) };
+
+      if (type) query.type = type;
+      if (school_id) query.school_id = new Types.ObjectId(school_id);
+      if (start_date) query.start_date = start_date;
+      if (end_date) query.end_date = end_date;
+
+      console.log(query);
+
+      const totalCount = await this.ReportsLogsModel.countDocuments(query);
+      const totalPages = Math.ceil(totalCount / limit);
+
+      const reports = await this.ReportsLogsModel.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+      return {
+        reports,
+
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+      };
+    } catch (e) {
+      console.error(e);
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
 }
- 
