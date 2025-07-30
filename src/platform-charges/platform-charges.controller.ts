@@ -384,6 +384,7 @@ export class PlatformChargesController {
           {
             $set: { platform_charges: mdrRequest.platform_charges },
           },
+          { new: true },
         );
 
         const config = {
@@ -398,7 +399,7 @@ export class PlatformChargesController {
             token: '',
             trustee_id: schools.trustee_id,
             school_id: schools.school_id,
-            platform_charges: mdrRequest.platform_charges,
+            platform_charges: schools.platform_charges,
           },
         };
         try {
