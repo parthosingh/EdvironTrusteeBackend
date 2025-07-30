@@ -219,6 +219,7 @@ export class TrusteeService {
     searchQuery: string,
     page: number,
     limit: number,
+    kycStatus: string[],
   ) {
     try {
       if (!Types.ObjectId.isValid(trusteeId)) {
@@ -246,6 +247,12 @@ export class TrusteeService {
               }
           : {}),
       };
+      if (kycStatus && kycStatus.length > 0) {
+        searchFilter = {
+          ...searchFilter,
+          merchantStatus: { $in: kycStatus }, 
+        };
+      }
       if (!trustee) {
         throw new ConflictException(`no trustee found`);
       }
@@ -3184,6 +3191,8 @@ export class TrusteeService {
     start_date: string,
     end_date: string,
     school_id?: string,
+    status?: string,
+    gateway?: string,
   ) {
     try {
       if (!trustee_id || !start_date || !end_date) {

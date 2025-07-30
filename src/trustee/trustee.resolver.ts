@@ -293,6 +293,8 @@ export class TrusteeResolver {
     searchQuery?: string,
     @Args('page', { nullable: true, defaultValue: 1 }) page?: number,
     @Args('limit', { nullable: true, defaultValue: 10 }) limit?: number,
+    @Args('kycStatus', { type: () => [String], nullable: true })
+    kycStatus?: string[],
   ): Promise<any> {
     try {
       let id = context.req.trustee;
@@ -301,6 +303,7 @@ export class TrusteeResolver {
         searchQuery,
         page,
         limit,
+        kycStatus
       );
       return {
         schools: schools.schoolData,
