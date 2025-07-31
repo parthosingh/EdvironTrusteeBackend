@@ -3084,22 +3084,80 @@ export class TrusteeService {
     };
     try {
       const { data: transactions } = await axios.request(config);
+      const settlements_transactions = Array.isArray(
+        transactions?.settlements_transactions,
+      )
+        ? transactions.settlements_transactions
+        : [];
 
-      const settlements_transactions = transactions.settlements_transactions;
+      if (settlements_transactions.length === 0) {
+        console.warn('No settlement transactions found');
+      }
       const school = await this.trusteeSchoolModel.findOne({
         'razorpay.razorpay_id': razorpay_id,
       });
       let settlementTransactions = [];
       if (!school) throw new BadRequestException(`Could not find school `);
-      settlements_transactions.forEach((transaction: any) => {
-        if (transaction?.order_id) {
-          transaction.school_name = school.school_name;
+
+      for (const transaction of settlements_transactions) {
+        const collect_id = transaction?.custom_order_id;
+        const trustee_id = school.trustee_id.toString();
+        const token = this.jwtService.sign(
+          { trustee_id, collect_id },
+          { secret: process.env.PAYMENTS_SERVICE_SECRET },
+        );
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/single-transaction-report`,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          data: {
+            collect_id,
+            trustee_id,
+            token,
+          },
+        };
+        let Singletransaction;
+        try {
+          const { data: paymenttransaction } = await axios.request(config);
+          Singletransaction = paymenttransaction;
+        } catch (error) {
+          console.error('Error fetching single transaction:', error.message);
         }
-      });
-      // console.log(transactions, 'datadagsjdgajk');
-
-      // console.log(settlements_transactions, 'settlements_transactions');
-
+        if (transaction.custom_order_id) {
+          let studentDetail;
+          if (Singletransaction && Singletransaction?.length > 0) {
+            studentDetail = JSON.parse(
+              Singletransaction[0]?.additional_data || '{}',
+            );
+          } else {
+            studentDetail = {
+              student_details: {
+                student_id: 'N/A',
+                student_name: 'N/A',
+                student_email: 'N/A',
+                student_phone_no: 'N/A',
+              },
+            };
+          }
+          transaction.student_id =
+            studentDetail?.student_details?.student_id || 'N/A';
+          transaction.student_name =
+            studentDetail?.student_details?.student_name || 'N/A';
+          transaction.student_email =
+            studentDetail?.student_details?.student_email || 'N/A';
+          transaction.student_phone_no =
+            studentDetail?.student_details?.student_phone_no || 'N/A';
+          transaction.school_name = school.school_name;
+          transaction.school_id = school.school_id;
+          transaction.payment_id = transaction.entity_id;
+          transaction.additional_data = Singletransaction && Singletransaction[0].length > 0 ? Singletransaction[0]?.additional_data : '{}'
+            ;
+        }
+      }
       return {
         limit: transactions.limit,
         cursor: transactions.cursor,

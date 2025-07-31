@@ -1386,22 +1386,19 @@ export class ErpService {
         settlementDate = new Date();
       }
       const merchants = await this.trusteeSchoolModel.find({
-        'razorpay.razorpay_id': { $exists: true, $ne: null },
+        'razorpay.razorpay_id': { $exists: true },
       });
 
-      for (const merchant of merchants) {
-        console.log(
-          `Getting report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
-        );
 
+      for (const merchant of merchants) {
         try {
           const prevDay = new Date(settlementDate);
           const endDateStr = prevDay.toISOString().slice(0, 10);
           prevDay.setDate(prevDay.getDate() - 1);
           const startDateStr = prevDay.toISOString().slice(0, 10);
-          // console.log(startDateStr, 'startDateStr');
-          const startDate = this.getUTCUnix(startDateStr);
-          const to = this.getUTCUnix(endDateStr);
+
+          const startDate = await this.getUTCUnix(startDateStr);
+          const to = await this.getUTCUnix(endDateStr);
           const config = {
             url: `https://api.razorpay.com/v1/settlements?from=${startDate}&to=${to}`,
             headers: { 'Content-Type': 'application/json' },
@@ -1421,24 +1418,29 @@ export class ErpService {
               utrNumber: value.utr,
             });
             if (!existing) {
-              const report = new this.settlementReportModel({
+              const startDatenew = new Date(startDateStr);
+              startDatenew.setDate(startDatenew.getDate() - 1);
+              const report = await new this.settlementReportModel({
                 settlementAmount: (value.amount / 100).toFixed(2),
                 adjustment: 0.0,
                 clientId: '',
                 netSettlementAmount: (value.amount / 100).toFixed(2),
                 razorpay_id: merchant.razorpay.razorpay_id,
-                fromDate: new Date(startDateStr),
-                tillDate: new Date(startDateStr),
-                status: value.status,
+                fromDate: new Date(startDatenew),
+                tillDate: new Date(startDatenew),
+                status: value.status === 'processed' ? 'SUCCESS' : value.status,
                 gateway: 'EDVIRON_RAZORPAY',
                 utrNumber: value.utr,
                 settlementDate: new Date(value.created_at * 1000).toISOString(),
                 trustee: merchant.trustee_id,
                 schoolId: merchant.school_id,
+                createdAt: new Date(value.created_at * 1000),
+                updatedAt: new Date(value.created_at * 1000),
               });
               console.log(
                 `Saving consolidated settlement report for ${merchant.school_name} (${merchant.razorpay.razorpay_id})`,
               );
+              console.log(report, 'report');
               await report.save();
             } else {
               console.log(
@@ -1447,11 +1449,17 @@ export class ErpService {
             }
           }
         } catch (error) {
-          throw new BadGatewayException(error.message);
+          const errData = error.response?.data || error.message;
+          console.error(
+            `Error processing merchant ${merchant.school_name}:`,
+            errData,
+          );
+          continue;
         }
       }
+      return "ok";
     } catch (error) {
-      throw new BadGatewayException(error.message);
+      console.log(error.response?.data || error.message);
     }
   }
 
