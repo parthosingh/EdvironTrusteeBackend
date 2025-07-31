@@ -5130,7 +5130,7 @@ export class ErpController {
     const initConfig = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=1&status=${status}&school_id=${school_id}`,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report-csv/?limit=${limit}&startDate=${first}&endDate=${last}&page=1&status=${status}&school_id=${school_id}`,
       headers: {
         accept: 'application/json',
         'content-type': 'application/json',
@@ -5161,7 +5161,8 @@ export class ErpController {
         const page = i + j;
         const pageConfig = {
           ...initConfig,
-          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report-csv/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
+
         };
 
         batch.push(await this.erpService.safeAxios(pageConfig));
@@ -5184,15 +5185,54 @@ export class ErpController {
         const comms = await this.commissionModel.findOne({
           collect_id: new Types.ObjectId(item.collect_id),
         });
-        let comms_amt = comms?.commission_amount || 0;
-        if (comms_amt < 0) {
-          comms_amt = 0;
+        if (comms === null) {
+          console.log("commision null" , item.collect_id)
+          return {
+            ...item,
+            merchant_name:
+              merchant_ids_to_merchant_map[item.merchant_id].school_name,
+            student_id:
+              JSON.parse(item?.additional_data).student_details?.student_id ||
+              '',
+            student_name:
+              JSON.parse(item?.additional_data).student_details?.student_name ||
+              '',
+            student_email:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_email || '',
+            student_phone:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_phone_no || '',
+            receipt:
+              JSON.parse(item?.additional_data).student_details?.receipt || '',
+            additional_data:
+              JSON.parse(item?.additional_data).additional_fields || '',
+            currency: 'INR',
+            school_id: item.merchant_id,
+            school_name:
+              merchant_ids_to_merchant_map[item.merchant_id].school_name,
+            remarks: remark,
+            // commission: commissionAmount,
+            custom_order_id: item?.custom_order_id || null,
+            commission: 0,
+            merchant_pricing_type: 'not found commision',
+            partner_pricing_type: 'not found commision',
+            merchant_pricing: 'not found commision',
+            partner_pricing: 'not found commision',
+            tax: 'not found commision',
+            partner_commission_excl_tax: 'not found commision',
+            payment_mode: 'not found commision',
+          };
         }
+        let comms_amt = comms?.commission_amount || 0;
+        // if (comms_amt < 0) {
+        //   comms_amt = 0;
+        // }
         const schoolCard = await this.trusteeSchoolModel.findOne({
           school_id: new Types.ObjectId(item.merchant_id),
         });
-        let platformType = comms?.platform_type;
-        let payment_mode = comms?.payment_mode;
+        let platformType = comms?.platform_type || '';
+        let payment_mode = comms?.payment_mode || '';
         if (platformType === 'DebitCard' && payment_mode === 'rupay') {
           payment_mode = 'Rupay';
         }
@@ -5227,7 +5267,7 @@ export class ErpController {
               charge.payment_mode === 'Others',
           );
         }
-        // console.log(payment_mode, 'payment_mode');
+        console.log(payment_mode, 'payment_mode');
         // console.log(matchPartnerCharge, 'matchPartnerCharge');
 
         let matchedCharge = schoolCard?.platform_charges?.find(
@@ -5358,7 +5398,7 @@ export class ErpController {
           merchant_pricing: merchant_pricing || null,
           partner_pricing: partner_pricing || null,
           tax: tax || null,
-          partner_commission_excl_tax: partner_commission_excl_tax || null,
+          partner_commission_excl_tax: (comms_amt - tax).toFixed(2) || null,
           payment_mode: payment_mode || null,
         };
       }),
@@ -5366,7 +5406,7 @@ export class ErpController {
 
     transactionReport.sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
 
     if (format === 'csv') {
@@ -5377,7 +5417,8 @@ export class ErpController {
         'Date & Time': new Date(tx.createdAt).toLocaleString('en-IN', {
           timeZone: 'Asia/Kolkata',
         }),
-        'Order ID': tx.custom_order_id || tx.collect_id || '',
+        'Order ID': tx.custom_order_id || '',
+        'Edviron order ID': tx.collect_id || '',
         'Order Amt': tx.order_amount || '',
         'Transaction Amt': tx.transaction_amount || '',
         'Payment Method': tx.payment_method || '',
@@ -5386,10 +5427,10 @@ export class ErpController {
         'Student Name': tx.student_name || '',
         'Phone No.': tx.student_phone || '',
         'Vendor Amount': 'NA', // Add real value if available
-        Gateway: tx.gateway || '',
+        Gateway: tx.gateway === 'EDVIRON_PG' ? 'CASHFREE' : tx.gateway,
         'Capture Status': tx.capture_status || '',
-        Commission: tx.commission?.toFixed(2) || 0,
-        'Card Type': JSON.parse(tx?.details)?.card?.card_network || '-', // or use platform_type
+        Commission: tx?.commission?.toFixed(2) || 0,
+        // 'Card Type': JSON.parse(tx?.details)?.card?.card_network || '-', // or use platform_type
         'Merchant Pricing':
           tx.merchant_pricing_type === 'PERCENT'
             ? `${tx.merchant_pricing}%`
