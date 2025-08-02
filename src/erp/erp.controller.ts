@@ -79,7 +79,7 @@ export class ErpController {
     @InjectModel(VirtualAccount.name)
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
     @InjectModel(Disputes.name)
-    private disputeModel: mongoose.Model<Disputes>
+    private disputeModel: mongoose.Model<Disputes>,
   ) {}
 
   @Get('payment-link')
@@ -292,7 +292,7 @@ export class ErpController {
         throw new NotFoundException('Inalid Institute id');
       }
       console.log(trustee_id, school.trustee_id.toString(), 'trustee_id');
-      
+
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
@@ -672,7 +672,84 @@ export class ErpController {
       const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
       const axios = require('axios');
       console.time('payments1');
-    
+
+        if (school.isEasebuzzNonPartner) {
+        console.log('non partner');
+
+        if (
+          !school.easebuzz_non_partner ||
+          !school.easebuzz_non_partner?.easebuzz_key ||
+          !school.easebuzz_non_partner?.easebuzz_salt ||
+          !school.easebuzz_non_partner?.easebuzz_submerchant_id
+        ) {
+          throw new BadRequestException('Gateway Configration Error');
+        }
+
+        if (splitPay && !school.easebuzz_school_label) {
+          throw new BadRequestException('Split payment Not Configure');
+        }
+        const webHookUrl = req_webhook_urls?.length;
+        const additionalInfo = {
+          student_details: {
+            student_id: student_id,
+            student_email: student_email,
+            student_name: student_name,
+            student_phone_no: student_phone_no,
+            receipt: receipt,
+          },
+          additional_fields: {
+            ...additional_data,
+          },
+        };
+
+        const trustee = await this.trusteeModel.findById(school.trustee_id);
+        let all_webhooks: string[] = [];
+        if (trustee.webhook_urls.length || req_webhook_urls?.length) {
+          const trusteeUrls = trustee.webhook_urls.map((item) => item.url);
+          all_webhooks = [...(req_webhook_urls || []), ...trusteeUrls];
+        }
+
+        if (trustee.webhook_urls.length === 0) {
+          all_webhooks = req_webhook_urls || [];
+        }
+
+        const bodydata = {
+          amount,
+          callbackUrl: callback_url,
+          // jwt,
+          webHook: webHookUrl || null,
+          disabled_modes,
+          platform_charges: school.platform_charges,
+          additional_data: additionalInfo,
+          school_id,
+          trustee_id,
+          custom_order_id,
+          req_webhook_urls,
+          school_name: school.school_name,
+          easebuzz_sub_merchant_id:
+            school.easebuzz_non_partner.easebuzz_submerchant_id,
+          split_payments,
+          easebuzzVendors,
+          easebuzz_school_label: school.easebuzz_school_label,
+          easebuzz_non_partner_cred: school.easebuzz_non_partner,
+        };
+
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-v2`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: bodydata,
+        };
+
+        const res = await axios.request(config);
+        console.log(res);
+
+        return res.data;
+      }
+
       const data = JSON.stringify({
         amount,
         callbackUrl: callback_url,
@@ -753,82 +830,7 @@ export class ErpController {
       const { data: paymentsServiceResp } = await axios.request(config);
       console.timeEnd('payments1');
       const reason = 'fee payment';
-        if (school.isEasebuzzNonPartner) {
-        console.log('non partner');
-
-        if (
-          !school.easebuzz_non_partner ||
-          !school.easebuzz_non_partner?.easebuzz_key ||
-          !school.easebuzz_non_partner?.easebuzz_salt ||
-          !school.easebuzz_non_partner?.easebuzz_submerchant_id
-        ) {
-          throw new BadRequestException('Gateway Configration Error');
-        }
-
-        if (splitPay && !school.easebuzz_school_label) {
-          throw new BadRequestException('Split payment Not Configure');
-        }
-        const webHookUrl = req_webhook_urls?.length;
-        const additionalInfo = {
-          student_details: {
-            student_id: student_id,
-            student_email: student_email,
-            student_name: student_name,
-            student_phone_no: student_phone_no,
-            receipt: receipt,
-          },
-          additional_fields: {
-            ...additional_data,
-          },
-        };
-
-        const trustee = await this.trusteeModel.findById(school.trustee_id);
-        let all_webhooks: string[] = [];
-        if (trustee.webhook_urls.length || req_webhook_urls?.length) {
-          const trusteeUrls = trustee.webhook_urls.map((item) => item.url);
-          all_webhooks = [...(req_webhook_urls || []), ...trusteeUrls];
-        }
-
-        if (trustee.webhook_urls.length === 0) {
-          all_webhooks = req_webhook_urls || [];
-        }
-
-        const bodydata = {
-          amount,
-          callbackUrl: callback_url,
-          // jwt,
-          webHook: webHookUrl || null,
-          disabled_modes,
-          platform_charges: school.platform_charges,
-          additional_data: additionalInfo,
-          school_id,
-          trustee_id,
-          custom_order_id,
-          req_webhook_urls,
-          school_name: school.school_name,
-          easebuzz_sub_merchant_id:
-            school.easebuzz_non_partner.easebuzz_submerchant_id,
-          split_payments,
-          easebuzzVendors,
-          easebuzz_school_label: school.easebuzz_school_label,
-          easebuzz_non_partner_cred: school.easebuzz_non_partner,
-        };
-
-        const config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-v2`,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          data: bodydata,
-        };
-
-        const res = await axios.request(config);
-        console.log(res);
-
-        return res.data;
-      }
+    
       if (isVBAPayment) {
         try {
           await this.erpService.updateVBA(
@@ -1346,74 +1348,8 @@ export class ErpController {
           ...additional_data,
         },
       };
-
       const axios = require('axios');
-      let data = JSON.stringify({
-        amount,
-        callbackUrl: callback_url,
-        jwt: this.jwtService.sign(
-          {
-            amount,
-            callbackUrl: callback_url,
-            clientId: school.client_id || null,
-            clientSecret: school.client_secret,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        ),
-        clientId: school.client_id || null,
-        clientSecret: school.client_secret || null,
-        school_id: school_id,
-        trustee_id: trustee_id,
-        webHook: webHookUrl || null,
-        disabled_modes: disabled_modes || null,
-        platform_charges: school.platform_charges,
-        additional_data: additionalInfo || {},
-        custom_order_id: custom_order_id || null,
-        req_webhook_urls: all_webhooks || null,
-        school_name: school.school_name || null,
-        easebuzz_sub_merchant_id: school.easebuzz_id || null,
-        ccavenue_access_code: school.ccavenue_access_code || null,
-        ccavenue_merchant_id: school.ccavenue_merchant_id || null,
-        ccavenue_working_key: school.ccavenue_working_key || null,
-        vendors_info: updatedVendorsInfo || null,
-        vendorgateway: vendorgateway,
-        easebuzzVendors,
-        cashfreeVedors,
-        split_payments: splitPay,
-        // disabled_modes: disabled_modes || null,
-        easebuzz_school_label: school.easebuzz_school_label || null,
-        isVBAPayment: isVBAPayment || false,
-        vba_account_number: vba_account_number || 'NA',
-      });
-      let config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect`,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        data: data,
-      };
-      const { data: paymentsServiceResp } = await axios.request(config);
-
-      let reason = 'fee payment';
-
-      //set some variable here (user input [sendPaymentLink:true])
-      // to send link to student
-      // if (body.student_phone_no || body.student_email) {
-      //   if (body.sendPaymentLink) {
-      //     await this.erpService.sendPaymentLink({
-      //       student_name: body.student_name || ' ',
-      //       phone_no: body.student_phone_no,
-      //       amount: body.amount,
-      //       reason: reason,
-      //       school_id: body.school_id,
-      //       mail_id: body.student_email,
-      //       paymentURL: paymentsServiceResp.url,
-      //     });
-      //   }
-      // }
-        if (school.isEasebuzzNonPartner) {
+      if (school.isEasebuzzNonPartner) {
         console.log('non partner');
 
         if (
@@ -1489,6 +1425,73 @@ export class ErpController {
 
         return res.data;
       }
+
+      let data = JSON.stringify({
+        amount,
+        callbackUrl: callback_url,
+        jwt: this.jwtService.sign(
+          {
+            amount,
+            callbackUrl: callback_url,
+            clientId: school.client_id || null,
+            clientSecret: school.client_secret,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        ),
+        clientId: school.client_id || null,
+        clientSecret: school.client_secret || null,
+        school_id: school_id,
+        trustee_id: trustee_id,
+        webHook: webHookUrl || null,
+        disabled_modes: disabled_modes || null,
+        platform_charges: school.platform_charges,
+        additional_data: additionalInfo || {},
+        custom_order_id: custom_order_id || null,
+        req_webhook_urls: all_webhooks || null,
+        school_name: school.school_name || null,
+        easebuzz_sub_merchant_id: school.easebuzz_id || null,
+        ccavenue_access_code: school.ccavenue_access_code || null,
+        ccavenue_merchant_id: school.ccavenue_merchant_id || null,
+        ccavenue_working_key: school.ccavenue_working_key || null,
+        vendors_info: updatedVendorsInfo || null,
+        vendorgateway: vendorgateway,
+        easebuzzVendors,
+        cashfreeVedors,
+        split_payments: splitPay,
+        // disabled_modes: disabled_modes || null,
+        easebuzz_school_label: school.easebuzz_school_label || null,
+        isVBAPayment: isVBAPayment || false,
+        vba_account_number: vba_account_number || 'NA',
+      });
+      let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/collect`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: data,
+      };
+      const { data: paymentsServiceResp } = await axios.request(config);
+
+      let reason = 'fee payment';
+
+      //set some variable here (user input [sendPaymentLink:true])
+      // to send link to student
+      // if (body.student_phone_no || body.student_email) {
+      //   if (body.sendPaymentLink) {
+      //     await this.erpService.sendPaymentLink({
+      //       student_name: body.student_name || ' ',
+      //       phone_no: body.student_phone_no,
+      //       amount: body.amount,
+      //       reason: reason,
+      //       school_id: body.school_id,
+      //       mail_id: body.student_email,
+      //       paymentURL: paymentsServiceResp.url,
+      //     });
+      //   }
+      // }
+
       if (isVBAPayment) {
         try {
           await this.erpService.updateVBA(
@@ -2494,7 +2497,6 @@ export class ErpController {
   @UseGuards(ErpGuard)
   async getCollectRequest(@Req() req) {
     try {
-      
       const trustee_id = req.userTrustee.id;
       const { order_id } = req.params;
       const { school_id, sign } = req.query;
@@ -2528,7 +2530,7 @@ export class ErpController {
       if (decoded.custom_order_id != order_id) {
         throw new ForbiddenException('request forged');
       }
- 
+
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
@@ -2550,10 +2552,10 @@ export class ErpController {
       const { data: paymentsServiceResp } = await axios.request(config);
       return paymentsServiceResp;
     } catch (error) {
-      if(error.response?.data?.message) {
+      if (error.response?.data?.message) {
         throw new BadRequestException(error.response.data.message);
       }
-      
+
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       throw error;
@@ -5068,10 +5070,13 @@ export class ErpController {
         { collect_id: paymentsResponse.data?.collect_id },
         {
           $set: {
-            dispute_id: paymentsResponse.data?.cashfreeDispute[0].cf_dispute_id || null,
+            dispute_id:
+              paymentsResponse.data?.cashfreeDispute[0].cf_dispute_id || null,
             custom_order_id: paymentsResponse.data?.custom_order_id || null,
-            school_id: new Types.ObjectId(paymentsResponse.data?.school_id) || null,
-            trustee_id: new Types.ObjectId(paymentsResponse.data?.trustee_id) || null,
+            school_id:
+              new Types.ObjectId(paymentsResponse.data?.school_id) || null,
+            trustee_id:
+              new Types.ObjectId(paymentsResponse.data?.trustee_id) || null,
             gateway: gateway || null,
             dispute_status:
               paymentsResponse.data?.cashfreeDispute[0]?.dispute_status || null,
@@ -5080,16 +5085,29 @@ export class ErpController {
                 ?.student_name || '',
             dispute_type:
               paymentsResponse.data?.cashfreeDispute[0]?.dispute_type || null,
-            dispute_created_date:new Date(
-              paymentsResponse.data?.cashfreeDispute[0]?.created_at) || null,
-            dispute_updated_date: new Date
-              (paymentsResponse.data?.cashfreeDispute[0]?.updated_at) || null,
-            dispute_respond_by_date : new Date(paymentsResponse.data?.cashfreeDispute[0]?.respond_by) || null,
-            dispute_remark:paymentsResponse.data?.cashfreeDispute[0]?.cf_dispute_remarks || null,
-            reason_description:paymentsResponse.data?.cashfreeDispute[0]?.reason_description || null,
-            dispute_amount:paymentsResponse.data?.cashfreeDispute[0]?.dispute_amount || null,
-            order_amount:paymentsResponse.data?.cashfreeDispute[0]?.order_details?.order_amount || null,
-            payment_amount:paymentsResponse.data?.cashfreeDispute[0]?.order_details?.payment_amount || null,
+            dispute_created_date:
+              new Date(paymentsResponse.data?.cashfreeDispute[0]?.created_at) ||
+              null,
+            dispute_updated_date:
+              new Date(paymentsResponse.data?.cashfreeDispute[0]?.updated_at) ||
+              null,
+            dispute_respond_by_date:
+              new Date(paymentsResponse.data?.cashfreeDispute[0]?.respond_by) ||
+              null,
+            dispute_remark:
+              paymentsResponse.data?.cashfreeDispute[0]?.cf_dispute_remarks ||
+              null,
+            reason_description:
+              paymentsResponse.data?.cashfreeDispute[0]?.reason_description ||
+              null,
+            dispute_amount:
+              paymentsResponse.data?.cashfreeDispute[0]?.dispute_amount || null,
+            order_amount:
+              paymentsResponse.data?.cashfreeDispute[0]?.order_details
+                ?.order_amount || null,
+            payment_amount:
+              paymentsResponse.data?.cashfreeDispute[0]?.order_details
+                ?.payment_amount || null,
             // dispute_status:paymentsResponse.data?.cashfreeDispute[0]?.dispute_status
           },
         },
@@ -5238,7 +5256,6 @@ export class ErpController {
         const pageConfig = {
           ...initConfig,
           url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report-csv/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
-
         };
 
         batch.push(await this.erpService.safeAxios(pageConfig));
@@ -5262,7 +5279,7 @@ export class ErpController {
           collect_id: new Types.ObjectId(item.collect_id),
         });
         if (comms === null) {
-          console.log("commision null" , item.collect_id)
+          console.log('commision null', item.collect_id);
           return {
             ...item,
             merchant_name:
