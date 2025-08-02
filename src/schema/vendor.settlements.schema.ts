@@ -75,6 +75,7 @@ export class VendorsSettlement extends Document {
   @Prop()
   @Field(() => Date)
   settlement_initiated_on: Date;
+
 }
 
 export const VendorsSettlementSchema =

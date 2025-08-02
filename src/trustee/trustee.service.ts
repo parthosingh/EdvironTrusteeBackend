@@ -24,6 +24,7 @@ import * as path from 'path';
 import * as csvWriter from 'csv-writer';
 import * as fs from 'fs';
 import * as handlebars from 'handlebars';
+import { format } from 'date-fns';
 import { TrusteeMember } from '../schema/partner.member.schema';
 import { EmailService } from '../email/email.service';
 import { TransactionInfo } from '../schema/transaction.info.schema';
@@ -52,6 +53,8 @@ import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service'
 import { ErrorLogs } from 'src/schema/error.log.schema';
 import { ReportsLogs } from 'src/schema/reports.logs.schmea';
 import { Parser } from 'json2csv';
+import e from 'express';
+import { url } from 'inspector';
 
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
@@ -3084,80 +3087,22 @@ export class TrusteeService {
     };
     try {
       const { data: transactions } = await axios.request(config);
-      const settlements_transactions = Array.isArray(
-        transactions?.settlements_transactions,
-      )
-        ? transactions.settlements_transactions
-        : [];
 
-      if (settlements_transactions.length === 0) {
-        console.warn('No settlement transactions found');
-      }
+      const settlements_transactions = transactions.settlements_transactions;
       const school = await this.trusteeSchoolModel.findOne({
         'razorpay.razorpay_id': razorpay_id,
       });
       let settlementTransactions = [];
       if (!school) throw new BadRequestException(`Could not find school `);
-
-      for (const transaction of settlements_transactions) {
-        const collect_id = transaction?.custom_order_id;
-        const trustee_id = school.trustee_id.toString();
-        const token = this.jwtService.sign(
-          { trustee_id, collect_id },
-          { secret: process.env.PAYMENTS_SERVICE_SECRET },
-        );
-        const config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/single-transaction-report`,
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
-          data: {
-            collect_id,
-            trustee_id,
-            token,
-          },
-        };
-        let Singletransaction;
-        try {
-          const { data: paymenttransaction } = await axios.request(config);
-          Singletransaction = paymenttransaction;
-        } catch (error) {
-          console.error('Error fetching single transaction:', error.message);
-        }
-        if (transaction.custom_order_id) {
-          let studentDetail;
-          if (Singletransaction && Singletransaction?.length > 0) {
-            studentDetail = JSON.parse(
-              Singletransaction[0]?.additional_data || '{}',
-            );
-          } else {
-            studentDetail = {
-              student_details: {
-                student_id: 'N/A',
-                student_name: 'N/A',
-                student_email: 'N/A',
-                student_phone_no: 'N/A',
-              },
-            };
-          }
-          transaction.student_id =
-            studentDetail?.student_details?.student_id || 'N/A';
-          transaction.student_name =
-            studentDetail?.student_details?.student_name || 'N/A';
-          transaction.student_email =
-            studentDetail?.student_details?.student_email || 'N/A';
-          transaction.student_phone_no =
-            studentDetail?.student_details?.student_phone_no || 'N/A';
+      settlements_transactions.forEach((transaction: any) => {
+        if (transaction?.order_id) {
           transaction.school_name = school.school_name;
-          transaction.school_id = school.school_id;
-          transaction.payment_id = transaction.entity_id;
-          transaction.additional_data = Singletransaction && Singletransaction[0].length > 0 ? Singletransaction[0]?.additional_data : '{}'
-            ;
         }
-      }
+      });
+      // console.log(transactions, 'datadagsjdgajk');
+
+      // console.log(settlements_transactions, 'settlements_transactions');
+
       return {
         limit: transactions.limit,
         cursor: transactions.cursor,
@@ -3251,6 +3196,7 @@ export class TrusteeService {
     school_id?: string,
     status?: string,
     gateway?: string,
+    report_id?: string,
   ) {
     try {
       if (!trustee_id || !start_date || !end_date) {
@@ -3263,15 +3209,6 @@ export class TrusteeService {
           $lte: new Date(end_date),
         },
       };
-      console.log({ start_date, end_date });
-
-      console.log(query, 'query for settlement report');
-
-      setTimeout(async () => {
-        console.log('waiting');
-
-        // Process settlements
-      }, 50000);
 
       if (school_id) {
         query.schoolId = new Types.ObjectId(school_id);
@@ -3279,7 +3216,28 @@ export class TrusteeService {
 
       const settlements = await this.settlementReportModel
         .find(query)
-        .sort({ settlementDate: -1 });
+        .sort({ settlementDate: -1 })
+        .lean(); // Add `.lean()` to get plain objects
+
+      // Format dates
+      const formattedData = settlements.map((item) => ({
+        ...item,
+        settlementDate: item.settlementDate
+          ? format(new Date(item.settlementDate), 'd/M/yyyy, h:mm:ss a')
+          : '',
+        createdAt: item.createdAt
+          ? format(new Date(item.createdAt), 'd/M/yyyy, h:mm:ss a')
+          : '',
+        settlementInitiatedOn: item.settlementInitiatedOn
+          ? format(new Date(item.settlementInitiatedOn), 'd/M/yyyy, h:mm:ss a')
+          : '',
+        fromDate: item.fromDate
+          ? format(new Date(item.fromDate), 'd/M/yyyy, h:mm:ss a')
+          : '',
+        tillDate: item.tillDate
+          ? format(new Date(item.tillDate), 'd/M/yyyy, h:mm:ss a')
+          : '',
+      }));
 
       const requiredFields = [
         '_id',
@@ -3297,9 +3255,96 @@ export class TrusteeService {
         'tillDate',
       ];
       const parser = new Parser({ fields: requiredFields });
-      const csv = parser.parse(settlements); // csv is a string
+      const csv = parser.parse(formattedData);
       const fileBuffer = Buffer.from(csv, 'utf-8');
       const fileKey = `reports/settlements-report-${Date.now()}.csv`;
+
+      const s3Url = await this.awsS3Service.uploadToS3(
+        fileBuffer,
+        fileKey,
+        'text/csv',
+        process.env.REPORT_BUCKET || 'edviron-reports',
+      );
+      await this.ReportsLogsModel.updateOne(
+        { _id: report_id },
+        { status: 'COMPLETED', url: s3Url },
+      );
+      return s3Url;
+    } catch (e) {
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
+
+  async generateSettlementVendor(
+    trustee_id: string,
+    start_date: string,
+    end_date: string,
+    school_id?: string,
+    status?: string,
+    gateway?: string,
+  ) {
+    try {
+      if (!trustee_id || !start_date || !end_date) {
+        throw new BadRequestException('Missing required parameters');
+      }
+
+      let query: any = {
+        trustee: new Types.ObjectId(trustee_id),
+        settlementDate: {
+          $gte: new Date(start_date),
+          $lte: new Date(end_date),
+        },
+      };
+
+      if (school_id) {
+        query.schoolId = new Types.ObjectId(school_id);
+      }
+
+      const settlements = await this.vendorsSettlementModel
+        .find(query)
+        .sort({ settlementDate: -1 })
+        .lean(); // Add `.lean()` to get plain objects
+
+      // Format dates
+      const formattedData = settlements.map((item) => ({
+        ...item,
+        settled_on: item.settled_on
+          ? format(new Date(item.settled_on), 'd/M/yyyy, h:mm:ss a')
+          : '',
+        settlement_initiated_on: item.settlement_initiated_on
+          ? format(
+              new Date(item.settlement_initiated_on),
+              'd/M/yyyy, h:mm:ss a',
+            )
+          : '',
+        payment_from: item.payment_from
+          ? format(new Date(item.payment_from), 'd/M/yyyy, h:mm:ss a')
+          : '',
+        payment_till: item.payment_till
+          ? format(new Date(item.payment_till), 'd/M/yyyy, h:mm:ss a')
+          : '',
+      }));
+
+      const requiredFields = [
+        '_id',
+        'utrNumber',
+        'adjustment',
+        'createdAt',
+        'payment_from',
+        'netSettlementAmount',
+        'remarks',
+        'schoolId',
+        'settlementAmount',
+        'settled_on',
+        'settlement_initiated_on',
+        'status',
+        'payment_till',
+      ];
+      const parser = new Parser({ fields: requiredFields });
+      const csv = parser.parse(formattedData);
+      const fileBuffer = Buffer.from(csv, 'utf-8');
+      const fileKey = `reports/settlements-report-${Date.now()}.csv`;
+
       const s3Url = await this.awsS3Service.uploadToS3(
         fileBuffer,
         fileKey,
@@ -3331,6 +3376,8 @@ export class TrusteeService {
         status: 'PENDING',
       });
       setImmediate(async () => {
+        console.log("tets");
+        
         try {
           if (type === 'SETTLEMENT_REPORT') {
             const data = await this.generateSettlementReport(
@@ -3338,12 +3385,20 @@ export class TrusteeService {
               start_date,
               end_date,
               school_id,
+              report._id.toString(),
             );
 
-            await this.ReportsLogsModel.updateOne(
-              { _id: report._id },
-              { status: 'COMPLETED', url: data },
-            );
+           
+          } else if (type === 'SETTLEMENT_RECON') {
+            console.log('recon');
+            
+            await this.generateSettlementRecon(
+              trustee_id,
+              start_date,
+              end_date,
+              report._id.toString(),
+              school_id,
+            )
           }
         } catch (err) {
           await this.ReportsLogsModel.updateOne(
@@ -3409,6 +3464,68 @@ export class TrusteeService {
       };
     } catch (e) {
       console.error(e);
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
+
+  async generateSettlementRecon(
+    trustee_id: string,
+    start_date: string,
+    end_date: string,
+    report_id: string,
+    school_id?: string,
+  ) {
+    try {
+      let query: any = {
+        trustee: new Types.ObjectId(trustee_id),
+        clientId: { $exists: true },
+        settlementDate: {
+          $gte: new Date(start_date),
+          $lte: new Date(end_date),
+        },
+      };
+      if (school_id) {
+        query.schoolId = new Types.ObjectId(school_id);
+      }
+
+      const settlements = await this.settlementReportModel.aggregate([
+        { $match: query },
+        {
+          $lookup: {
+            from: 'trusteeschools',
+            localField: 'schoolId',
+            foreignField: 'school_id',
+            as: 'schoolInfo',
+          },
+        },
+        {
+          $unwind: {
+            path: '$schoolInfo',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            utr: '$utrNumber',
+            school_name: '$schoolInfo.school_name',
+            client_id: '$schoolInfo.client_id',
+          },
+        },
+      ]);
+
+      const config = {
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/reports/settlements-transactions`,
+        method: 'post',
+        headers: {
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: { utrs: settlements,report_id },
+      };
+      await axios.request(config);
+      return 'report generated successfully';
+    } catch (e) {
       throw new BadRequestException(e.message || 'Something went wrong');
     }
   }

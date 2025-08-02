@@ -29,6 +29,7 @@ import { Invoice, invoice_status } from '../schema/invoice.schema';
 import { Args } from '@nestjs/graphql';
 import { EmailService } from '../email/email.service';
 import { sendQueryErrortemplate } from '../email/templates/error.template';
+import { ReportsLogs } from 'src/schema/reports.logs.schmea';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -46,6 +47,8 @@ export class MainBackendController {
     private refundRequestModel: mongoose.Model<RefundRequest>,
     @InjectModel(Invoice.name)
     private readonly invoiceModel: mongoose.Model<Invoice>,
+    @InjectModel(ReportsLogs.name)
+    private readonly reportsLogsModel: mongoose.Model<ReportsLogs>,
     private readonly emailService: EmailService,
   ) {}
 
@@ -1097,5 +1100,39 @@ export class MainBackendController {
       { secret: secretKey },
     );
     return token;
+  }
+
+  @Post('/update-report')
+  async updateReport(
+    @Body() body: { report_id: string; status: string; url?: string },
+  ) {
+    try {
+      const { report_id, status, url } = body;
+      await this.reportsLogsModel.updateOne(
+        { _id: new Types.ObjectId(report_id) },
+        { status, url },
+      );
+      return { message: 'Report updated successfully' };
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @Get('/get-report')
+  async getReport(@Req() req: any) {
+    const { 
+      school_id,
+      trustee_id,
+      start_date,
+      end_date
+     } = req.query;
+
+     return await this.trusteeService.generateSettlementRecon(
+       trustee_id,
+       start_date,
+       end_date,
+       school_id,
+     )
+    
   }
 }
