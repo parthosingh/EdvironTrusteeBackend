@@ -3168,6 +3168,8 @@ export class TrusteeResolver {
     @Context() context: any,
     @Args('startDate', { type: () => String, nullable: true })
     startDate: string,
+    @Args('name', { type: () => String, nullable: true })
+    name: string,
     @Args('endDate', { type: () => String, nullable: true }) endDate: string,
     @Args('type', { type: () => String, nullable: true }) type: string,
     @Args('school_id', { type: () => String, nullable: true })
@@ -3188,7 +3190,7 @@ export class TrusteeResolver {
         startDate,
         endDate,
         context.req.trustee,
-        school_id,
+        school_id
       );
       return 'Report generation initiated successfully';
     } catch (e) {
