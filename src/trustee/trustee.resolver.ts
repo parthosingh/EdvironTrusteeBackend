@@ -3190,7 +3190,8 @@ export class TrusteeResolver {
         startDate,
         endDate,
         context.req.trustee,
-        school_id
+        school_id,
+        name
       );
       return 'Report generation initiated successfully';
     } catch (e) {

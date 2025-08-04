@@ -3194,9 +3194,8 @@ export class TrusteeService {
     start_date: string,
     end_date: string,
     school_id?: string,
-    status?: string,
-    gateway?: string,
     report_id?: string,
+    name?: string,
   ) {
     try {
       if (!trustee_id || !start_date || !end_date) {
@@ -3257,7 +3256,8 @@ export class TrusteeService {
       const parser = new Parser({ fields: requiredFields });
       const csv = parser.parse(formattedData);
       const fileBuffer = Buffer.from(csv, 'utf-8');
-      const fileKey = `reports/settlements-report-${Date.now()}.csv`;
+      let fileKey = `reports/settlements-report-${Date.now()}.csv`;
+      if(name && report_id){fileKey = `${name}-${Date.now()}-${report_id}.csv`; }
 
       const s3Url = await this.awsS3Service.uploadToS3(
         fileBuffer,
@@ -3281,17 +3281,23 @@ export class TrusteeService {
     end_date: string,
     school_id?: string,
     report_id?: string,
+    name?: string,
     status?: string,
     gateway?: string,
   ) {
     try {
+      console.log(name);
+      console.log(report_id);
+      console.log(status);
+      console.log(gateway);
+
       if (!trustee_id || !start_date || !end_date) {
         throw new BadRequestException('Missing required parameters');
       }
 
       let query: any = {
-        trustee: new Types.ObjectId(trustee_id),
-        settlementDate: {
+        trustee_id: new Types.ObjectId(trustee_id),
+        settled_on: {
           $gte: new Date(start_date),
           $lte: new Date(end_date),
         },
@@ -3300,10 +3306,10 @@ export class TrusteeService {
       if (school_id) {
         query.schoolId = new Types.ObjectId(school_id);
       }
-
+  
       const settlements = await this.vendorsSettlementModel
         .find(query)
-        .sort({ settlementDate: -1 })
+        .sort({ settled_on: -1 })
         .lean(); // Add `.lean()` to get plain objects
 
       // Format dates
@@ -3326,6 +3332,9 @@ export class TrusteeService {
           : '',
       }));
 
+     
+      
+
       const requiredFields = [
         '_id',
         'utrNumber',
@@ -3344,12 +3353,17 @@ export class TrusteeService {
       const parser = new Parser({ fields: requiredFields });
       const csv = parser.parse(formattedData);
       const fileBuffer = Buffer.from(csv, 'utf-8');
-      const fileKey = `reports/settlements-report-${Date.now()}.csv`;
+      let fileKey = `reports/settlements-report-${Date.now()}.csv`;
+      if(name && report_id){
+        console.log('report_id', report_id);
+        
+        fileKey = `${name}-${Date.now()}-${report_id}.csv`;
+      }
 
       const s3Url = await this.awsS3Service.uploadToS3(
         fileBuffer,
         fileKey,
-        'text/csv',
+        'text/csv', 
         process.env.REPORT_BUCKET || 'edviron-reports',
       );
 
@@ -3369,6 +3383,7 @@ export class TrusteeService {
     end_date: string,
     trustee_id: string,
     school_id?: string,
+    name?: string,
   ) {
     try {
       console.log({ trustee_id });
@@ -3392,6 +3407,7 @@ export class TrusteeService {
               end_date,
               school_id,
               report._id.toString(),
+              name,
             );
           }else if (type === 'SETTLEMENT_VENDOR') {
             await this.generateSettlementVendor(
@@ -3400,6 +3416,7 @@ export class TrusteeService {
               end_date,
               school_id,
               report._id.toString(),
+              name
             )
           }
           
@@ -3412,6 +3429,7 @@ export class TrusteeService {
               end_date,
               report._id.toString(),
               school_id,
+              name
             );
           }
         } catch (err) {
@@ -3488,6 +3506,7 @@ export class TrusteeService {
     end_date: string,
     report_id: string,
     school_id?: string,
+    name?: string,
   ) {
     try {
       let query: any = {
