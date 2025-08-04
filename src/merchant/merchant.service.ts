@@ -48,9 +48,13 @@ export class MerchantService {
     try {
       const lowerCaseEmail = email.toLowerCase();
       var res = false;
+      console.log('Login attempt for email:', lowerCaseEmail);
+      
       const merchant = await this.trusteeSchoolModel.findOne({
         email: lowerCaseEmail,
       });
+      console.log(merchant);
+      
       var email_id = merchant?.email;
       var passwordMatch;
 
