@@ -147,6 +147,55 @@ export class MerchantService {
     }
   }
 
+  async loginNonOtpMerchant(email:string,passwordHash:string){
+    try {
+      const lowerCaseEmail = email.toLowerCase();
+      var res = false;
+      console.log('Login attempt for email:', lowerCaseEmail);
+       let payload;
+      const merchant = await this.trusteeSchoolModel.findOne({
+        email: lowerCaseEmail,
+      });
+      console.log(merchant);
+
+      var email_id = merchant?.email;
+      var passwordMatch;
+
+      if (merchant) {
+        passwordMatch = await bcrypt.compare(
+          passwordHash,
+          merchant.password_hash,
+        );
+        payload = {
+          id: merchant._id,
+        };
+      } else {
+        const member = await this.merchantMemberModel.findOne({ email: email });
+        if(!member) throw new NotFoundException('merchant not found');
+        email_id = member.email;
+        passwordMatch = await bcrypt.compare(
+          passwordHash,
+          member.password_hash,
+        );
+         payload = {
+          id: member._id,
+        };
+      }
+      if (!passwordMatch) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      const token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET_FOR_MERCHANT_AUTH,
+      });
+
+      return token;
+    } catch (error) {
+      console.log(error);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+  }
+
   async validateMerchant(token: string): Promise<any> {
     try {
       if (!token) return;
@@ -517,38 +566,4 @@ export class MerchantService {
   }
 }
 
-const Y = {
-  status: '1',
-  data: {
-    hash: '9eb26b4b43eb1786d2b5d82bef4f48770e8605311631627eb04aee7f893ff83915e1ea197445b28601a3c291c2fc2568084bff60d1e1ea6e32c3f89fb3bc0e34',
-    paid_out: 1,
-    bank_name: 'State Bank of India',
-    ifsc_code: 'SBIN0070356',
-    payout_id: 'PTJXN9OB58',
-    payout_date: '2025-08-04 11:06:39.783583',
-    name_on_bank: 'CHINMAYA EDUCATIONCAL CULTURAL AND CHARIT',
-    total_amount: 6005.9,
-    payout_amount: 6000.0,
-    refund_amount: 0.0,
-    split_payouts: [],
-    account_number: '57053135592',
-    service_tax_amount: 0.9,
-    bank_transaction_id: 'YESB52169303104',
-    refund_transactions: [],
-    submerchant_payouts: [],
-    settled_transactions: [
-      {
-        txnid: '688f2546f5e7074a027d969e',
-        easepayid: 'E2508030K9L3J7',
-        service_tax: 0.9,
-        service_charge: 5.0,
-        submerchant_id: null,
-        transaction_type: 'UPI',
-        settlement_amount: 6000.0,
-        split_transactions: null,
-        transaction_amount: 6005.9,
-      },
-    ],
-    service_charge_amount: 5.0,
-  },
-};
+

@@ -124,6 +124,20 @@ export class MerchantResolver {
     }
   }
 
+  @Mutation(()=>String)
+  async loginMerchant(
+    @Args('email') email: string,
+    @Args('password') password: string,
+  ): Promise<string> {
+    try {
+      console.log("pp");
+      
+      return await this.merchantService.loginNonOtpMerchant(email, password);
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
   @Mutation(() => String)
   async validateMerchantLoginOtp(
     @Args('otp') otp: string,
