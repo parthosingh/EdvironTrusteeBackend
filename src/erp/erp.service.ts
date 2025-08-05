@@ -555,18 +555,19 @@ export class ErpService {
 
     console.log('running cron for Easebuzz', settlementDate);
     //merchant_key|merchant_email|payout_date|salt
-    const merchants = await this.trusteeSchoolModel.find({});
+    const merchants = await this.trusteeSchoolModel.find({isEasebuzzNonPartner: true});
   
     
     merchants
-    .filter((m) => m.easebuzz_id)
     .map(async (merchant) => {
-      if (!merchant.easebuzz_id) return;
+      if (!merchant.isEasebuzzNonPartner) return;
       console.log(
         `Getting easebuzz settlement Report for  ${merchant.school_name}(${merchant.easebuzz_id}`,
       );
-      if(merchant.easebuzz_non_partner){
-      const hashBody = `${process.env.EASEBUZZ_KEY}|${process.env.EASEBUZZ_MERCHANT_EMAIL}|${formattedDateString}|${process.env.EASEBUZZ_SALT}`;
+      if(merchant.isEasebuzzNonPartner){
+        console.log("check");
+        
+      const hashBody = `${merchant.easebuzz_non_partner.easebuzz_key}||${formattedDateString}|${merchant.easebuzz_non_partner.easebuzz_salt}`;
       const hash = await this.calculateSHA512Hash(hashBody);
 
         const start = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
@@ -584,11 +585,11 @@ export class ErpService {
         const qs = require('qs');
 
         const data = qs.stringify({
-          merchant_email: process.env.EASEBUZZ_MERCHANT_EMAIL,
-          merchant_key: process.env.EASEBUZZ_KEY,
+          // merchant_email: process.env.EASEBUZZ_MERCHANT_EMAIL,
+          merchant_key: merchant.easebuzz_non_partner.easebuzz_key,
           hash: hash,
           payout_date: formattedDateString,
-          submerchant_id: merchant.easebuzz_id,
+          // submerchant_id: merchant.easebuzz_id,
         });
 
         //easebuzz prod url https://dashboard.easebuzz.in
@@ -603,7 +604,7 @@ export class ErpService {
         };
         try {
           const response = await axios.request(config);
-          console.log(response.data.payouts_history_data, 'data');
+          // console.log(response.data.payouts_history_data, 'data',merchant.school_id);
           if (
             !response?.data?.payouts_history_data ||
             response?.data?.payouts_history_data?.length === 0
@@ -614,7 +615,7 @@ export class ErpService {
             return;
           }
           response.data.payouts_history_data.map(async (data: any) => {
-            console.log('saving....', data);
+            console.log('saving.... for' + merchant.school_name);
             const easebuzzDate = new Date(data.payout_actual_date);
             const existingSettlement = await this.settlementReportModel.findOne(
               {
@@ -765,9 +766,13 @@ export class ErpService {
           console.log(e.message);
         }
       } else {
+        console.log('else');
+        
         return
       }
       });
+
+      return true
   }
 
   async calculateSHA512Hash(data: any) {

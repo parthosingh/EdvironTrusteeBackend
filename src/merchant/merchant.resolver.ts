@@ -130,8 +130,6 @@ export class MerchantResolver {
     @Args('password') password: string,
   ): Promise<string> {
     try {
-      console.log("pp");
-      
       return await this.merchantService.loginNonOtpMerchant(email, password);
     } catch (error) {
       throw new Error(error.message);

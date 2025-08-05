@@ -23,11 +23,11 @@ export class SettlementReport {
   @Field(() => Date)
   fromDate: Date;
 
-  @Prop({ required: true, type: Date })
+  @Prop({  type: Date })
   @Field(() => Date)
   createdAt: Date;
 
-  @Prop({ required: true, type: Date })
+  @Prop({  type: Date })
   @Field(() => Date)
   updatedAt: Date;
 
