@@ -3459,7 +3459,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2025-01-27T23:59:59.695Z');
+    const settlementDate = new Date('2025-08-04T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
 
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
@@ -3471,8 +3471,8 @@ export class ErpController {
     // const formattedDateString = `${day}-${month}-${year}`; //eazebuzz accepts date in DD-MM-YYYY formal seprated with - like '19-07-2024'
 
     // return formattedDateString
-    // const data = await this.erpService.easebuzzSettlements(date);
-    await this.erpService.sendSettlements(date);
+    const data = await this.erpService.easebuzzSettlements(date);
+    // await this.erpService.sendSettlements(date);
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')

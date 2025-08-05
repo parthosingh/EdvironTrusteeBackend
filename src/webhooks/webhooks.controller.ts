@@ -7,6 +7,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Post,
+  Req,
   Res,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -400,8 +401,80 @@ export class WebhooksController {
   }
 
   @Post('easebuzz/settlements')
-  async eassebuzzSettlements(@Body() body: any, @Res() res: any) {
+  async eassebuzzSettlements(
+    @Body() body: any,
+    @Res() res: any,
+    @Req() req: any,
+  ) {
     try {
+      if (req.query.school_id) {
+        const details = JSON.stringify(body);
+        await new this.webhooksLogsModel({
+          type: 'SETTLEMENTS',
+          gateway: 'EASEBUZZ',
+          // type_id:body.data.hash,
+          body: details,
+          status: 'SUCCESS',
+        }).save();
+        const info = body.data;
+        const data = JSON.parse(info);
+        const schoolId = req.query.school_id;
+        const school = await this.TrusteeSchoolmodel.findOne({
+          school_id: new Types.ObjectId(schoolId),
+        });
+        if (!school) {
+          throw new NotFoundException(`School not found for ID: ${schoolId}`);
+        }
+
+        let utr = data.bank_transaction_id;
+        const easebuzzDate = new Date(data.payout_date);
+        if (data.bank_transaction_id === 'SPLIT') {
+          const matchingSplit = data.split_payouts.find(
+            (split: any) => split.account_number === data.account_number,
+          );
+
+          if (matchingSplit) {
+            utr = matchingSplit.bank_transaction_id;
+            console.log('Updated bank_transaction_id:', utr);
+          } else {
+            console.log(
+              'No matching split_payout found for account_number:',
+              data.account_number,
+            );
+          }
+        }
+        const saveSettlements =
+          await this.SettlementReportModel.findOneAndUpdate(
+            { utrNumber: utr },
+            {
+              $set: {
+                settlementAmount: data.payout_amount + data.refund_amount,
+                adjustment: data.refund_amount,
+                netSettlementAmount: data.payout_amount,
+                fromDate: new Date(
+                  easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                ),
+                tillDate: new Date(
+                  easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                ),
+                settlementInitiatedOn: new Date(data.payout_date),
+                status: 'SUCCESS',
+                utrNumber: utr,
+                settlementDate: new Date(data.payout_date),
+                clientId: data.submerchant_id || 'NA',
+                trustee: school.trustee_id,
+                schoolId: school.school_id,
+                remarks: 'NA',
+              },
+            },
+            {
+              upsert: true,
+              new: true,
+            },
+          );
+
+       return res.status(200).send('OK');
+      }
       const details = JSON.stringify(body);
       await new this.webhooksLogsModel({
         type: 'SETTLEMENTS',

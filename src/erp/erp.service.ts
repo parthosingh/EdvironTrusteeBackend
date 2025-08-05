@@ -556,17 +556,18 @@ export class ErpService {
     console.log('running cron for Easebuzz', settlementDate);
     //merchant_key|merchant_email|payout_date|salt
     const merchants = await this.trusteeSchoolModel.find({});
-    const hashBody = `${process.env.EASEBUZZ_KEY}|${process.env.EASEBUZZ_MERCHANT_EMAIL}|${formattedDateString}|${process.env.EASEBUZZ_SALT}`;
-    const hash = await this.calculateSHA512Hash(hashBody);
-    console.log(hash);
-
+  
+    
     merchants
-      .filter((m) => m.easebuzz_id)
-      .map(async (merchant) => {
-        if (!merchant.easebuzz_id) return;
-        console.log(
-          `Getting easebuzz settlement Report for  ${merchant.school_name}(${merchant.easebuzz_id}`,
-        );
+    .filter((m) => m.easebuzz_id)
+    .map(async (merchant) => {
+      if (!merchant.easebuzz_id) return;
+      console.log(
+        `Getting easebuzz settlement Report for  ${merchant.school_name}(${merchant.easebuzz_id}`,
+      );
+      if(merchant.easebuzz_non_partner){
+      const hashBody = `${process.env.EASEBUZZ_KEY}|${process.env.EASEBUZZ_MERCHANT_EMAIL}|${formattedDateString}|${process.env.EASEBUZZ_SALT}`;
+      const hash = await this.calculateSHA512Hash(hashBody);
 
         const start = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
         console.log(start, 'start');
@@ -763,6 +764,9 @@ export class ErpService {
           console.log(e);
           console.log(e.message);
         }
+      } else {
+        return
+      }
       });
   }
 
