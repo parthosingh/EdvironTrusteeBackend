@@ -2016,53 +2016,64 @@ export class TrusteeService {
     custom_id?: string,
     order_id?: string,
   ) {
-    const token = this.jwtService.sign(
-      { validate_trustee: trustee_id },
-      { secret: process.env.PAYMENTS_SERVICE_SECRET },
-    );
+    try {
+      const token = this.jwtService.sign(
+        { validate_trustee: trustee_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
 
-    const data = {
-      trustee_id: trustee_id,
-      token: token,
-      page: page,
-      limit: limit,
-      status: status,
-      vendor_id: vendor_id,
-      school_id: school_id,
-      start_date: start_date,
-      end_date: end_date,
-      custom_id: custom_id,
-      collect_id: order_id,
-    };
-    const config = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&trustee_id=${trustee_id}&page=${page}&limit=${limit}`,
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-      },
-      data: data,
-    };
-    const { data: transactions } = await axios.request(config);
-    // console.log(transactions, "transactions");
+      const data = {
+        trustee_id: trustee_id,
+        token: token,
+        page: page,
+        limit: limit,
+        status: status,
+        vendor_id: vendor_id,
+        school_id: school_id,
+        start_date: start_date,
+        end_date: end_date,
+        custom_id: custom_id,
+        collect_id: order_id,
+      };
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&trustee_id=${trustee_id}&page=${page}&limit=${limit}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: data,
+      };
+      const { data: transactions } = await axios.request(config);
+      // console.log(transactions, "transactions");
 
-    const updatedTransactions = await Promise.all(
-      transactions.vendorsTransaction.map(async (transaction) => {
-        if (!transaction.school_id)
-          return { ...transaction, schoolName: 'Unknown School' }; // Agar schoolId nahi hai
+      const updatedTransactions = await Promise.all(
+        transactions.vendorsTransaction.map(async (transaction) => {
+          if (!transaction.school_id)
+            return { ...transaction, schoolName: 'Unknown School' }; // Agar schoolId nahi hai
 
-        const school = await this.trusteeSchoolModel.findOne({
-          school_id: new Types.ObjectId(transaction.school_id),
-        });
-        return {
-          ...transaction,
-          schoolName: school ? school.school_name : 'N/A',
-        };
-      }),
-    );
-    transactions.vendorsTransaction = updatedTransactions;
-    return transactions;
+          const school = await this.trusteeSchoolModel.findOne({
+            school_id: new Types.ObjectId(transaction.school_id),
+          });
+          return {
+            ...transaction,
+            schoolName: school ? school.school_name : 'N/A',
+          };
+        }),
+      );
+      transactions.vendorsTransaction = updatedTransactions;
+      return transactions;
+    } catch (error) {
+      if (error.response) {
+        // Received error from downstream service
+        throw new BadRequestException(
+          error.response.data.message || error.response.data,
+        );
+      } else {
+        throw new BadRequestException(error.message);
+      }
+    }
   }
 
   async getMerchantVendorTransactions(

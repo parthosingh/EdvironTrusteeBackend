@@ -2294,12 +2294,94 @@ export class TrusteeResolver {
   }
 
   @UseGuards(TrusteeGuard)
-  @Query(() => [RefundRequestRes])
-  async getTrusteeRefundRequest(@Context() context: any) {
+  @Query(() => RefundRequestRes)
+  async getTrusteeRefundRequest(
+    @Context() context: any,
+    @Args('page', { nullable: true, defaultValue: 1 }) page?: number,
+    @Args('limit', { nullable: true, defaultValue: 10 }) limit?: number,
+    @Args('searchQuery', { nullable: true, defaultValue: null })
+    searchQuery?: string,
+    @Args('status', { nullable: true, defaultValue: null }) status?: string,
+    @Args('school_id', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    school_id?: string[],
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate?: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate?: string,
+  ) {
     try {
       // return await this.refundRequestModel.find({trustee_id: context.req.trustee})
+      const pageNumber = page || 1;
+      const pageSize = limit || 10;
+      const skip = (pageNumber - 1) * pageSize;
+      let searchFilter: any = {
+        trustee_id: context.req.trustee,
+        ...(searchQuery
+          ? Types.ObjectId.isValid(searchQuery)
+            ? {
+                $or: [
+                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                  { _id: new mongoose.Types.ObjectId(searchQuery) },
+                ],
+              }
+            : {
+                $or: [
+                  { status: { $regex: searchQuery, $options: 'i' } },
+                  { reason: { $regex: searchQuery, $options: 'i' } },
+                  { custom_id: { $regex: searchQuery, $options: 'i' } },
+                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
+          : {}),
+      };
+
+      if (!searchQuery && startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        searchFilter = {
+          ...searchFilter,
+          createdAt: {
+            $gte: start,
+            $lte: end,
+          },
+        };
+      }
+
+      if (status) {
+        searchFilter = {
+          ...searchFilter,
+          status: { $regex: status, $options: 'i' },
+        };
+      }
+      if (school_id && school_id.length > 0) {
+        searchFilter = {
+          ...searchFilter,
+          school_id: { $in: school_id },
+        };
+      }
+      const countAggregation = await this.refundRequestModel.aggregate([
+        { $match: searchFilter },
+        {
+          $lookup: {
+            from: 'trusteeschools',
+            localField: 'school_id',
+            foreignField: '_id',
+            as: 'result',
+          },
+        },
+        { $unwind: '$result' },
+        { $count: 'total' },
+      ]);
+      const totalItems = countAggregation[0]?.total || 0;
+      const totalPages = Math.ceil(totalItems / pageSize);
+
       const refunds = await this.refundRequestModel.aggregate([
-        { $match: { trustee_id: context.req.trustee } },
+        { $match: searchFilter },
         {
           $lookup: {
             from: 'trusteeschools',
@@ -2331,9 +2413,20 @@ export class TrusteeResolver {
         {
           $sort: { createdAt: -1 },
         },
+        {
+          $skip: skip,
+        },
+        {
+          $limit: pageSize,
+        },
       ]);
-
-      return refunds;
+      // console.log(refunds, 'refunds');
+      return {
+        refund: Array.isArray(refunds) ? refunds : [],
+        currentPage: pageNumber,
+        totalPages: totalPages,
+        totalItems: totalItems,
+      };
     } catch (e) {
       console.error(e);
       throw new BadRequestException('Error fetching refund requests');
@@ -2489,20 +2582,24 @@ export class TrusteeResolver {
     @Args('order_id', { type: () => String, nullable: true })
     order_id?: string,
   ) {
-    const trustee_id = context.req.trustee;
-    const transactions = this.trusteeService.getAllVendorTransactions(
-      trustee_id.toString(),
-      page,
-      limit,
-      status,
-      vendor_id,
-      school_id,
-      startDate,
-      endDate,
-      custom_id,
-      order_id,
-    );
-    return transactions;
+    try {
+      const trustee_id = context.req.trustee;
+      const transactions = this.trusteeService.getAllVendorTransactions(
+        trustee_id.toString(),
+        page,
+        limit,
+        status,
+        vendor_id,
+        school_id,
+        startDate,
+        endDate,
+        custom_id,
+        order_id,
+      );
+      return transactions;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @UseGuards(TrusteeGuard)
@@ -3796,7 +3893,7 @@ export class VendorsPaginationResponse {
 }
 
 @ObjectType()
-class RefundRequestRes {
+class refundRequest {
   @Field({ nullable: true })
   _id: string;
 
@@ -3835,6 +3932,20 @@ class RefundRequestRes {
 
   @Field({ nullable: true })
   reason: string;
+}
+@ObjectType()
+class RefundRequestRes {
+  @Field(() => [refundRequest], { nullable: true })
+  refund: refundRequest[];
+
+  @Field({ nullable: true })
+  currentPage: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
+
+  @Field({ nullable: true })
+  totalItems: number;
 }
 
 @ObjectType()
