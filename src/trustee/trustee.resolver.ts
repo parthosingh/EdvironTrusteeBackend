@@ -2359,9 +2359,19 @@ export class TrusteeResolver {
         };
       }
       if (school_id && school_id.length > 0) {
+        const schoolIds = school_id.map((e) => new Types.ObjectId(e));
+        const matchedSchools = await Promise.all(
+          schoolIds.map((id) =>
+            this.trusteeSchoolModel.findOne({ school_id: id }, { _id: 1 }),
+          ),
+        );
+        const schoolObjectIds = matchedSchools
+          .filter(Boolean) 
+          .map((school) => school._id);
+
         searchFilter = {
           ...searchFilter,
-          school_id: { $in: school_id },
+          school_id: { $in: schoolObjectIds },
         };
       }
       const countAggregation = await this.refundRequestModel.aggregate([
