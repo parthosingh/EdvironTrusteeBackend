@@ -1999,7 +1999,7 @@ export class TrusteeService {
     };
 
     const { data: transactions } = await axios.request(config);
-    console.log(transactions);
+    console.log(transactions, "transactions");
 
     return transactions;
   }
@@ -2010,18 +2010,19 @@ export class TrusteeService {
     limit: number,
     status?: string,
     vendor_id?: string,
-    school_id?: string,
+    school_id?: string[],
     start_date?: string,
     end_date?: string,
     custom_id?: string,
     order_id?: string,
+    payment_modes?: string[],
+    gateway?: string[],
   ) {
     try {
       const token = this.jwtService.sign(
         { validate_trustee: trustee_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
-
       const data = {
         trustee_id: trustee_id,
         token: token,
@@ -2034,6 +2035,8 @@ export class TrusteeService {
         end_date: end_date,
         custom_id: custom_id,
         collect_id: order_id,
+        payment_modes: payment_modes,
+        gateway: gateway,
       };
       const config = {
         method: 'post',

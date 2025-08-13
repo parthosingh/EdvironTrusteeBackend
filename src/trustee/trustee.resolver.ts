@@ -2585,16 +2585,29 @@ export class TrusteeResolver {
     @Args('status', { type: () => String, nullable: true }) status?: string,
     @Args('vendor_id', { type: () => String, nullable: true })
     vendor_id?: string,
-    @Args('school_id', { type: () => String, nullable: true })
-    school_id?: string,
+    @Args('school_id', { type: () => [String], nullable: true, defaultValue: null })
+    school_id?: string[],
     @Args('custom_id', { type: () => String, nullable: true })
     custom_id?: string,
     @Args('order_id', { type: () => String, nullable: true })
     order_id?: string,
+    @Args('payment_modes', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    payment_modes?: string[],
+    @Args('gateway', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    gateway?: string[],
   ) {
     try {
-      const trustee_id = context.req.trustee;
-      const transactions = this.trusteeService.getAllVendorTransactions(
+      console.log(order_id, "school_id")
+       const trustee_id = context.req.trustee;
+      return this.trusteeService.getAllVendorTransactions(
         trustee_id.toString(),
         page,
         limit,
@@ -2605,11 +2618,13 @@ export class TrusteeResolver {
         endDate,
         custom_id,
         order_id,
+        payment_modes,
+        gateway
       );
-      return transactions;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
+
   }
 
   @UseGuards(TrusteeGuard)
@@ -3837,6 +3852,7 @@ export class VendorTransaction {
 
   @Field({ nullable: true })
   schoolName: string;
+
 }
 
 @ObjectType()
