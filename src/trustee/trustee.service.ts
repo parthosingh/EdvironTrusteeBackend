@@ -2090,54 +2090,69 @@ export class TrusteeService {
     end_date?: string,
     custom_id?: string,
     order_id?: string,
+    payment_modes?: string[],
+    gateway?: string[],
   ) {
-    const token = this.jwtService.sign(
-      { validate_trustee: trustee_id },
-      { secret: process.env.PAYMENTS_SERVICE_SECRET },
-    );
+    try {
+      const token = this.jwtService.sign(
+        { validate_trustee: trustee_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
 
-    const data = {
-      trustee_id: trustee_id,
-      token: token,
-      page: page,
-      limit: limit,
-      status: status,
-      vendor_id: vendor_id,
-      school_id: school_id,
-      start_date: start_date,
-      end_date: end_date,
-      custom_id: custom_id,
-      collect_id: order_id,
-    };
-    const config = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&school_id=${school_id}&page=${page}&limit=${limit}`,
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-      },
-      data: data,
-    };
+      const data = {
+        trustee_id: trustee_id,
+        token: token,
+        page: page,
+        limit: limit,
+        status: status,
+        vendor_id: vendor_id,
+        school_id: [school_id],
+        start_date: start_date,
+        end_date: end_date,
+        custom_id: custom_id,
+        collect_id: order_id,
+        payment_modes: payment_modes,
+        gateway: gateway,
+      };
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&school_id=${school_id}&page=${page}&limit=${limit}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: data,
+      };
 
-    const { data: transactions } = await axios.request(config);
-    // console.log(transactions);
-    const updatedTransactions = await Promise.all(
-      transactions.vendorsTransaction.map(async (transaction) => {
-        if (!transaction.school_id)
-          return { ...transaction, schoolName: 'Unknown School' };
+      const { data: transactions } = await axios.request(config);
+      // console.log(transactions);
+      const updatedTransactions = await Promise.all(
+        transactions.vendorsTransaction.map(async (transaction) => {
+          if (!transaction.school_id)
+            return { ...transaction, schoolName: 'Unknown School' };
 
-        const school = await this.trusteeSchoolModel.findOne({
-          school_id: new Types.ObjectId(transaction.school_id),
-        });
-        return {
-          ...transaction,
-          schoolName: school ? school.school_name : 'N/A',
-        };
-      }),
-    );
-    transactions.vendorsTransaction = updatedTransactions;
-    return transactions;
+          const school = await this.trusteeSchoolModel.findOne({
+            school_id: new Types.ObjectId(transaction.school_id),
+          });
+          return {
+            ...transaction,
+            schoolName: school ? school.school_name : 'N/A',
+          };
+        }),
+      );
+      transactions.vendorsTransaction = updatedTransactions;
+      return transactions;
+    } catch (error) {
+      if (error.response) {
+        // Received error from downstream service
+        throw new BadRequestException(
+          error.response.data.message || error.response.data,
+        );
+      } else {
+        throw new BadRequestException(error.message);
+      }
+    }
   }
 
   async getTransactionsForSettlements(
@@ -3271,7 +3286,9 @@ export class TrusteeService {
       const csv = parser.parse(formattedData);
       const fileBuffer = Buffer.from(csv, 'utf-8');
       let fileKey = `reports/settlements-report-${Date.now()}.csv`;
-      if(name && report_id){fileKey = `${name}-${Date.now()}-${report_id}.csv`; }
+      if (name && report_id) {
+        fileKey = `${name}-${Date.now()}-${report_id}.csv`;
+      }
 
       const s3Url = await this.awsS3Service.uploadToS3(
         fileBuffer,
@@ -3320,7 +3337,7 @@ export class TrusteeService {
       if (school_id) {
         query.schoolId = new Types.ObjectId(school_id);
       }
-  
+
       const settlements = await this.vendorsSettlementModel
         .find(query)
         .sort({ settled_on: -1 })
@@ -3346,9 +3363,6 @@ export class TrusteeService {
           : '',
       }));
 
-     
-      
-
       const requiredFields = [
         '_id',
         'utrNumber',
@@ -3368,16 +3382,16 @@ export class TrusteeService {
       const csv = parser.parse(formattedData);
       const fileBuffer = Buffer.from(csv, 'utf-8');
       let fileKey = `reports/settlements-report-${Date.now()}.csv`;
-      if(name && report_id){
+      if (name && report_id) {
         console.log('report_id', report_id);
-        
+
         fileKey = `${name}-${Date.now()}-${report_id}.csv`;
       }
 
       const s3Url = await this.awsS3Service.uploadToS3(
         fileBuffer,
         fileKey,
-        'text/csv', 
+        'text/csv',
         process.env.REPORT_BUCKET || 'edviron-reports',
       );
 
@@ -3423,18 +3437,16 @@ export class TrusteeService {
               report._id.toString(),
               name,
             );
-          }else if (type === 'SETTLEMENT_VENDOR') {
+          } else if (type === 'SETTLEMENT_VENDOR') {
             await this.generateSettlementVendor(
               trustee_id,
               start_date,
               end_date,
               school_id,
               report._id.toString(),
-              name
-            )
-          }
-          
-          else if (type === 'SETTLEMENT_RECON') {
+              name,
+            );
+          } else if (type === 'SETTLEMENT_RECON') {
             console.log('recon');
 
             await this.generateSettlementRecon(
@@ -3443,7 +3455,7 @@ export class TrusteeService {
               end_date,
               report._id.toString(),
               school_id,
-              name
+              name,
             );
           }
         } catch (err) {

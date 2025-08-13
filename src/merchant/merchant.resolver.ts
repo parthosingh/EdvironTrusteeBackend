@@ -124,7 +124,7 @@ export class MerchantResolver {
     }
   }
 
-  @Mutation(()=>String)
+  @Mutation(() => String)
   async loginMerchant(
     @Args('email') email: string,
     @Args('password') password: string,
@@ -1297,23 +1297,41 @@ export class MerchantResolver {
     custom_id?: string,
     @Args('order_id', { type: () => String, nullable: true })
     order_id?: string,
+    @Args('payment_modes', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    payment_modes?: string[],
+    @Args('gateway', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    gateway?: string[],
   ) {
-    const school_id = context.req.merchant;
-    console.log(school_id, 'school_id');
-    const school = await this.trusteeSchoolModel.findById(school_id);
-    const transactions = this.trusteeService.getMerchantVendorTransactions(
-      school.trustee_id.toString(),
-      school.school_id.toString(),
-      page,
-      limit,
-      status,
-      vendor_id,
-      startDate,
-      endDate,
-      custom_id,
-      order_id,
-    );
-    return transactions;
+    try {
+      const school_id = context.req.merchant;
+      console.log(school_id, 'school_id');
+      const school = await this.trusteeSchoolModel.findById(school_id);
+      const transactions = this.trusteeService.getMerchantVendorTransactions(
+        school.trustee_id.toString(),
+        school.school_id.toString(),
+        page,
+        limit,
+        status,
+        vendor_id,
+        startDate,
+        endDate,
+        custom_id,
+        order_id,
+        payment_modes,
+        gateway,
+      );
+      return transactions;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @UseGuards(MerchantGuard)
