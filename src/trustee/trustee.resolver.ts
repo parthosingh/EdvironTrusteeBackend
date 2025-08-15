@@ -2366,7 +2366,7 @@ export class TrusteeResolver {
           ),
         );
         const schoolObjectIds = matchedSchools
-          .filter(Boolean) 
+          .filter(Boolean)
           .map((school) => school._id);
 
         searchFilter = {
@@ -2585,7 +2585,11 @@ export class TrusteeResolver {
     @Args('status', { type: () => String, nullable: true }) status?: string,
     @Args('vendor_id', { type: () => String, nullable: true })
     vendor_id?: string,
-    @Args('school_id', { type: () => [String], nullable: true, defaultValue: null })
+    @Args('school_id', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
     school_id?: string[],
     @Args('custom_id', { type: () => String, nullable: true })
     custom_id?: string,
@@ -2605,8 +2609,8 @@ export class TrusteeResolver {
     gateway?: string[],
   ) {
     try {
-      console.log(order_id, "school_id")
-       const trustee_id = context.req.trustee;
+      console.log(order_id, 'school_id');
+      const trustee_id = context.req.trustee;
       return this.trusteeService.getAllVendorTransactions(
         trustee_id.toString(),
         page,
@@ -2619,12 +2623,11 @@ export class TrusteeResolver {
         custom_id,
         order_id,
         payment_modes,
-        gateway
+        gateway,
       );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
-
   }
 
   @UseGuards(TrusteeGuard)
@@ -2781,6 +2784,8 @@ export class TrusteeResolver {
     @Args('custom_id', { type: () => String, nullable: true })
     custom_id: string | null,
   ) {
+    page = page || 1;
+    limit = limit || 10
     try {
       const trustee_id = context.req.trustee;
       const data = {
@@ -3313,7 +3318,7 @@ export class TrusteeResolver {
         endDate,
         context.req.trustee,
         school_id,
-        name
+        name,
       );
       return 'Report generation initiated successfully';
     } catch (e) {
@@ -3540,6 +3545,9 @@ export class ErpWebhooksLogs {
 
   @Field({ nullable: true })
   collect_id: string;
+
+  @Field({ nullable: true })
+  custom_order_id: string;
 
   @Field({ nullable: true })
   webhookType: string;
@@ -3852,7 +3860,6 @@ export class VendorTransaction {
 
   @Field({ nullable: true })
   schoolName: string;
-
 }
 
 @ObjectType()
