@@ -673,7 +673,7 @@ export class ErpController {
       const axios = require('axios');
       console.time('payments1');
 
-        if (school.isEasebuzzNonPartner) {
+      if (school.isEasebuzzNonPartner) {
         console.log('non partner');
 
         if (
@@ -713,6 +713,45 @@ export class ErpController {
           all_webhooks = req_webhook_urls || [];
         }
 
+        if(school.nonSeamless){
+        
+          const bodydata = {
+          amount,
+          callbackUrl: callback_url,
+          // jwt,
+          webHook: webHookUrl || null,
+          disabled_modes,
+          platform_charges: school.platform_charges,
+          additional_data: additionalInfo,
+          school_id,
+          trustee_id,
+          custom_order_id,
+          req_webhook_urls,
+          school_name: school.school_name,
+          easebuzz_sub_merchant_id:
+            school.easebuzz_non_partner.easebuzz_submerchant_id,
+          split_payments,
+          easebuzzVendors,
+          easebuzz_school_label: school.easebuzz_school_label,
+          easebuzz_non_partner_cred: school.easebuzz_non_partner,
+        };
+
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-nonseamless`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: bodydata,
+        };
+
+        const res = await axios.request(config);
+        console.log(res);
+
+        return res.data;
+        }
+
         const bodydata = {
           amount,
           callbackUrl: callback_url,
@@ -750,7 +789,7 @@ export class ErpController {
         return res.data;
       }
 
-       if (school.cf_non_partner && school.cashfree_credentials) {
+      if (school.cf_non_partner && school.cashfree_credentials) {
         const data = JSON.stringify({
           amount,
           callbackUrl: callback_url,
@@ -903,7 +942,7 @@ export class ErpController {
       const { data: paymentsServiceResp } = await axios.request(config);
       console.timeEnd('payments1');
       const reason = 'fee payment';
-    
+
       if (isVBAPayment) {
         try {
           await this.erpService.updateVBA(
@@ -1461,7 +1500,44 @@ export class ErpController {
         if (trustee.webhook_urls.length === 0) {
           all_webhooks = req_webhook_urls || [];
         }
+          if(school.nonSeamless){
+        
+          const bodydata = {
+          amount,
+          callbackUrl: callback_url,
+          // jwt,
+          webHook: webHookUrl || null,
+          disabled_modes,
+          platform_charges: school.platform_charges,
+          additional_data: additionalInfo,
+          school_id,
+          trustee_id,
+          custom_order_id,
+          req_webhook_urls,
+          school_name: school.school_name,
+          easebuzz_sub_merchant_id:
+            school.easebuzz_non_partner.easebuzz_submerchant_id,
+          split_payments,
+          easebuzzVendors,
+          easebuzz_school_label: school.easebuzz_school_label,
+          easebuzz_non_partner_cred: school.easebuzz_non_partner,
+        };
 
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-nonseamless`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: bodydata,
+        };
+
+        const res = await axios.request(config);
+        console.log(res);
+
+        return res.data;
+        }
         const bodydata = {
           amount,
           callbackUrl: callback_url,
@@ -1499,7 +1575,7 @@ export class ErpController {
         return res.data;
       }
 
-       if (school.cf_non_partner && school.cashfree_credentials) {
+      if (school.cf_non_partner && school.cashfree_credentials) {
         const data = JSON.stringify({
           amount,
           callbackUrl: callback_url,
