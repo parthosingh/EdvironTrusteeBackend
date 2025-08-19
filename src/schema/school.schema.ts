@@ -456,6 +456,15 @@ export class TrusteeSchool {
   @Field(() => Boolean, { defaultValue: false })
   isEasebuzzNonPartner: boolean;
 
+  
+  @Prop({})
+  @Field(() => Boolean, { defaultValue: false })
+  cf_non_partner: boolean;
+
+  @Prop({})
+  @Field(() => Boolean, { defaultValue: false })
+  nonSeamless: boolean;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

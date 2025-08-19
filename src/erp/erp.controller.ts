@@ -750,6 +750,79 @@ export class ErpController {
         return res.data;
       }
 
+       if (school.cf_non_partner && school.cashfree_credentials) {
+        const data = JSON.stringify({
+          amount,
+          callbackUrl: callback_url,
+          jwt: this.jwtService.sign(
+            {
+              amount,
+              callbackUrl: callback_url,
+              clientId: school.client_id || null,
+              clientSecret: school.client_secret,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          ),
+          clientId: school.client_id || null,
+          clientSecret: school.client_secret || null,
+          school_id: school_id,
+          trustee_id: trustee_id,
+          webHook: webHookUrl || null,
+          platform_charges: school.platform_charges,
+          additional_data: additionalInfo || {},
+          custom_order_id: custom_order_id || null,
+          req_webhook_urls: all_webhooks || null,
+          school_name: school.school_name || null,
+          split_payments: splitPay || false,
+          vendors_info: updatedVendorsInfo || null,
+          vendorgateway: vendorgateway,
+          cashfreeVedors,
+          disabled_modes: disabled_modes || null,
+          easebuzz_school_label: school.easebuzz_school_label || null,
+          isVBAPayment: isVBAPayment || false,
+          vba_account_number: vba_account_number || 'NA',
+          worldLine_vendors: worldLine_vendors || null,
+          cashfree_credentials: school.cashfree_credentials || null,
+        });
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/create-order-v2`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: data,
+        };
+        const { data: paymentsServiceResp } = await axios.request(config);
+        console.timeEnd('payments1');
+        const reason = 'fee payment';
+
+        if (isVBAPayment) {
+          try {
+            await this.erpService.updateVBA(
+              paymentsServiceResp.request._id.toString(),
+              vba_account_number,
+            );
+          } catch (e) {
+            console.log(e);
+          }
+        }
+        console.log(paymentsServiceResp);
+
+        return {
+          collect_request_id: paymentsServiceResp._id,
+          collect_request_url: paymentsServiceResp.url,
+          sign: this.jwtService.sign(
+            {
+              collect_request_id: paymentsServiceResp._id,
+              collect_request_url: paymentsServiceResp.url,
+              custom_order_id: paymentsServiceResp.request?.custom_order_id,
+            },
+            { noTimestamp: true, secret: school.pg_key },
+          ),
+        };
+      }
+
       const data = JSON.stringify({
         amount,
         callbackUrl: callback_url,
@@ -1424,6 +1497,79 @@ export class ErpController {
         console.log(res);
 
         return res.data;
+      }
+
+       if (school.cf_non_partner && school.cashfree_credentials) {
+        const data = JSON.stringify({
+          amount,
+          callbackUrl: callback_url,
+          jwt: this.jwtService.sign(
+            {
+              amount,
+              callbackUrl: callback_url,
+              clientId: school.client_id || null,
+              clientSecret: school.client_secret,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          ),
+          clientId: school.client_id || null,
+          clientSecret: school.client_secret || null,
+          school_id: school_id,
+          trustee_id: trustee_id,
+          webHook: webHookUrl || null,
+          platform_charges: school.platform_charges,
+          additional_data: additionalInfo || {},
+          custom_order_id: custom_order_id || null,
+          req_webhook_urls: all_webhooks || null,
+          school_name: school.school_name || null,
+          split_payments: splitPay || false,
+          vendors_info: updatedVendorsInfo || null,
+          vendorgateway: vendorgateway,
+          cashfreeVedors,
+          disabled_modes: disabled_modes || null,
+          easebuzz_school_label: school.easebuzz_school_label || null,
+          isVBAPayment: isVBAPayment || false,
+          vba_account_number: vba_account_number || 'NA',
+          worldLine_vendors: worldLine_vendors || null,
+          cashfree_credentials: school.cashfree_credentials || null,
+        });
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/create-order-v2`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: data,
+        };
+        const { data: paymentsServiceResp } = await axios.request(config);
+        console.timeEnd('payments1');
+        const reason = 'fee payment';
+
+        if (isVBAPayment) {
+          try {
+            await this.erpService.updateVBA(
+              paymentsServiceResp.request._id.toString(),
+              vba_account_number,
+            );
+          } catch (e) {
+            console.log(e);
+          }
+        }
+        console.log(paymentsServiceResp);
+
+        return {
+          collect_request_id: paymentsServiceResp._id,
+          collect_request_url: paymentsServiceResp.url,
+          sign: this.jwtService.sign(
+            {
+              collect_request_id: paymentsServiceResp._id,
+              collect_request_url: paymentsServiceResp.url,
+              custom_order_id: paymentsServiceResp.request?.custom_order_id,
+            },
+            { noTimestamp: true, secret: school.pg_key },
+          ),
+        };
       }
 
       let data = JSON.stringify({
