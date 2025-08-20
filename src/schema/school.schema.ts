@@ -437,6 +437,7 @@ export class TrusteeSchool {
       easebuzz_key: { type: String, required: false, default: null },
       easebuzz_salt: { type: String, required: false, default: null },
       easebuzz_submerchant_id: { type: String, required: false, default: null },
+      easebuzz_merchant_email: { type: String, required: false, default: null },
     },
     _id: false,
   })

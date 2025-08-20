@@ -713,43 +713,42 @@ export class ErpController {
           all_webhooks = req_webhook_urls || [];
         }
 
-        if(school.nonSeamless){
-        
+        if (school.nonSeamless) {
           const bodydata = {
-          amount,
-          callbackUrl: callback_url,
-          // jwt,
-          webHook: webHookUrl || null,
-          disabled_modes,
-          platform_charges: school.platform_charges,
-          additional_data: additionalInfo,
-          school_id,
-          trustee_id,
-          custom_order_id,
-          req_webhook_urls,
-          school_name: school.school_name,
-          easebuzz_sub_merchant_id:
-            school.easebuzz_non_partner.easebuzz_submerchant_id,
-          split_payments,
-          easebuzzVendors,
-          easebuzz_school_label: school.easebuzz_school_label,
-          easebuzz_non_partner_cred: school.easebuzz_non_partner,
-        };
+            amount,
+            callbackUrl: callback_url,
+            // jwt,
+            webHook: webHookUrl || null,
+            disabled_modes,
+            platform_charges: school.platform_charges,
+            additional_data: additionalInfo,
+            school_id,
+            trustee_id,
+            custom_order_id,
+            req_webhook_urls,
+            school_name: school.school_name,
+            easebuzz_sub_merchant_id:
+              school.easebuzz_non_partner.easebuzz_submerchant_id,
+            split_payments,
+            easebuzzVendors,
+            easebuzz_school_label: school.easebuzz_school_label,
+            easebuzz_non_partner_cred: school.easebuzz_non_partner,
+          };
 
-        const config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-nonseamless`,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          data: bodydata,
-        };
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-nonseamless`,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            data: bodydata,
+          };
 
-        const res = await axios.request(config);
-        console.log(res);
+          const res = await axios.request(config);
+          console.log(res);
 
-        return res.data;
+          return res.data;
         }
 
         const bodydata = {
@@ -1500,43 +1499,42 @@ export class ErpController {
         if (trustee.webhook_urls.length === 0) {
           all_webhooks = req_webhook_urls || [];
         }
-          if(school.nonSeamless){
-        
+        if (school.nonSeamless) {
           const bodydata = {
-          amount,
-          callbackUrl: callback_url,
-          // jwt,
-          webHook: webHookUrl || null,
-          disabled_modes,
-          platform_charges: school.platform_charges,
-          additional_data: additionalInfo,
-          school_id,
-          trustee_id,
-          custom_order_id,
-          req_webhook_urls,
-          school_name: school.school_name,
-          easebuzz_sub_merchant_id:
-            school.easebuzz_non_partner.easebuzz_submerchant_id,
-          split_payments,
-          easebuzzVendors,
-          easebuzz_school_label: school.easebuzz_school_label,
-          easebuzz_non_partner_cred: school.easebuzz_non_partner,
-        };
+            amount,
+            callbackUrl: callback_url,
+            // jwt,
+            webHook: webHookUrl || null,
+            disabled_modes,
+            platform_charges: school.platform_charges,
+            additional_data: additionalInfo,
+            school_id,
+            trustee_id,
+            custom_order_id,
+            req_webhook_urls,
+            school_name: school.school_name,
+            easebuzz_sub_merchant_id:
+              school.easebuzz_non_partner.easebuzz_submerchant_id,
+            split_payments,
+            easebuzzVendors,
+            easebuzz_school_label: school.easebuzz_school_label,
+            easebuzz_non_partner_cred: school.easebuzz_non_partner,
+          };
 
-        const config = {
-          method: 'post',
-          maxBodyLength: Infinity,
-          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-nonseamless`,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          data: bodydata,
-        };
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/create-order-nonseamless`,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            data: bodydata,
+          };
 
-        const res = await axios.request(config);
-        console.log(res);
+          const res = await axios.request(config);
+          console.log(res);
 
-        return res.data;
+          return res.data;
         }
         const bodydata = {
           amount,
@@ -5818,6 +5816,52 @@ export class ErpController {
       return {
         url: redirectLink,
         message: 'Merchant dashboard link generated successfully',
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post('easebuzz-nonpartner-update')
+  async updateEasebuzzNonpartnerSchools(
+    @Body()
+    body: {
+      school_id: string;
+      isEasebuzzNonPartner: boolean;
+      nonSeamless: boolean;
+      easebuzz_non_partner: {
+        easebuzz_key: string;
+        easebuzz_salt: string;
+        easebuzz_submerchant_id: string;
+        easebuzz_merchant_email: string;
+      };
+    },
+  ) {
+    try {
+      const {
+        school_id,
+        isEasebuzzNonPartner,
+        nonSeamless,
+        easebuzz_non_partner,
+      } = body;
+
+      const merchant = await this.trusteeSchoolModel.findOneAndUpdate(
+        { school_id: new Types.ObjectId(school_id) },
+        {
+          $set: {
+            nonSeamless,
+            isEasebuzzNonPartner,
+            easebuzz_non_partner,
+          },
+        },
+        { new: true },
+      );
+      if (!merchant) {
+        throw new BadRequestException('school not found');
+      }
+      return {
+        message: 'School updated successfully',
+        data: merchant,
       };
     } catch (error) {
       throw new BadRequestException(error.message);
