@@ -44,7 +44,7 @@ export class SettlementReport {
   settlement_initiated_on: Date;
 
   @Prop({ required: true, type: String })
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   status: string;
 
   @Prop({ required: true, type: String, unique: true })
@@ -56,15 +56,15 @@ export class SettlementReport {
   settlementDate: Date;
 
   @Prop({ required: false, type: String })
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   clientId: string;
 
   @Prop({ required: false, type: String })
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   gateway: string;
 
   @Prop({ required: false, type: String })
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   razorpay_id: string;
 
   @Prop({ type: String })
