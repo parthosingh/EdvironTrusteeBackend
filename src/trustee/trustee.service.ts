@@ -55,6 +55,7 @@ import { ReportsLogs } from 'src/schema/reports.logs.schmea';
 import { Parser } from 'json2csv';
 import e from 'express';
 import { url } from 'inspector';
+import { log } from 'console';
 
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
@@ -107,7 +108,7 @@ export class TrusteeService {
     private ErrorLogsModel: mongoose.Model<ErrorLogs>,
     @InjectModel(ReportsLogs.name)
     private ReportsLogsModel: mongoose.Model<ReportsLogs>,
-  ) {}
+  ) { }
 
   async loginAndGenerateToken(
     emailId: string,
@@ -242,12 +243,12 @@ export class TrusteeService {
           ? Types.ObjectId.isValid(searchQuery)
             ? { school_id: new mongoose.Types.ObjectId(searchQuery) }
             : {
-                $or: [
-                  { school_name: { $regex: searchQuery, $options: 'i' } },
-                  { email: { $regex: searchQuery, $options: 'i' } },
-                  { pg_key: { $regex: searchQuery, $options: 'i' } },
-                ],
-              }
+              $or: [
+                { school_name: { $regex: searchQuery, $options: 'i' } },
+                { email: { $regex: searchQuery, $options: 'i' } },
+                { pg_key: { $regex: searchQuery, $options: 'i' } },
+              ],
+            }
           : {}),
       };
       if (kycStatus && kycStatus.length > 0) {
@@ -1742,9 +1743,8 @@ export class TrusteeService {
       if (chequeExtension === 'pdf') {
         mimeType = 'application/pdf';
       } else if (['jpg', 'jpeg', 'png'].includes(chequeExtension)) {
-        mimeType = `image/${
-          chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
-        }`;
+        mimeType = `image/${chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
+          }`;
       } else {
         throw new Error('Unsupported file type file type.');
       }
@@ -2822,13 +2822,13 @@ export class TrusteeService {
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-              dispute_created_date: {
-                ...(start_date && { $gte: new Date(start_date) }),
-                ...(end_date && {
-                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
+            dispute_created_date: {
+              ...(start_date && { $gte: new Date(start_date) }),
+              ...(end_date && {
+                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+              }),
+            },
+          }
           : {}),
       };
       const skip = (page - 1) * limit;
@@ -2868,13 +2868,13 @@ export class TrusteeService {
         ...(school_id && { schoolId: new Types.ObjectId(school_id) }),
         ...(start_date || end_date
           ? {
-              settlementDate: {
-                ...(start_date && { $gte: new Date(start_date) }),
-                ...(end_date && {
-                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
+            settlementDate: {
+              ...(start_date && { $gte: new Date(start_date) }),
+              ...(end_date && {
+                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+              }),
+            },
+          }
           : {}),
       };
 
@@ -2892,7 +2892,7 @@ export class TrusteeService {
         totalCount,
         totalPages,
       };
-    } catch (e) {}
+    } catch (e) { }
   }
 
   async fetchTransactionInfo(collect_id: string) {
@@ -3116,6 +3116,7 @@ export class TrusteeService {
     };
     try {
       const { data: transactions } = await axios.request(config);
+      console.log({ transactions });
 
       const settlements_transactions = transactions.settlements_transactions;
       const school = await this.trusteeSchoolModel.findOne({
@@ -3351,9 +3352,9 @@ export class TrusteeService {
           : '',
         settlement_initiated_on: item.settlement_initiated_on
           ? format(
-              new Date(item.settlement_initiated_on),
-              'd/M/yyyy, h:mm:ss a',
-            )
+            new Date(item.settlement_initiated_on),
+            'd/M/yyyy, h:mm:ss a',
+          )
           : '',
         payment_from: item.payment_from
           ? format(new Date(item.payment_from), 'd/M/yyyy, h:mm:ss a')
@@ -3588,286 +3589,41 @@ export class TrusteeService {
       throw new BadRequestException(e.message || 'Something went wrong');
     }
   }
+
+  async getPayuSettlementRecon(
+    utr: string,
+    school_id: string,
+  ) {
+    try {
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/pay-u/get-settlements-recon`,
+        headers: {
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: { utr, school_id, page: 1, limit: 1000 },
+      };
+      const { data } = await axios.request(config);
+      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+      if(!school){
+        throw new BadRequestException('School not found');
+      }
+      const settlements_transactions=data.transactions
+      settlements_transactions.forEach((transaction: any) => {
+        if (transaction?.order_id) {
+          transaction.school_name = school.school_name;
+        }
+      })
+      return {
+        limit: settlements_transactions.limit,
+        cursor: settlements_transactions.cursor||null,
+        settlements_transactions,
+      };
+    } catch (e) {
+      log(e);
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
 }
 
-const i = {
-  status: '1',
-  data: {
-    hash: '93826ffbef380a3088e35df464e07cfec4a1a99602d485ee89d8b29a43e0cabf8fbd0c0fd296c2e92409de1af2cd2cb4ebcaa98d5547e2e99f8522123fe34e88',
-    paid_out: 1,
-    bank_name: 'HDFC Bank',
-    ifsc_code: 'HDFC0001203',
-    payout_id: 'PT7M1GFXT0',
-    payout_date: '2025-08-01 12:05:38.305352',
-    name_on_bank: 'THRIVEDGE EDUTECH PRIVATE LIMITED',
-    total_amount: 234123.35,
-    payout_amount: 233200.0,
-    refund_amount: 0.0,
-    split_payouts: [
-      {
-        paid_out: 1,
-        bank_name: 'HDFC',
-        payout_date: '2025-08-01 12:05:38.283433',
-        account_label: 'Edviron',
-        payout_amount: 95000.0,
-        account_number: '50200080534081',
-        split_payout_id: 'SPRJCAB6V4',
-        bank_transaction_id: 'YESB52138841742',
-      },
-      {
-        paid_out: 1,
-        bank_name: 'Kanakamahalakshmi Co operative Bank',
-        payout_date: '2025-08-01 12:05:36.499234',
-        account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-        payout_amount: 81000.0,
-        account_number: '1016014000064',
-        split_payout_id: 'SPJLD5ARXP',
-        bank_transaction_id: 'YESB52138841775',
-      },
-      {
-        paid_out: 1,
-        bank_name: 'YES BANK',
-        payout_date: '2025-08-01 12:05:35.325486',
-        account_label: 'BUDHRANI KNOWLEDGE FOUNDATION',
-        payout_amount: 57200.0,
-        account_number: '055194600001516',
-        split_payout_id: 'SPNFFRBOS6',
-        bank_transaction_id: 'YESB52138841744',
-      },
-    ],
-    account_number: '50200080534081',
-    service_tax_amount: 128.25,
-    bank_transaction_id: 'NA',
-    refund_transactions: [],
-    submerchant_payouts: [
-      {
-        bank_name: 'HDFC',
-        ifsc_code: 'HDFC0001203',
-        name_on_bank: 'THRIVEDGE EDUTECH PRIVATE LIMITED',
-        total_amount: 95840.75,
-        payout_amount: 95000.0,
-        refund_amount: 0.0,
-        account_number: '50200080534081',
-        submerchant_id: 'S128810WGAA',
-        service_tax_amount: 128.25,
-        bank_transaction_id: 'SPLIT',
-        service_charge_amount: 712.5,
-        submerchant_payout_id: 'PT9GCVQF8Q',
-        submerchant_payout_date: '2025-08-01 06:35:38.295908',
-      },
-      {
-        bank_name: 'Kanakamahalakshmi Co operative Bank',
-        ifsc_code: 'IBKL0150KMC',
-        name_on_bank: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-        total_amount: 81070.8,
-        payout_amount: 81000.0,
-        refund_amount: 0.0,
-        account_number: '1016014000064',
-        submerchant_id: 'S128810O8YH',
-        service_tax_amount: 0.0,
-        bank_transaction_id: 'SPLIT',
-        service_charge_amount: 0.0,
-        submerchant_payout_id: 'PTI6IZ13SB',
-        submerchant_payout_date: '2025-08-01 06:35:36.510028',
-      },
-      {
-        bank_name: 'Yes Bank',
-        ifsc_code: 'YESB0000551',
-        name_on_bank: 'BUDHRANI KNOWLEDGE FOUNDATION',
-        total_amount: 57211.8,
-        payout_amount: 57200.0,
-        refund_amount: 0.0,
-        account_number: '055194600001516',
-        submerchant_id: 'S128810YDKS',
-        service_tax_amount: 0.0,
-        bank_transaction_id: 'SPLIT',
-        service_charge_amount: 0.0,
-        submerchant_payout_id: 'PT1GRLHGU7',
-        submerchant_payout_date: '2025-08-01 06:35:35.333115',
-      },
-    ],
-    settled_transactions: [
-      {
-        txnid: '688a6826b8c4cdc46f7a58ea',
-        easepayid: 'E2507310K1IK86',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810YDKS',
-        transaction_type: 'UPI',
-        settlement_amount: 57200.0,
-        split_transactions: [
-          {
-            amount: 57200.0,
-            service_tax: 0.0,
-            account_label: 'BUDHRANI KNOWLEDGE FOUNDATION',
-            service_charge: 0.0,
-            split_payout_id: 'SPNFFRBOS6',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 57211.8,
-      },
-      {
-        txnid: 'upi_688aebcb37bd72bbe7bb2725',
-        easepayid: 'E2507310K1WBHF',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'UPI',
-        settlement_amount: 15000.0,
-        split_transactions: [
-          {
-            amount: 15000.0,
-            service_tax: 0.0,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 0.0,
-            split_payout_id: 'SPJLD5ARXP',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 15011.8,
-      },
-      {
-        txnid: 'upi_688afe5437bd72bbe7bc5954',
-        easepayid: 'E2507310K22MJV',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'UPI',
-        settlement_amount: 15000.0,
-        split_transactions: [
-          {
-            amount: 15000.0,
-            service_tax: 0.0,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 0.0,
-            split_payout_id: 'SPJLD5ARXP',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 15011.8,
-      },
-      {
-        txnid: 'upi_688b000337bd72bbe7bc773f',
-        easepayid: 'E2507310K239BU',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'UPI',
-        settlement_amount: 15000.0,
-        split_transactions: [
-          {
-            amount: 15000.0,
-            service_tax: 0.0,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 0.0,
-            split_payout_id: 'SPJLD5ARXP',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 15011.8,
-      },
-      {
-        txnid: '688b078a266a961dcbffb723',
-        easepayid: 'E2507310K260Q4',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'UPI',
-        settlement_amount: 12000.0,
-        split_transactions: [
-          {
-            amount: 12000.0,
-            service_tax: 0.0,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 0.0,
-            split_payout_id: 'SPJLD5ARXP',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 12011.8,
-      },
-      {
-        txnid: 'upi_688b25252eed3b2b76fee044',
-        easepayid: 'E2507310K2H4EM',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'UPI',
-        settlement_amount: 12000.0,
-        split_transactions: [
-          {
-            amount: 12000.0,
-            service_tax: 0.0,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 0.0,
-            split_payout_id: 'SPJLD5ARXP',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 12011.8,
-      },
-      {
-        txnid: '688b6d3ff5e7074a02407ee6',
-        easepayid: 'E2507310K36DXL',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'UPI',
-        settlement_amount: 12000.0,
-        split_transactions: [
-          {
-            amount: 12000.0,
-            service_tax: 0.0,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 0.0,
-            split_payout_id: 'SPJLD5ARXP',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 12011.8,
-      },
-      {
-        txnid: 'EC01K1GSYKSV3TG16YMC2AQWJT34',
-        easepayid: 'E2507310K3U5UL',
-        service_tax: 74.25,
-        service_charge: 412.5,
-        submerchant_id: 'S128810WGAA',
-        transaction_type: 'Credit Card',
-        settlement_amount: 55000.0,
-        split_transactions: [
-          {
-            amount: 55486.75,
-            service_tax: 74.25,
-            account_label: 'Edviron',
-            service_charge: 412.5,
-            split_payout_id: 'SPRJCAB6V4',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 55486.75,
-      },
-      {
-        txnid: 'EC01K1GTVECC2WCMXN4DE6HV2YN4',
-        easepayid: 'E2507310K3VDGL',
-        service_tax: 54.0,
-        service_charge: 300.0,
-        submerchant_id: 'S128810WGAA',
-        transaction_type: 'Credit Card',
-        settlement_amount: 40000.0,
-        split_transactions: [
-          {
-            amount: 40354.0,
-            service_tax: 54.0,
-            account_label: 'Edviron',
-            service_charge: 300.0,
-            split_payout_id: 'SPRJCAB6V4',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 40354.0,
-      },
-    ],
-    service_charge_amount: 712.5,
-  },
-};
