@@ -23,6 +23,25 @@ export class DisputeDocument {
 }
 
 @ObjectType()
+export class DisputeSteps {
+  @Field({nullable : true})
+  status ?: string;
+
+  @Field({ nullable: true })
+  remark?: string;
+
+  @Field({ nullable: true })
+  settlement_id?: string;
+
+  @Field({ nullable: true })
+  utr_no?: string;
+
+  @Field({ nullable: true })
+  event_date?: Date;
+  
+}
+
+@ObjectType()
 @Schema({ timestamps: true })
 export class Disputes extends Document {
   @Field(() => ID)
@@ -135,6 +154,10 @@ export class Disputes extends Document {
   @Field(() => [DisputeDocument], { nullable: true })
   @Prop({ type: [DisputeDocument], default: [] })
   documents?: DisputeDocument[];
+
+  @Field(() => [DisputeSteps], { nullable: true })
+  @Prop({ type: [DisputeSteps], default: [] })
+  event_steps?: DisputeSteps[];
 }
 
 export const DisputesSchema = SchemaFactory.createForClass(Disputes);

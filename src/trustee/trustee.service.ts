@@ -2842,8 +2842,6 @@ export class TrusteeService {
       ]);
       const totalPages = Math.ceil(totalCount / limit);
 
-      // console.log(disputes, totalCount, totalPages);
-
       return {
         disputes,
         totalCount,

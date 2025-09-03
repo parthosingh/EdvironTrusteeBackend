@@ -473,7 +473,7 @@ export class WebhooksController {
             },
           );
 
-       return res.status(200).send('OK');
+        return res.status(200).send('OK');
       }
       const details = JSON.stringify(body);
       await new this.webhooksLogsModel({
@@ -1131,6 +1131,39 @@ export class WebhooksController {
         },
         { upsert: true, new: true },
       );
+      let steps = dispute.event_steps;
+      if (!steps) {
+        dispute.event_steps = [];
+        await dispute.save();
+      }
+      let check = false;
+      dispute.event_steps.map((step) => {
+        if (step.status === dispute_status) {
+          check = true;
+        }
+      });
+      if (!check) {
+        let config = {
+          method: 'get',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-dispute-byOrderId?collect_id=${order_id}`,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+        };
+        const { data: paymentsResponse } = await axios.request(config);
+        let eventUpdate = {
+          status: dispute_status,
+          remark: cf_dispute_remarks,
+          settlement_id: paymentsResponse?.data?.cashfreeDispute[0]?.cf_settlement_id || 'N/A',
+          utr_no: paymentsResponse?.data?.cashfreeDispute[0]?.transfer_utr || 'N/A',
+          event_date : new Date(created_at),
+        };
+        dispute.event_steps.push(eventUpdate);
+        await dispute.save();
+      }
+      // console.log(dispute, "dispute")
       if (dispute_status === 'DISPUTE_CREATED') {
         // const trusteeEmail = await this.TrusteeModel.findById(
         //   school.trustee_id,
