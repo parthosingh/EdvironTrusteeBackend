@@ -921,6 +921,11 @@ export class ErpController {
           razorpay_secret: school.razorpay?.razorpay_secret || null,
           razorpay_mid: school.razorpay?.razorpay_mid || null,
         },
+        razorpay_seamless_credentials: {
+          razorpay_id: school.razorpay_seamless?.razorpay_id || null,
+          razorpay_secret: school.razorpay_seamless?.razorpay_secret || null,
+          razorpay_mid: school.razorpay_seamless?.razorpay_mid || null,
+        },
         worldLine_vendors: worldLine_vendors || null,
         gatepay_credentials: {
           gatepay_mid: school?.gatepay?.gatepay_mid || null,

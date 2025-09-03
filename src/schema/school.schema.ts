@@ -420,6 +420,10 @@ export class TrusteeSchool {
   razorpay: I_Razorpay;
 
   @Prop({})
+  @Field(() => I_Razorpay, { nullable: true })
+  razorpay_seamless: I_Razorpay;
+
+  @Prop({})
   @Field(() => String)
   cf_x_client_id: string;
 
