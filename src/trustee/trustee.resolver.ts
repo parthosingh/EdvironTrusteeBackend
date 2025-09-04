@@ -3402,6 +3402,12 @@ export class TrusteeResolver {
     @Args('name', { type: () => String }) name: string,
     @Args('phone_number', { type: () => String }) phone_number: string,
     @Args('password', { type: () => String }) password: string,
+    @Args('school_id', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    school_id?: string[],
   ) {
     try {
       const trustee_id = context.req.trustee;
@@ -3414,7 +3420,8 @@ export class TrusteeResolver {
         name,
         email_id,
         phone_number,
-        password
+        password,
+        school_id
       )
       return subTrustee.message
 

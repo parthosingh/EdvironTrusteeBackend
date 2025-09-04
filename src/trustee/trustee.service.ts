@@ -3632,19 +3632,10 @@ export class TrusteeService {
     name: string,
     email: string,
     phone: string,
-    password: string
+    password: string,
+    school_id?:string[]
   ) {
-    console.log(
-      {
-        trustee_id,
-        name,
-        email,
-        phone,
-        password
-      }
-    );
-
-    try {
+  try {
       const existingUser = await this.SubTrusteeModel.findOne({ email });
       if (existingUser) {
         throw new BadRequestException('Email already in use');
@@ -3656,6 +3647,17 @@ export class TrusteeService {
         phone,
         password_hash: password,
       }).save();
+      if(school_id && school_id.length>0){
+        await Promise.all(
+          school_id.map(async(school:any)=>{
+            await this.assingSubTrustee(
+              school,
+              subtrustee._id.toString(),
+              trustee_id.toString()
+            )
+          })
+        )
+      }
       return { message: `Sub Trustee created successfully ${subtrustee._id}`, status: 'success' }
     } catch (e) {
       throw new BadRequestException(e.message || 'Something went wrong');
