@@ -207,7 +207,8 @@ export class TrusteeSchool {
 
   @Prop({ type: [Types.ObjectId], default: [] })
   @Field(() => [ID], { nullable: true })
-  subtrustee_ids: ObjectId[];
+  sub_trustee_id: ObjectId[];
+
 
 
   @Prop({})

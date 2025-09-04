@@ -68,6 +68,7 @@ import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { PosMachine } from 'src/schema/pos.machine.schema';
 import { ApiKeyLogs } from 'src/schema/apiKey.logs.schema';
 import { ReportsLogs } from 'src/schema/reports.logs.schmea';
+import { SubTrustee } from 'src/schema/subTrustee.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -225,7 +226,9 @@ export class TrusteeResolver {
     private posMachineModel: mongoose.Model<PosMachine>,
     @InjectModel(ApiKeyLogs.name)
     private apiKeyLogsModel: mongoose.Model<ApiKeyLogs>,
-  ) {}
+     @InjectModel(SubTrustee.name)
+        private SubTrusteeModel: mongoose.Model<SubTrustee>,
+  ) { }
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -2322,19 +2325,19 @@ export class TrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-                $or: [
-                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                  { _id: new mongoose.Types.ObjectId(searchQuery) },
-                ],
-              }
+              $or: [
+                { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                { _id: new mongoose.Types.ObjectId(searchQuery) },
+              ],
+            }
             : {
-                $or: [
-                  { status: { $regex: searchQuery, $options: 'i' } },
-                  { reason: { $regex: searchQuery, $options: 'i' } },
-                  { custom_id: { $regex: searchQuery, $options: 'i' } },
-                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-                ],
-              }
+              $or: [
+                { status: { $regex: searchQuery, $options: 'i' } },
+                { reason: { $regex: searchQuery, $options: 'i' } },
+                { custom_id: { $regex: searchQuery, $options: 'i' } },
+                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+              ],
+            }
           : {}),
       };
 
@@ -2657,11 +2660,11 @@ export class TrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-          settled_on: {
-            $gte: new Date(start_date),
-            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-          },
-        }),
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -2861,11 +2864,11 @@ export class TrusteeResolver {
     dispute_id: string,
   ) {
     try {
-     const dispute = await this.DisputesModel.findOne({
-        dispute_id : dispute_id,
-        collect_id : collect_id
+      const dispute = await this.DisputesModel.findOne({
+        dispute_id: dispute_id,
+        collect_id: collect_id
       })
-      console.log(dispute , "dispute")
+      console.log(dispute, "dispute")
       return dispute;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -3055,42 +3058,42 @@ export class TrusteeResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-              files
-                .map(async (data) => {
-                  try {
-                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                    if (!matches || matches.length !== 3) {
-                      throw new Error('Invalid base64 file format.');
-                    }
-
-                    const contentType = matches[1];
-                    const base64Data = matches[2];
-                    const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                    const last4DigitsOfMs = Date.now().toString().slice(-4);
-                    const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
-
-                    const file_url = await this.awsS3Service.uploadToS3(
-                      fileBuffer,
-                      key,
-                      contentType,
-                      'edviron-backend-dev',
-                    );
-
-                    return {
-                      document_type: data.extension,
-                      file_url,
-                      name: data.name,
-                    };
-                  } catch (error) {
-                    throw new InternalServerErrorException(
-                      error.message || 'File upload failed',
-                    );
+            files
+              .map(async (data) => {
+                try {
+                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                  if (!matches || matches.length !== 3) {
+                    throw new Error('Invalid base64 file format.');
                   }
-                })
-                .filter((file) => file !== null),
-            )
+
+                  const contentType = matches[1];
+                  const base64Data = matches[2];
+                  const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                  const last4DigitsOfMs = Date.now().toString().slice(-4);
+                  const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
+
+                  const file_url = await this.awsS3Service.uploadToS3(
+                    fileBuffer,
+                    key,
+                    contentType,
+                    'edviron-backend-dev',
+                  );
+
+                  return {
+                    document_type: data.extension,
+                    file_url,
+                    name: data.name,
+                  };
+                } catch (error) {
+                  throw new InternalServerErrorException(
+                    error.message || 'File upload failed',
+                  );
+                }
+              })
+              .filter((file) => file !== null),
+          )
           : [];
 
       const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
@@ -3388,6 +3391,74 @@ export class TrusteeResolver {
       );
     } catch (e) {
       throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async createSubtrustee(
+    @Context() context: any,
+    @Args('email_id', { type: () => String }) email_id: string,
+    @Args('name', { type: () => String }) name: string,
+    @Args('phone_number', { type: () => String }) phone_number: string,
+    @Args('password', { type: () => String }) password: string,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const trustee = await this.trusteeModel.findById(trustee_id)
+      if (!trustee) {
+        throw new NotFoundException('Trustee not found')
+      }
+      const subTrustee = await this.trusteeService.createSubTrustee(
+        trustee_id,
+        name,
+        email_id,
+        phone_number,
+        password
+      )
+      return subTrustee.message
+
+    } catch (e) { 
+      console.log(e);
+      
+      throw new BadRequestException(e.message)
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async assingSubTrustee(
+    @Context() context: any,
+    @Args('subTrusteeId', { type: () => String }) subTrusteeId: string,
+    @Args('school_id', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    school_id?: string[],
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const trsutee=await this.trusteeModel.findById(trustee_id)
+      if(!trsutee){
+        throw new BadRequestException('You are not Authorized')
+      }
+
+      await Promise.all(
+        school_id.map(async (data:any)=>{
+          await this.trusteeService.assingSubTrustee(
+            data,
+            subTrusteeId,
+            trustee_id.toString()
+          )
+        })
+      )
+
+      return 'School assigned'
+    } catch (e) {
+      console.log(e);
+      
+      throw new BadRequestException(e.message)
     }
   }
 }

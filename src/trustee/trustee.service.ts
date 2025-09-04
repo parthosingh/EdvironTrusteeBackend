@@ -3606,11 +3606,11 @@ export class TrusteeService {
         data: { utr, school_id, page: 1, limit: 1000 },
       };
       const { data } = await axios.request(config);
-      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
-      if(!school){
+      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      if (!school) {
         throw new BadRequestException('School not found');
       }
-      const settlements_transactions=data.transactions
+      const settlements_transactions = data.transactions
       settlements_transactions.forEach((transaction: any) => {
         if (transaction?.order_id) {
           transaction.school_name = school.school_name;
@@ -3618,12 +3618,97 @@ export class TrusteeService {
       })
       return {
         limit: settlements_transactions.limit,
-        cursor: settlements_transactions.cursor||null,
+        cursor: settlements_transactions.cursor || null,
         settlements_transactions,
       };
     } catch (e) {
       log(e);
       throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
+
+  async createSubTrustee(
+    trustee_id: string,
+    name: string,
+    email: string,
+    phone: string,
+    password: string
+  ) {
+    console.log(
+      {
+        trustee_id,
+        name,
+        email,
+        phone,
+        password
+      }
+    );
+
+    try {
+      const existingUser = await this.SubTrusteeModel.findOne({ email });
+      if (existingUser) {
+        throw new BadRequestException('Email already in use');
+      }
+      const subtrustee = await new this.SubTrusteeModel({
+        trustee_id: new Types.ObjectId(trustee_id),
+        name,
+        email,
+        phone,
+        password_hash: password,
+      }).save();
+      return { message: `Sub Trustee created successfully ${subtrustee._id}`, status: 'success' }
+    } catch (e) {
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+
+  }
+
+  async assingSubTrustee(
+    school_id: string,
+    subTrustee: string,
+    trustee_id: string
+  ) {
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id)
+      })
+
+      if (!school) {
+        throw new BadRequestException('School not found')
+      }
+
+      const checkSubTrustee = await this.SubTrusteeModel.findById(subTrustee)
+      if (!checkSubTrustee) {
+        throw new BadRequestException('Sub trustee')
+      }
+
+      if (school.trustee_id.toString() !== trustee_id) {
+        throw new UnauthorizedException('UnAuthorize User')
+      }
+
+      if (checkSubTrustee.trustee_id.toString() !== trustee_id) {
+        throw new UnauthorizedException('Unauthorized User')
+      }
+
+      if (checkSubTrustee.trustee_id.toString() !== school.trustee_id.toString()) {
+        console.log('invalid something');
+
+        throw new BadRequestException('Unauthorized User')
+      }
+      console.log('test');
+
+      const result = await this.trusteeSchoolModel.updateOne(
+        { school_id: new Types.ObjectId(school_id) },
+        { $addToSet: { subtrustee_ids: new Types.ObjectId(subTrustee) } }
+      );
+
+      if (result.matchedCount === 0) {
+        throw new BadRequestException('School not found');
+      }
+
+      return { message: 'Sub trustee assigned successfully' };
+    } catch (e) {
+      throw new BadRequestException(e.message)
     }
   }
 }
