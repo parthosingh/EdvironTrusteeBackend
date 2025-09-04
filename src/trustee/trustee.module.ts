@@ -59,6 +59,7 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ApiKeyLogs, ApiKeyLogsSchema } from 'src/schema/apiKey.logs.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
+import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
 
 config();
 
@@ -121,6 +122,9 @@ config();
     MongooseModule.forFeature([
       { name: ReportsLogs.name, schema: ReportsLogsSchema },
     ]),
+      MongooseModule.forFeature([
+          { name: SubTrustee.name, schema: SubTrusteeSchema },
+        ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },

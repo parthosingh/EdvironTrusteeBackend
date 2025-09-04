@@ -37,6 +37,7 @@ import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
+import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
 
 @Module({
   imports: [
@@ -71,6 +72,9 @@ import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
     MongooseModule.forFeature([
       { name: Reconciliation.name, schema: ReconciliationSchema },
     ]),
+      MongooseModule.forFeature([
+          { name: SubTrustee.name, schema: SubTrusteeSchema },
+        ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },

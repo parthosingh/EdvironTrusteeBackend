@@ -56,6 +56,7 @@ import { Parser } from 'json2csv';
 import e from 'express';
 import { url } from 'inspector';
 import { log } from 'console';
+import { SubTrustee } from 'src/schema/subTrustee.schema';
 
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
@@ -108,6 +109,8 @@ export class TrusteeService {
     private ErrorLogsModel: mongoose.Model<ErrorLogs>,
     @InjectModel(ReportsLogs.name)
     private ReportsLogsModel: mongoose.Model<ReportsLogs>,
+    @InjectModel(SubTrustee.name)
+    private SubTrusteeModel: mongoose.Model<SubTrustee>,
   ) { }
 
   async loginAndGenerateToken(

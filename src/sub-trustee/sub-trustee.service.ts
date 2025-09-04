@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
-
+import axios from 'axios';
 import { Trustee } from 'src/schema/trustee.schema';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
@@ -11,8 +11,8 @@ import * as handlebars from 'handlebars';
 import { TrusteeService } from 'src/trustee/trustee.service';
 import * as nodemailer from 'nodemailer';
 import { SubTrustee } from 'src/schema/subTrustee.schema';
-
-
+import { count } from 'console';
+import { Types } from 'mongoose';
 var loginOtps: any = {};
 var resetOtps: any = {}; //reset password
 var editOtps: any = {};
@@ -172,22 +172,121 @@ export class SubTrusteeService {
 
     async validateLoginOtp(otp: string, email: string) {
         if (loginOtps[email] == otp) {
-          delete loginOtps[email];
-          const merchant = await this.subTrustee.findOne({
-            email: email,
-          });
-          let payload = {
-              id: merchant._id,
-              role : merchant.role
-            };    
-          const token = this.jwtService.sign(payload, {
-            secret: process.env.JWT_SECRET_FOR_SUBTRUSTEE_AUTH,
-          });
-          return token;
+            delete loginOtps[email];
+            const merchant = await this.subTrustee.findOne({
+                email: email,
+            });
+            let payload = {
+                id: merchant._id,
+                role: merchant.role
+            };
+            const token = this.jwtService.sign(payload, {
+                secret: process.env.JWT_SECRET_FOR_SUBTRUSTEE_AUTH,
+            });
+            return token;
         } else {
-          throw new Error('Invalid OTP');
+            throw new Error('Invalid OTP');
         }
-      }
+    }
 
-      
+    async getSubTrusteeSchools(
+        subTrusteeId: string,
+        page: number,
+        limit: number,
+        searchQuery?: string,
+        kycStatus?: string[],
+    ) {
+        try {
+            const subTrustee = await this.subTrustee.findById(subTrusteeId);
+            if (!subTrustee) {
+                throw new NotFoundException('Sub-trustee not found');
+            }
+            const trusteeId = subTrustee.trustee_id;
+            let searchFilter: any = {
+                trustee_id: trusteeId,
+                subtrustee_ids: { $in: [new Types.ObjectId(subTrusteeId)] }
+            };
+            if (searchQuery) {
+                if (searchQuery) {
+                    searchFilter = {
+                        ...searchFilter,
+                        $or: [
+                            { school_name: { $regex: searchQuery, $options: 'i' } },
+                            { email: { $regex: searchQuery, $options: 'i' } },
+                            { pg_key: { $regex: searchQuery, $options: 'i' } },
+                        ],
+                    };
+                }
+
+            }
+
+            if (kycStatus && kycStatus.length > 0) {
+                searchFilter = {
+                    ...searchFilter,
+                    merchantStatus: { $in: kycStatus },
+                };
+            }
+            const countDocs = await this.trusteeModel.countDocuments(searchFilter);
+            const schools = await this.trusteeModel.find(searchFilter).skip((page - 1) * limit).limit(limit);
+
+            const schoolsWithBankDetails = await Promise.all(
+                schools.map(async (school: any) => {
+                    try {
+                        const school_id = school.school_id.toString();
+                        const tokenAuth = this.jwtService.sign(
+                            { school_id },
+                            { secret: process.env.JWT_SECRET_FOR_INTRANET! },
+                        );
+                        const response = await axios.get(
+                            `${process.env.MAIN_BACKEND_URL}/api/trustee/get-school-kyc?school_id=${school_id}&token=${tokenAuth}`,
+                        );
+
+                        const bankDetails = {
+                            account_holder_name:
+                                response?.data?.bankDetails?.account_holder_name ||
+                                school.bank_details?.account_holder_name ||
+                                null,
+                            account_number:
+                                response?.data?.bankDetails?.account_number ||
+                                school.bank_details?.account_number ||
+                                null,
+                            ifsc_code:
+                                response?.data?.bankDetails?.ifsc_code ||
+                                school.bank_details?.ifsc_code ||
+                                null,
+                        };
+                        return {
+                            ...school,
+                            bank_details: bankDetails,
+                        };
+                    } catch (error) {
+                        console.error(
+                            `Failed to fetch bank details for school_id: ${school.school_id}`,
+                            error.message,
+                        );
+                        return {
+                            ...school,
+                            // bank_details: null,
+                        };
+                    }
+                }),
+            );
+
+            const totalPages = Math.ceil(countDocs / limit);
+
+
+            return {
+                schoolData: schoolsWithBankDetails,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems: countDocs,
+                },
+            };
+        } catch (error) {
+            console.log(error);
+            throw new BadRequestException(error.message);
+        }
+    }
+
 }

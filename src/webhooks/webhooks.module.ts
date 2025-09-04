@@ -45,6 +45,7 @@ import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
+import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
 
 @Module({
   imports: [
@@ -100,6 +101,9 @@ import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
     MongooseModule.forFeature([
           { name: ReportsLogs.name, schema: ReportsLogsSchema },
         ]),
+          MongooseModule.forFeature([
+              { name: SubTrustee.name, schema: SubTrusteeSchema },
+            ]),
   ],
   controllers: [WebhooksController],
   providers: [

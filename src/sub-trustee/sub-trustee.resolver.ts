@@ -83,41 +83,47 @@ export class SubTrusteeResolver {
   @Query(() => [SettlementReport])
   @UseGuards(SubTrusteeGuard)
   async getSettlementReportsSubTrustee(@Context() context) {
-    let id = context.req.subtrustee;
-    const schools = await this.trusteeSchoolModel.find({ sub_trustee_id: id });
-    const schoolIds = schools.map(school => school.school_id);
-    const settlementReports = await this.settlementReportModel.aggregate([
-      {
-        $match: {
-          schoolId: { $in: schoolIds }
+    try {
+
+
+      let id = context.req.subtrustee;
+      const schools = await this.trusteeSchoolModel.find({ sub_trustee_id: { $in: [id] } });
+      const schoolIds = schools.map(school => school.school_id);
+      const settlementReports = await this.settlementReportModel.aggregate([
+        {
+          $match: {
+            schoolId: { $in: schoolIds }
+          }
+        },
+        {
+          $sort: { createdAt: -1 }
+        },
+        {
+          $project: {
+            _id: 1,
+            settlementAmount: 1,
+            adjustment: 1,
+            netSettlementAmount: 1,
+            fromDate: 1,
+            settlementInitiatedOn: 1,
+            tillDate: 1,
+            settlement_initiated_on: 1,
+            status: 1,
+            utrNumber: 1,
+            settlementDate: 1,
+            clientId: 1,
+            remarks: 1,
+            trustee: 1,
+            schoolId: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          }
         }
-      },
-      {
-        $sort: { createdAt: -1 }
-      },
-      {
-        $project: {
-          _id: 1,
-          settlementAmount: 1,
-          adjustment: 1,
-          netSettlementAmount: 1,
-          fromDate: 1,
-          settlementInitiatedOn: 1,
-          tillDate: 1,
-          settlement_initiated_on: 1,
-          status: 1,
-          utrNumber: 1,
-          settlementDate: 1,
-          clientId: 1,
-          remarks: 1,
-          trustee: 1,
-          schoolId: 1,
-          createdAt: 1,
-          updatedAt: 1,
-        }
-      }
-    ]);
-    return settlementReports;
+      ]);
+      return settlementReports;
+    } catch (e) {
+      throw new BadRequestException(e.message)
+    }
   }
 
   @Query(() => TransactionReportResponsePaginated)
@@ -305,6 +311,45 @@ export class SubTrusteeResolver {
       };
     } catch (error) {
       // console.log(error,'response');
+      if (error?.response?.data?.message) {
+        throw new BadRequestException(error?.response?.data?.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => [TrusteeSchool])
+  async getSubTrusteeSchools(
+    @Context() context: any,
+    @Args('searchQuery', { nullable: true, defaultValue: null })
+    searchQuery?: string,
+    @Args('page', { nullable: true, defaultValue: 1 }) page?: number,
+    @Args('limit', { nullable: true, defaultValue: 10 }) limit?: number,
+    @Args('kycStatus', { type: () => [String], nullable: true })
+    kycStatus?: string[],
+  ) {
+    try {
+      const subTrustee = context.req.subtrustee;
+      const subTrusteeData = await this.subTrustee.findById(subTrustee);
+      if (!subTrusteeData) {
+        throw new NotFoundException('Sub Trustee not found');
+      }
+      const schools = await this.subTrusteeService.getSubTrusteeSchools(
+        subTrusteeData.trustee_id.toString(),
+        page,
+        limit,
+        searchQuery,
+        kycStatus
+      );
+
+      return {
+        schools: schools.schoolData,
+        total_pages: schools.pagination.totalPages,
+        page: schools.pagination.currentPage,
+        totalItems: schools.pagination.totalItems,
+      };
+    } catch (error) {
       if (error?.response?.data?.message) {
         throw new BadRequestException(error?.response?.data?.message);
       }
