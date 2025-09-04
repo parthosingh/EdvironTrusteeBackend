@@ -26,6 +26,7 @@ import { OnboardingResolver } from './onboarding/onboarding.resolver';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { BusinessAlarmModule } from './business-alarm/business-alarm.module';
 import { PdfServiceModule } from './pdf-service/pdf-service.module';
+import { SubTrusteeModule } from './sub-trustee/sub-trustee.module';
 config();
 
 @Module({
@@ -54,6 +55,7 @@ config();
     OnboardingModule,
     BusinessAlarmModule,
     PdfServiceModule,
+    SubTrusteeModule,
   ],
 
   controllers: [AppController],
