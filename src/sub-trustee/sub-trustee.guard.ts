@@ -14,17 +14,12 @@ export class SubTrusteeGuard implements CanActivate {
     const token = authorizationHeader?.startsWith('Bearer ')
       ? authorizationHeader.split(' ')[1]
       : null;
-    console.log(token, "token")
     if (!token) {
       return false;
     }
     try {
 
-
       const user = await this.subTrustee.validateMerchant(token);
-      console.log();
-      
-
       if (!user) {
         return false;
       }
@@ -32,8 +27,7 @@ export class SubTrusteeGuard implements CanActivate {
       request.subtrustee = user.subTrustee;
       request.role = user.role;
       request.trustee = user.trustee_id;
-      console.log({request});
-      
+
       return true;
     } catch (e) {
       throw new BadRequestException(e.message)

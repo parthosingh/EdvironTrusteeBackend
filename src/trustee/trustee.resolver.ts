@@ -226,9 +226,9 @@ export class TrusteeResolver {
     private posMachineModel: mongoose.Model<PosMachine>,
     @InjectModel(ApiKeyLogs.name)
     private apiKeyLogsModel: mongoose.Model<ApiKeyLogs>,
-     @InjectModel(SubTrustee.name)
-        private SubTrusteeModel: mongoose.Model<SubTrustee>,
-  ) { }
+    @InjectModel(SubTrustee.name)
+    private SubTrusteeModel: mongoose.Model<SubTrustee>,
+  ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -2325,19 +2325,19 @@ export class TrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-              $or: [
-                { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                { _id: new mongoose.Types.ObjectId(searchQuery) },
-              ],
-            }
+                $or: [
+                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                  { _id: new mongoose.Types.ObjectId(searchQuery) },
+                ],
+              }
             : {
-              $or: [
-                { status: { $regex: searchQuery, $options: 'i' } },
-                { reason: { $regex: searchQuery, $options: 'i' } },
-                { custom_id: { $regex: searchQuery, $options: 'i' } },
-                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-              ],
-            }
+                $or: [
+                  { status: { $regex: searchQuery, $options: 'i' } },
+                  { reason: { $regex: searchQuery, $options: 'i' } },
+                  { custom_id: { $regex: searchQuery, $options: 'i' } },
+                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
           : {}),
       };
 
@@ -2660,11 +2660,11 @@ export class TrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-        settled_on: {
-          $gte: new Date(start_date),
-          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-        },
-      }),
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -2870,9 +2870,9 @@ export class TrusteeResolver {
     try {
       const dispute = await this.DisputesModel.findOne({
         dispute_id: dispute_id,
-        collect_id: collect_id
-      })
-      console.log(dispute, "dispute")
+        collect_id: collect_id,
+      });
+      console.log(dispute, 'dispute');
       return dispute;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -3062,42 +3062,42 @@ export class TrusteeResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-            files
-              .map(async (data) => {
-                try {
-                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                  if (!matches || matches.length !== 3) {
-                    throw new Error('Invalid base64 file format.');
+              files
+                .map(async (data) => {
+                  try {
+                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                    if (!matches || matches.length !== 3) {
+                      throw new Error('Invalid base64 file format.');
+                    }
+
+                    const contentType = matches[1];
+                    const base64Data = matches[2];
+                    const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                    const last4DigitsOfMs = Date.now().toString().slice(-4);
+                    const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
+
+                    const file_url = await this.awsS3Service.uploadToS3(
+                      fileBuffer,
+                      key,
+                      contentType,
+                      'edviron-backend-dev',
+                    );
+
+                    return {
+                      document_type: data.extension,
+                      file_url,
+                      name: data.name,
+                    };
+                  } catch (error) {
+                    throw new InternalServerErrorException(
+                      error.message || 'File upload failed',
+                    );
                   }
-
-                  const contentType = matches[1];
-                  const base64Data = matches[2];
-                  const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const last4DigitsOfMs = Date.now().toString().slice(-4);
-                  const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
-
-                  const file_url = await this.awsS3Service.uploadToS3(
-                    fileBuffer,
-                    key,
-                    contentType,
-                    'edviron-backend-dev',
-                  );
-
-                  return {
-                    document_type: data.extension,
-                    file_url,
-                    name: data.name,
-                  };
-                } catch (error) {
-                  throw new InternalServerErrorException(
-                    error.message || 'File upload failed',
-                  );
-                }
-              })
-              .filter((file) => file !== null),
-          )
+                })
+                .filter((file) => file !== null),
+            )
           : [];
 
       const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
@@ -3415,9 +3415,9 @@ export class TrusteeResolver {
   ) {
     try {
       const trustee_id = context.req.trustee;
-      const trustee = await this.trusteeModel.findById(trustee_id)
+      const trustee = await this.trusteeModel.findById(trustee_id);
       if (!trustee) {
-        throw new NotFoundException('Trustee not found')
+        throw new NotFoundException('Trustee not found');
       }
       const subTrustee = await this.trusteeService.createSubTrustee(
         trustee_id,
@@ -3425,14 +3425,13 @@ export class TrusteeResolver {
         email_id,
         phone_number,
         password,
-        school_id
-      )
-      return subTrustee.message
-
-    } catch (e) { 
+        school_id,
+      );
+      return subTrustee.message;
+    } catch (e) {
       console.log(e);
-      
-      throw new BadRequestException(e.message)
+
+      throw new BadRequestException(e.message);
     }
   }
 
@@ -3450,29 +3449,113 @@ export class TrusteeResolver {
   ) {
     try {
       const trustee_id = context.req.trustee;
-      const trsutee=await this.trusteeModel.findById(trustee_id)
-      if(!trsutee){
-        throw new BadRequestException('You are not Authorized')
+      const trsutee = await this.trusteeModel.findById(trustee_id);
+      if (!trsutee) {
+        throw new BadRequestException('You are not Authorized');
       }
 
       await Promise.all(
-        school_id.map(async (data:any)=>{
+        school_id.map(async (data: any) => {
           await this.trusteeService.assingSubTrustee(
             data,
             subTrusteeId,
-            trustee_id.toString()
-          )
-        })
-      )
+            trustee_id.toString(),
+          );
+        }),
+      );
 
-      return 'School assigned'
+      return 'School assigned';
     } catch (e) {
       console.log(e);
-      
-      throw new BadRequestException(e.message)
+
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => SubTrusteeResponse)
+  async getSubtrustees(
+    @Context() context: any,
+    @Args('page', { type: () => Int, defaultValue: 1 }) page: number,
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
+    @Args('searchQuery', { nullable: true, defaultValue: null })
+    searchQuery?: string,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const trustee = await this.trusteeModel.findById(trustee_id);
+      if (!trustee) {
+        throw new BadRequestException('You are not Authorized');
+      }
+      const skip = (page - 1) * limit;
+      let searchFilter: any = {
+        trustee_id: trustee_id,
+        ...(searchQuery
+          ? Types.ObjectId.isValid(searchQuery)
+            ? { _id: new mongoose.Types.ObjectId(searchQuery) }
+            : {
+                $or: [
+                  { name: { $regex: searchQuery, $options: 'i' } },
+                  { email: { $regex: searchQuery, $options: 'i' } },
+                  { phone: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
+          : {}),
+      };
+
+      const totalSubtrustees = await this.SubTrusteeModel.countDocuments(searchFilter);
+
+      const subTrustees = await this.SubTrusteeModel.aggregate([
+        { $match: searchFilter },
+        {
+          $project : {
+            _id: 1,
+            name: 1,
+            email: 1,
+            phone: 1,
+            logo : 1,
+            role : 1,
+            trustee_id: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          }
+        },
+        { $skip: skip },
+        { $limit: limit },
+      ]).exec();
+
+      console.log(subTrustees ,"subTrustees")
+
+      const totalPages = Math.ceil(totalSubtrustees / limit);
+      return {
+        totalCount: totalSubtrustees,
+        totalPages,
+        currentPage: page,
+        subTrustees : subTrustees || [],
+      };
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException(error.message);
     }
   }
 }
+
+@ObjectType()
+export class SubTrusteeResponse {
+  @Field(() => [SubTrustee], { nullable: true })
+  subTrustees: SubTrustee[];
+
+  @Field({ nullable: true })
+  totalCount: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
+
+  @Field({ nullable: true })
+  currentPage: number;
+
+}
+
 
 @ObjectType()
 export class ReportsLogsRes {

@@ -28,6 +28,7 @@ import {
   resetPassResponse,
   TransactionReport,
   TransactionReportResponsePaginated,
+  VendorsTransactionPaginatedResponse,
   verifyRes,
 } from 'src/trustee/trustee.resolver';
 import { JwtService } from '@nestjs/jwt';
@@ -212,14 +213,25 @@ export class SubTrusteeResolver {
     gateway?: string[],
   ) {
     try {
-      console.log(school_id);
+      // console.log(school_id)
       let id = context.req.subtrustee;
+      let trusteeId = context.req.trustee;
+      console.log(trusteeId, 'trusteeId');
       console.time('mapping merchant transaction');
       const merchants = await this.trusteeSchoolModel.find({
         sub_trustee_id: id,
       });
-      const schoolIds = merchants.map((school) => school.school_id);
-      // console.log(schoolIds, "schoolIds")
+      let schoolIds = merchants.map((school) => school.school_id);
+
+      if (school_id) {
+        let find = schoolIds.filter((id) => id.toString() === school_id);
+
+        if (!find) {
+          throw new BadRequestException('Invalid school ID');
+        }
+        schoolIds = find;
+      }
+
       let transactionReport = [];
 
       const now = new Date();
@@ -274,7 +286,7 @@ export class SubTrusteeResolver {
       });
       console.timeEnd('mapping merchant transaction');
       const token = this.jwtService.sign(
-        { trustee_id: id },
+        { trustee_id: trusteeId },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
       );
       const config = {
@@ -286,7 +298,7 @@ export class SubTrusteeResolver {
           'content-type': 'application/json',
         },
         data: {
-          trustee_id: id,
+          trustee_id: trusteeId,
           token,
           searchParams,
           isCustomSearch,
@@ -369,6 +381,71 @@ export class SubTrusteeResolver {
       if (error?.response?.data?.message) {
         throw new BadRequestException(error?.response?.data?.message);
       }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => VendorsTransactionPaginatedResponse)
+  async getAllSubtrusteeVendorTransaction(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate?: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate?: string,
+    @Args('status', { type: () => String, nullable: true }) status?: string,
+    @Args('vendor_id', { type: () => String, nullable: true })
+    vendor_id?: string,
+    @Args('school_id', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    school_id?: string[],
+    @Args('custom_id', { type: () => String, nullable: true })
+    custom_id?: string,
+    @Args('order_id', { type: () => String, nullable: true })
+    order_id?: string,
+    @Args('payment_modes', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    payment_modes?: string[],
+    @Args('gateway', {
+      type: () => [String],
+      nullable: true,
+      defaultValue: null,
+    })
+    gateway?: string[],
+  ) {
+    try {
+      console.log(order_id, 'school_id');
+      const trustee_id = context.req.trustee;
+      const subTrustee = context.req.subtrustee;
+      const schools = await this.trusteeSchoolModel.find({
+        sub_trustee_id: { $in: [subTrustee] },
+      });
+      let school_ids = schools.map((school) => school.school_id.toString());
+      if(school_id && school_id.length > 0){
+        school_ids = school_ids.filter((id) => school_id.includes(id));
+      }
+      return this.subTrusteeService.getAllVendorTransactions(
+        trustee_id.toString(),
+        page,
+        limit,
+        status,
+        vendor_id,
+        school_ids,
+        startDate,
+        endDate,
+        custom_id,
+        order_id,
+        payment_modes,
+        gateway,
+      );
+    } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
@@ -611,6 +688,7 @@ export class SubTrusteeResolver {
       );
     } catch (e) {
       throw new BadRequestException(e.message);
+
     }
   }
 

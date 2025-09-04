@@ -20,6 +20,7 @@ import { count } from 'console';
 import { Types } from 'mongoose';
 import { Disputes } from 'src/schema/disputes.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';
+import { Vendors } from 'src/schema/vendors.schema';
 var loginOtps: any = {};
 var resetOtps: any = {}; //reset password
 var editOtps: any = {};
@@ -39,7 +40,9 @@ export class SubTrusteeService {
     private DisputesModel: mongoose.Model<Disputes>,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
-  ) { }
+    @InjectModel(Vendors.name)
+    private vendorsModel: mongoose.Model<Vendors>,
+  ) {}
 
   async validateMerchant(token: string): Promise<any> {
     try {
@@ -72,10 +75,7 @@ export class SubTrusteeService {
     }
   }
 
-  async loginAndGenerateToken(
-    email: string,
-    passwordHash: string,
-  ) {
+  async loginAndGenerateToken(email: string, passwordHash: string) {
     try {
       const lowerCaseEmail = email.toLowerCase();
       var res = false;
@@ -93,15 +93,14 @@ export class SubTrusteeService {
       }
       const payload = {
         id: subtrustee._id,
-        role: 'owner'
-      }
+        role: 'owner',
+      };
       return {
         token: await this.jwtService.sign(payload, {
           secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
           expiresIn: '30d',
         }),
       };
-
     } catch (error) {
       console.log(error);
       throw new UnauthorizedException('Invalid credentials');
@@ -337,13 +336,13 @@ export class SubTrusteeService {
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-            dispute_created_date: {
-              ...(start_date && { $gte: new Date(start_date) }),
-              ...(end_date && {
-                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-              }),
-            },
-          }
+              dispute_created_date: {
+                ...(start_date && { $gte: new Date(start_date) }),
+                ...(end_date && {
+                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+                }),
+              },
+            }
           : {}),
       };
       if (!school_id || school_id.length <= 0) {
@@ -381,6 +380,81 @@ export class SubTrusteeService {
     }
   }
 
+  async getAllVendorTransactions(
+    trustee_id: string,
+    page: number,
+    limit: number,
+    status?: string,
+    vendor_id?: string,
+    school_id?: string[],
+    start_date?: string,
+    end_date?: string,
+    custom_id?: string,
+    order_id?: string,
+    payment_modes?: string[],
+    gateway?: string[],
+  ) {
+    try {
+      console.log(school_id, 'school_id');
+      const token = this.jwtService.sign(
+        { validate_trustee: trustee_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const data = {
+        trustee_id: trustee_id,
+        token: token,
+        page: page,
+        limit: limit,
+        status: status,
+        vendor_id: vendor_id,
+        school_id: school_id,
+        start_date: start_date,
+        end_date: end_date,
+        custom_id: custom_id,
+        collect_id: order_id,
+        payment_modes: payment_modes,
+        gateway: gateway,
+      };
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-vendor-transaction?token=${token}&trustee_id=${trustee_id}&page=${page}&limit=${limit}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: data,
+      };
+      const { data: transactions } = await axios.request(config);
+      console.log(transactions, 'transactions');
+
+      const updatedTransactions = await Promise.all(
+        transactions.vendorsTransaction.map(async (transaction) => {
+          if (!transaction.school_id)
+            return { ...transaction, schoolName: 'Unknown School' }; // Agar schoolId nahi hai
+
+          const school = await this.trusteeSchoolModel.findOne({
+            school_id: new Types.ObjectId(transaction.school_id),
+          });
+          return {
+            ...transaction,
+            schoolName: school ? school.school_name : 'N/A',
+          };
+        }),
+      );
+      transactions.vendorsTransaction = updatedTransactions;
+      return transactions;
+    } catch (error) {
+      if (error.response) {
+        // Received error from downstream service
+        throw new BadRequestException(
+          error.response.data.message || error.response.data,
+        );
+      } else {
+        throw new BadRequestException(error.message);
+      }
+    }
+  }
 
   async sentResetMail(email) {
     try {
@@ -435,7 +509,7 @@ export class SubTrusteeService {
         await subTrustee.save();
         return true;
       }
-throw new BadRequestException('Error in saving passsword')
+      throw new BadRequestException('Error in saving passsword');
     } catch (error) {
       throw new BadRequestException(error.message);
     }

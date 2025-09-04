@@ -10,6 +10,7 @@ import { SettlementReport } from 'src/schema/settlement.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
+import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { TrusteeService } from 'src/trustee/trustee.service';
 import { EmailService } from 'src/email/email.service';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
@@ -19,7 +20,6 @@ import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
 import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
 import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
-import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
 import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
 import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
 import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
@@ -51,6 +51,9 @@ import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account
     ]),
     MongooseModule.forFeature([
       { name: Disputes.name, schema: DisputesSchema },
+    ]),
+     MongooseModule.forFeature([
+      { name: Vendors.name, schema: VendorsSchema },
     ]),
     MongooseModule.forFeature([
       { name: 'TrusteeMember', schema: TrusteeMemberSchema },
