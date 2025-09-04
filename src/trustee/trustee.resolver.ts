@@ -4282,6 +4282,8 @@ class Vendor {
 
   @Field({ nullable: true })
   name: string;
+  @Field({ nullable: true })
+  edv_vendor_id: string;
 }
 
 @ObjectType()
