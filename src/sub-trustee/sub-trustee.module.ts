@@ -10,6 +10,24 @@ import { SettlementReport } from 'src/schema/settlement.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
+import { TrusteeService } from 'src/trustee/trustee.service';
+import { EmailService } from 'src/email/email.service';
+import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import { TrusteeMemberSchema } from 'src/schema/partner.member.schema';
+import { TransactionInfo, TransactionInfoSchema } from 'src/schema/transaction.info.schema';
+import { RequestMDR, RequestMDRSchema } from 'src/schema/mdr.request.schema';
+import { BaseMdr, BaseMdrSchema } from 'src/schema/base.mdr.schema';
+import { SchoolMdr, SchoolMdrSchema } from 'src/schema/school_mdr.schema';
+import { VendorsSettlement, VendorsSettlementSchema } from 'src/schema/vendor.settlements.schema';
+import { Vendors, VendorsSchema } from 'src/schema/vendors.schema';
+import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
+import { EmailGroup, EmailGroupSchema } from 'src/schema/email.schema';
+import { EmailEvent, EmailEventSchema } from 'src/schema/email.events.schema';
+import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
+import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
+import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
+import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
+import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
 
 @Module({
   imports: [
@@ -25,22 +43,72 @@ import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
     MongooseModule.forFeature([
       { name: TrusteeSchool.name, schema: TrusteeSchool },
     ]),
-     MongooseModule.forFeature([
+    MongooseModule.forFeature([
       { name: SubTrustee.name, schema: SubTrusteeSchema },
     ]),
-     MongooseModule.forFeature([
+    MongooseModule.forFeature([
       { name: RefundRequest.name, schema: RefundRequestSchema },
     ]),
-     MongooseModule.forFeature([
+    MongooseModule.forFeature([
       { name: Disputes.name, schema: DisputesSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: 'TrusteeMember', schema: TrusteeMemberSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: TransactionInfo.name, schema: TransactionInfoSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: RequestMDR.name, schema: RequestMDRSchema },
+    ]),
+    MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
+    MongooseModule.forFeature([
+      { name: SchoolMdr.name, schema: SchoolMdrSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Vendors.name, schema: VendorsSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: Reconciliation.name, schema: ReconciliationSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: EmailGroup.name, schema: EmailGroupSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: EmailEvent.name, schema: EmailEventSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: ErrorLogs.name, schema: ErrorLogsSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: ReportsLogs.name, schema: ReportsLogsSchema },
+    ]),
+      MongooseModule.forFeature([
+      { name: MerchantMember.name, schema: MerchantMemberSchema },
+    ]),
+      MongooseModule.forFeature([
+      { name: VirtualAccount.name, schema: VirtualAccountSchema },
+    ]),
+
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },
       }),
     }),
   ],
-  providers: [SubTrusteeService, SubTrusteeResolver, SubTrusteeGuard, ],
+  providers: [
+    SubTrusteeService,
+    SubTrusteeResolver,
+    SubTrusteeGuard,
+    TrusteeService,
+    EmailService,
+    AwsS3Service,
+    BusinessAlarmService
+
+  ],
   controllers: [],
 })
 export class SubTrusteeModule { }

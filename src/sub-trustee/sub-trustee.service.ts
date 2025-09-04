@@ -37,12 +37,14 @@ export class SubTrusteeService {
     private jwtService: JwtService,
     @InjectModel(Disputes.name)
     private DisputesModel: mongoose.Model<Disputes>,
-     @InjectModel(TrusteeSchool.name)
-        private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
-  ) {}
+    @InjectModel(TrusteeSchool.name)
+    private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
+  ) { }
 
   async validateMerchant(token: string): Promise<any> {
     try {
+      console.log('validating');
+
       if (!token) return;
       const decodedPayload = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_SUBTRUSTEE_AUTH,
@@ -73,7 +75,7 @@ export class SubTrusteeService {
   async loginAndGenerateToken(
     email: string,
     passwordHash: string,
-  ): Promise<Boolean> {
+  ) {
     try {
       const lowerCaseEmail = email.toLowerCase();
       var res = false;
@@ -89,8 +91,17 @@ export class SubTrusteeService {
       if (!passwordMatch) {
         throw new UnauthorizedException('Invalid credentials');
       }
-      if ((await this.sendLoginOtp(email_id)) == true) res = true;
-      return res;
+      const payload = {
+        id: subtrustee._id,
+        role: 'owner'
+      }
+      return {
+        token: await this.jwtService.sign(payload, {
+          secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
+          expiresIn: '30d',
+        }),
+      };
+
     } catch (error) {
       console.log(error);
       throw new UnauthorizedException('Invalid credentials');
@@ -326,24 +337,24 @@ export class SubTrusteeService {
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-              dispute_created_date: {
-                ...(start_date && { $gte: new Date(start_date) }),
-                ...(end_date && {
-                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
+            dispute_created_date: {
+              ...(start_date && { $gte: new Date(start_date) }),
+              ...(end_date && {
+                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+              }),
+            },
+          }
           : {}),
       };
       if (!school_id || school_id.length <= 0) {
-         let schoolFilter: any = {
-        trustee_id: trustee_id,
-        sub_trustee_id: { $in: [new Types.ObjectId(sub_trustee_id)] },
-      };
+        let schoolFilter: any = {
+          trustee_id: trustee_id,
+          sub_trustee_id: { $in: [new Types.ObjectId(sub_trustee_id)] },
+        };
 
-      const schools = await this.trusteeSchoolModel
-        .find(schoolFilter)
-        .select('school_id -_id');
+        const schools = await this.trusteeSchoolModel
+          .find(schoolFilter)
+          .select('school_id -_id');
         const school_id = schools.map((school) => school.school_id.toString());
         query.school_id = {
           $in: school_id.map((id) => new Types.ObjectId(id)),
@@ -367,6 +378,66 @@ export class SubTrusteeService {
       };
     } catch (e) {
       throw new BadRequestException(e.message);
+    }
+  }
+
+
+  async sentResetMail(email) {
+    try {
+      const expirationTime = Math.floor(Date.now() / 1000) + 1 * 60; // 30 minutes
+      const secretKey = process.env.JWT_SECRET_FOR_RESETPASSWORD_LINK;
+      const data = {
+        email: email,
+        // exp: expirationTime
+      };
+      const token = this.jwtService.sign(data, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+        expiresIn: expirationTime, //30 mins
+      });
+
+      const resetURL = `${process.env.SUB_TRUSTEE_DASHBOARD_URL}/reset-password?token=${token}`;
+      const __dirname = path.resolve();
+      const filePath = path.join(
+        __dirname,
+        'src/trustee/reset-mail-template.html',
+      );
+      const source = fs.readFileSync(filePath, 'utf-8').toString();
+      const template = handlebars.compile(source);
+
+      const replacements = {
+        email: email,
+        url: resetURL,
+      };
+
+      const htmlToSend = template(replacements);
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Reset password',
+        html: htmlToSend,
+      };
+
+      await this.sendMails(email, mailOptions);
+      return true;
+    } catch (error) {
+      console.log(error);
+
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async resetPassword(email, password) {
+    try {
+      const subTrustee = await this.subTrustee.findOne({ email_id: email });
+      if (subTrustee) {
+        subTrustee.password_hash = password;
+        await subTrustee.save();
+        return true;
+      }
+throw new BadRequestException('Error in saving passsword')
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
   }
 }

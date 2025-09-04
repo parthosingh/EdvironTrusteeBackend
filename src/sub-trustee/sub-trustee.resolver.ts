@@ -3,6 +3,7 @@ import {
   UseGuards,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import {
   Query,
@@ -24,12 +25,26 @@ import { TrusteeSchool } from 'src/schema/school.schema';
 import {
   DisputesRes,
   RefundRequestRes,
+  resetPassResponse,
+  TransactionReport,
   TransactionReportResponsePaginated,
+  verifyRes,
 } from 'src/trustee/trustee.resolver';
 import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
 import { SubTrustee } from 'src/schema/subTrustee.schema';
 import { RefundRequest } from 'src/schema/refund.schema';
+import { TrusteeService } from 'src/trustee/trustee.service';
+import { MerchantMember } from 'src/schema/merchant.member.schema';
+import { VirtualAccount } from 'src/schema/virtual.account.schema';
+import { Trustee } from 'src/schema/trustee.schema';
+
+@ObjectType()
+class SubTrusteeTokenResponse {
+  @Field()
+  token: string;
+}
+
 @Resolver('Sub_Trustee')
 export class SubTrusteeResolver {
   constructor(
@@ -43,13 +58,20 @@ export class SubTrusteeResolver {
     private readonly jwtService: JwtService,
     @InjectModel(RefundRequest.name)
     private refundRequestModel: mongoose.Model<RefundRequest>,
-  ) {}
+    @InjectModel(MerchantMember.name)
+    private merchantMemberModel: mongoose.Model<MerchantMember>,
+    @InjectModel(VirtualAccount.name)
+    private virtualAccountModel: mongoose.Model<VirtualAccount>,
+    @InjectModel(Trustee.name)
+    private trsuteeModel: mongoose.Model<Trustee>,
+    private readonly trusteeService: TrusteeService
+  ) { }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => loginToken)
   async subTrusteeLogin(
     @Args('email') email_id: string,
     @Args('password') password_hash: string,
-  ): Promise<Boolean> {
+  ) {
     try {
       return await this.subTrusteeService.loginAndGenerateToken(
         email_id,
@@ -76,12 +98,17 @@ export class SubTrusteeResolver {
     }
   }
 
+  @UseGuards(SubTrusteeGuard)
   @Query(() => SubTrusteeuser)
   async getSubTrusteeQuery(@Context() context: any): Promise<SubTrusteeuser> {
     try {
-      const token = context.req.headers.authorization.split(' ')[1];
-      const userSubTrustee =
-        await this.subTrusteeService.validateMerchant(token);
+      console.log('test');
+
+      let id = context.req.subtrustee;
+      const userSubTrustee = await this.subTrustee.findById(id)
+      if (!userSubTrustee) {
+        throw new BadRequestException('Invalid user')
+      }
       console.log(userSubTrustee, 'merchant');
       const user: SubTrusteeuser = {
         _id: userSubTrustee.id,
@@ -90,10 +117,12 @@ export class SubTrusteeResolver {
         role: userSubTrustee.role,
         phone: userSubTrustee.phone,
         trustee_id: userSubTrustee.trustee_id,
-        logo: userSubTrustee.trustee_logo || null,
+        logo: null,
       };
       return user;
     } catch (error) {
+      console.log(error);
+
       if (error instanceof UnauthorizedException) {
         throw new UnauthorizedException(error.message);
       } else {
@@ -110,6 +139,8 @@ export class SubTrusteeResolver {
       const schools = await this.trusteeSchoolModel.find({
         sub_trustee_id: { $in: [id] },
       });
+      console.log(schools);
+
       const schoolIds = schools.map((school) => school.school_id);
       const settlementReports = await this.settlementReportModel.aggregate([
         {
@@ -424,19 +455,19 @@ export class SubTrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-                $or: [
-                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                  { _id: new mongoose.Types.ObjectId(searchQuery) },
-                ],
-              }
+              $or: [
+                { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                { _id: new mongoose.Types.ObjectId(searchQuery) },
+              ],
+            }
             : {
-                $or: [
-                  { status: { $regex: searchQuery, $options: 'i' } },
-                  { reason: { $regex: searchQuery, $options: 'i' } },
-                  { custom_id: { $regex: searchQuery, $options: 'i' } },
-                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-                ],
-              }
+              $or: [
+                { status: { $regex: searchQuery, $options: 'i' } },
+                { reason: { $regex: searchQuery, $options: 'i' } },
+                { custom_id: { $regex: searchQuery, $options: 'i' } },
+                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+              ],
+            }
           : {}),
       };
       if (!searchQuery && startDate && endDate) {
@@ -544,45 +575,211 @@ export class SubTrusteeResolver {
     }
   }
 
-    @UseGuards(SubTrusteeGuard)
-    @Query(() => DisputesRes)
-    async getSubTrusteeDisputes(
-      @Context() context: any,
-      @Args('page', { type: () => Int, defaultValue: 0 }) page: number,
-      @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
-      @Args('school_id', { type: () => [String], nullable: true })
-      school_id: string[],
-      @Args('collect_id', { type: () => String, nullable: true })
-      collect_id: string,
-      @Args('custom_id', { type: () => String, nullable: true })
-      custom_id: string,
-      @Args('dispute_id', { type: () => String, nullable: true })
-      dispute_id: string,
-      @Args('startDate', { type: () => String, nullable: true })
-      startDate: string,
-      @Args('endDate', { type: () => String, nullable: true }) endDate: string,
-      @Args('dispute_status', { type: () => String, nullable: true })
-      dispute_status: string,
-    ) {
-      try {
-        return this.subTrusteeService.getDisputes(
-          context.req.subtrustee,
-          context.req.trustee,
-          page,
-          limit,
-          school_id,
-          collect_id,
-          custom_id,
-          dispute_id,
-          startDate,
-          endDate,
-          dispute_status,
-        );
-      } catch (e) {
-        throw new BadRequestException(e.message);
-      }
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => DisputesRes)
+  async getSubTrusteeDisputes(
+    @Context() context: any,
+    @Args('page', { type: () => Int, defaultValue: 0 }) page: number,
+    @Args('limit', { type: () => Int, defaultValue: 10 }) limit: number,
+    @Args('school_id', { type: () => [String], nullable: true })
+    school_id: string[],
+    @Args('collect_id', { type: () => String, nullable: true })
+    collect_id: string,
+    @Args('custom_id', { type: () => String, nullable: true })
+    custom_id: string,
+    @Args('dispute_id', { type: () => String, nullable: true })
+    dispute_id: string,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate: string,
+    @Args('endDate', { type: () => String, nullable: true }) endDate: string,
+    @Args('dispute_status', { type: () => String, nullable: true })
+    dispute_status: string,
+  ) {
+    try {
+      return this.subTrusteeService.getDisputes(
+        context.req.subtrustee,
+        context.req.trustee,
+        page,
+        limit,
+        school_id,
+        collect_id,
+        custom_id,
+        dispute_id,
+        startDate,
+        endDate,
+        dispute_status,
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
+  }
 
+  @UseGuards(SubTrusteeGuard)
+  @Mutation(() => String)
+  async generateMerchantLoginTokenForSubtrustee(
+    @Context() context: any,
+    @Args('email') email: string,
+  ): Promise<string> {
+    try {
+      const merchant = await this.trusteeSchoolModel.findOne({
+        email,
+        sub_trustee_id: { $in: [context.req.subtrustee] }
+      });
+
+      if (merchant) {
+        return this.trusteeService.generateToken(merchant._id);
+      }
+      const member = await this.merchantMemberModel.findOne({ email });
+      if (member) {
+        return this.trusteeService.generateToken(member._id);
+      }
+      throw new NotFoundException('Email not found');
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  @Query(() => [TransactionReport])
+  @UseGuards(SubTrusteeGuard)
+  async getSingleTransactionReportForSubTrustee(
+    @Context() context,
+    @Args('collect_id') collect_id: string,
+    @Args('school_id', { nullable: true }) school_id?: string,
+    @Args('isVBAPaymentComplete', { nullable: true, defaultValue: false })
+    isVBAPaymentComplete?: boolean,
+  ) {
+    try {
+      const trustee_id = context.req.trustee;
+      const subTrsutee = context.req.subtrustee
+      const token = this.jwtService.sign(
+        { trustee_id, collect_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const data = await this.trusteeService.getSingleTransaction(
+        trustee_id,
+        collect_id,
+        token,
+      );
+
+      let vbaPayment;
+      if (isVBAPaymentComplete) {
+        vbaPayment = await this.virtualAccountModel.findOne({
+          collect_id: collect_id,
+        });
+        if (!vbaPayment) {
+          throw new BadRequestException('vba payment not found');
+        }
+      }
+
+      return await data.map(async (item: any) => {
+        const school = await this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(item?.school_id),
+        });
+        const remark = null;
+        const parsedData = item?.additional_data
+          ? JSON.parse(item?.additional_data)
+          : {};
+        return {
+          ...item,
+          student_id: parsedData.student_details?.student_id || '',
+          student_name: parsedData.student_details?.student_name || '',
+          student_email: parsedData.student_details?.student_email || '',
+          student_phone: parsedData.student_details?.student_phone_no || '',
+          receipt: parsedData.student_details?.receipt || '',
+          additional_data: parsedData.additional_fields || '',
+          currency: 'INR',
+          school_id: item?.school_id,
+          school_name: school?.school_name,
+          remarks: remark,
+          custom_order_id: item?.custom_order_id || null,
+          virtual_account_number: vbaPayment?.virtual_account_number || null,
+          virtual_account_ifsc: vbaPayment?.virtual_account_ifsc || null,
+          virtual_account_id: vbaPayment?.virtual_account_id || null,
+        };
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message || 'Something went wrong',
+      );
+    }
+  }
+
+  @Mutation(() => verifyRes)
+  async resetMailsSubtrustee(@Args('email') email: string) {
+    const subTrustee = await this.subTrustee.findOne({ email_id: email });
+    if (!subTrustee) {
+      throw new BadRequestException('Invalid Email')
+    }
+    await this.subTrusteeService.sentResetMail(email);
+    return { active: true };
+  }
+
+  // reset password
+  @Mutation(() => resetPassResponse)
+  async resetPasswordSubtrustee(
+    @Args('email') email: string,
+    @Args('password') password: string,
+  ) {
+    await this.subTrusteeService.resetPassword(email, password);
+    return { msg: `Password Change` };
+  }
+
+  @Query(() => verifyRes)
+  async verifyToken(@Args('token') token: string) {
+    const res = await this.trusteeService.verifyresetToken(token);
+    return { active: res };
+  }
+
+  @UseGuards(SubTrustee)
+  @Query(() => SubTrusteeTokenResponse)
+  async kycLoginToken(
+    @Args('school_id') school_id: string,
+    @Context() context,
+  ) {
+
+    const token = await this.jwtService.sign(
+      { school_id },
+      {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      },
+    );
+    const res = await axios.get(
+      `${process.env.MAIN_BACKEND_URL}/api/trustee/validate-kyc-login?token=${token}`,
+    );
+    return { token: res.data.token };
+  }
+
+  @UseGuards(SubTrusteeGuard)
+  @Mutation(() => String)
+  async generateMerchantLoginToken(
+    @Args('email') email: string,
+    @Context() context,
+  ): Promise<string> {
+    try {
+      const merchant = await this.trusteeSchoolModel.findOne({
+        email,
+        sub_trustee_id: { $in: [context.req.subtrustee,] }
+      });
+
+      if (merchant) {
+        return this.trusteeService.generateToken(merchant._id);
+      }
+      const member = await this.merchantMemberModel.findOne({ email });
+      if (member) {
+        return this.trusteeService.generateToken(member._id);
+      }
+      throw new NotFoundException('Email not found');
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
+}
+
+@ObjectType()
+export class loginToken {
+  @Field(() => String)
+  token: string
 }
 
 @ObjectType()

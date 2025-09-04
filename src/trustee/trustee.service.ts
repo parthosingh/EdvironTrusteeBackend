@@ -579,6 +579,7 @@ export class TrusteeService {
     }
   }
 
+  
   async verifyresetToken(token) {
     try {
       const data = this.jwtService.verify(token, {
@@ -3701,9 +3702,11 @@ export class TrusteeService {
 
       const result = await this.trusteeSchoolModel.updateOne(
         { school_id: new Types.ObjectId(school_id) },
-        { $addToSet: { subtrustee_ids: new Types.ObjectId(subTrustee) } }
+        { $addToSet: { sub_trustee_id: new Types.ObjectId(subTrustee) } }
       );
-
+      const check=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+      console.log(check.sub_trustee_id);
+      
       if (result.matchedCount === 0) {
         throw new BadRequestException('School not found');
       }
