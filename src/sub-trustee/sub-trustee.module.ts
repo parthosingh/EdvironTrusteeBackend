@@ -8,6 +8,8 @@ import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
 import { Trustee, TrusteeSchema } from 'src/schema/trustee.schema';
 import { SettlementReport } from 'src/schema/settlement.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';
+import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
+import { Disputes, DisputesSchema } from 'src/schema/disputes.schema';
 
 @Module({
   imports: [
@@ -25,6 +27,12 @@ import { TrusteeSchool } from 'src/schema/school.schema';
     ]),
      MongooseModule.forFeature([
       { name: SubTrustee.name, schema: SubTrusteeSchema },
+    ]),
+     MongooseModule.forFeature([
+      { name: RefundRequest.name, schema: RefundRequestSchema },
+    ]),
+     MongooseModule.forFeature([
+      { name: Disputes.name, schema: DisputesSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({

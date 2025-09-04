@@ -14,7 +14,7 @@ export class SubTrusteeGuard implements CanActivate {
     const token = authorizationHeader?.startsWith('Bearer ')
       ? authorizationHeader.split(' ')[1]
       : null;
-
+console.log(token, "token")
     if (!token) {
       return false;
     }

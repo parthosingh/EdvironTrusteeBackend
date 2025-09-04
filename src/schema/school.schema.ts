@@ -209,8 +209,6 @@ export class TrusteeSchool {
   @Field(() => [ID], { nullable: true })
   sub_trustee_id: ObjectId[];
 
-
-
   @Prop({})
   @Field(() => String)
   school_name: string;

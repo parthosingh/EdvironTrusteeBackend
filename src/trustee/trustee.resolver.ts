@@ -4084,7 +4084,7 @@ class refundRequest {
   reason: string;
 }
 @ObjectType()
-class RefundRequestRes {
+export class RefundRequestRes {
   @Field(() => [refundRequest], { nullable: true })
   refund: refundRequest[];
 
