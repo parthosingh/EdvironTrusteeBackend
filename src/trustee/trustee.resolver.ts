@@ -2734,6 +2734,8 @@ export class TrusteeResolver {
     @Args('skip', { type: () => Int, nullable: true }) skip?: number,
   ) {
     try {
+      console.log('test');
+      
       const settlement = await this.settlementReportModel.findOne({
         utrNumber: utr,
       });
@@ -2760,6 +2762,8 @@ export class TrusteeResolver {
       const client_id = settlement.clientId;
       const razorpay_id = settlement.razorpay_id;
       if (client_id) {
+        console.log('check cashfree');
+        
         return await this.trusteeService.getTransactionsForSettlements(
           utr,
           client_id,

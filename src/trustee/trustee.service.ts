@@ -579,7 +579,7 @@ export class TrusteeService {
     }
   }
 
-  
+
   async verifyresetToken(token) {
     try {
       const data = this.jwtService.verify(token, {
@@ -2189,7 +2189,12 @@ export class TrusteeService {
       const { data: transactions } = await axios.request(config);
 
       const settlements_transactions = transactions.settlements_transactions;
-      const school = await this.trusteeSchoolModel.findOne({ client_id });
+      let newClientId = client_id
+      if (newClientId === 'CF_3b48ae82-b5c9-4ccd-8003-0a9928f98966') {
+        newClientId = '67e39bfcd0b12c853ab2dd4f'
+      }
+
+      const school = await this.trusteeSchoolModel.findOne({ client_id: newClientId });
       let settlementTransactions = [];
       if (!school) throw new BadRequestException(`Could not find school `);
       settlements_transactions.forEach((transaction: any) => {
@@ -3634,9 +3639,9 @@ export class TrusteeService {
     email: string,
     phone: string,
     password: string,
-    school_id?:string[]
+    school_id?: string[]
   ) {
-  try {
+    try {
       const existingUser = await this.SubTrusteeModel.findOne({ email });
       if (existingUser) {
         throw new BadRequestException('Email already in use');
@@ -3648,9 +3653,9 @@ export class TrusteeService {
         phone,
         password_hash: password,
       }).save();
-      if(school_id && school_id.length>0){
+      if (school_id && school_id.length > 0) {
         await Promise.all(
-          school_id.map(async(school:any)=>{
+          school_id.map(async (school: any) => {
             await this.assingSubTrustee(
               school,
               subtrustee._id.toString(),
@@ -3704,9 +3709,9 @@ export class TrusteeService {
         { school_id: new Types.ObjectId(school_id) },
         { $addToSet: { sub_trustee_id: new Types.ObjectId(subTrustee) } }
       );
-      const check=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(school_id)})
+      const check = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
       console.log(check.sub_trustee_id);
-      
+
       if (result.matchedCount === 0) {
         throw new BadRequestException('School not found');
       }
