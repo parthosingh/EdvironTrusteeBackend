@@ -24,6 +24,7 @@ import { SubTrusteeGuard } from './sub-trustee.guard';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import {
   DisputesRes,
+  getSchool,
   RefundRequestRes,
   resetPassResponse,
   TransactionReport,
@@ -451,7 +452,7 @@ export class SubTrusteeResolver {
   }
 
   @UseGuards(SubTrusteeGuard)
-  @Query(() => [TrusteeSchool])
+  @Query(() => getSchool)
   async getSubTrusteeSchools(
     @Context() context: any,
     @Args('searchQuery', { nullable: true, defaultValue: null })
@@ -468,7 +469,7 @@ export class SubTrusteeResolver {
         throw new NotFoundException('Sub Trustee not found');
       }
       const schools = await this.subTrusteeService.getSubTrusteeSchools(
-        subTrusteeData.trustee_id.toString(),
+        subTrustee.toString(),
         page,
         limit,
         searchQuery,

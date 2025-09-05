@@ -224,7 +224,7 @@ export class SubTrusteeService {
       const trusteeId = subTrustee.trustee_id;
       let searchFilter: any = {
         trustee_id: trusteeId,
-        subtrustee_ids: { $in: [new Types.ObjectId(subTrusteeId)] },
+        sub_trustee_id: { $in: [new Types.ObjectId(subTrusteeId)] },
       };
       if (searchQuery) {
         if (searchQuery) {
@@ -245,11 +245,12 @@ export class SubTrusteeService {
           merchantStatus: { $in: kycStatus },
         };
       }
-      const countDocs = await this.trusteeModel.countDocuments(searchFilter);
-      const schools = await this.trusteeModel
+      const countDocs = await this.trusteeSchoolModel.countDocuments(searchFilter);
+      const schools = await this.trusteeSchoolModel
         .find(searchFilter)
         .skip((page - 1) * limit)
-        .limit(limit);
+        .limit(limit)
+        .lean()
 
       const schoolsWithBankDetails = await Promise.all(
         schools.map(async (school: any) => {

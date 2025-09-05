@@ -4455,7 +4455,7 @@ export class SchoolMdrInfo {
 }
 
 @ObjectType()
-class getSchool {
+export class getSchool {
   @Field(() => [School])
   schools: [School];
   @Field({ nullable: true })
