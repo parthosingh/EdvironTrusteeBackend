@@ -82,7 +82,6 @@ export class SubTrusteeService {
       const subtrustee = await this.subTrustee.findOne({
         email: lowerCaseEmail,
       });
-      console.log(subtrustee, 'subtrustee');
       var email_id = subtrustee?.email;
       let passwordMatch = await bcrypt.compare(
         passwordHash,
@@ -97,7 +96,7 @@ export class SubTrusteeService {
       };
       return {
         token: await this.jwtService.sign(payload, {
-          secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
+          secret: process.env.JWT_SECRET_FOR_SUBTRUSTEE_AUTH,
           expiresIn: '30d',
         }),
       };

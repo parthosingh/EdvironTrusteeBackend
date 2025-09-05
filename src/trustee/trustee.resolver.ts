@@ -3518,6 +3518,7 @@ export class TrusteeResolver {
             trustee_id: 1,
             createdAt: 1,
             updatedAt: 1,
+            // password_hash: 0,
           }
         },
         { $skip: skip },
@@ -3541,9 +3542,40 @@ export class TrusteeResolver {
 }
 
 @ObjectType()
+export class SubTrusteeIInstance {
+  @Field(() => ID)
+  _id: string;
+
+  @Field(() => String)
+  name: string;
+
+  @Field(() => String)
+  email?: string;
+
+  @Field(() => String, { nullable: true })
+  phone?: string;
+
+  @Field(() => String, { nullable: true })
+  logo?: string;
+
+  @Field(() => String, { nullable: true })
+  role?: string;
+  
+  @Field(() => ID)
+  trustee_id: ObjectId;
+
+  @Field(() => Date, { nullable: true })
+  createdAt?: Date;
+
+  @Field(() => Date, { nullable: true })
+  updatedAt?: Date;
+}
+
+
+@ObjectType()
 export class SubTrusteeResponse {
-  @Field(() => [SubTrustee], { nullable: true })
-  subTrustees: SubTrustee[];
+  @Field(() => [SubTrusteeIInstance], { nullable: true })
+  subTrustees: SubTrusteeIInstance[];
 
   @Field({ nullable: true })
   totalCount: number;
