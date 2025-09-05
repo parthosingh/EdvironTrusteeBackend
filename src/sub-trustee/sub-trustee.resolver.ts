@@ -830,30 +830,30 @@ export class SubTrusteeResolver {
     return { token: res.data.token };
   }
 
-  @UseGuards(SubTrusteeGuard)
-  @Mutation(() => String)
-  async generateMerchantLoginToken(
-    @Args('email') email: string,
-    @Context() context,
-  ): Promise<string> {
-    try {
-      const merchant = await this.trusteeSchoolModel.findOne({
-        email,
-        sub_trustee_id: { $in: [context.req.subtrustee] },
-      });
+  // @UseGuards(SubTrusteeGuard)
+  // @Mutation(() => String)
+  // async generateMerchantLoginToken(
+  //   @Args('email') email: string,
+  //   @Context() context,
+  // ): Promise<string> {
+  //   try {
+  //     const merchant = await this.trusteeSchoolModel.findOne({
+  //       email,
+  //       sub_trustee_id: { $in: [context.req.subtrustee] },
+  //     });
 
-      if (merchant) {
-        return this.trusteeService.generateToken(merchant._id);
-      }
-      const member = await this.merchantMemberModel.findOne({ email });
-      if (member) {
-        return this.trusteeService.generateToken(member._id);
-      }
-      throw new NotFoundException('Email not found');
-    } catch (error) {
-      throw new Error(error.message);
-    }
-  }
+  //     if (merchant) {
+  //       return this.trusteeService.generateToken(merchant._id);
+  //     }
+  //     const member = await this.merchantMemberModel.findOne({ email });
+  //     if (member) {
+  //       return this.trusteeService.generateToken(member._id);
+  //     }
+  //     throw new NotFoundException('Email not found');
+  //   } catch (error) {
+  //     throw new Error(error.message);
+  //   }
+  // }
 
   @UseGuards(SubTrusteeGuard)
   @Query(() => VendorsSettlementReportPaginatedResponse)
