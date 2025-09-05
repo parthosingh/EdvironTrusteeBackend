@@ -450,6 +450,7 @@ export class WebhooksController {
               $set: {
                 settlementAmount: data.payout_amount + data.refund_amount,
                 adjustment: data.refund_amount,
+                gateway : "EASEBUZZ",
                 netSettlementAmount: data.payout_amount,
                 fromDate: new Date(
                   easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
@@ -461,7 +462,7 @@ export class WebhooksController {
                 status: 'SUCCESS',
                 utrNumber: utr,
                 settlementDate: new Date(data.payout_date),
-                clientId: data.submerchant_id || 'NA',
+                // clientId: data.submerchant_id || 'NA',
                 trustee: school.trustee_id,
                 schoolId: school.school_id,
                 remarks: 'NA',
