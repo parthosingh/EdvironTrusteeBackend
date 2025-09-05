@@ -116,7 +116,7 @@ export class SubTrusteeResolver {
         _id: userSubTrustee.id,
         name: userSubTrustee.name,
         email: userSubTrustee.email,
-        role: userSubTrustee.role,
+        role: 'owner',
         phone: userSubTrustee.phone,
         trustee_id: userSubTrustee.trustee_id,
         logo: null,
