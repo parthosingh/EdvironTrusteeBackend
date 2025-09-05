@@ -29,6 +29,7 @@ import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
 import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
 
+
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -95,7 +96,9 @@ import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account
       MongooseModule.forFeature([
       { name: VirtualAccount.name, schema: VirtualAccountSchema },
     ]),
-
+    MongooseModule.forFeature([
+      { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },

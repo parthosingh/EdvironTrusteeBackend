@@ -29,6 +29,7 @@ import {
   resetPassResponse,
   TransactionReport,
   TransactionReportResponsePaginated,
+  VendorsSettlementReportPaginatedResponse,
   VendorsTransactionPaginatedResponse,
   verifyRes,
 } from 'src/trustee/trustee.resolver';
@@ -40,6 +41,7 @@ import { TrusteeService } from 'src/trustee/trustee.service';
 import { MerchantMember } from 'src/schema/merchant.member.schema';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { Trustee } from 'src/schema/trustee.schema';
+import { VendorsSettlement } from 'src/schema/vendor.settlements.schema';
 
 @ObjectType()
 class SubTrusteeTokenResponse {
@@ -66,8 +68,10 @@ export class SubTrusteeResolver {
     private virtualAccountModel: mongoose.Model<VirtualAccount>,
     @InjectModel(Trustee.name)
     private trsuteeModel: mongoose.Model<Trustee>,
-    private readonly trusteeService: TrusteeService
-  ) { }
+    @InjectModel(VendorsSettlement.name)
+    private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
+    private readonly trusteeService: TrusteeService,
+  ) {}
 
   @Mutation(() => loginToken)
   async subTrusteeLogin(
@@ -107,9 +111,9 @@ export class SubTrusteeResolver {
       console.log('test');
 
       let id = context.req.subtrustee;
-      const userSubTrustee = await this.subTrustee.findById(id)
+      const userSubTrustee = await this.subTrustee.findById(id);
       if (!userSubTrustee) {
-        throw new BadRequestException('Invalid user')
+        throw new BadRequestException('Invalid user');
       }
       console.log(userSubTrustee, 'merchant');
       const user: SubTrusteeuser = {
@@ -429,7 +433,7 @@ export class SubTrusteeResolver {
         sub_trustee_id: { $in: [subTrustee] },
       });
       let school_ids = schools.map((school) => school.school_id.toString());
-      if(school_id && school_id.length > 0){
+      if (school_id && school_id.length > 0) {
         school_ids = school_ids.filter((id) => school_id.includes(id));
       }
       return this.subTrusteeService.getAllVendorTransactions(
@@ -533,19 +537,19 @@ export class SubTrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-              $or: [
-                { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                { _id: new mongoose.Types.ObjectId(searchQuery) },
-              ],
-            }
+                $or: [
+                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                  { _id: new mongoose.Types.ObjectId(searchQuery) },
+                ],
+              }
             : {
-              $or: [
-                { status: { $regex: searchQuery, $options: 'i' } },
-                { reason: { $regex: searchQuery, $options: 'i' } },
-                { custom_id: { $regex: searchQuery, $options: 'i' } },
-                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-              ],
-            }
+                $or: [
+                  { status: { $regex: searchQuery, $options: 'i' } },
+                  { reason: { $regex: searchQuery, $options: 'i' } },
+                  { custom_id: { $regex: searchQuery, $options: 'i' } },
+                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
           : {}),
       };
       if (!searchQuery && startDate && endDate) {
@@ -689,7 +693,6 @@ export class SubTrusteeResolver {
       );
     } catch (e) {
       throw new BadRequestException(e.message);
-
     }
   }
 
@@ -702,7 +705,7 @@ export class SubTrusteeResolver {
     try {
       const merchant = await this.trusteeSchoolModel.findOne({
         email,
-        sub_trustee_id: { $in: [context.req.subtrustee] }
+        sub_trustee_id: { $in: [context.req.subtrustee] },
       });
 
       if (merchant) {
@@ -729,7 +732,7 @@ export class SubTrusteeResolver {
   ) {
     try {
       const trustee_id = context.req.trustee;
-      const subTrsutee = context.req.subtrustee
+      const subTrsutee = context.req.subtrustee;
       const token = this.jwtService.sign(
         { trustee_id, collect_id },
         { secret: process.env.PAYMENTS_SERVICE_SECRET },
@@ -787,7 +790,7 @@ export class SubTrusteeResolver {
   async resetMailsSubtrustee(@Args('email') email: string) {
     const subTrustee = await this.subTrustee.findOne({ email_id: email });
     if (!subTrustee) {
-      throw new BadRequestException('Invalid Email')
+      throw new BadRequestException('Invalid Email');
     }
     await this.subTrusteeService.sentResetMail(email);
     return { active: true };
@@ -815,7 +818,6 @@ export class SubTrusteeResolver {
     @Args('school_id') school_id: string,
     @Context() context,
   ) {
-
     const token = await this.jwtService.sign(
       { school_id },
       {
@@ -837,7 +839,7 @@ export class SubTrusteeResolver {
     try {
       const merchant = await this.trusteeSchoolModel.findOne({
         email,
-        sub_trustee_id: { $in: [context.req.subtrustee,] }
+        sub_trustee_id: { $in: [context.req.subtrustee] },
       });
 
       if (merchant) {
@@ -853,12 +855,75 @@ export class SubTrusteeResolver {
     }
   }
 
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => VendorsSettlementReportPaginatedResponse)
+  async getAllSubtrusteeVendorSettlementReport(
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Context() context: any,
+    @Args('start_date', { type: () => String, nullable: true })
+    start_date?: string,
+    @Args('end_date', { type: () => String, nullable: true }) end_date?: string,
+    @Args('utr', { type: () => String, nullable: true })
+    utr?: string,
+    @Args('school_id', { type: () => [String], nullable: true })
+    school_id?: string[],
+    @Args('vendor_id', { type: () => String, nullable: true })
+    vendor_id?: string,
+  ) {
+    const trusteeId = context.req.trustee;
+    const subTrustee = context.req.subtrustee;
+    const schools = await this.trusteeSchoolModel.find({
+      sub_trustee_id: { $in: [subTrustee] },
+    });
+
+    let school_ids: any = schools.map((school) => school.school_id.toString());
+    if (school_id && school_id.length > 0) {
+      school_ids = school_ids.filter((id) => school_id.includes(id));
+    }
+
+    school_ids = school_ids.map((id) => new Types.ObjectId(id));
+    const query = {
+      trustee_id: trusteeId,
+      ...(school_ids && { school_id: { $in: school_ids } }),
+      ...(vendor_id && { vendor_id: new Types.ObjectId(vendor_id) }),
+      ...(utr && { utr: utr }),
+      ...(start_date &&
+        end_date && {
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
+    };
+
+    const totalCount = await this.vendorsSettlementModel.countDocuments(query);
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Fetch paginated data
+    const vendor_settlements = await this.vendorsSettlementModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .exec();
+
+    // Return paginated response
+    return {
+      vendor_settlements,
+      totalCount,
+      totalPages,
+      page,
+      limit,
+    };
+  }
 }
 
 @ObjectType()
 export class loginToken {
   @Field(() => String)
-  token: string
+  token: string;
 }
 
 @ObjectType()
