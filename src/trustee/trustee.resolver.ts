@@ -1126,7 +1126,7 @@ export class TrusteeResolver {
       }),
       this.trusteeSchoolModel.countDocuments({
         trustee_id: id,
-        merchantStatus: 'Documents uploaded',
+        merchantStatus: 'Documents Uploaded',
       }),
     ]);
 
