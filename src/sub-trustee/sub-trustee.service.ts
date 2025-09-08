@@ -42,7 +42,7 @@ export class SubTrusteeService {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(Vendors.name)
     private vendorsModel: mongoose.Model<Vendors>,
-  ) {}
+  ) { }
 
   async validateMerchant(token: string): Promise<any> {
     try {
@@ -336,13 +336,13 @@ export class SubTrusteeService {
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-              dispute_created_date: {
-                ...(start_date && { $gte: new Date(start_date) }),
-                ...(end_date && {
-                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
+            dispute_created_date: {
+              ...(start_date && { $gte: new Date(start_date) }),
+              ...(end_date && {
+                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+              }),
+            },
+          }
           : {}),
       };
       if (!school_id || school_id.length <= 0) {
@@ -514,4 +514,25 @@ export class SubTrusteeService {
       throw new BadRequestException(error.message);
     }
   }
+
+  async getSubTrusteeSchoolIds(subTrusteeId: string, trustee_id: string) {
+  try {
+    const subtrustee = await this.subTrustee.findById(subTrusteeId);
+    if (subtrustee.trustee_id.toString() !== trustee_id) {
+      throw new BadRequestException('Forge request');
+    }
+
+    const schoolDocs = await this.trusteeSchoolModel.find({
+      sub_trustee_id: new Types.ObjectId(subTrusteeId),
+    }).select('school_id -_id');
+
+    // Convert ObjectId to string
+    const schoolIds = schoolDocs.map(doc => doc.school_id.toString());
+
+    return schoolIds;
+  } catch (e) {
+    throw new BadRequestException(e.message);
+  }
+}
+
 }

@@ -71,7 +71,7 @@ export class SubTrusteeResolver {
     @InjectModel(VendorsSettlement.name)
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     private readonly trusteeService: TrusteeService,
-  ) {}
+  ) { }
 
   @Mutation(() => loginToken)
   async subTrusteeLogin(
@@ -537,19 +537,19 @@ export class SubTrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-                $or: [
-                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                  { _id: new mongoose.Types.ObjectId(searchQuery) },
-                ],
-              }
+              $or: [
+                { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                { _id: new mongoose.Types.ObjectId(searchQuery) },
+              ],
+            }
             : {
-                $or: [
-                  { status: { $regex: searchQuery, $options: 'i' } },
-                  { reason: { $regex: searchQuery, $options: 'i' } },
-                  { custom_id: { $regex: searchQuery, $options: 'i' } },
-                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-                ],
-              }
+              $or: [
+                { status: { $regex: searchQuery, $options: 'i' } },
+                { reason: { $regex: searchQuery, $options: 'i' } },
+                { custom_id: { $regex: searchQuery, $options: 'i' } },
+                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+              ],
+            }
           : {}),
       };
       if (!searchQuery && startDate && endDate) {
@@ -890,11 +890,11 @@ export class SubTrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-          settled_on: {
-            $gte: new Date(start_date),
-            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-          },
-        }),
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -917,6 +917,28 @@ export class SubTrusteeResolver {
       page,
       limit,
     };
+  }
+
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => String)
+  async getSubTrusteeBatchTransactions(
+    @Args('year') year: string,
+    @Context() context: any
+  ) {
+    try {
+      const subTrusteeId = context.req.subtrustee;
+      const trusteeId = context.req.trustee;
+      console.log({subTrusteeId,trusteeId});
+      
+      const schoolIds = await this.subTrusteeService.getSubTrusteeSchoolIds(
+        subTrusteeId.toString(),
+        trusteeId.toString()
+      )
+      console.log(schoolIds);
+      return 'pp'
+    } catch (e) {
+      throw new BadRequestException(e.message)
+    }
   }
 }
 

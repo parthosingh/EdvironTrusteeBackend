@@ -278,7 +278,7 @@ export class TrusteeService {
               school_id: 1,
               school_name: 1,
               merchantStatus: 1,
-              _id: 0,
+              _id: 1,
               email: 1,
               pg_key: 1,
               disabled_modes: 1,
