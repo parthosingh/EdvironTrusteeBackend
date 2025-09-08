@@ -605,13 +605,15 @@ export class MerchantResolver {
     // });
     const merchant = await this.trusteeSchoolModel.findOne({ email: email });
     const member = await this.merchantMemberModel.findOne({
-      $or: [{ email }, { phone_number }],
+      $or: [{ email }
+        // , { phone_number }
+      ],
     });
     // if (trustee) {
     //   throw new ConflictException('This email or phone number is already registered for a partner account. Please use a different email or phone number.')
     // }
     if (member || merchant) {
-      throw new ConflictException('Email or Phone Number is Taken');
+      throw new ConflictException('Email is Taken');
     }
 
     await new this.merchantMemberModel({

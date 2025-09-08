@@ -1070,18 +1070,22 @@ export class TrusteeResolver {
       throw new Error('Invalid phone number!');
 
     const trustee = await this.trusteeModel.findOne({
-      $or: [{ email_id: email }, { phone_number: phone_number }],
+      $or: [{ email_id: email }
+        // , { phone_number: phone_number }
+      ],
     });
     const member = await this.trusteeMemberModel.findOne({
-      $or: [{ email }, { phone_number }],
+      $or: [{ email }
+        // , { phone_number }
+      ],
     });
     if (trustee) {
       throw new ConflictException(
-        'This email or phone number is already registered for a partner account. Please use a different email or phone number.',
+        'This email is already registered for a partner account. Please use a different email.',
       );
     }
     if (member) {
-      throw new ConflictException('Email or Phone Number is Taken');
+      throw new ConflictException('Email is Taken');
     }
 
     await new this.trusteeMemberModel({
