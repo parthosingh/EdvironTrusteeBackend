@@ -516,23 +516,23 @@ export class SubTrusteeService {
   }
 
   async getSubTrusteeSchoolIds(subTrusteeId: string, trustee_id: string) {
-  try {
-    const subtrustee = await this.subTrustee.findById(subTrusteeId);
-    if (subtrustee.trustee_id.toString() !== trustee_id) {
-      throw new BadRequestException('Forge request');
+    try {
+      const subtrustee = await this.subTrustee.findById(subTrusteeId);
+      if (subtrustee.trustee_id.toString() !== trustee_id) {
+        throw new BadRequestException('Forge request');
+      }
+
+      const schoolDocs = await this.trusteeSchoolModel.find({
+        sub_trustee_id: new Types.ObjectId(subTrusteeId),
+      }).select('school_id -_id');
+
+      // Convert ObjectId to string
+      const schoolIds = schoolDocs.map(doc => doc.school_id.toString());
+
+      return schoolIds;
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
-
-    const schoolDocs = await this.trusteeSchoolModel.find({
-      sub_trustee_id: new Types.ObjectId(subTrusteeId),
-    }).select('school_id -_id');
-
-    // Convert ObjectId to string
-    const schoolIds = schoolDocs.map(doc => doc.school_id.toString());
-
-    return schoolIds;
-  } catch (e) {
-    throw new BadRequestException(e.message);
   }
-}
 
 }

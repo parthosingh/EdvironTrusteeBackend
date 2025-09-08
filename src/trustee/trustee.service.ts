@@ -291,7 +291,7 @@ export class TrusteeService {
               createdAt: 1,
             },
           },
-           {
+          {
             $sort: { createdAt: -1, _id: -1 },
           },
           {
@@ -3720,6 +3720,91 @@ export class TrusteeService {
     } catch (e) {
       throw new BadRequestException(e.message)
     }
+  }
+
+  async easebuzzSettlementRecon(
+    submerchant_id: string,
+    start_date: string,
+    end_date: string,
+    easebuzz_key: string,
+    easebuzz_salt: string,
+    utr: string,
+    limit: number,
+    skip: number,
+    school_id: string,
+    page?: number 
+  ) {
+    try {
+      const tokenPayload = {
+        submerchant_id
+      }
+      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+
+      const token = await this.jwtService.sign(tokenPayload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET
+      })
+      const data = {
+        submerchant_id,
+        easebuzz_key,
+        easebuzz_salt,
+        start_date,
+        end_date,
+        page_size: 1000,
+        token,
+        utr
+      }
+
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/settlement-recon/v2`,
+        headers: {
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data
+      };
+      const response = await axios.request(config);
+      const settlements_transactions = response.data?.transactions
+      console.log(response.data, 'check');
+      if (!school) throw new BadRequestException(`Could not find school `);
+      settlements_transactions.forEach((transaction: any) => {
+        if (transaction?.order_id) {
+          transaction.school_name = school.school_name;
+        }
+      });
+
+      const startIndex = (page - 1) * limit;
+      const endIndex = page * limit;
+
+      const paginatedTransactions = settlements_transactions.slice(startIndex, endIndex);
+
+      // add school_name in the paginated result
+      paginatedTransactions.forEach((transaction: any) => {
+        if (transaction?.order_id) {
+          transaction.school_name = school.school_name;
+        }
+      });
+
+      return {
+        limit: limit || 0,
+        cursor: null,
+        page: page || 1,
+        totalCount: settlements_transactions.length || 0,
+        totalPages: Math.ceil(settlements_transactions.length / limit) || 0,
+        settlements_transactions: paginatedTransactions,
+      };
+    } catch (e) {
+      // console.log(e);
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+
+  }
+
+  async formatDateToDDMMYYYY(date: Date) {
+    const d = date.getDate().toString().padStart(2, "0");
+    const m = (date.getMonth() + 1).toString().padStart(2, "0");
+    const y = date.getFullYear();
+    return `${d}-${m}-${y}`;
   }
 }
 

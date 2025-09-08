@@ -920,7 +920,7 @@ export class SubTrusteeResolver {
   }
 
   @UseGuards(SubTrusteeGuard)
-  @Query(() => String)
+  @Query(() => SubTrusteeDashboard)
   async getSubTrusteeBatchTransactions(
     @Args('year') year: string,
     @Context() context: any
@@ -928,18 +928,111 @@ export class SubTrusteeResolver {
     try {
       const subTrusteeId = context.req.subtrustee;
       const trusteeId = context.req.trustee;
-      console.log({subTrusteeId,trusteeId});
-      
+      console.log({ subTrusteeId, trusteeId });
+
       const schoolIds = await this.subTrusteeService.getSubTrusteeSchoolIds(
         subTrusteeId.toString(),
         trusteeId.toString()
       )
       console.log(schoolIds);
-      return 'pp'
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/fetch-subtrustee-batch-transactions`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+
+        },
+        data: {
+          school_ids: schoolIds,
+          year
+        }
+      }
+      const response = await axios.request(config)
+      console.log(response.data);
+      return response.data
     } catch (e) {
+      // console.log(e);
+
       throw new BadRequestException(e.message)
     }
   }
+
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => String)
+  async getSubTrusteeTransactionSum(
+    @Context() context: any,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate?: string,
+    @Args('endDate', { type: () => String, nullable: true })
+    endDate?: string,
+    @Args('status', { type: () => String, nullable: true })
+    status?: string,
+    @Args('gateway', { type: () => [String], nullable: true }) // ✅ array of strings
+    gateway?: string[],
+    @Args('school_ids', { type: () => [String], nullable: true }) // ✅ array of strings
+    school_ids?: string[],
+    @Args('mode', { type: () => [String], nullable: true }) // ✅ array of strings
+    mode?: string[],
+    @Args('isqrpayment', { type: () => Boolean, nullable: true }) // ✅ boolean
+    isqrpayment?: boolean,
+  ) {
+    try {
+      const subTrusteeId = context.req.subtrustee;
+      const trusteeId = context.req.trustee;
+      console.log({ subTrusteeId, trusteeId });
+      let filtered_school_ids = school_ids || []
+      if (!filtered_school_ids || filtered_school_ids.length === 0) {
+
+        const schoolIds = await this.subTrusteeService.getSubTrusteeSchoolIds(
+          subTrusteeId.toString(),
+          trusteeId.toString()
+        )
+        filtered_school_ids = schoolIds
+      }
+      console.log(filtered_school_ids);
+      
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/sub-trustee-transactions-sum`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: {
+          trustee_id: trusteeId,
+          school_id: filtered_school_ids,
+          gateway: gateway,
+          start_date: startDate,
+          end_date: endDate,
+          status: status,
+          mode: mode,
+          isQRPayment: isqrpayment
+        }
+      }
+      const response = await axios.request(config)
+      console.log(response.data);
+      return JSON.stringify(response.data)
+
+    } catch (e) {
+      console.log(e);
+      
+      throw new BadRequestException(e.message)
+    }
+  }
+
+}
+
+@ObjectType()
+export class SubTrusteeDashboard {
+  @Field(() => Number)
+  total_order_amount: number;
+
+  @Field(() => Number)
+  total_transaction_amount: number;
+
+  @Field(() => Number)
+  total_transactions: number;
 }
 
 @ObjectType()

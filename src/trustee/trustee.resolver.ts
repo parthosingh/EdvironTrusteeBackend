@@ -228,7 +228,7 @@ export class TrusteeResolver {
     private apiKeyLogsModel: mongoose.Model<ApiKeyLogs>,
     @InjectModel(SubTrustee.name)
     private SubTrusteeModel: mongoose.Model<SubTrustee>,
-  ) {}
+  ) { }
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -2329,19 +2329,19 @@ export class TrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-                $or: [
-                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                  { _id: new mongoose.Types.ObjectId(searchQuery) },
-                ],
-              }
+              $or: [
+                { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                { _id: new mongoose.Types.ObjectId(searchQuery) },
+              ],
+            }
             : {
-                $or: [
-                  { status: { $regex: searchQuery, $options: 'i' } },
-                  { reason: { $regex: searchQuery, $options: 'i' } },
-                  { custom_id: { $regex: searchQuery, $options: 'i' } },
-                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-                ],
-              }
+              $or: [
+                { status: { $regex: searchQuery, $options: 'i' } },
+                { reason: { $regex: searchQuery, $options: 'i' } },
+                { custom_id: { $regex: searchQuery, $options: 'i' } },
+                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+              ],
+            }
           : {}),
       };
 
@@ -2664,11 +2664,11 @@ export class TrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-          settled_on: {
-            $gte: new Date(start_date),
-            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-          },
-        }),
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -2736,10 +2736,11 @@ export class TrusteeResolver {
     @Args('cursor', { type: () => String, nullable: true })
     cursor: string | null,
     @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+    @Args('page', { type: () => Int, nullable: true }) page?: number,
   ) {
     try {
       console.log('test');
-      
+
       const settlement = await this.settlementReportModel.findOne({
         utrNumber: utr,
       });
@@ -2767,7 +2768,7 @@ export class TrusteeResolver {
       const razorpay_id = settlement.razorpay_id;
       if (client_id) {
         console.log('check cashfree');
-        
+
         return await this.trusteeService.getTransactionsForSettlements(
           utr,
           client_id,
@@ -2790,6 +2791,44 @@ export class TrusteeResolver {
           skip,
           settlement.fromDate,
         );
+      }
+      const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      if (
+        school.isEasebuzzNonPartner &&
+        school.easebuzz_non_partner.easebuzz_key &&
+        school.easebuzz_non_partner.easebuzz_salt &&
+        school.easebuzz_non_partner.easebuzz_submerchant_id
+
+      ) {
+        console.log('settlement from date');
+        const settlements=await this.settlementReportModel.find({
+          schoolId: settlement.schoolId,
+          settlementDate: {$lt:settlement.settlementDate}
+        }).sort({settlementDate:-1}).select('settlementDate').limit(2);
+        const previousSettlementDate=settlements[1]?.settlementDate;
+        const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
+        console.log({ formatted_start_date }); // e.g. 06-09-2025
+
+        const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
+        console.log({ formatted_end_date }); // e.g. 06-09-2025
+        const paginatioNPage=page||1
+        const res = await this.trusteeService.easebuzzSettlementRecon(
+          school.easebuzz_non_partner.easebuzz_submerchant_id,
+          formatted_start_date,
+          formatted_end_date,
+          school.easebuzz_non_partner.easebuzz_key,
+          school.easebuzz_non_partner.easebuzz_salt,
+          utr,
+          limit,
+          skip,
+          settlement.schoolId.toString(),
+          paginatioNPage,
+        );
+
+        return res;
       }
     } catch (e) {
       throw new BadRequestException(e.message);
@@ -3066,42 +3105,42 @@ export class TrusteeResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-              files
-                .map(async (data) => {
-                  try {
-                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                    if (!matches || matches.length !== 3) {
-                      throw new Error('Invalid base64 file format.');
-                    }
-
-                    const contentType = matches[1];
-                    const base64Data = matches[2];
-                    const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                    const last4DigitsOfMs = Date.now().toString().slice(-4);
-                    const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
-
-                    const file_url = await this.awsS3Service.uploadToS3(
-                      fileBuffer,
-                      key,
-                      contentType,
-                      'edviron-backend-dev',
-                    );
-
-                    return {
-                      document_type: data.extension,
-                      file_url,
-                      name: data.name,
-                    };
-                  } catch (error) {
-                    throw new InternalServerErrorException(
-                      error.message || 'File upload failed',
-                    );
+            files
+              .map(async (data) => {
+                try {
+                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                  if (!matches || matches.length !== 3) {
+                    throw new Error('Invalid base64 file format.');
                   }
-                })
-                .filter((file) => file !== null),
-            )
+
+                  const contentType = matches[1];
+                  const base64Data = matches[2];
+                  const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                  const last4DigitsOfMs = Date.now().toString().slice(-4);
+                  const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
+
+                  const file_url = await this.awsS3Service.uploadToS3(
+                    fileBuffer,
+                    key,
+                    contentType,
+                    'edviron-backend-dev',
+                  );
+
+                  return {
+                    document_type: data.extension,
+                    file_url,
+                    name: data.name,
+                  };
+                } catch (error) {
+                  throw new InternalServerErrorException(
+                    error.message || 'File upload failed',
+                  );
+                }
+              })
+              .filter((file) => file !== null),
+          )
           : [];
 
       const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
@@ -3498,12 +3537,12 @@ export class TrusteeResolver {
           ? Types.ObjectId.isValid(searchQuery)
             ? { _id: new mongoose.Types.ObjectId(searchQuery) }
             : {
-                $or: [
-                  { name: { $regex: searchQuery, $options: 'i' } },
-                  { email: { $regex: searchQuery, $options: 'i' } },
-                  { phone: { $regex: searchQuery, $options: 'i' } },
-                ],
-              }
+              $or: [
+                { name: { $regex: searchQuery, $options: 'i' } },
+                { email: { $regex: searchQuery, $options: 'i' } },
+                { phone: { $regex: searchQuery, $options: 'i' } },
+              ],
+            }
           : {}),
       };
 
@@ -3512,13 +3551,13 @@ export class TrusteeResolver {
       const subTrustees = await this.SubTrusteeModel.aggregate([
         { $match: searchFilter },
         {
-          $project : {
+          $project: {
             _id: 1,
             name: 1,
             email: 1,
             phone: 1,
-            logo : 1,
-            role : 1,
+            logo: 1,
+            role: 1,
             trustee_id: 1,
             createdAt: 1,
             updatedAt: 1,
@@ -3529,14 +3568,14 @@ export class TrusteeResolver {
         { $limit: limit },
       ]).exec();
 
-      console.log(subTrustees ,"subTrustees")
+      console.log(subTrustees, "subTrustees")
 
       const totalPages = Math.ceil(totalSubtrustees / limit);
       return {
         totalCount: totalSubtrustees,
         totalPages,
         currentPage: page,
-        subTrustees : subTrustees || [],
+        subTrustees: subTrustees || [],
       };
     } catch (error) {
       console.log(error);
@@ -3564,7 +3603,7 @@ export class SubTrusteeIInstance {
 
   @Field(() => String, { nullable: true })
   role?: string;
-  
+
   @Field(() => ID)
   trustee_id: ObjectId;
 
@@ -3839,6 +3878,15 @@ export class SettlementsTransactionsPaginatedResponse {
 
   @Field({ nullable: true })
   limit: number;
+
+  @Field({ nullable: true })
+  page: number;
+
+  @Field({ nullable: true })
+  totalCount: number;
+
+  @Field({ nullable: true })
+  totalPages: number;
 
   @Field({ nullable: true })
   cursor: string;
