@@ -3789,6 +3789,8 @@ export class ErpController {
     @Query('utr_number') utr_number: string,
     @Query('cursor') cursor: string | null,
     @Query('limit') limit: string,
+    @Query('skip') skip: number,
+    @Query('page') page:  number,
   ) {
     let dataLimit = Number(limit) || 10;
 
@@ -3810,35 +3812,78 @@ export class ErpController {
         utrNumber: utrNumber,
       });
       const client_id = settlement.clientId;
-      const token = this.jwtService.sign(
-        { utrNumber, client_id },
-        { secret: process.env.PAYMENTS_SERVICE_SECRET },
-      );
+      if (client_id) {
+        console.log('cashfree')
+        const token = this.jwtService.sign(
+          { utrNumber, client_id },
+          { secret: process.env.PAYMENTS_SERVICE_SECRET },
+        );
 
-      const paginationData = {
-        cursor: cursor,
-        limit: dataLimit,
-      };
+        const paginationData = {
+          cursor: cursor,
+          limit: dataLimit,
+        };
 
-      const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/settlements-transactions?token=${token}&utr=${utrNumber}&client_id=${client_id}`,
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-        },
-        data: paginationData,
-      };
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/settlements-transactions?token=${token}&utr=${utrNumber}&client_id=${client_id}`,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          data: paginationData,
+        };
+        
 
-      const { data: transactions } = await axios.request(config);
-      const { settlements_transactions } = transactions;
+        const { data: transactions } = await axios.request(config);
+        const { settlements_transactions } = transactions;
 
-      return {
-        limit: transactions.limit,
-        cursor: transactions.cursor,
-        settlements_transactions,
-      };
+        return {
+          limit: transactions.limit,
+          cursor: transactions.cursor,
+          settlements_transactions,
+        };
+      }
+
+      const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      if (
+        school.isEasebuzzNonPartner &&
+        school.easebuzz_non_partner.easebuzz_key &&
+        school.easebuzz_non_partner.easebuzz_salt &&
+        school.easebuzz_non_partner.easebuzz_submerchant_id
+      ) {
+        console.log('settlement from date');
+        const settlements=await this.settlementModel.find({
+          schoolId: settlement.schoolId,
+          settlementDate: {$lt:settlement.settlementDate}
+        }).sort({settlementDate:-1}).select('settlementDate').limit(2);
+        const previousSettlementDate=settlements[1]?.settlementDate;
+        const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
+        console.log({ formatted_start_date }); // e.g. 06-09-2025
+
+        const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
+        console.log({ formatted_end_date }); // e.g. 06-09-2025
+        const paginatioNPage=page||1
+        const res = await this.trusteeService.easebuzzSettlementRecon(
+          school.easebuzz_non_partner.easebuzz_submerchant_id,
+          formatted_start_date,
+          formatted_end_date,
+          school.easebuzz_non_partner.easebuzz_key,
+          school.easebuzz_non_partner.easebuzz_salt,
+          utrNumber,
+          Number(limit),
+          skip,
+          settlement.schoolId.toString(),
+          paginatioNPage,
+          cursor,
+        );
+
+        return res;
+      }
     } catch (e) {
       throw new BadRequestException(e.message);
     }

@@ -111,7 +111,7 @@ export class TrusteeService {
     private ReportsLogsModel: mongoose.Model<ReportsLogs>,
     @InjectModel(SubTrustee.name)
     private SubTrusteeModel: mongoose.Model<SubTrustee>,
-  ) { }
+  ) {}
 
   async loginAndGenerateToken(
     emailId: string,
@@ -246,12 +246,12 @@ export class TrusteeService {
           ? Types.ObjectId.isValid(searchQuery)
             ? { school_id: new mongoose.Types.ObjectId(searchQuery) }
             : {
-              $or: [
-                { school_name: { $regex: searchQuery, $options: 'i' } },
-                { email: { $regex: searchQuery, $options: 'i' } },
-                { pg_key: { $regex: searchQuery, $options: 'i' } },
-              ],
-            }
+                $or: [
+                  { school_name: { $regex: searchQuery, $options: 'i' } },
+                  { email: { $regex: searchQuery, $options: 'i' } },
+                  { pg_key: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
           : {}),
       };
       if (kycStatus && kycStatus.length > 0) {
@@ -578,7 +578,6 @@ export class TrusteeService {
       throw new BadRequestException(error.message);
     }
   }
-
 
   async verifyresetToken(token) {
     try {
@@ -1747,8 +1746,9 @@ export class TrusteeService {
       if (chequeExtension === 'pdf') {
         mimeType = 'application/pdf';
       } else if (['jpg', 'jpeg', 'png'].includes(chequeExtension)) {
-        mimeType = `image/${chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
-          }`;
+        mimeType = `image/${
+          chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
+        }`;
       } else {
         throw new Error('Unsupported file type file type.');
       }
@@ -2003,7 +2003,7 @@ export class TrusteeService {
     };
 
     const { data: transactions } = await axios.request(config);
-    console.log(transactions, "transactions");
+    console.log(transactions, 'transactions');
 
     return transactions;
   }
@@ -2189,12 +2189,14 @@ export class TrusteeService {
       const { data: transactions } = await axios.request(config);
 
       const settlements_transactions = transactions.settlements_transactions;
-      let newClientId = client_id
+      let newClientId = client_id;
       if (newClientId === 'CF_3b48ae82-b5c9-4ccd-8003-0a9928f98966') {
-        newClientId = '67e39bfcd0b12c853ab2dd4f'
+        newClientId = '67e39bfcd0b12c853ab2dd4f';
       }
 
-      const school = await this.trusteeSchoolModel.findOne({ client_id: newClientId });
+      const school = await this.trusteeSchoolModel.findOne({
+        client_id: newClientId,
+      });
       let settlementTransactions = [];
       if (!school) throw new BadRequestException(`Could not find school `);
       settlements_transactions.forEach((transaction: any) => {
@@ -2831,13 +2833,13 @@ export class TrusteeService {
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-            dispute_created_date: {
-              ...(start_date && { $gte: new Date(start_date) }),
-              ...(end_date && {
-                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-              }),
-            },
-          }
+              dispute_created_date: {
+                ...(start_date && { $gte: new Date(start_date) }),
+                ...(end_date && {
+                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+                }),
+              },
+            }
           : {}),
       };
       const skip = (page - 1) * limit;
@@ -2875,13 +2877,13 @@ export class TrusteeService {
         ...(school_id && { schoolId: new Types.ObjectId(school_id) }),
         ...(start_date || end_date
           ? {
-            settlementDate: {
-              ...(start_date && { $gte: new Date(start_date) }),
-              ...(end_date && {
-                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-              }),
-            },
-          }
+              settlementDate: {
+                ...(start_date && { $gte: new Date(start_date) }),
+                ...(end_date && {
+                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+                }),
+              },
+            }
           : {}),
       };
 
@@ -2899,7 +2901,7 @@ export class TrusteeService {
         totalCount,
         totalPages,
       };
-    } catch (e) { }
+    } catch (e) {}
   }
 
   async fetchTransactionInfo(collect_id: string) {
@@ -3359,9 +3361,9 @@ export class TrusteeService {
           : '',
         settlement_initiated_on: item.settlement_initiated_on
           ? format(
-            new Date(item.settlement_initiated_on),
-            'd/M/yyyy, h:mm:ss a',
-          )
+              new Date(item.settlement_initiated_on),
+              'd/M/yyyy, h:mm:ss a',
+            )
           : '',
         payment_from: item.payment_from
           ? format(new Date(item.payment_from), 'd/M/yyyy, h:mm:ss a')
@@ -3597,10 +3599,7 @@ export class TrusteeService {
     }
   }
 
-  async getPayuSettlementRecon(
-    utr: string,
-    school_id: string,
-  ) {
+  async getPayuSettlementRecon(utr: string, school_id: string) {
     try {
       const config = {
         method: 'post',
@@ -3612,16 +3611,18 @@ export class TrusteeService {
         data: { utr, school_id, page: 1, limit: 1000 },
       };
       const { data } = await axios.request(config);
-      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
       if (!school) {
         throw new BadRequestException('School not found');
       }
-      const settlements_transactions = data.transactions
+      const settlements_transactions = data.transactions;
       settlements_transactions.forEach((transaction: any) => {
         if (transaction?.order_id) {
           transaction.school_name = school.school_name;
         }
-      })
+      });
       return {
         limit: settlements_transactions.limit,
         cursor: settlements_transactions.cursor || null,
@@ -3639,7 +3640,7 @@ export class TrusteeService {
     email: string,
     phone: string,
     password: string,
-    school_id?: string[]
+    school_id?: string[],
   ) {
     try {
       const existingUser = await this.SubTrusteeModel.findOne({ email });
@@ -3659,57 +3660,63 @@ export class TrusteeService {
             await this.assingSubTrustee(
               school,
               subtrustee._id.toString(),
-              trustee_id.toString()
-            )
-          })
-        )
+              trustee_id.toString(),
+            );
+          }),
+        );
       }
-      return { message: `Sub Trustee created successfully ${subtrustee._id}`, status: 'success' }
+      return {
+        message: `Sub Trustee created successfully ${subtrustee._id}`,
+        status: 'success',
+      };
     } catch (e) {
       throw new BadRequestException(e.message || 'Something went wrong');
     }
-
   }
 
   async assingSubTrustee(
     school_id: string,
     subTrustee: string,
-    trustee_id: string
+    trustee_id: string,
   ) {
     try {
       const school = await this.trusteeSchoolModel.findOne({
-        school_id: new Types.ObjectId(school_id)
-      })
+        school_id: new Types.ObjectId(school_id),
+      });
 
       if (!school) {
-        throw new BadRequestException('School not found')
+        throw new BadRequestException('School not found');
       }
 
-      const checkSubTrustee = await this.SubTrusteeModel.findById(subTrustee)
+      const checkSubTrustee = await this.SubTrusteeModel.findById(subTrustee);
       if (!checkSubTrustee) {
-        throw new BadRequestException('Sub trustee')
+        throw new BadRequestException('Sub trustee');
       }
 
       if (school.trustee_id.toString() !== trustee_id) {
-        throw new UnauthorizedException('UnAuthorize User')
+        throw new UnauthorizedException('UnAuthorize User');
       }
 
       if (checkSubTrustee.trustee_id.toString() !== trustee_id) {
-        throw new UnauthorizedException('Unauthorized User')
+        throw new UnauthorizedException('Unauthorized User');
       }
 
-      if (checkSubTrustee.trustee_id.toString() !== school.trustee_id.toString()) {
+      if (
+        checkSubTrustee.trustee_id.toString() !== school.trustee_id.toString()
+      ) {
         console.log('invalid something');
 
-        throw new BadRequestException('Unauthorized User')
+        throw new BadRequestException('Unauthorized User');
       }
       console.log('test');
 
       const result = await this.trusteeSchoolModel.updateOne(
         { school_id: new Types.ObjectId(school_id) },
-        { $addToSet: { sub_trustee_id: new Types.ObjectId(subTrustee) } }
+        { $addToSet: { sub_trustee_id: new Types.ObjectId(subTrustee) } },
       );
-      const check = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      const check = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
       console.log(check.sub_trustee_id);
 
       if (result.matchedCount === 0) {
@@ -3718,7 +3725,7 @@ export class TrusteeService {
 
       return { message: 'Sub trustee assigned successfully' };
     } catch (e) {
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
 
@@ -3732,17 +3739,28 @@ export class TrusteeService {
     limit: number,
     skip: number,
     school_id: string,
-    page?: number 
+    page?: number,
+    cursor?: string,
   ) {
     try {
       const tokenPayload = {
-        submerchant_id
+        submerchant_id,
+      };
+      let verifyPage = null;
+
+      if (cursor && cursor !== '') {
+        verifyPage = this.jwtService.verify(cursor, {
+          secret: process.env.PAYMENTS_SERVICE_SECRET,
+        });
       }
-      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      page = verifyPage?.page || page;
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
 
       const token = await this.jwtService.sign(tokenPayload, {
-        secret: process.env.PAYMENTS_SERVICE_SECRET
-      })
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
       const data = {
         submerchant_id,
         easebuzz_key,
@@ -3751,8 +3769,8 @@ export class TrusteeService {
         end_date,
         page_size: 1000,
         token,
-        utr
-      }
+        utr,
+      };
 
       const config = {
         method: 'post',
@@ -3761,11 +3779,11 @@ export class TrusteeService {
           'Content-Type': 'application/json',
           accept: 'application/json',
         },
-        data
+        data,
       };
       const response = await axios.request(config);
-      const settlements_transactions = response.data?.transactions
-      console.log(response.data, 'check');
+      const settlements_transactions = response.data?.transactions;
+      // console.log(response.data, 'check');
       if (!school) throw new BadRequestException(`Could not find school `);
       settlements_transactions.forEach((transaction: any) => {
         if (transaction?.order_id) {
@@ -3776,7 +3794,10 @@ export class TrusteeService {
       const startIndex = (page - 1) * limit;
       const endIndex = page * limit;
 
-      const paginatedTransactions = settlements_transactions.slice(startIndex, endIndex);
+      const paginatedTransactions = settlements_transactions.slice(
+        startIndex,
+        endIndex,
+      );
 
       // add school_name in the paginated result
       paginatedTransactions.forEach((transaction: any) => {
@@ -3784,27 +3805,31 @@ export class TrusteeService {
           transaction.school_name = school.school_name;
         }
       });
+      let totalPages = Math.ceil(settlements_transactions.length / limit) || 0;
+      const payload = { page: Number(page + 1), totalPages: totalPages };
+      let cursorToken = this.jwtService.sign(payload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      let updateCursor = page == totalPages ? null : cursorToken;
 
       return {
         limit: limit || 0,
-        cursor: null,
+        cursor: updateCursor,
         page: page || 1,
         totalCount: settlements_transactions.length || 0,
         totalPages: Math.ceil(settlements_transactions.length / limit) || 0,
         settlements_transactions: paginatedTransactions,
       };
     } catch (e) {
-      // console.log(e);
+      console.log(e);
       throw new BadRequestException(e.message || 'Something went wrong');
     }
-
   }
 
   async formatDateToDDMMYYYY(date: Date) {
-    const d = date.getDate().toString().padStart(2, "0");
-    const m = (date.getMonth() + 1).toString().padStart(2, "0");
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
     const y = date.getFullYear();
     return `${d}-${m}-${y}`;
   }
 }
-

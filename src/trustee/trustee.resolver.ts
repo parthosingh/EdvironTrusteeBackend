@@ -2739,14 +2739,12 @@ export class TrusteeResolver {
     @Args('page', { type: () => Int, nullable: true }) page?: number,
   ) {
     try {
-      console.log('test');
+      // console.log('test');
 
       const settlement = await this.settlementReportModel.findOne({
         utrNumber: utr,
       });
-      console.log(settlement.trustee, 'settlement');
-      console.log(context.req.trustee, 'context');
-
+     
       if (settlement.trustee.toString() !== context.req.trustee.toString()) {
         throw new ForbiddenException(
           'You are not authorized to access this settlement',
@@ -2796,6 +2794,7 @@ export class TrusteeResolver {
       if (!school) {
         throw new NotFoundException('School not found');
       }
+      console.log('here')
       if (
         school.isEasebuzzNonPartner &&
         school.easebuzz_non_partner.easebuzz_key &&
@@ -2826,6 +2825,7 @@ export class TrusteeResolver {
           skip,
           settlement.schoolId.toString(),
           paginatioNPage,
+          cursor,
         );
 
         return res;
