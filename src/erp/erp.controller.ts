@@ -3812,6 +3812,7 @@ export class ErpController {
         utrNumber: utrNumber,
       });
       const client_id = settlement.clientId;
+      const razorpay_id = settlement.razorpay_id;
       if (client_id) {
         console.log('cashfree')
         const token = this.jwtService.sign(
@@ -3844,6 +3845,23 @@ export class ErpController {
           cursor: transactions.cursor,
           settlements_transactions,
         };
+      }
+
+      if (razorpay_id) {
+        console.log('inside razorpay');
+        const school = await this.trusteeSchoolModel.findOne({
+          'razorpay.razorpay_id': razorpay_id,
+        });
+        const razropay_secret = school?.razorpay?.razorpay_secret;
+        return await this.trusteeService.getRazorpayTransactionForSettlement(
+          utrNumber,
+          razorpay_id,
+          razropay_secret,
+          Number(limit),
+          cursor,
+          skip,
+          settlement.fromDate,
+        );
       }
 
       const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });

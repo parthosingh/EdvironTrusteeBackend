@@ -3102,11 +3102,21 @@ export class TrusteeService {
     cursor: string,
     skip: number,
     fromDate: Date,
+    page?: number,
   ) {
+    let verifyPage = null;
+
+    if (cursor && cursor !== '') {
+      verifyPage = this.jwtService.verify(cursor, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+    }
+    page = verifyPage?.page || 0;
     const token = this.jwtService.sign(
       { utr, razorpay_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
+    skip = limit * page
     const paginationData = {
       cursor: cursor,
       limit: limit,
@@ -3128,23 +3138,28 @@ export class TrusteeService {
       console.log({ transactions });
 
       const settlements_transactions = transactions.settlements_transactions;
+      if(!settlements_transactions && settlements_transactions.length === 0){
+        throw new BadRequestException('no more transaction found')
+      }
       const school = await this.trusteeSchoolModel.findOne({
         'razorpay.razorpay_id': razorpay_id,
       });
       let settlementTransactions = [];
       if (!school) throw new BadRequestException(`Could not find school `);
-      settlements_transactions.forEach((transaction: any) => {
+      settlements_transactions?.forEach((transaction: any) => {
         if (transaction?.order_id) {
           transaction.school_name = school.school_name;
         }
       });
-      // console.log(transactions, 'datadagsjdgajk');
 
-      // console.log(settlements_transactions, 'settlements_transactions');
-
+      const payload = { page: Number(page + 1) };
+      let cursorToken = this.jwtService.sign(payload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      let updateCursor = limit > settlements_transactions.length ? null : cursorToken;
       return {
         limit: transactions.limit,
-        cursor: transactions.cursor,
+        cursor: updateCursor,
         settlements_transactions,
       };
     } catch (e) {
