@@ -1779,6 +1779,7 @@ export class MerchantResolver {
     @Args('cursor', { type: () => String, nullable: true })
     cursor: string | null,
     @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+     @Args('page', { type: () => Int, nullable: true }) page?: number,
   ) {
     try {
       const settlement = await this.settlementReportModel.findOne({
@@ -1812,6 +1813,46 @@ export class MerchantResolver {
           skip,
           settlement.fromDate,
         );
+      }
+
+      
+      const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      if (
+        school.isEasebuzzNonPartner &&
+        school.easebuzz_non_partner.easebuzz_key &&
+        school.easebuzz_non_partner.easebuzz_salt &&
+        school.easebuzz_non_partner.easebuzz_submerchant_id
+
+      ) {
+        console.log('settlement from date');
+        const settlements = await this.settlementReportModel.find({
+          schoolId: settlement.schoolId,
+          settlementDate: { $lt: settlement.settlementDate }
+        }).sort({ settlementDate: -1 }).select('settlementDate').limit(2);
+        const previousSettlementDate = settlements[1]?.settlementDate;
+        const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
+        console.log({ formatted_start_date }); // e.g. 06-09-2025
+
+        const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
+        console.log({ formatted_end_date }); // e.g. 06-09-2025
+        const paginatioNPage = page || 1
+        const res = await this.trusteeService.easebuzzSettlementRecon(
+          school.easebuzz_non_partner.easebuzz_submerchant_id,
+          formatted_start_date,
+          formatted_end_date,
+          school.easebuzz_non_partner.easebuzz_key,
+          school.easebuzz_non_partner.easebuzz_salt,
+          utr,
+          limit,
+          skip,
+          settlement.schoolId.toString(),
+          paginatioNPage,
+        );
+
+        return res;
       }
     } catch (e) {
       throw new BadRequestException(e.message);
