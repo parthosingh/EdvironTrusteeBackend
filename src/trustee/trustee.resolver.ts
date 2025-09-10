@@ -2807,7 +2807,13 @@ export class TrusteeResolver {
           schoolId: settlement.schoolId,
           settlementDate: {$lt:settlement.settlementDate}
         }).sort({settlementDate:-1}).select('settlementDate').limit(2);
-        const previousSettlementDate=settlements[1]?.settlementDate;
+        let previousSettlementDate = settlements[1]?.settlementDate;
+        if (!previousSettlementDate) {
+          console.log('No previous settlement date found');
+          const date = new Date(settlement.settlementDate); // clone date
+          date.setDate(date.getDate() - 4);
+          previousSettlementDate = date;
+        }
         const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
         console.log({ formatted_start_date }); // e.g. 06-09-2025
 
