@@ -400,6 +400,48 @@ export class WebhooksController {
     }
   }
 
+  
+  @Post('/razorpay/refund')
+  async razorpayRefundWebhook(@Body() body: any, @Res() res: any) {
+    try {
+      const details = JSON.stringify(body);
+      await new this.webhooksLogsModel({
+        type: 'Razorpay Refund Webhook',
+        gateway: 'Razorpay',
+        body: details,
+      }).save();
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  @Post('/razorpay/settlement')
+  async razorpaySettlementWebhook(@Body() body: any, @Res() res: any) {
+    try {
+      const details = JSON.stringify(body);
+      await new this.webhooksLogsModel({
+        type: 'Razorpay settlement Webhook',
+        gateway: 'Razorpay',
+        body: details,
+      }).save();
+    } catch (e) {
+      console.log(e);
+    }
+  }
+   @Post('/razorpay/disputes')
+  async razorpayDisputeWebhook(@Body() body: any, @Res() res: any) {
+    try {
+      const details = JSON.stringify(body);
+      await new this.webhooksLogsModel({
+        type: 'Razorpay dispute Webhook',
+        gateway: 'Razorpay',
+        body: details,
+      }).save();
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   @Post('easebuzz/settlements')
   async eassebuzzSettlements(
     @Body() body: any,
@@ -450,7 +492,7 @@ export class WebhooksController {
               $set: {
                 settlementAmount: data.payout_amount + data.refund_amount,
                 adjustment: data.refund_amount,
-                gateway : "EASEBUZZ",
+                gateway: 'EASEBUZZ',
                 netSettlementAmount: data.payout_amount,
                 fromDate: new Date(
                   easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
@@ -1157,9 +1199,12 @@ export class WebhooksController {
         let eventUpdate = {
           status: dispute_status,
           remark: cf_dispute_remarks,
-          settlement_id: paymentsResponse?.data?.cashfreeDispute[0]?.cf_settlement_id || 'N/A',
-          utr_no: paymentsResponse?.data?.cashfreeDispute[0]?.transfer_utr || 'N/A',
-          event_date : new Date(created_at),
+          settlement_id:
+            paymentsResponse?.data?.cashfreeDispute[0]?.cf_settlement_id ||
+            'N/A',
+          utr_no:
+            paymentsResponse?.data?.cashfreeDispute[0]?.transfer_utr || 'N/A',
+          event_date: new Date(created_at),
         };
         dispute.event_steps.push(eventUpdate);
         await dispute.save();
