@@ -101,7 +101,7 @@ export class MerchantResolver {
     private readonly businessServices: BusinessAlarmService,
     @InjectModel(ErrorLogs.name)
     private ErrorLogsModel: mongoose.Model<ErrorLogs>,
-  ) {}
+  ) { }
   // private emailService: EmailService,
   // ) { }
 
@@ -262,7 +262,7 @@ export class MerchantResolver {
 
     settlementReports = await this.settlementReportModel
       .find({ schoolId: merchant.school_id })
-      .sort({ createdAt: -1 });
+      .sort({ settlementDate: -1 });
     return settlementReports;
   }
 
@@ -1027,8 +1027,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+          refundableAmount +
+          'Rs',
         );
       }
     }
@@ -1200,11 +1200,11 @@ export class MerchantResolver {
       ...(vendor_id && { vendor_id }),
       ...(startDate &&
         endDate && {
-          updatedAt: {
-            $gte: new Date(startDate),
-            $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
-          },
-        }),
+        updatedAt: {
+          $gte: new Date(startDate),
+          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     console.log(query, ':query');
@@ -1361,11 +1361,11 @@ export class MerchantResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-          settled_on: {
-            $gte: new Date(start_date),
-            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-          },
-        }),
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -1416,7 +1416,7 @@ export class MerchantResolver {
     if (
       checkRefundRequest &&
       checkRefundRequest.split_refund_details[0]?.vendor_id ===
-        split_refund_details[0].vendor_id &&
+      split_refund_details[0].vendor_id &&
       checkRefundRequest.status === refund_status.INITIATED
     ) {
       throw new ConflictException(
@@ -1456,8 +1456,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+          refundableAmount +
+          'Rs',
         );
       }
     }
@@ -1579,42 +1579,42 @@ export class MerchantResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-              files
-                .map(async (data) => {
-                  try {
-                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                    if (!matches || matches.length !== 3) {
-                      throw new Error('Invalid base64 file format.');
-                    }
-
-                    const contentType = matches[1];
-                    const base64Data = matches[2];
-                    const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                    const last4DigitsOfMs = Date.now().toString().slice(-4);
-                    const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
-
-                    const file_url = await this.awsS3Service.uploadToS3(
-                      fileBuffer,
-                      key,
-                      contentType,
-                      'edviron-backend-dev',
-                    );
-
-                    return {
-                      document_type: data.extension,
-                      file_url,
-                      name: data.name,
-                    };
-                  } catch (error) {
-                    throw new InternalServerErrorException(
-                      error.message || 'File upload failed',
-                    );
+            files
+              .map(async (data) => {
+                try {
+                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                  if (!matches || matches.length !== 3) {
+                    throw new Error('Invalid base64 file format.');
                   }
-                })
-                .filter((file) => file !== null),
-            )
+
+                  const contentType = matches[1];
+                  const base64Data = matches[2];
+                  const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                  const last4DigitsOfMs = Date.now().toString().slice(-4);
+                  const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
+
+                  const file_url = await this.awsS3Service.uploadToS3(
+                    fileBuffer,
+                    key,
+                    contentType,
+                    'edviron-backend-dev',
+                  );
+
+                  return {
+                    document_type: data.extension,
+                    file_url,
+                    name: data.name,
+                  };
+                } catch (error) {
+                  throw new InternalServerErrorException(
+                    error.message || 'File upload failed',
+                  );
+                }
+              })
+              .filter((file) => file !== null),
+          )
           : [];
       const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
         { collect_id: collect_id },
@@ -1779,7 +1779,7 @@ export class MerchantResolver {
     @Args('cursor', { type: () => String, nullable: true })
     cursor: string | null,
     @Args('skip', { type: () => Int, nullable: true }) skip?: number,
-     @Args('page', { type: () => Int, nullable: true }) page?: number,
+    @Args('page', { type: () => Int, nullable: true }) page?: number,
   ) {
     try {
       const settlement = await this.settlementReportModel.findOne({
@@ -1815,7 +1815,7 @@ export class MerchantResolver {
         );
       }
 
-      
+
       const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });
       if (!school) {
         throw new NotFoundException('School not found');

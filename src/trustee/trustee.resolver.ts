@@ -482,11 +482,10 @@ export class TrusteeResolver {
   @UseGuards(TrusteeGuard)
   async getSettlementReports(@Context() context) {
     let id = context.req.trustee;
-
     let settlementReports = [];
     settlementReports = await this.settlementReportModel
       .find({ trustee: id })
-      .sort({ createdAt: -1 });
+      .sort({ settlementDate: -1 });
     return settlementReports;
   }
 
