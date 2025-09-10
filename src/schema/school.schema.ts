@@ -349,6 +349,10 @@ export class TrusteeSchool {
   @Field(() => Boolean, { defaultValue: false })
   isVBAActive: boolean;
 
+  @Prop({})
+  @Field(() => Boolean, { defaultValue: false })
+  razorpay_partner: boolean;
+
   @Field({ nullable: true })
   @Prop()
   logo: string;

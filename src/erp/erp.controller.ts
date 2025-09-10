@@ -916,6 +916,7 @@ export class ErpController {
         easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
+        razorpay_partner : school.razorpay_partner || false,
         razorpay_credentials: {
           razorpay_id: school.razorpay?.razorpay_id || null,
           razorpay_secret: school.razorpay?.razorpay_secret || null,
