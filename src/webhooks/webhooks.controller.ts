@@ -400,7 +400,6 @@ export class WebhooksController {
     }
   }
 
-  
   @Post('/razorpay/refund')
   async razorpayRefundWebhook(@Body() body: any, @Res() res: any) {
     try {
@@ -412,6 +411,134 @@ export class WebhooksController {
       }).save();
     } catch (e) {
       console.log(e);
+    }
+
+    try {
+      const { notes } = body.payload.payment.entity;
+      const { status, id, amount } = body.payload.refund.entity;
+      const order_id = notes.bookingId;
+      const rzp_refund_status = status;
+      const refund_amount = amount / 100;
+      try {
+        const refundRequest = await this.refundRequestModel.findOne({
+          order_id: new Types.ObjectId(order_id),
+        });
+        if (!refundRequest) {
+          console.log(`Refund request not Found`);
+        }
+
+        const merchant = await this.TrusteeSchoolmodel.findOne({
+          _id: refundRequest.school_id,
+        });
+        let status = refund_status.INITIATED;
+        if (rzp_refund_status === 'processed') {
+          status = refund_status.APPROVED;
+        }
+        refundRequest.status = status;
+        refundRequest.gateway = 'RAZORPAY';
+        refundRequest.gatway_refund_id = id;
+        refundRequest.additonalInfo = status;
+        await refundRequest.save();
+
+        // Sending ERP webhooks
+        try {
+          const trustee_id = refundRequest.trustee_id;
+          const trustee = await this.TrusteeModel.findById(trustee_id);
+          if (!trustee) {
+            throw new BadRequestException('Trustee not found');
+          }
+          const refundWebhookUrl = trustee.refund_webhook_url;
+          if (!refundWebhookUrl) {
+            res.status(200).send('OK');
+          }
+          const payload = {
+            id,
+            refund_amount,
+            status,
+            school_id: refundRequest.school_id.toString(),
+            order_id: refundRequest.order_id.toString(),
+          };
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: refundWebhookUrl,
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            data: payload,
+          };
+          try {
+            const response = await axios.request(config);
+            const res = JSON.stringify(response.data) || 'NA';
+            await this.webhooksLogsModel.create({
+              type: 'ERP_REFUND_WEBHOOK_SUCCESS',
+              gateway: 'RAZORPAY',
+              status: 'SUCCESS',
+              res,
+              trustee_id: refundRequest.trustee_id,
+              school_id: refundRequest.school_id,
+            });
+          } catch (e) {
+            await this.webhooksLogsModel.create({
+              type: 'ERP_REFUND_WEBHOOK_ERROR',
+              error: e.message,
+              status: 'FAILED',
+              gateway: 'RAZORPAY',
+              trustee_id: refundRequest.trustee_id,
+              school_id: refundRequest.school_id,
+            });
+          }
+          if (
+            merchant?.isNotificationOn &&
+            merchant?.isNotificationOn.for_refund
+          ) {
+            this.trusteeService.scheduleRefundNotificationEmail(
+              merchant,
+              refundRequest,
+              status,
+              refundRequest.order_id.toString(),
+              refundRequest.trustee_id.toString(),
+            );
+          }
+          return res.status(200).send('OK');
+        } catch (e) {
+          console.log('Error sending ERP webhooks', e);
+        }
+        if (
+          merchant?.isNotificationOn &&
+          merchant?.isNotificationOn.for_refund
+        ) {
+          this.trusteeService.scheduleRefundNotificationEmail(
+            merchant,
+            refundRequest,
+            status,
+            refundRequest.order_id.toString(),
+            refundRequest.trustee_id.toString(),
+          );
+        }
+        res.status(200).send('OK');
+      } catch (e) {
+        console.error('Error saving webhook logs', e);
+      }
+    } catch (e) {
+      const emailSubject = `Error in CASHFREE REFUND WEBHOOK "@Post('razorpay/refund')"`;
+      const errorDetails = {
+        environment: process.env.NODE_ENV || 'PRODUCTION',
+        service: 'RAZORPAY',
+        data: body,
+        timestamp: new Date().toISOString(),
+      };
+      const emailBody = generateErrorEmailTemplate(
+        e,
+        errorDetails,
+        emailSubject,
+      );
+      this.emailService.sendErrorMail(emailSubject, emailBody);
+      console.error('Error saving webhook logs', e);
+      throw new InternalServerErrorException(
+        e.message || 'Something Went Wrong',
+      );
     }
   }
 
@@ -428,7 +555,7 @@ export class WebhooksController {
       console.log(e);
     }
   }
-   @Post('/razorpay/disputes')
+  @Post('/razorpay/disputes')
   async razorpayDisputeWebhook(@Body() body: any, @Res() res: any) {
     try {
       const details = JSON.stringify(body);

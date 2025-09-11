@@ -3116,7 +3116,7 @@ export class TrusteeService {
       { utr, razorpay_id },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
-    skip = limit * page
+    skip = limit * page;
     const paginationData = {
       cursor: cursor,
       limit: limit,
@@ -3138,8 +3138,8 @@ export class TrusteeService {
       console.log({ transactions });
 
       const settlements_transactions = transactions.settlements_transactions;
-      if(!settlements_transactions && settlements_transactions.length === 0){
-        throw new BadRequestException('no more transaction found')
+      if (!settlements_transactions && settlements_transactions.length === 0) {
+        throw new BadRequestException('no more transaction found');
       }
       const school = await this.trusteeSchoolModel.findOne({
         'razorpay.razorpay_id': razorpay_id,
@@ -3156,7 +3156,8 @@ export class TrusteeService {
       let cursorToken = this.jwtService.sign(payload, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
       });
-      let updateCursor = limit > settlements_transactions.length ? null : cursorToken;
+      let updateCursor =
+        limit > settlements_transactions.length ? null : cursorToken;
       return {
         limit: transactions.limit,
         cursor: updateCursor,
