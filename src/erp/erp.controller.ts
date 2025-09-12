@@ -234,6 +234,8 @@ export class ErpController {
           name?: string;
         },
       ];
+      isSelectGateway?: boolean;
+
     },
     @Req() req,
   ) {
@@ -254,6 +256,7 @@ export class ErpController {
         req_webhook_urls,
         split_payments,
         vendors_info,
+        isSelectGateway
       } = body;
       let { disabled_modes } = body;
 
@@ -673,8 +676,7 @@ export class ErpController {
       const axios = require('axios');
       console.time('payments1');
 
-      if (school.isEasebuzzNonPartner) {
-        console.log('non partner');
+      if (!isSelectGateway && school.isEasebuzzNonPartner) {
 
         if (
           !school.easebuzz_non_partner ||
@@ -788,7 +790,7 @@ export class ErpController {
         return res.data;
       }
 
-      if (school.cf_non_partner && school.cashfree_credentials) {
+      if (!isSelectGateway && school.cf_non_partner && school.cashfree_credentials) {
         const data = JSON.stringify({
           amount,
           callbackUrl: callback_url,
@@ -928,12 +930,17 @@ export class ErpController {
           razorpay_mid: school.razorpay_seamless?.razorpay_mid || null,
         },
         worldLine_vendors: worldLine_vendors || null,
+        isSelectGateway: isSelectGateway || false,
         gatepay_credentials: {
           gatepay_mid: school?.gatepay?.gatepay_mid || null,
           gatepay_terminal_id: school?.gatepay?.gatepay_terminal_id || null,
           gatepay_key: school?.gatepay?.gatepay_key || null,
           gatepay_iv: school?.gatepay?.gatepay_iv || null,
         },
+        isCashfreeNonpartner:school.cf_non_partner || false,
+        cashfree_credentials: school.cashfree_credentials || null,
+         easebuzz_non_partner_cred: school.easebuzz_non_partner,
+         isEasebuzzNonpartner:school.isEasebuzzNonPartner
       });
       const config = {
         method: 'post',
