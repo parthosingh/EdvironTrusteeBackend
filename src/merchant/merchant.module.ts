@@ -37,7 +37,9 @@ import { PosMachine, PosMachineSchema } from 'src/schema/pos.machine.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
+import { OTP, OTPSchema } from 'src/schema/otp.schema';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
+
 
 @Module({
   imports: [
@@ -104,8 +106,9 @@ import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
       { name: ErrorLogs.name, schema: ErrorLogsSchema },
     ]),
     MongooseModule.forFeature([
-          { name: ReportsLogs.name, schema: ReportsLogsSchema },
-        ]),
+      { name: ReportsLogs.name, schema: ReportsLogsSchema },
+    ]),
+    MongooseModule.forFeature([{ name: OTP.name, schema: OTPSchema }]),
   ],
   controllers: [],
   providers: [

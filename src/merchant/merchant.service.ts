@@ -19,6 +19,8 @@ import { Trustee } from '../schema/trustee.schema';
 import { refund_status, RefundRequest } from '../schema/refund.schema';
 import { Types } from 'mongoose';
 import axios from 'axios';
+import { OTP } from 'src/schema/otp.schema';
+// import { setTimeout } from 'timers/promises';
 var loginOtps: any = {};
 var resetOtps: any = {}; //reset password
 var editOtps: any = {};
@@ -37,6 +39,8 @@ export class MerchantService {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(RefundRequest.name)
     private refundRequestModel: mongoose.Model<RefundRequest>,
+    @InjectModel(OTP.name)
+    private otpModel: mongoose.Model<OTP>,
     private jwtService: JwtService,
     private trusteeService: TrusteeService,
   ) {}
@@ -147,12 +151,12 @@ export class MerchantService {
     }
   }
 
-  async loginNonOtpMerchant(email:string,passwordHash:string){
+  async loginNonOtpMerchant(email: string, passwordHash: string) {
     try {
       const lowerCaseEmail = email.toLowerCase();
       var res = false;
       console.log('Login attempt for email:', lowerCaseEmail);
-       let payload;
+      let payload;
       const merchant = await this.trusteeSchoolModel.findOne({
         email: lowerCaseEmail,
       });
@@ -171,13 +175,13 @@ export class MerchantService {
         };
       } else {
         const member = await this.merchantMemberModel.findOne({ email: email });
-        if(!member) throw new NotFoundException('merchant not found');
+        if (!member) throw new NotFoundException('merchant not found');
         email_id = member.email;
         passwordMatch = await bcrypt.compare(
           passwordHash,
           member.password_hash,
         );
-         payload = {
+        payload = {
           id: member._id,
         };
       }
@@ -450,8 +454,12 @@ export class MerchantService {
   }
 
   async validateUpdateMailOtp(otp, email) {
-    if (editOtps[email] == otp) {
-      delete editOtps[email];
+    const editOtp = await this.otpModel.findOne({
+      email: email,
+      type: 'emailOtp',
+    });
+    if (editOtp && editOtp.otp === otp) {
+      await this.otpModel.findByIdAndDelete(editOtp._id);
       const merchant = await this.trusteeSchoolModel.findOne({
         email: email,
       });
@@ -478,16 +486,35 @@ export class MerchantService {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000);
-    editOtps[email_id] = otp;
-    // Clear existing timeout if it exists
-    if (editOtpTimeouts[email_id]) {
-      clearTimeout(editOtpTimeouts[email_id]);
-    }
+    // const emailOtp = await this.otpModel.findOne({
+    //   email: email,
+    //   type : 'emailOtp'
+    // });
+    // if (emailOtp) {
+    //   throw new BadRequestException(
+    //     'OTP already sent kindly Wait For 3 Minutes',
+    //   );
+    // }
 
-    editOtpTimeouts[email_id] = setTimeout(() => {
-      delete editOtps[email_id];
-      console.log('Merchant reset password otp deleted for ', { email_id });
-    }, 180000);
+    const newOTP = await this.otpModel.findOneAndUpdate(
+      {
+        email: email,
+        type: 'emailOtp',
+      },
+      {
+        email: email,
+        otp: otp,
+        type: 'emailOtp',
+        school_id: merchant.school_id,
+        trustee_id: merchant.trustee_id,
+        expiresAt: new Date(Date.now() + 3 * 60 * 1000), // 3 minutes from now
+      },
+      {
+        upsert:true,
+        new : true
+      }
+    );
+
     this.sendOTPMail(
       email_id,
       'OTP',
@@ -496,6 +523,17 @@ export class MerchantService {
       merchant,
     );
     return true;
+  }
+
+  async deleteOtp(otpId: string) {
+    try {
+      setTimeout(() => {
+        this.otpModel.findByIdAndDelete(otpId);
+        console.log('Edit OTP deleted for', { otpId });
+      }, 180000);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   async getRefundRequest(order_id: string) {
@@ -565,5 +603,3 @@ export class MerchantService {
     }
   }
 }
-
-
