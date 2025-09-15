@@ -529,11 +529,11 @@ export class SubTrusteeResolver {
 
       const schools = await this.trusteeSchoolModel
         .find(schoolFilter)
-        .select('school_id -_id');
+        .select('school_id _id');
 
       let searchFilter: any = {
         trustee_id: context.req.trustee,
-        school_id: { $in: schools.map((school) => school.school_id) },
+        school_id: { $in: schools.map((school) => school._id) },
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
