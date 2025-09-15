@@ -80,7 +80,7 @@ export class ErpController {
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
     @InjectModel(Disputes.name)
     private disputeModel: mongoose.Model<Disputes>,
-  ) {}
+  ) { }
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -368,6 +368,7 @@ export class ErpController {
       let easebuzzVendors = [];
       let cashfreeVedors = [];
       let worldLine_vendors: any = [];
+      let razorpayVendors: any = []
       // VENDORS LOGIC FOR MULTIPLE GATEWAYS
       if (split_payments && vendors_info && vendors_info.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
@@ -392,7 +393,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -419,6 +420,7 @@ export class ErpController {
             worldLine_vendors.push(worldlineVenodr);
           }
         } else {
+          console.time('check vendor')
           for (const vendor of vendors_info) {
             // Check if vendor_id is present
             if (!vendor.vendor_id) {
@@ -458,6 +460,38 @@ export class ErpController {
               easebuzzVendors.push(updatedEZBVendor);
             }
 
+            // VENDORS FOR RAZORPAY
+            if (vendors_data.gateway && vendors_data.gateway.includes(GATEWAY.RAZORPAY)) {
+              console.log('checking vendors for razorpay');
+
+              if (!vendors_data.razorpayVendor?.account) {
+                throw new BadRequestException(
+                  `Split Information Not Configure Please contact tarun.k@edviron.com`,
+                );
+              }
+              vendorgateway.razorpay = true
+              let razorpayVendor = vendor
+              razorpayVendor.vendor_id = vendors_data.razorpayVendor.account;
+              const updatedRazorPayVendor = {
+                ...razorpayVendor,
+                account: vendors_data.razorpayVendor.account,
+                vendor_id: vendors_data._id.toString(),
+                name: vendors_data.name
+              }
+              console.log(updatedRazorPayVendor, 'checking for updated vendors');
+              console.log(vendor, 'checkoing vendors');
+              console.log(vendors_data.gateway.includes(GATEWAY.CASHFREE));
+              console.log(updatedVendorsInfo, 'updatedben');
+
+              if(!vendors_data.gateway.includes(GATEWAY.CASHFREE)){
+                console.log('cashfree vendor not active');
+
+                updatedVendorsInfo.push({vendor_id:vendors_data._id.toString(),amount:razorpayVendor.amount,name:vendors_data.name});
+              }
+              razorpayVendors.push(updatedRazorPayVendor)
+            }
+
+            // CASHFREE VENDORS
             if (
               vendors_data.gateway &&
               vendors_data.gateway?.includes(GATEWAY.CASHFREE)
@@ -480,7 +514,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -488,7 +522,10 @@ export class ErpController {
               ...vendor,
               name: vendors_data.name,
             };
-            updatedVendorsInfo.push(updatedVendor);
+            if (!vendors_data.gateway?.includes(GATEWAY.RAZORPAY)) {
+
+              updatedVendorsInfo.push(updatedVendor);
+            }
 
             // Check if both amount and percentage are used
             const hasAmount = typeof vendor.amount === 'number';
@@ -538,7 +575,7 @@ export class ErpController {
               totalPercentage += vendor.percentage;
             }
           }
-
+console.timeEnd('check vendor')
           if (splitMethod === 'amount' && totalAmount > body.amount) {
             throw new BadRequestException(
               'Sum of vendor amounts cannot be greater than the order amount',
@@ -863,6 +900,9 @@ export class ErpController {
         };
       }
 
+      console.log(updatedVendorsInfo, 'updatedvendor');
+
+
       const data = JSON.stringify({
         amount,
         callbackUrl: callback_url,
@@ -918,7 +958,7 @@ export class ErpController {
         easebuzz_school_label: school.easebuzz_school_label || null,
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
-        razorpay_partner : school.razorpay_partner || false,
+        razorpay_partner: school.razorpay_partner || false,
         razorpay_credentials: {
           razorpay_id: school.razorpay?.razorpay_id || null,
           razorpay_secret: school.razorpay?.razorpay_secret || null,
@@ -937,10 +977,11 @@ export class ErpController {
           gatepay_key: school?.gatepay?.gatepay_key || null,
           gatepay_iv: school?.gatepay?.gatepay_iv || null,
         },
-        isCashfreeNonpartner:school.cf_non_partner || false,
+        isCashfreeNonpartner: school.cf_non_partner || false,
         cashfree_credentials: school.cashfree_credentials || null,
-         easebuzz_non_partner_cred: school.easebuzz_non_partner,
-         isEasebuzzNonpartner:school.isEasebuzzNonPartner
+        easebuzz_non_partner_cred: school.easebuzz_non_partner,
+        isEasebuzzNonpartner: school.isEasebuzzNonPartner,
+        razorpay_vendors: razorpayVendors
       });
       const config = {
         method: 'post',
@@ -1190,7 +1231,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1277,7 +1318,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -1950,7 +1991,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2038,7 +2079,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2462,7 +2503,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -2696,14 +2737,13 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2767,16 +2807,15 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3709,7 +3748,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -3798,7 +3837,7 @@ export class ErpController {
     @Query('cursor') cursor: string | null,
     @Query('limit') limit: string,
     @Query('skip') skip: number,
-    @Query('page') page:  number,
+    @Query('page') page: number,
   ) {
     let dataLimit = Number(limit) || 10;
 
@@ -3843,7 +3882,7 @@ export class ErpController {
           },
           data: paginationData,
         };
-        
+
 
         const { data: transactions } = await axios.request(config);
         const { settlements_transactions } = transactions;
@@ -3883,17 +3922,17 @@ export class ErpController {
         school.easebuzz_non_partner.easebuzz_submerchant_id
       ) {
         console.log('settlement from date');
-        const settlements=await this.settlementModel.find({
+        const settlements = await this.settlementModel.find({
           schoolId: settlement.schoolId,
-          settlementDate: {$lt:settlement.settlementDate}
-        }).sort({settlementDate:-1}).select('settlementDate').limit(2);
-        const previousSettlementDate=settlements[1]?.settlementDate;
+          settlementDate: { $lt: settlement.settlementDate }
+        }).sort({ settlementDate: -1 }).select('settlementDate').limit(2);
+        const previousSettlementDate = settlements[1]?.settlementDate;
         const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
         console.log({ formatted_start_date }); // e.g. 06-09-2025
 
         const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
         console.log({ formatted_end_date }); // e.g. 06-09-2025
-        const paginatioNPage=page||1
+        const paginatioNPage = page || 1
         const res = await this.trusteeService.easebuzzSettlementRecon(
           school.easebuzz_non_partner.easebuzz_submerchant_id,
           formatted_start_date,
@@ -4007,8 +4046,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -4293,8 +4332,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -5081,7 +5120,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -5334,8 +5373,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-          error.message ||
-          'Failed to fetch settlements',
+        error.message ||
+        'Failed to fetch settlements',
       );
     }
   }
@@ -5417,8 +5456,7 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${
-            error.response?.data?.message || error.message
+          `External API error: ${error.response?.data?.message || error.message
           }`,
         );
       }

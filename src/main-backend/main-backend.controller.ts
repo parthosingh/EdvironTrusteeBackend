@@ -50,7 +50,7 @@ export class MainBackendController {
     @InjectModel(ReportsLogs.name)
     private readonly reportsLogsModel: mongoose.Model<ReportsLogs>,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   @Post('create-trustee')
   async createTrustee(
@@ -419,6 +419,30 @@ export class MainBackendController {
 
     return refundRequests;
   }
+
+  @Get('/get-single-refund')
+  async getSingleRefund(
+    @Query('refund_id') refund_id: string,
+    @Query('token') token: string
+  ) {
+    try {
+      const decodedPayload = await this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      if (decodedPayload.refund_id !== refund_id) {
+        throw new BadRequestException('Request fordge')
+      }
+      const refund = await this.refundRequestModel.findById(refund_id)
+      if (!refund) {
+        throw new BadRequestException('Invalid refund id')
+      }
+      return refund
+
+    } catch (e) {
+      throw new BadRequestException(e.message)
+    }
+  }
+
   @Post('update-refund-request')
   async updateRefundRequest(@Body() body: { token: string }) {
     const decodedPayload = await this.jwtService.verify(body.token, {
@@ -536,9 +560,8 @@ export class MainBackendController {
           'Platform Type': item.platform_type,
           'Payment Mode': item.payment_mode,
           Upto: charge.upto || 'infinity',
-          Charge: `${charge.charge}${
-            charge.charge_type === 'PERCENT' ? '%' : ''
-          }`,
+          Charge: `${charge.charge}${charge.charge_type === 'PERCENT' ? '%' : ''
+            }`,
         });
       });
     });
@@ -585,9 +608,8 @@ export class MainBackendController {
             'Platform Type': item.platform_type,
             'Payment Mode': item.payment_mode,
             Upto: charge.upto || 'infinity',
-            Charge: `${charge.charge}${
-              charge.charge_type === 'PERCENT' ? '%' : ''
-            }`,
+            Charge: `${charge.charge}${charge.charge_type === 'PERCENT' ? '%' : ''
+              }`,
           });
         });
       });
@@ -854,7 +876,7 @@ export class MainBackendController {
         throw new NotFoundException('refund not found');
       }
       return refund;
-    } catch (e) {}
+    } catch (e) { }
   }
 
   @Post('get-settlement-reco')
@@ -1120,19 +1142,19 @@ export class MainBackendController {
 
   @Get('/get-report')
   async getReport(@Req() req: any) {
-    const { 
+    const {
       school_id,
       trustee_id,
       start_date,
       end_date
-     } = req.query;
+    } = req.query;
 
-     return await this.trusteeService.generateSettlementRecon(
-       trustee_id,
-       start_date,
-       end_date,
-       school_id,
-     )
-    
+    return await this.trusteeService.generateSettlementRecon(
+      trustee_id,
+      start_date,
+      end_date,
+      school_id,
+    )
+
   }
 }
