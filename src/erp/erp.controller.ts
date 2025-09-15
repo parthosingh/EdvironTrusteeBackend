@@ -46,6 +46,7 @@ import { PosMachine } from '../schema/pos.machine.schema';
 import * as crypto from 'crypto';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { Disputes } from 'src/schema/disputes.schema';
+import { CurrencyCode } from 'src/utils/email.group';
 @Controller('erp')
 export class ErpController {
   constructor(
@@ -225,6 +226,7 @@ export class ErpController {
       custom_order_id?: string;
       req_webhook_urls?: [string];
       split_payments?: boolean;
+      currency?: CurrencyCode;
       disabled_modes?: DisabledModes[];
       vendors_info?: [
         {
@@ -256,6 +258,7 @@ export class ErpController {
         req_webhook_urls,
         split_payments,
         vendors_info,
+        currency,
         isSelectGateway
       } = body;
       let { disabled_modes } = body;
@@ -916,6 +919,7 @@ console.timeEnd('check vendor')
           { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
         ),
         clientId: school.client_id || null,
+        currency: currency || null,
         clientSecret: school.client_secret || null,
         school_id: school_id,
         trustee_id: trustee_id,
