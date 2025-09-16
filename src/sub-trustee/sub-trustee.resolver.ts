@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   Query,
@@ -27,6 +28,7 @@ import {
   getSchool,
   RefundRequestRes,
   resetPassResponse,
+  SettlementsTransactionsPaginatedResponse,
   TransactionReport,
   TransactionReportResponsePaginated,
   VendorsSettlementReportPaginatedResponse,
@@ -71,7 +73,7 @@ export class SubTrusteeResolver {
     @InjectModel(VendorsSettlement.name)
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     private readonly trusteeService: TrusteeService,
-  ) { }
+  ) {}
 
   @Mutation(() => loginToken)
   async subTrusteeLogin(
@@ -537,19 +539,19 @@ export class SubTrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-              $or: [
-                { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                { _id: new mongoose.Types.ObjectId(searchQuery) },
-              ],
-            }
+                $or: [
+                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                  { _id: new mongoose.Types.ObjectId(searchQuery) },
+                ],
+              }
             : {
-              $or: [
-                { status: { $regex: searchQuery, $options: 'i' } },
-                { reason: { $regex: searchQuery, $options: 'i' } },
-                { custom_id: { $regex: searchQuery, $options: 'i' } },
-                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-              ],
-            }
+                $or: [
+                  { status: { $regex: searchQuery, $options: 'i' } },
+                  { reason: { $regex: searchQuery, $options: 'i' } },
+                  { custom_id: { $regex: searchQuery, $options: 'i' } },
+                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
           : {}),
       };
       if (!searchQuery && startDate && endDate) {
@@ -890,11 +892,11 @@ export class SubTrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-        settled_on: {
-          $gte: new Date(start_date),
-          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-        },
-      }),
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -923,7 +925,7 @@ export class SubTrusteeResolver {
   @Query(() => SubTrusteeDashboard)
   async getSubTrusteeBatchTransactions(
     @Args('year') year: string,
-    @Context() context: any
+    @Context() context: any,
   ) {
     try {
       const subTrusteeId = context.req.subtrustee;
@@ -932,8 +934,8 @@ export class SubTrusteeResolver {
 
       const schoolIds = await this.subTrusteeService.getSubTrusteeSchoolIds(
         subTrusteeId.toString(),
-        trusteeId.toString()
-      )
+        trusteeId.toString(),
+      );
       console.log(schoolIds);
       const config = {
         method: 'post',
@@ -941,20 +943,19 @@ export class SubTrusteeResolver {
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
-
         },
         data: {
           school_ids: schoolIds,
-          year
-        }
-      }
-      const response = await axios.request(config)
+          year,
+        },
+      };
+      const response = await axios.request(config);
       console.log(response.data);
-      return response.data
+      return response.data;
     } catch (e) {
       // console.log(e);
 
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
 
@@ -981,17 +982,16 @@ export class SubTrusteeResolver {
       const subTrusteeId = context.req.subtrustee;
       const trusteeId = context.req.trustee;
       console.log({ subTrusteeId, trusteeId });
-      let filtered_school_ids = school_ids || []
+      let filtered_school_ids = school_ids || [];
       if (!filtered_school_ids || filtered_school_ids.length === 0) {
-
         const schoolIds = await this.subTrusteeService.getSubTrusteeSchoolIds(
           subTrusteeId.toString(),
-          trusteeId.toString()
-        )
-        filtered_school_ids = schoolIds
+          trusteeId.toString(),
+        );
+        filtered_school_ids = schoolIds;
       }
       console.log(filtered_school_ids);
-      
+
       const config = {
         method: 'post',
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/sub-trustee-transactions-sum`,
@@ -1007,20 +1007,143 @@ export class SubTrusteeResolver {
           end_date: endDate,
           status: status,
           mode: mode,
-          isQRPayment: isqrpayment
-        }
-      }
-      const response = await axios.request(config)
+          isQRPayment: isqrpayment,
+        },
+      };
+      const response = await axios.request(config);
       console.log(response.data);
-      return JSON.stringify(response.data)
-
+      return JSON.stringify(response.data);
     } catch (e) {
       console.log(e);
-      
-      throw new BadRequestException(e.message)
+
+      throw new BadRequestException(e.message);
     }
   }
 
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => SettlementsTransactionsPaginatedResponse)
+  async getSubtrusteeSettlementsTransactions(
+    @Args('utr', { type: () => String }) utr: string,
+    @Context() context: any,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Args('cursor', { type: () => String, nullable: true })
+    cursor: string | null,
+    @Args('skip', { type: () => Int, nullable: true }) skip?: number,
+    @Args('page', { type: () => Int, nullable: true }) page?: number,
+  ) {
+    try {
+      // console.log('test');
+
+      const settlement = await this.settlementReportModel.findOne({
+        utrNumber: utr,
+      });
+
+      if (settlement.trustee.toString() !== context.req.trustee.toString()) {
+        throw new ForbiddenException(
+          'You are not authorized to access this settlement',
+        );
+      }
+      if (!settlement) {
+        throw new Error('Settlement not found');
+      }
+
+      if (settlement.gateway && settlement.gateway === 'EDVIRON_PAY_U') {
+        console.log('gateway pay-us');
+
+        return await this.trusteeService.getPayuSettlementRecon(
+          utr,
+          settlement.schoolId.toString(),
+        );
+      }
+      const client_id = settlement.clientId;
+      const razorpay_id = settlement.razorpay_id;
+      if (client_id) {
+        console.log('check cashfree');
+
+        return await this.trusteeService.getTransactionsForSettlements(
+          utr,
+          client_id,
+          limit,
+          cursor,
+        );
+      }
+      if (razorpay_id) {
+        console.log('inside razorpay');
+        const school = await this.trusteeSchoolModel.findOne({
+          'razorpay.razorpay_id': razorpay_id,
+        });
+        const razropay_secret = school?.razorpay?.razorpay_secret;
+        return await this.trusteeService.getRazorpayTransactionForSettlement(
+          utr,
+          razorpay_id,
+          razropay_secret,
+          limit,
+          cursor,
+          skip,
+          settlement.fromDate,
+        );
+      }
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: settlement.schoolId,
+      });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      console.log('here');
+      if (
+        school.isEasebuzzNonPartner &&
+        school.easebuzz_non_partner.easebuzz_key &&
+        school.easebuzz_non_partner.easebuzz_salt &&
+        school.easebuzz_non_partner.easebuzz_submerchant_id
+      ) {
+        console.log('settlement from date');
+        const settlements = await this.settlementReportModel
+          .find({
+            schoolId: settlement.schoolId,
+            settlementDate: { $lt: settlement.settlementDate },
+          })
+          .sort({ settlementDate: -1 })
+          .select('settlementDate')
+          .limit(2);
+        let previousSettlementDate = settlements[1]?.settlementDate;
+        if (!previousSettlementDate) {
+          console.log('No previous settlement date found');
+          const date = new Date(settlement.settlementDate); // clone date
+          date.setDate(date.getDate() - 4);
+          previousSettlementDate = date;
+        }
+        const formatted_start_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            previousSettlementDate,
+          );
+        console.log({ formatted_start_date }); // e.g. 06-09-2025
+
+        const formatted_end_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            settlement.settlementDate,
+          );
+        console.log({ formatted_end_date }); // e.g. 06-09-2025
+        const paginatioNPage = page || 1;
+        const res = await this.trusteeService.easebuzzSettlementRecon(
+          school.easebuzz_non_partner.easebuzz_submerchant_id,
+          formatted_start_date,
+          formatted_end_date,
+          school.easebuzz_non_partner.easebuzz_key,
+          school.easebuzz_non_partner.easebuzz_salt,
+          utr,
+          limit,
+          skip,
+          settlement.schoolId.toString(),
+          paginatioNPage,
+          cursor,
+        );
+
+        return res;
+      }
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
 }
 
 @ObjectType()
