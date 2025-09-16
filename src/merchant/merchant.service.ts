@@ -55,7 +55,7 @@ export class MerchantService {
       console.log('Login attempt for email:', lowerCaseEmail);
 
       const merchant = await this.trusteeSchoolModel.findOne({
-        email: lowerCaseEmail,
+        email: {$regex : lowerCaseEmail},
       });
       console.log(merchant);
 
