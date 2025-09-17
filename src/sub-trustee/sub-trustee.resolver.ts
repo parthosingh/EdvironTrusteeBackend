@@ -31,6 +31,7 @@ import {
   SettlementsTransactionsPaginatedResponse,
   TransactionReport,
   TransactionReportResponsePaginated,
+  VendorSingleTransaction,
   VendorsSettlementReportPaginatedResponse,
   VendorsTransactionPaginatedResponse,
   verifyRes,
@@ -1144,6 +1145,25 @@ export class SubTrusteeResolver {
       throw new BadRequestException(e.message);
     }
   }
+
+  
+    @UseGuards(SubTrusteeGuard)
+    @Query(() => VendorSingleTransaction)
+    async getSingleSubtrusteeVendorTransaction(
+      @Args('order_id', { type: () => String }) order_id: string,
+      @Context() context: any,
+    ) {
+      // console.log('test');
+      const trustee_id = context.req.trustee;
+      if (!trustee_id) {
+        throw new NotFoundException('trustee id not found ');
+      }
+      const transactions = this.trusteeService.getVendonrSingleTransactions(
+        order_id,
+        trustee_id.toString(),
+      );
+      return transactions;
+    }
 }
 
 @ObjectType()
