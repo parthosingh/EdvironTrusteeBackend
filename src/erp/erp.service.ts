@@ -538,6 +538,7 @@ export class ErpService {
     }
   }
 
+  @Cron('0 20 * * *')  
   async easebuzzSettlements(settlementDate?: Date) {
     if (!settlementDate) {
       settlementDate = new Date();
@@ -786,7 +787,7 @@ export class ErpService {
     if (!settlementDate) {
       settlementDate = new Date();
     }
-    await this.easebuzzSettlements(settlementDate);
+    // await this.easebuzzSettlements(settlementDate);
     console.log('running cron', settlementDate);
     const merchants = await this.trusteeSchoolModel.find({});
     merchants
