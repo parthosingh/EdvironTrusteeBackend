@@ -518,7 +518,8 @@ export class SubTrusteeService {
   async getSubTrusteeSchoolIds(subTrusteeId: string, trustee_id: string) {
     try {
       const subtrustee = await this.subTrustee.findById(subTrusteeId);
-      if (subtrustee.trustee_id.toString() !== trustee_id) {
+
+      if (subtrustee.trustee_id.toString() !== trustee_id.toString()) {
         throw new BadRequestException('Forge request');
       }
 
@@ -534,5 +535,35 @@ export class SubTrusteeService {
       throw new BadRequestException(e.message);
     }
   }
+
+  async getSubtrusteeBatchTransactions(school_id: string[], year: string) {
+      const token = this.jwtService.sign(
+        { school_id: school_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-sub-trustee-batch-transactions?school_id=${school_id}&year=${year}&token=${token}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data : {
+          school_id : school_id,
+          year : year,
+          token : token 
+        }
+      };
+      try {
+        const { data: batchTransactions } = await axios.request(config);
+        return batchTransactions;
+      } catch (e) {
+        console.log(e);
+  
+        throw new BadRequestException(e.message);
+      }
+    }
+
 
 }

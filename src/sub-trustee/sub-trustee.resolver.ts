@@ -24,6 +24,7 @@ import { SettlementReport } from 'src/schema/settlement.schema';
 import { SubTrusteeGuard } from './sub-trustee.guard';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import {
+  batchTransactionsReport,
   DisputesRes,
   getSchool,
   RefundRequestRes,
@@ -1146,23 +1147,46 @@ export class SubTrusteeResolver {
     }
   }
 
-  
-    @UseGuards(SubTrusteeGuard)
-    @Query(() => VendorSingleTransaction)
-    async getSingleSubtrusteeVendorTransaction(
-      @Args('order_id', { type: () => String }) order_id: string,
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => VendorSingleTransaction)
+  async getSingleSubtrusteeVendorTransaction(
+    @Args('order_id', { type: () => String }) order_id: string,
+    @Context() context: any,
+  ) {
+    // console.log('test');
+    const trustee_id = context.req.trustee;
+    if (!trustee_id) {
+      throw new NotFoundException('trustee id not found ');
+    }
+    const transactions = this.trusteeService.getVendonrSingleTransactions(
+      order_id,
+      trustee_id.toString(),
+    );
+    return transactions;
+  }
+
+  @UseGuards(SubTrusteeGuard)
+    @Query(() => [batchTransactionsReport])
+    async getSubtrusteeBatchTransactionReport(
+      @Args('year') year: string,
       @Context() context: any,
     ) {
-      // console.log('test');
-      const trustee_id = context.req.trustee;
-      if (!trustee_id) {
-        throw new NotFoundException('trustee id not found ');
+
+      const subTrusteeId = context.req.subtrustee;
+      let trusteeId = context.req.trustee;
+
+     const schoolIds = 
+     await  this.subTrusteeService.getSubTrusteeSchoolIds(subTrusteeId, trusteeId) ||
+      []
+
+      try {
+        return await this.subTrusteeService.getSubtrusteeBatchTransactions(
+          schoolIds,
+          year,
+        );
+      } catch (e) {
+        throw new BadRequestException(e.message);
       }
-      const transactions = this.trusteeService.getVendonrSingleTransactions(
-        order_id,
-        trustee_id.toString(),
-      );
-      return transactions;
     }
 }
 
