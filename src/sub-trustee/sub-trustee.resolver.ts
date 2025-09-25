@@ -1166,28 +1166,29 @@ export class SubTrusteeResolver {
   }
 
   @UseGuards(SubTrusteeGuard)
-    @Query(() => [batchTransactionsReport])
-    async getSubtrusteeBatchTransactionReport(
-      @Args('year') year: string,
-      @Context() context: any,
-    ) {
+  @Query(() => [batchTransactionsReport])
+  async getSubtrusteeBatchTransactionReport(
+    @Args('year') year: string,
+    @Context() context: any,
+  ) {
+    const subTrusteeId = context.req.subtrustee;
+    let trusteeId = context.req.trustee;
 
-      const subTrusteeId = context.req.subtrustee;
-      let trusteeId = context.req.trustee;
-
-     const schoolIds = 
-     await  this.subTrusteeService.getSubTrusteeSchoolIds(subTrusteeId, trusteeId) ||
-      []
-
-      try {
-        return await this.subTrusteeService.getSubtrusteeBatchTransactions(
-          schoolIds,
-          year,
-        );
-      } catch (e) {
-        throw new BadRequestException(e.message);
-      }
+    try {
+      const schoolIds =
+        (await this.subTrusteeService.getSubTrusteeSchoolIds(
+          subTrusteeId,
+          trusteeId,
+        )) || [];
+      return await this.subTrusteeService.getSubtrusteeBatchTransactions(
+        schoolIds,
+        year,
+        subTrusteeId
+      );
+    } catch (e) {
+      throw new BadRequestException(e.message);
     }
+  }
 }
 
 @ObjectType()

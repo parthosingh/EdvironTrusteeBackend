@@ -539,9 +539,9 @@ export class SubTrusteeService {
     }
   }
 
-  async getSubtrusteeBatchTransactions(school_id: string[], year: string) {
+  async getSubtrusteeBatchTransactions(school_id: string[], year: string, subTrusteeId:string) {
     const token = this.jwtService.sign(
-      { school_id: school_id },
+      { subTrusteeId: subTrusteeId },
       { secret: process.env.PAYMENTS_SERVICE_SECRET },
     );
     const config = {
@@ -556,6 +556,7 @@ export class SubTrusteeService {
         school_id: school_id,
         year: year,
         token: token,
+        subTrusteeId: subTrusteeId
       },
     };
     try {
