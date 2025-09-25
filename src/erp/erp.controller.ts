@@ -486,10 +486,10 @@ export class ErpController {
               console.log(vendors_data.gateway.includes(GATEWAY.CASHFREE));
               console.log(updatedVendorsInfo, 'updatedben');
 
-              if(!vendors_data.gateway.includes(GATEWAY.CASHFREE)){
+              if (!vendors_data.gateway.includes(GATEWAY.CASHFREE)) {
                 console.log('cashfree vendor not active');
 
-                updatedVendorsInfo.push({vendor_id:vendors_data._id.toString(),amount:razorpayVendor.amount,name:vendors_data.name});
+                updatedVendorsInfo.push({ vendor_id: vendors_data._id.toString(), amount: razorpayVendor.amount, name: vendors_data.name });
               }
               razorpayVendors.push(updatedRazorPayVendor)
             }
@@ -578,7 +578,7 @@ export class ErpController {
               totalPercentage += vendor.percentage;
             }
           }
-console.timeEnd('check vendor')
+          console.timeEnd('check vendor')
           if (splitMethod === 'amount' && totalAmount > body.amount) {
             throw new BadRequestException(
               'Sum of vendor amounts cannot be greater than the order amount',
@@ -3886,10 +3886,19 @@ console.timeEnd('check vendor')
           },
           data: paginationData,
         };
-
-
+        const settlementInitiatedOnDate = settlement.settlementInitiatedOn
+        const settlementDate = settlement.settlementDate
         const { data: transactions } = await axios.request(config);
         const { settlements_transactions } = transactions;
+        console.log(new Date(settlementInitiatedOnDate).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }));
+
+        await Promise.all(
+          settlements_transactions.map(async (tx: any) => {
+            tx.settlement_initiated_on = await this.formatIST(settlementInitiatedOnDate);
+            tx.settlement_date = await this.formatIST(settlementDate);
+          })
+        );
+
 
         return {
           limit: transactions.limit,
@@ -3956,6 +3965,24 @@ console.timeEnd('check vendor')
     } catch (e) {
       throw new BadRequestException(e.message);
     }
+  }
+
+  async formatIST(date: Date) {
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: "Asia/Kolkata",
+      hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    };
+
+    const parts = new Intl.DateTimeFormat("en-GB", options).formatToParts(date);
+    const get = (type: string) => parts.find(p => p.type === type)?.value;
+
+    return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}+05:30`;
   }
 
   @UseGuards(ErpGuard)
