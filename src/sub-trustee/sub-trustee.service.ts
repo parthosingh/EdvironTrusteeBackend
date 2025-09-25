@@ -42,7 +42,7 @@ export class SubTrusteeService {
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(Vendors.name)
     private vendorsModel: mongoose.Model<Vendors>,
-  ) { }
+  ) {}
 
   async validateMerchant(token: string): Promise<any> {
     try {
@@ -245,12 +245,13 @@ export class SubTrusteeService {
           merchantStatus: { $in: kycStatus },
         };
       }
-      const countDocs = await this.trusteeSchoolModel.countDocuments(searchFilter);
+      const countDocs =
+        await this.trusteeSchoolModel.countDocuments(searchFilter);
       const schools = await this.trusteeSchoolModel
         .find(searchFilter)
         .skip((page - 1) * limit)
         .limit(limit)
-        .lean()
+        .lean();
 
       const schoolsWithBankDetails = await Promise.all(
         schools.map(async (school: any) => {
@@ -336,13 +337,13 @@ export class SubTrusteeService {
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-            dispute_created_date: {
-              ...(start_date && { $gte: new Date(start_date) }),
-              ...(end_date && {
-                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-              }),
-            },
-          }
+              dispute_created_date: {
+                ...(start_date && { $gte: new Date(start_date) }),
+                ...(end_date && {
+                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+                }),
+              },
+            }
           : {}),
       };
       if (!school_id || school_id.length <= 0) {
@@ -523,12 +524,14 @@ export class SubTrusteeService {
         throw new BadRequestException('Forge request');
       }
 
-      const schoolDocs = await this.trusteeSchoolModel.find({
-        sub_trustee_id: new Types.ObjectId(subTrusteeId),
-      }).select('school_id -_id');
+      const schoolDocs = await this.trusteeSchoolModel
+        .find({
+          sub_trustee_id: new Types.ObjectId(subTrusteeId),
+        })
+        .select('school_id -_id');
 
       // Convert ObjectId to string
-      const schoolIds = schoolDocs.map(doc => doc.school_id.toString());
+      const schoolIds = schoolDocs.map((doc) => doc.school_id.toString());
 
       return schoolIds;
     } catch (e) {
@@ -537,33 +540,46 @@ export class SubTrusteeService {
   }
 
   async getSubtrusteeBatchTransactions(school_id: string[], year: string) {
-      const token = this.jwtService.sign(
-        { school_id: school_id },
-        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    const token = this.jwtService.sign(
+      { school_id: school_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-sub-trustee-batch-transactions?school_id=${school_id}&year=${year}&token=${token}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: {
+        school_id: school_id,
+        year: year,
+        token: token,
+      },
+    };
+    try {
+      const { data: batchTransactions } = await axios.request(config);
+
+      const mergedData = Object.values(
+        batchTransactions.reduce((acc, curr) => {
+          const key = `${curr.month}-${curr.year}`;
+          if (!acc[key]) {
+            acc[key] = { ...curr }; 
+          } else {
+            acc[key].total_order_amount += curr.total_order_amount;
+            acc[key].total_transactions += curr.total_transactions;
+            acc[key].total_transaction_amount += curr.total_transaction_amount;
+          }
+          return acc;
+        }, {}),
       );
-      const config = {
-        method: 'get',
-        maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-sub-trustee-batch-transactions?school_id=${school_id}&year=${year}&token=${token}`,
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-        },
-        data : {
-          school_id : school_id,
-          year : year,
-          token : token 
-        }
-      };
-      try {
-        const { data: batchTransactions } = await axios.request(config);
-        return batchTransactions;
-      } catch (e) {
-        console.log(e);
-  
-        throw new BadRequestException(e.message);
-      }
+
+      return mergedData;
+    } catch (e) {
+      console.log(e);
+
+      throw new BadRequestException(e.message);
     }
-
-
+  }
 }
