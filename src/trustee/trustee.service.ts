@@ -2234,6 +2234,7 @@ export class TrusteeService {
     };
     try {
       const { data: batchTransactions } = await axios.request(config);
+      console.log(batchTransactions, "batchTransactions")
       return batchTransactions;
     } catch (e) {
       console.log(e);
