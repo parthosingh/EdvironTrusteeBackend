@@ -825,12 +825,19 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-        console.log(res, 'ppppp');
-
+        
         const response = {
           collect_request_id: res.data.collect_request_id,
           collect_request_url: res.data.collect_request_url,
-          sign: res.data.jwt,
+           sign: this.jwtService.sign(
+            {
+              collect_request_id: res.data.collect_request_id,
+              collect_request_url: res.data.collect_request_url,
+              custom_order_id: custom_order_id || null,
+            },
+            { noTimestamp: true, secret: school.pg_key },
+          ),
+          // sign: res.data.jwt,
           // jwt: res.data.jwt
         }
 
@@ -1640,12 +1647,19 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-        console.log(res, 'ppppp');
-
+       
         const response = {
           collect_request_id: res.data.collect_request_id,
           collect_request_url: res.data.collect_request_url,
-          sign: res.data.jwt,
+           sign: this.jwtService.sign(
+            {
+              collect_request_id: res.data.collect_request_id,
+              collect_request_url: res.data.collect_request_url,
+              custom_order_id: custom_order_id || null,
+            },
+            { noTimestamp: true, secret: school.pg_key },
+          ),
+          // sign: res.data.jwt,
           // jwt: res.data.jwt
         }
 
@@ -2322,12 +2336,20 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-        console.log(res, 'ppppp');
+       
 
         const response = {
           collect_request_id: res.data.collect_request_id,
           collect_request_url: res.data.collect_request_url,
-          sign: res.data.jwt,
+           sign: this.jwtService.sign(
+            {
+              collect_request_id: res.data.collect_request_id,
+              collect_request_url: res.data.collect_request_url,
+              custom_order_id: custom_order_id || null,
+            },
+            { noTimestamp: true, secret: school.pg_key },
+          ),
+          // sign: res.data.jwt,
           // jwt: res.data.jwt
         }
 
