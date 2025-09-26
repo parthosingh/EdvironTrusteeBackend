@@ -825,9 +825,16 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-        console.log(res);
+        console.log(res, 'ppppp');
 
-        return res.data;
+        const response = {
+          collect_request_id: res.data.collect_request_id,
+          collect_request_url: res.data.collect_request_url,
+          sign: res.data.jwt,
+          // jwt: res.data.jwt
+        }
+
+        return response;
       }
 
       if (!isSelectGateway && school.cf_non_partner && school.cashfree_credentials) {
@@ -1590,9 +1597,16 @@ export class ErpController {
           };
 
           const res = await axios.request(config);
-          console.log(res);
+          console.log(res, 'ppppp');
 
-          return res.data;
+          const response = {
+            collect_request_id: res.data.collect_request_id,
+            collect_request_url: res.data.collect_request_url,
+            sign: res.data.jwt,
+            jwt: res.data.jwt
+          }
+
+          return response;
         }
         const bodydata = {
           amount,
@@ -1626,9 +1640,16 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-        console.log(res);
+        console.log(res, 'ppppp');
 
-        return res.data;
+        const response = {
+          collect_request_id: res.data.collect_request_id,
+          collect_request_url: res.data.collect_request_url,
+          sign: res.data.jwt,
+          // jwt: res.data.jwt
+        }
+
+        return response;
       }
 
       if (school.cf_non_partner && school.cashfree_credentials) {
@@ -2301,9 +2322,16 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-        console.log(res);
+        console.log(res, 'ppppp');
 
-        return res.data;
+        const response = {
+          collect_request_id: res.data.collect_request_id,
+          collect_request_url: res.data.collect_request_url,
+          sign: res.data.jwt,
+          // jwt: res.data.jwt
+        }
+
+        return response;
       }
       const data = JSON.stringify({
         amount,
