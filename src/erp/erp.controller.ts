@@ -54,10 +54,17 @@ import { CurrencyCode } from 'src/utils/email.group';
 import { Readable } from 'stream';
 import { Multer } from 'multer'; // <-- important
 
-import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
-import { BusinessTypes, KycBusinessCategory, KycBusinessSubCategory, KycDocType } from 'src/utils/enums';
-
+import {
+  BusinessTypes,
+  KycBusinessCategory,
+  KycBusinessSubCategory,
+  KycDocType,
+} from 'src/utils/enums';
 
 @Controller('erp')
 export class ErpController {
@@ -94,7 +101,7 @@ export class ErpController {
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
     @InjectModel(Disputes.name)
     private disputeModel: mongoose.Model<Disputes>,
-  ) { }
+  ) {}
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -250,7 +257,6 @@ export class ErpController {
         },
       ];
       isSelectGateway?: boolean;
-
     },
     @Req() req,
   ) {
@@ -272,7 +278,7 @@ export class ErpController {
         split_payments,
         vendors_info,
         currency,
-        isSelectGateway
+        isSelectGateway,
       } = body;
       let { disabled_modes } = body;
 
@@ -384,7 +390,7 @@ export class ErpController {
       let easebuzzVendors = [];
       let cashfreeVedors = [];
       let worldLine_vendors: any = [];
-      let razorpayVendors: any = []
+      let razorpayVendors: any = [];
       // VENDORS LOGIC FOR MULTIPLE GATEWAYS
       if (split_payments && vendors_info && vendors_info.length > 0) {
         // Determine the split method (amount or percentage) based on the first vendor
@@ -409,7 +415,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -436,7 +442,7 @@ export class ErpController {
             worldLine_vendors.push(worldlineVenodr);
           }
         } else {
-          console.time('check vendor')
+          console.time('check vendor');
           for (const vendor of vendors_info) {
             // Check if vendor_id is present
             if (!vendor.vendor_id) {
@@ -477,7 +483,10 @@ export class ErpController {
             }
 
             // VENDORS FOR RAZORPAY
-            if (vendors_data.gateway && vendors_data.gateway.includes(GATEWAY.RAZORPAY)) {
+            if (
+              vendors_data.gateway &&
+              vendors_data.gateway.includes(GATEWAY.RAZORPAY)
+            ) {
               console.log('checking vendors for razorpay');
 
               if (!vendors_data.razorpayVendor?.account) {
@@ -485,16 +494,19 @@ export class ErpController {
                   `Split Information Not Configure Please contact tarun.k@edviron.com`,
                 );
               }
-              vendorgateway.razorpay = true
-              let razorpayVendor = vendor
+              vendorgateway.razorpay = true;
+              let razorpayVendor = vendor;
               razorpayVendor.vendor_id = vendors_data.razorpayVendor.account;
               const updatedRazorPayVendor = {
                 ...razorpayVendor,
                 account: vendors_data.razorpayVendor.account,
                 vendor_id: vendors_data._id.toString(),
-                name: vendors_data.name
-              }
-              console.log(updatedRazorPayVendor, 'checking for updated vendors');
+                name: vendors_data.name,
+              };
+              console.log(
+                updatedRazorPayVendor,
+                'checking for updated vendors',
+              );
               console.log(vendor, 'checkoing vendors');
               console.log(vendors_data.gateway.includes(GATEWAY.CASHFREE));
               console.log(updatedVendorsInfo, 'updatedben');
@@ -502,9 +514,13 @@ export class ErpController {
               if (!vendors_data.gateway.includes(GATEWAY.CASHFREE)) {
                 console.log('cashfree vendor not active');
 
-                updatedVendorsInfo.push({ vendor_id: vendors_data._id.toString(), amount: razorpayVendor.amount, name: vendors_data.name });
+                updatedVendorsInfo.push({
+                  vendor_id: vendors_data._id.toString(),
+                  amount: razorpayVendor.amount,
+                  name: vendors_data.name,
+                });
               }
-              razorpayVendors.push(updatedRazorPayVendor)
+              razorpayVendors.push(updatedRazorPayVendor);
             }
 
             // CASHFREE VENDORS
@@ -530,7 +546,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -539,7 +555,6 @@ export class ErpController {
               name: vendors_data.name,
             };
             if (!vendors_data.gateway?.includes(GATEWAY.RAZORPAY)) {
-
               updatedVendorsInfo.push(updatedVendor);
             }
 
@@ -591,7 +606,7 @@ export class ErpController {
               totalPercentage += vendor.percentage;
             }
           }
-          console.timeEnd('check vendor')
+          console.timeEnd('check vendor');
           if (splitMethod === 'amount' && totalAmount > body.amount) {
             throw new BadRequestException(
               'Sum of vendor amounts cannot be greater than the order amount',
@@ -730,7 +745,6 @@ export class ErpController {
       console.time('payments1');
 
       if (!isSelectGateway && school.isEasebuzzNonPartner) {
-
         if (
           !school.easebuzz_non_partner ||
           !school.easebuzz_non_partner?.easebuzz_key ||
@@ -852,12 +866,16 @@ export class ErpController {
           ),
           // sign: res.data.jwt,
           // jwt: res.data.jwt
-        }
+        };
 
         return response;
       }
 
-      if (!isSelectGateway && school.cf_non_partner && school.cashfree_credentials) {
+      if (
+        !isSelectGateway &&
+        school.cf_non_partner &&
+        school.cashfree_credentials
+      ) {
         const data = JSON.stringify({
           amount,
           callbackUrl: callback_url,
@@ -931,7 +949,6 @@ export class ErpController {
       }
 
       console.log(updatedVendorsInfo, 'updatedvendor');
-
 
       const data = JSON.stringify({
         amount,
@@ -1012,7 +1029,7 @@ export class ErpController {
         cashfree_credentials: school.cashfree_credentials || null,
         easebuzz_non_partner_cred: school.easebuzz_non_partner,
         isEasebuzzNonpartner: school.isEasebuzzNonPartner,
-        razorpay_vendors: razorpayVendors
+        razorpay_vendors: razorpayVendors,
       });
       const config = {
         method: 'post',
@@ -1262,7 +1279,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1349,7 +1366,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -1623,8 +1640,8 @@ export class ErpController {
             collect_request_id: res.data.collect_request_id,
             collect_request_url: res.data.collect_request_url,
             sign: res.data.jwt,
-            jwt: res.data.jwt
-          }
+            jwt: res.data.jwt,
+          };
 
           return response;
         }
@@ -1674,7 +1691,7 @@ export class ErpController {
           ),
           // sign: res.data.jwt,
           // jwt: res.data.jwt
-        }
+        };
 
         return response;
       }
@@ -2043,7 +2060,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2131,7 +2148,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2350,7 +2367,6 @@ export class ErpController {
 
         const res = await axios.request(config);
 
-
         const response = {
           collect_request_id: res.data.collect_request_id,
           collect_request_url: res.data.collect_request_url,
@@ -2364,7 +2380,7 @@ export class ErpController {
           ),
           // sign: res.data.jwt,
           // jwt: res.data.jwt
-        }
+        };
 
         return response;
       }
@@ -2570,7 +2586,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -2804,13 +2820,14 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: collect_request_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: collect_request_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2874,15 +2891,16 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: order_id,
-              trusteeId: trustee_id,
-              school_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: order_id,
+            trusteeId: trustee_id,
+            school_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3039,6 +3057,73 @@ export class ErpController {
         page,
         limit,
         settlements,
+        total_pages,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get('settlements/v2')
+  @UseGuards(ErpGuard)
+  async getSettlementsV2(@Req() req) {
+    try {
+      const trustee_id = req.userTrustee.id;
+      const school_id = req.query.school_id;
+      const startDate = req.query.startDate;
+      const endDate = req.query.endDate;
+      const page = Number(req.query.page || 1);
+      const limit = Number(req.query.limit || 100);
+
+      let filterQuery: any = {
+        trustee: trustee_id,
+      };
+
+      if (school_id) {
+        filterQuery = {
+          ...filterQuery,
+          schoolId: new Types.ObjectId(school_id),
+        };
+      }
+
+      if (startDate && endDate) {
+        const start_date = new Date(startDate);
+        const end_date = new Date(endDate);
+        end_date.setHours(23, 59, 59, 999);
+
+        filterQuery = {
+          ...filterQuery,
+          settlementDate: {
+            $gte: start_date,
+            $lte: end_date,
+          },
+        };
+      }
+      //paginated query
+      const settlements = await this.settlementModel
+        .find(filterQuery, null, {
+          skip: (page - 1) * limit,
+          limit: limit,
+        })
+        .select('-clientId -trustee')
+        .sort({ createdAt: -1 });
+      const formattedSettlements = await Promise.all(
+        settlements.map(async (settlement: any) => {
+          if (settlement.settlementDate) {
+            settlement = settlement.toObject(); 
+            settlement.settlementDate = await this.formatIST(
+              settlement.settlementDate,
+            );
+          }
+          return settlement;
+        }),
+      );
+      const count = await this.settlementModel.countDocuments(filterQuery);
+      const total_pages = Math.ceil(count / limit);
+      return {
+        page,
+        limit,
+        settlements:formattedSettlements,
         total_pages,
       };
     } catch (error) {
@@ -3815,7 +3900,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) { }
+  async test(@Req() req: any) {}
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -3928,7 +4013,7 @@ export class ErpController {
       const client_id = settlement.clientId;
       const razorpay_id = settlement.razorpay_id;
       if (client_id) {
-        console.log('cashfree')
+        console.log('cashfree');
         const token = this.jwtService.sign(
           { utrNumber, client_id },
           { secret: process.env.PAYMENTS_SERVICE_SECRET },
@@ -3949,19 +4034,24 @@ export class ErpController {
           },
           data: paginationData,
         };
-        const settlementInitiatedOnDate = settlement.settlementInitiatedOn
-        const settlementDate = settlement.settlementDate
+        const settlementInitiatedOnDate = settlement.settlementInitiatedOn;
+        const settlementDate = settlement.settlementDate;
         const { data: transactions } = await axios.request(config);
         const { settlements_transactions } = transactions;
-        console.log(new Date(settlementInitiatedOnDate).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }));
+        console.log(
+          new Date(settlementInitiatedOnDate).toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+          }),
+        );
 
         await Promise.all(
           settlements_transactions.map(async (tx: any) => {
-            tx.settlement_initiated_on = await this.formatIST(settlementInitiatedOnDate);
+            tx.settlement_initiated_on = await this.formatIST(
+              settlementInitiatedOnDate,
+            );
             tx.settlement_date = await this.formatIST(settlementDate);
-          })
+          }),
         );
-
 
         return {
           limit: transactions.limit,
@@ -3987,7 +4077,9 @@ export class ErpController {
         );
       }
 
-      const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: settlement.schoolId,
+      });
       if (!school) {
         throw new NotFoundException('School not found');
       }
@@ -3998,17 +4090,27 @@ export class ErpController {
         school.easebuzz_non_partner.easebuzz_submerchant_id
       ) {
         console.log('settlement from date');
-        const settlements = await this.settlementModel.find({
-          schoolId: settlement.schoolId,
-          settlementDate: { $lt: settlement.settlementDate }
-        }).sort({ settlementDate: -1 }).select('settlementDate').limit(2);
+        const settlements = await this.settlementModel
+          .find({
+            schoolId: settlement.schoolId,
+            settlementDate: { $lt: settlement.settlementDate },
+          })
+          .sort({ settlementDate: -1 })
+          .select('settlementDate')
+          .limit(2);
         const previousSettlementDate = settlements[1]?.settlementDate;
-        const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
+        const formatted_start_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            previousSettlementDate,
+          );
         console.log({ formatted_start_date }); // e.g. 06-09-2025
 
-        const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
+        const formatted_end_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            settlement.settlementDate,
+          );
         console.log({ formatted_end_date }); // e.g. 06-09-2025
-        const paginatioNPage = page || 1
+        const paginatioNPage = page || 1;
         const res = await this.trusteeService.easebuzzSettlementRecon(
           school.easebuzz_non_partner.easebuzz_submerchant_id,
           formatted_start_date,
@@ -4032,20 +4134,22 @@ export class ErpController {
 
   async formatIST(date: Date) {
     const options: Intl.DateTimeFormatOptions = {
-      timeZone: "Asia/Kolkata",
+      timeZone: 'Asia/Kolkata',
       hour12: false,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
     };
 
-    const parts = new Intl.DateTimeFormat("en-GB", options).formatToParts(date);
-    const get = (type: string) => parts.find(p => p.type === type)?.value;
+    const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(date);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value;
 
-    return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}+05:30`;
+    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get(
+      'minute',
+    )}:${get('second')}+05:30`;
   }
 
   @UseGuards(ErpGuard)
@@ -4140,8 +4244,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+              refundableAmount +
+              'Rs',
           );
         }
       }
@@ -4426,8 +4530,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+              refundableAmount +
+              'Rs',
           );
         }
       }
@@ -5214,7 +5318,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-          student_id,
+            student_id,
         );
       }
 
@@ -5467,8 +5571,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-        error.message ||
-        'Failed to fetch settlements',
+          error.message ||
+          'Failed to fetch settlements',
       );
     }
   }
@@ -5550,7 +5654,8 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${error.response?.data?.message || error.message
+          `External API error: ${
+            error.response?.data?.message || error.message
           }`,
         );
       }
@@ -6079,7 +6184,8 @@ export class ErpController {
   @Post('create-merchant')
   @UseGuards(ErpGuard)
   async createMerchant(
-    @Body() body: {
+    @Body()
+    body: {
       admin_name: string;
       phone_number: string;
       email: string;
@@ -6112,7 +6218,7 @@ export class ErpController {
       businessSubCategory: KycBusinessSubCategory;
       business_type: BusinessTypes;
       businessCategory: KycBusinessCategory;
-      gst: string
+      gst: string;
     },
     @Req() req,
   ): Promise<any> {
@@ -6129,9 +6235,10 @@ export class ErpController {
         businessCategory,
         business_type,
         businessSubCategory,
-        gst
-      } = body
-      businessProofDetails.school_website = businessProofDetails.merchant_website
+        gst,
+      } = body;
+      businessProofDetails.school_website =
+        businessProofDetails.merchant_website;
 
       if (!name || !body.phone_number || !body.email || !school_name) {
         throw new BadRequestException('Fill all fields');
@@ -6145,24 +6252,29 @@ export class ErpController {
         throw new BadRequestException(`Invalid  Input: ${businessCategory}`);
       }
 
-      if (!Object.values(KycBusinessSubCategory).includes(businessSubCategory)) {
+      if (
+        !Object.values(KycBusinessSubCategory).includes(businessSubCategory)
+      ) {
         throw new BadRequestException(`Invalid  Input: ${businessSubCategory}`);
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const phoneRegex = /^[6-9]\d{9}$/;
       const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
-      const aadharRegex = /^[0-9]{12}$/
-      const bankAccountNumberRegex = /^[0-9]{9,18}$/
-      const IFSCRegex = /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/
-      const pinCodeRegex = /^[1-9][0-9]{5}$/
+      const aadharRegex = /^[0-9]{12}$/;
+      const bankAccountNumberRegex = /^[0-9]{9,18}$/;
+      const IFSCRegex = /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/;
+      const pinCodeRegex = /^[1-9][0-9]{5}$/;
 
       if (!emailRegex.test(body.email)) {
         throw new BadRequestException('Invalid email format');
       }
 
-      if (!businessCategory || !['Education', 'Others'].includes(businessCategory)) {
-        throw new BadRequestException('Invalid input for businessCategory')
+      if (
+        !businessCategory ||
+        !['Education', 'Others'].includes(businessCategory)
+      ) {
+        throw new BadRequestException('Invalid input for businessCategory');
       }
 
       if (!phoneRegex.test(body.phone_number)) {
@@ -6175,7 +6287,7 @@ export class ErpController {
         businessProofDetails.business_pan_number &&
         !panRegex.test(businessProofDetails.business_pan_number)
       ) {
-        throw new BadRequestException('Invalid Input for business PAN ')
+        throw new BadRequestException('Invalid Input for business PAN ');
       }
 
       if (
@@ -6183,7 +6295,9 @@ export class ErpController {
         businessAddress.pincode &&
         !pinCodeRegex.test(businessAddress.pincode)
       ) {
-        throw new BadRequestException('Invalid Input for businessAddress Pin Code')
+        throw new BadRequestException(
+          'Invalid Input for businessAddress Pin Code',
+        );
       }
 
       if (
@@ -6191,7 +6305,7 @@ export class ErpController {
         authSignatory.auth_sighnatory_aadhar_number &&
         !aadharRegex.test(authSignatory.auth_sighnatory_aadhar_number)
       ) {
-        throw new BadRequestException('Invalid Input for Aaadhar Card number')
+        throw new BadRequestException('Invalid Input for Aaadhar Card number');
       }
 
       if (
@@ -6199,7 +6313,7 @@ export class ErpController {
         bankDetails.account_number &&
         !bankAccountNumberRegex.test(bankDetails.account_number)
       ) {
-        throw new BadRequestException('Invalid Input for Bank account number')
+        throw new BadRequestException('Invalid Input for Bank account number');
       }
 
       if (
@@ -6207,7 +6321,7 @@ export class ErpController {
         bankDetails.ifsc_code &&
         !IFSCRegex.test(bankDetails.ifsc_code)
       ) {
-        throw new BadRequestException('Invalid Input for IFSC Code')
+        throw new BadRequestException('Invalid Input for IFSC Code');
       }
 
       const school = await this.erpService.createmechant(
@@ -6225,7 +6339,7 @@ export class ErpController {
         businessCategory,
       );
 
-      const { school_id } = school.updatedSchool
+      const { school_id } = school.updatedSchool;
 
       const kycStatus = await this.erpService.initiateKyc(
         phone_number,
@@ -6239,10 +6353,10 @@ export class ErpController {
         businessCategory,
         business_type,
         businessSubCategory,
-        gst
-      )
+        gst,
+      );
 
-      return kycStatus
+      return kycStatus;
 
       return school;
     } catch (error) {
@@ -6256,8 +6370,9 @@ export class ErpController {
   @Post('update-merchant')
   @UseGuards(ErpGuard)
   async updateMerchant(
-    @Body() body: {
-      school_id:string
+    @Body()
+    body: {
+      school_id: string;
       admin_name: string;
       phone_number: string;
       email: string;
@@ -6290,7 +6405,7 @@ export class ErpController {
       businessSubCategory: KycBusinessSubCategory;
       business_type: BusinessTypes;
       businessCategory: KycBusinessCategory;
-      gst: string
+      gst: string;
     },
     @Req() req,
   ): Promise<any> {
@@ -6309,13 +6424,19 @@ export class ErpController {
         business_type,
         businessSubCategory,
         gst,
-      } = body
-      businessProofDetails.school_website = businessProofDetails.merchant_website
+      } = body;
+      businessProofDetails.school_website =
+        businessProofDetails.merchant_website;
 
-      if (name || !body.phone_number || !body.email || !school_name || school_id) {
+      if (
+        name ||
+        !body.phone_number ||
+        !body.email ||
+        !school_name ||
+        school_id
+      ) {
         throw new BadRequestException('Fill all fields');
       }
-
 
       if (!Object.values(BusinessTypes).includes(business_type)) {
         throw new BadRequestException(`Invalid  Input: ${business_type}`);
@@ -6325,24 +6446,29 @@ export class ErpController {
         throw new BadRequestException(`Invalid  Input: ${businessCategory}`);
       }
 
-      if (!Object.values(KycBusinessSubCategory).includes(businessSubCategory)) {
+      if (
+        !Object.values(KycBusinessSubCategory).includes(businessSubCategory)
+      ) {
         throw new BadRequestException(`Invalid  Input: ${businessSubCategory}`);
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const phoneRegex = /^[6-9]\d{9}$/;
       const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
-      const aadharRegex = /^[0-9]{12}$/
-      const bankAccountNumberRegex = /^[0-9]{9,18}$/
-      const IFSCRegex = /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/
-      const pinCodeRegex = /^[1-9][0-9]{5}$/
+      const aadharRegex = /^[0-9]{12}$/;
+      const bankAccountNumberRegex = /^[0-9]{9,18}$/;
+      const IFSCRegex = /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/;
+      const pinCodeRegex = /^[1-9][0-9]{5}$/;
 
       if (!emailRegex.test(body.email)) {
         throw new BadRequestException('Invalid email format');
       }
 
-      if (!businessCategory || !['Education', 'Others'].includes(businessCategory)) {
-        throw new BadRequestException('Invalid input for businessCategory')
+      if (
+        !businessCategory ||
+        !['Education', 'Others'].includes(businessCategory)
+      ) {
+        throw new BadRequestException('Invalid input for businessCategory');
       }
 
       if (!phoneRegex.test(body.phone_number)) {
@@ -6355,7 +6481,7 @@ export class ErpController {
         businessProofDetails.business_pan_number &&
         !panRegex.test(businessProofDetails.business_pan_number)
       ) {
-        throw new BadRequestException('Invalid Input for business PAN ')
+        throw new BadRequestException('Invalid Input for business PAN ');
       }
 
       if (
@@ -6363,7 +6489,9 @@ export class ErpController {
         businessAddress.pincode &&
         !pinCodeRegex.test(businessAddress.pincode)
       ) {
-        throw new BadRequestException('Invalid Input for businessAddress Pin Code')
+        throw new BadRequestException(
+          'Invalid Input for businessAddress Pin Code',
+        );
       }
 
       if (
@@ -6371,7 +6499,7 @@ export class ErpController {
         authSignatory.auth_sighnatory_aadhar_number &&
         !aadharRegex.test(authSignatory.auth_sighnatory_aadhar_number)
       ) {
-        throw new BadRequestException('Invalid Input for Aaadhar Card number')
+        throw new BadRequestException('Invalid Input for Aaadhar Card number');
       }
 
       if (
@@ -6379,7 +6507,7 @@ export class ErpController {
         bankDetails.account_number &&
         !bankAccountNumberRegex.test(bankDetails.account_number)
       ) {
-        throw new BadRequestException('Invalid Input for Bank account number')
+        throw new BadRequestException('Invalid Input for Bank account number');
       }
 
       if (
@@ -6387,7 +6515,7 @@ export class ErpController {
         bankDetails.ifsc_code &&
         !IFSCRegex.test(bankDetails.ifsc_code)
       ) {
-        throw new BadRequestException('Invalid Input for IFSC Code')
+        throw new BadRequestException('Invalid Input for IFSC Code');
       }
 
       const school = await this.erpService.createmechant(
@@ -6438,31 +6566,39 @@ export class ErpController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadFiles(
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: {
-      merchant_id: string,
-      file_type: KycDocType,
-      doc_type?: string
+    @Body()
+    body: {
+      merchant_id: string;
+      file_type: KycDocType;
+      doc_type?: string;
     },
-    @Req() req: any
+    @Req() req: any,
   ) {
     const { merchant_id, file_type, doc_type } = body;
-    const trustee_id = req.userTrustee.id
+    const trustee_id = req.userTrustee.id;
     try {
-      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(merchant_id) })
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(merchant_id),
+      });
       if (!school) {
-        throw new NotFoundException('Merchant Not found')
+        throw new NotFoundException('Merchant Not found');
       }
 
       if (school.trustee_id.toString() !== trustee_id.toString()) {
-        throw new UnauthorizedException('Unauthorized User')
+        throw new UnauthorizedException('Unauthorized User');
       }
       // ✅ Validate that typeName is part of enum
       if (!Object.values(KycDocType).includes(file_type)) {
         throw new BadRequestException(`Invalid document type: ${file_type}`);
       }
 
-      if (file_type === KycDocType.ADDITIONALDOCUMENT && !doc_type || doc_type == "") {
-        throw new BadRequestException('Invalid Doc type for additional Documents')
+      if (
+        (file_type === KycDocType.ADDITIONALDOCUMENT && !doc_type) ||
+        doc_type == ''
+      ) {
+        throw new BadRequestException(
+          'Invalid Doc type for additional Documents',
+        );
       }
       // console.log(file);
 
@@ -6481,29 +6617,29 @@ export class ErpController {
       console.log(link);
 
       // return {link}
-      const token = this.jwtService.sign({ school_id: merchant_id },
-        { secret: process.env.JWT_SECRET_FOR_INTRANET! },)
+      const token = this.jwtService.sign(
+        { school_id: merchant_id },
+        { secret: process.env.JWT_SECRET_FOR_INTRANET! },
+      );
       const config = {
         method: 'post',
         url: `${process.env.MAIN_BACKEND_URL}/api/trustee/upload-docs`,
         headers: {
-          'accept': 'application/json',
+          accept: 'application/json',
         },
         data: {
           token,
           typeName: file_type,
           url: link,
-          additionalFileType: doc_type || null
-        }
-      }
+          additionalFileType: doc_type || null,
+        },
+      };
 
-      const { data: res } = await axios.request(config)
-      return res
-
+      const { data: res } = await axios.request(config);
+      return res;
     } catch (error) {
       console.error('Upload failed:', error?.response?.data || error.message);
       throw error;
     }
   }
-
 }
