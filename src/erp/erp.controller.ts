@@ -56,7 +56,7 @@ import { Multer } from 'multer'; // <-- important
 
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
-import { KycDocType } from 'src/utils/enums';
+import { BusinessTypes, KycBusinessCategory, KycBusinessSubCategory, KycDocType } from 'src/utils/enums';
 
 
 @Controller('erp')
@@ -6080,10 +6080,10 @@ export class ErpController {
   @UseGuards(ErpGuard)
   async createMerchant(
     @Body() body: {
-      name: string;
+      admin_name: string;
       phone_number: string;
       email: string;
-      school_name: string;
+      merchant_name: string;
       businessProofDetails: {
         business_name: string;
         business_pan_name: string;
@@ -6108,19 +6108,19 @@ export class ErpController {
         bank_name: string;
         ifsc_code: string;
       };
-      businessSubCategory: string;
-      business_type: string;
-      businessCategory: string;
-      gst:string
+      businessSubCategory: KycBusinessSubCategory;
+      business_type: BusinessTypes;
+      businessCategory: KycBusinessCategory;
+      gst: string
     },
     @Req() req,
   ): Promise<any> {
     try {
       const {
         phone_number,
-        name,
+        admin_name: name,
         email,
-        school_name,
+        merchant_name: school_name,
         businessAddress,
         businessProofDetails,
         authSignatory,
@@ -6129,44 +6129,102 @@ export class ErpController {
         business_type,
         businessSubCategory,
         gst
-      }=body
-    if (!body.name || !body.phone_number || !body.email || !body.school_name) {
-      throw new BadRequestException('Fill all fields');
-    }
-    // ✅ Regex for email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      } = body
+      if (name || !body.phone_number || !body.email || school_name) {
+        throw new BadRequestException('Fill all fields');
+      }
 
-    // ✅ Regex for Indian mobile number (10 digits, starts 6–9)
-    const phoneRegex = /^[6-9]\d{9}$/;
+      if (!Object.values(BusinessTypes).includes(business_type)) {
+        throw new BadRequestException(`Invalid  Input: ${business_type}`);
+      }
 
-    if (!emailRegex.test(body.email)) {
-      throw new BadRequestException('Invalid email format');
-    }
+      if (!Object.values(KycBusinessCategory).includes(businessCategory)) {
+        throw new BadRequestException(`Invalid  Input: ${businessCategory}`);
+      }
 
-    if (!phoneRegex.test(body.phone_number)) {
-      throw new BadRequestException('Invalid phone number format');
-    }
-      console.log('debug001');
-      
+        if (!Object.values(KycBusinessSubCategory).includes(businessSubCategory)) {
+        throw new BadRequestException(`Invalid  Input: ${businessSubCategory}`);
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const phoneRegex = /^[6-9]\d{9}$/;
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
+      const aadharRegex = /^[0-9]{12}$/
+      const bankAccountNumberRegex = /^[0-9]{9,18}$/
+      const IFSCRegex = /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/
+      const pinCodeRegex = /^[1-9][0-9]{5}$/
+
+      if (!emailRegex.test(body.email)) {
+        throw new BadRequestException('Invalid email format');
+      }
+
+      if (!businessCategory || !['Education', 'Others'].includes(businessCategory)) {
+        throw new BadRequestException('Invalid input for businessCategory')
+      }
+
+      if (!phoneRegex.test(body.phone_number)) {
+        throw new BadRequestException('Invalid phone number format');
+      }
+
+      // BUSINESS PAN REGEX
+      if (
+        businessProofDetails &&
+        businessProofDetails.business_pan_number &&
+        !panRegex.test(businessProofDetails.business_pan_number)
+      ) {
+        throw new BadRequestException('Invalid Input for business PAN ')
+      }
+
+      if (
+        businessAddress &&
+        businessAddress.pincode &&
+        !pinCodeRegex.test(businessAddress.pincode)
+      ) {
+        throw new BadRequestException('Invalid Input for businessAddress Pin Code')
+      }
+
+      if (
+        authSignatory &&
+        authSignatory.auth_sighnatory_aadhar_number &&
+        !aadharRegex.test(authSignatory.auth_sighnatory_aadhar_number)
+      ) {
+        throw new BadRequestException('Invalid Input for Aaadhar Card number')
+      }
+
+      if (
+        bankDetails &&
+        bankDetails.account_number &&
+        !bankAccountNumberRegex.test(bankDetails.account_number)
+      ) {
+        throw new BadRequestException('Invalid Input for Bank account number')
+      }
+
+      if (
+        bankDetails &&
+        bankDetails.ifsc_code &&
+        !IFSCRegex.test(bankDetails.ifsc_code)
+      ) {
+        throw new BadRequestException('Invalid Input for IFSC Code')
+      }
 
       const school = await this.erpService.createmechant(
-        body.phone_number,
-        body.name,
-        body.email,
-        body.school_name,
+        phone_number,
+        name,
+        email,
+        school_name,
         req.userTrustee.id.toString(),
-        body.businessProofDetails,
-        body.businessAddress,
-        body.authSignatory,
-        body.bankDetails,
-        body.businessSubCategory,
-        body.business_type,
-        body.businessCategory,
+        businessProofDetails,
+        businessAddress,
+        authSignatory,
+        bankDetails,
+        businessSubCategory,
+        business_type,
+        businessCategory,
       );
 
-      const {school_id}=school.updatedSchool
+      const { school_id } = school.updatedSchool
 
-      const kycStatus=await this.erpService.initiateKyc(
+      const kycStatus = await this.erpService.initiateKyc(
         phone_number,
         email,
         school_name,
@@ -6199,27 +6257,32 @@ export class ErpController {
     @UploadedFile() file: Express.Multer.File,
     @Body() body: {
       merchant_id: string,
-      file_type: KycDocType
+      file_type: KycDocType,
+      doc_type?:string
     },
-    @Req() req:any
+    @Req() req: any
   ) {
-    const { merchant_id,file_type } = body;
-    const trustee_id=req.userTrustee.id
+    const { merchant_id, file_type,doc_type } = body;
+    const trustee_id = req.userTrustee.id
     try {
-      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(merchant_id)})
-      if(!school){
+      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(merchant_id) })
+      if (!school) {
         throw new NotFoundException('Merchant Not found')
       }
 
-      if(school.trustee_id.toString() !== trustee_id.toString()){
+      if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized User')
       }
-       // ✅ Validate that typeName is part of enum
-    if (!Object.values(KycDocType).includes(file_type)) {
-      throw new BadRequestException(`Invalid document type: ${file_type}`);
-    }
-    // console.log(file);
-    
+      // ✅ Validate that typeName is part of enum
+      if (!Object.values(KycDocType).includes(file_type)) {
+        throw new BadRequestException(`Invalid document type: ${file_type}`);
+      }
+
+      if(file_type === KycDocType.ADDITIONALDOCUMENT && !doc_type || doc_type ==""){
+        throw new BadRequestException('Invalid Doc type for additional Documents')
+      }
+      // console.log(file);
+
       const buffer = file.buffer;
       const fieldname = file.fieldname;
       const originalname = file.originalname;
@@ -6233,9 +6296,9 @@ export class ErpController {
         'pg-kyc',
       );
       console.log(link);
-      
+
       // return {link}
-      const token = this.jwtService.sign({ school_id:merchant_id },
+      const token = this.jwtService.sign({ school_id: merchant_id },
         { secret: process.env.JWT_SECRET_FOR_INTRANET! },)
       const config = {
         method: 'post',
@@ -6246,7 +6309,8 @@ export class ErpController {
         data: {
           token,
           typeName: file_type,
-          url: link
+          url: link,
+          additionalFileType:doc_type || null
         }
       }
 
