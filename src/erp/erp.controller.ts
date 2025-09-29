@@ -3115,6 +3115,11 @@ export class ErpController {
               settlement.settlementDate,
             );
           }
+          if (settlement.settlementInitiatedOn) {
+             settlement.settlementInitiatedOn = await this.formatIST(
+              settlement.settlementInitiatedOn,
+            );
+          }
           return settlement;
         }),
       );
