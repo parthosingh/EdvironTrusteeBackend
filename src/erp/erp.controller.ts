@@ -6088,6 +6088,7 @@ export class ErpController {
         business_name: string;
         business_pan_name: string;
         business_pan_number: string;
+        merchant_website: string;
         school_website: string;
       };
       businessAddress: {
@@ -6130,6 +6131,7 @@ export class ErpController {
         businessSubCategory,
         gst
       } = body
+      businessProofDetails.school_website = businessProofDetails.merchant_website
 
       if (name || !body.phone_number || !body.email || !school_name) {
         throw new BadRequestException('Fill all fields');
@@ -6143,7 +6145,7 @@ export class ErpController {
         throw new BadRequestException(`Invalid  Input: ${businessCategory}`);
       }
 
-        if (!Object.values(KycBusinessSubCategory).includes(businessSubCategory)) {
+      if (!Object.values(KycBusinessSubCategory).includes(businessSubCategory)) {
         throw new BadRequestException(`Invalid  Input: ${businessSubCategory}`);
       }
 
@@ -6259,11 +6261,11 @@ export class ErpController {
     @Body() body: {
       merchant_id: string,
       file_type: KycDocType,
-      doc_type?:string
+      doc_type?: string
     },
     @Req() req: any
   ) {
-    const { merchant_id, file_type,doc_type } = body;
+    const { merchant_id, file_type, doc_type } = body;
     const trustee_id = req.userTrustee.id
     try {
       const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(merchant_id) })
@@ -6279,7 +6281,7 @@ export class ErpController {
         throw new BadRequestException(`Invalid document type: ${file_type}`);
       }
 
-      if(file_type === KycDocType.ADDITIONALDOCUMENT && !doc_type || doc_type ==""){
+      if (file_type === KycDocType.ADDITIONALDOCUMENT && !doc_type || doc_type == "") {
         throw new BadRequestException('Invalid Doc type for additional Documents')
       }
       // console.log(file);
@@ -6311,7 +6313,7 @@ export class ErpController {
           token,
           typeName: file_type,
           url: link,
-          additionalFileType:doc_type || null
+          additionalFileType: doc_type || null
         }
       }
 
