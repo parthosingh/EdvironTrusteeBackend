@@ -14,6 +14,9 @@ import {
   Res,
   Param,
   InternalServerErrorException,
+  UseInterceptors,
+  UploadedFiles,
+  UploadedFile,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ErpService } from './erp.service';
@@ -24,6 +27,7 @@ import { DisabledModes, TrusteeSchool } from '../schema/school.schema';
 import mongoose, { isValidObjectId, Types } from 'mongoose';
 import * as moment from 'moment-timezone';
 import axios from 'axios';
+import { Express } from 'express';
 import {
   SettlementReport,
   SettlementSchema,
@@ -47,12 +51,21 @@ import * as crypto from 'crypto';
 import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { Disputes } from 'src/schema/disputes.schema';
 import { CurrencyCode } from 'src/utils/email.group';
+import { Readable } from 'stream';
+import { Multer } from 'multer'; // <-- important
+
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
+import { KycDocType } from 'src/utils/enums';
+
+
 @Controller('erp')
 export class ErpController {
   constructor(
     private erpService: ErpService,
     private readonly jwtService: JwtService,
     private readonly trusteeService: TrusteeService,
+    private readonly S3BucketService: AwsS3Service,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
@@ -825,11 +838,11 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-        
+
         const response = {
           collect_request_id: res.data.collect_request_id,
           collect_request_url: res.data.collect_request_url,
-           sign: this.jwtService.sign(
+          sign: this.jwtService.sign(
             {
               collect_request_id: res.data.collect_request_id,
               collect_request_url: res.data.collect_request_url,
@@ -1647,11 +1660,11 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-       
+
         const response = {
           collect_request_id: res.data.collect_request_id,
           collect_request_url: res.data.collect_request_url,
-           sign: this.jwtService.sign(
+          sign: this.jwtService.sign(
             {
               collect_request_id: res.data.collect_request_id,
               collect_request_url: res.data.collect_request_url,
@@ -2336,12 +2349,12 @@ export class ErpController {
         };
 
         const res = await axios.request(config);
-       
+
 
         const response = {
           collect_request_id: res.data.collect_request_id,
           collect_request_url: res.data.collect_request_url,
-           sign: this.jwtService.sign(
+          sign: this.jwtService.sign(
             {
               collect_request_id: res.data.collect_request_id,
               collect_request_url: res.data.collect_request_url,
@@ -6062,4 +6075,188 @@ export class ErpController {
       throw new BadRequestException(error.message);
     }
   }
+
+  @Post('create-merchant')
+  @UseGuards(ErpGuard)
+  async createMerchant(
+    @Body() body: {
+      name: string;
+      phone_number: string;
+      email: string;
+      school_name: string;
+      businessProofDetails: {
+        business_name: string;
+        business_pan_name: string;
+        business_pan_number: string;
+        school_website: string;
+      };
+      businessAddress: {
+        address: string;
+        city: string;
+        pincode: string;
+        state: string;
+      };
+      authSignatory: {
+        auth_sighnatory_aadhar_number: string;
+        auth_sighnatory_name_on_aadhar: string;
+        auth_sighnatory_name_on_pan: string;
+        auth_sighnatory_pan_number: string;
+      };
+      bankDetails: {
+        account_holder_name: string;
+        account_number: string;
+        bank_name: string;
+        ifsc_code: string;
+      };
+      businessSubCategory: string;
+      business_type: string;
+      businessCategory: string;
+      gst:string
+    },
+    @Req() req,
+  ): Promise<any> {
+    try {
+      const {
+        phone_number,
+        name,
+        email,
+        school_name,
+        businessAddress,
+        businessProofDetails,
+        authSignatory,
+        bankDetails,
+        businessCategory,
+        business_type,
+        businessSubCategory,
+        gst
+      }=body
+    if (!body.name || !body.phone_number || !body.email || !body.school_name) {
+      throw new BadRequestException('Fill all fields');
+    }
+    // ✅ Regex for email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // ✅ Regex for Indian mobile number (10 digits, starts 6–9)
+    const phoneRegex = /^[6-9]\d{9}$/;
+
+    if (!emailRegex.test(body.email)) {
+      throw new BadRequestException('Invalid email format');
+    }
+
+    if (!phoneRegex.test(body.phone_number)) {
+      throw new BadRequestException('Invalid phone number format');
+    }
+      console.log('debug001');
+      
+
+      const school = await this.erpService.createmechant(
+        body.phone_number,
+        body.name,
+        body.email,
+        body.school_name,
+        req.userTrustee.id.toString(),
+        body.businessProofDetails,
+        body.businessAddress,
+        body.authSignatory,
+        body.bankDetails,
+        body.businessSubCategory,
+        body.business_type,
+        body.businessCategory,
+      );
+
+      const {school_id}=school.updatedSchool
+
+      const kycStatus=await this.erpService.initiateKyc(
+        phone_number,
+        email,
+        school_name,
+        school_id,
+        businessProofDetails,
+        businessAddress,
+        authSignatory,
+        bankDetails,
+        businessCategory,
+        business_type,
+        businessSubCategory,
+        gst
+      )
+
+      return kycStatus
+
+      return school;
+    } catch (error) {
+      if (error.response && error.response.statusCode === 409) {
+        throw new ConflictException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('update-kyc-docs')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFiles(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: {
+      merchant_id: string,
+      file_type: KycDocType
+    },
+    @Req() req:any
+  ) {
+    const { merchant_id,file_type } = body;
+    const trustee_id=req.userTrustee.id
+    try {
+      const school=await this.trusteeSchoolModel.findOne({school_id:new Types.ObjectId(merchant_id)})
+      if(!school){
+        throw new NotFoundException('Merchant Not found')
+      }
+
+      if(school.trustee_id.toString() !== trustee_id.toString()){
+        throw new UnauthorizedException('Unauthorized User')
+      }
+       // ✅ Validate that typeName is part of enum
+    if (!Object.values(KycDocType).includes(file_type)) {
+      throw new BadRequestException(`Invalid document type: ${file_type}`);
+    }
+    // console.log(file);
+    
+      const buffer = file.buffer;
+      const fieldname = file.fieldname;
+      const originalname = file.originalname;
+      const base64String = buffer.toString('base64');
+      const fileType = this.S3BucketService.getFileTypeFromBase64(base64String);
+
+      const link = await this.S3BucketService.uploadToS3(
+        buffer,
+        `${merchant_id}_${fieldname}_${originalname}`,
+        fileType,
+        'pg-kyc',
+      );
+      console.log(link);
+      
+      // return {link}
+      const token = this.jwtService.sign({ school_id:merchant_id },
+        { secret: process.env.JWT_SECRET_FOR_INTRANET! },)
+      const config = {
+        method: 'post',
+        url: `${process.env.MAIN_BACKEND_URL}/api/trustee/upload-docs`,
+        headers: {
+          'accept': 'application/json',
+        },
+        data: {
+          token,
+          typeName: file_type,
+          url: link
+        }
+      }
+
+      const { data: res } = await axios.request(config)
+      return res
+
+    } catch (error) {
+      console.error('Upload failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  }
+
 }

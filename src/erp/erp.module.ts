@@ -49,6 +49,7 @@ import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service'
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
+import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
 
 @Module({
   imports: [
@@ -126,7 +127,9 @@ import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
     MongooseModule.forFeature([
       { name: ReportsLogs.name, schema: ReportsLogsSchema },
     ]),
-
+    MongooseModule.forFeature([
+      { name: MerchantMember.name, schema: MerchantMemberSchema },
+    ]),
     MongooseModule.forFeature([
       { name: SubTrustee.name, schema: SubTrusteeSchema },
     ]),

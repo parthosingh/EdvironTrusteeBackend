@@ -46,4 +46,25 @@ export class AwsS3Service {
       );
     }
   }
+
+  getFileTypeFromBase64(base64String: string) {
+    
+    const signature = atob(base64String).slice(0, 4);
+    const fileSignatures = {
+      '89504E47': 'image/png',
+      FFD8FFE0: 'image/jpeg', // JFIF
+      FFD8FFE1: 'image/jpeg', // Exif
+      FFD8FFE2: 'image/jpeg', // Canon
+      '47494638': 'image/gif',
+      '25504446': 'application/pdf',
+      '504B0304': 'application/zip',
+    };
+
+    const hexSignature = Array.from(signature)
+      .map((char) => char.charCodeAt(0).toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase();
+
+    return fileSignatures[hexSignature] || 'unknown';
+  }
 }
