@@ -6130,7 +6130,8 @@ export class ErpController {
         businessSubCategory,
         gst
       } = body
-      if (name || !body.phone_number || !body.email || school_name) {
+
+      if (name || !body.phone_number || !body.email || !school_name) {
         throw new BadRequestException('Fill all fields');
       }
 
