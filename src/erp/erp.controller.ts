@@ -6133,7 +6133,7 @@ export class ErpController {
       } = body
       businessProofDetails.school_website = businessProofDetails.merchant_website
 
-      if (name || !body.phone_number || !body.email || !school_name) {
+      if (!name || !body.phone_number || !body.email || !school_name) {
         throw new BadRequestException('Fill all fields');
       }
 
@@ -6243,6 +6243,186 @@ export class ErpController {
       )
 
       return kycStatus
+
+      return school;
+    } catch (error) {
+      if (error.response && error.response.statusCode === 409) {
+        throw new ConflictException(error.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post('update-merchant')
+  @UseGuards(ErpGuard)
+  async updateMerchant(
+    @Body() body: {
+      school_id:string
+      admin_name: string;
+      phone_number: string;
+      email: string;
+      merchant_name: string;
+      businessProofDetails: {
+        business_name: string;
+        business_pan_name: string;
+        business_pan_number: string;
+        merchant_website: string;
+        school_website: string;
+      };
+      businessAddress: {
+        address: string;
+        city: string;
+        pincode: string;
+        state: string;
+      };
+      authSignatory: {
+        auth_sighnatory_aadhar_number: string;
+        auth_sighnatory_name_on_aadhar: string;
+        auth_sighnatory_name_on_pan: string;
+        auth_sighnatory_pan_number: string;
+      };
+      bankDetails: {
+        account_holder_name: string;
+        account_number: string;
+        bank_name: string;
+        ifsc_code: string;
+      };
+      businessSubCategory: KycBusinessSubCategory;
+      business_type: BusinessTypes;
+      businessCategory: KycBusinessCategory;
+      gst: string
+    },
+    @Req() req,
+  ): Promise<any> {
+    try {
+      const {
+        school_id,
+        phone_number,
+        admin_name: name,
+        email,
+        merchant_name: school_name,
+        businessAddress,
+        businessProofDetails,
+        authSignatory,
+        bankDetails,
+        businessCategory,
+        business_type,
+        businessSubCategory,
+        gst,
+      } = body
+      businessProofDetails.school_website = businessProofDetails.merchant_website
+
+      if (name || !body.phone_number || !body.email || !school_name || school_id) {
+        throw new BadRequestException('Fill all fields');
+      }
+
+
+      if (!Object.values(BusinessTypes).includes(business_type)) {
+        throw new BadRequestException(`Invalid  Input: ${business_type}`);
+      }
+
+      if (!Object.values(KycBusinessCategory).includes(businessCategory)) {
+        throw new BadRequestException(`Invalid  Input: ${businessCategory}`);
+      }
+
+      if (!Object.values(KycBusinessSubCategory).includes(businessSubCategory)) {
+        throw new BadRequestException(`Invalid  Input: ${businessSubCategory}`);
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const phoneRegex = /^[6-9]\d{9}$/;
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
+      const aadharRegex = /^[0-9]{12}$/
+      const bankAccountNumberRegex = /^[0-9]{9,18}$/
+      const IFSCRegex = /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/
+      const pinCodeRegex = /^[1-9][0-9]{5}$/
+
+      if (!emailRegex.test(body.email)) {
+        throw new BadRequestException('Invalid email format');
+      }
+
+      if (!businessCategory || !['Education', 'Others'].includes(businessCategory)) {
+        throw new BadRequestException('Invalid input for businessCategory')
+      }
+
+      if (!phoneRegex.test(body.phone_number)) {
+        throw new BadRequestException('Invalid phone number format');
+      }
+
+      // BUSINESS PAN REGEX
+      if (
+        businessProofDetails &&
+        businessProofDetails.business_pan_number &&
+        !panRegex.test(businessProofDetails.business_pan_number)
+      ) {
+        throw new BadRequestException('Invalid Input for business PAN ')
+      }
+
+      if (
+        businessAddress &&
+        businessAddress.pincode &&
+        !pinCodeRegex.test(businessAddress.pincode)
+      ) {
+        throw new BadRequestException('Invalid Input for businessAddress Pin Code')
+      }
+
+      if (
+        authSignatory &&
+        authSignatory.auth_sighnatory_aadhar_number &&
+        !aadharRegex.test(authSignatory.auth_sighnatory_aadhar_number)
+      ) {
+        throw new BadRequestException('Invalid Input for Aaadhar Card number')
+      }
+
+      if (
+        bankDetails &&
+        bankDetails.account_number &&
+        !bankAccountNumberRegex.test(bankDetails.account_number)
+      ) {
+        throw new BadRequestException('Invalid Input for Bank account number')
+      }
+
+      if (
+        bankDetails &&
+        bankDetails.ifsc_code &&
+        !IFSCRegex.test(bankDetails.ifsc_code)
+      ) {
+        throw new BadRequestException('Invalid Input for IFSC Code')
+      }
+
+      const school = await this.erpService.createmechant(
+        phone_number,
+        name,
+        email,
+        school_name,
+        req.userTrustee.id.toString(),
+        businessProofDetails,
+        businessAddress,
+        authSignatory,
+        bankDetails,
+        businessSubCategory,
+        business_type,
+        businessCategory,
+      );
+
+      // const { school_id } = school.updatedSchool
+
+      // const kycStatus = await this.erpService.initiateKyc(
+      //   phone_number,
+      //   email,
+      //   school_name,
+      //   school_id,
+      //   businessProofDetails,
+      //   businessAddress,
+      //   authSignatory,
+      //   bankDetails,
+      //   businessCategory,
+      //   business_type,
+      //   businessSubCategory,
+      //   gst
+      // )
+
+      // return kycStatus
 
       return school;
     } catch (error) {
