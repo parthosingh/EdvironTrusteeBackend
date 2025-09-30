@@ -3798,6 +3798,9 @@ export class TrusteeService {
         },
         data,
       };
+
+      console.log(config);
+      
       const response = await axios.request(config);
       const settlements_transactions = response.data?.transactions;
       // console.log(response.data, 'check');
