@@ -3807,8 +3807,14 @@ export class TrusteeService {
       // console.log(response.data, 'check');
       if (!school) throw new BadRequestException(`Could not find school `);
 
-
+      
       const startIndex = (page - 1) * limit;
+      console.log(page);
+      
+      console.log(page - 1,'page');
+      console.log(startIndex,'nin');
+      
+      
       const endIndex = page * limit;
 
       const paginatedTransactions = settlements_transactions.slice(
@@ -3897,6 +3903,7 @@ export class TrusteeService {
       };
 
       console.log(config);
+      return config
 
       const response = await axios.request(config);
       return response.data
