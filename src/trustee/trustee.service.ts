@@ -3807,11 +3807,7 @@ export class TrusteeService {
       const settlements_transactions = response.data?.transactions;
       // console.log(response.data, 'check');
       if (!school) throw new BadRequestException(`Could not find school `);
-      settlements_transactions.forEach((transaction: any) => {
-        if (transaction?.order_id) {
-          transaction.school_name = school.school_name;
-        }
-      });
+     
 
       const startIndex = (page - 1) * limit;
       const endIndex = page * limit;
@@ -3837,7 +3833,106 @@ export class TrusteeService {
       return {
         limit: limit || 0,
         cursor: updateCursor,
-        page: page || 1,
+        page: page || 0,
+        totalCount: settlements_transactions.length || 0,
+        totalPages: Math.ceil(settlements_transactions.length / limit) || 0,
+        settlements_transactions: paginatedTransactions,
+      };
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
+
+   async easebuzzSettlementReconV2(
+    submerchant_id: string,
+    start_date: string,
+    end_date: string,
+    easebuzz_key: string,
+    easebuzz_salt: string,
+    utr: string,
+    limit: number,
+    skip: number,
+    school_id: string,
+    page?: number,
+    cursor?: string,
+  ) {
+    try {
+      const tokenPayload = {
+        submerchant_id,
+      };
+      let verifyPage = null;
+
+      if (cursor && cursor !== '') {
+        verifyPage = this.jwtService.verify(cursor, {
+          secret: process.env.PAYMENTS_SERVICE_SECRET,
+        });
+      }
+      page = verifyPage?.page || page;
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      const token = await this.jwtService.sign(tokenPayload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      const data = {
+        submerchant_id,
+        easebuzz_key,
+        easebuzz_salt,
+        start_date,
+        end_date,
+        page_size: 1000,
+        token,
+        utr,
+      };
+
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/settlement-recon/v2`,
+        headers: {
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data,
+      };
+
+      console.log(config);
+      
+      const response = await axios.request(config);
+      return response.data
+      console.log(response.data.transactions.length,'pp');
+      
+      const settlements_transactions = response.data?.transactions;
+      // console.log(response.data, 'check');
+      if (!school) throw new BadRequestException(`Could not find school `);
+     
+
+      const startIndex = (page - 1) * limit;
+      const endIndex = page * limit;
+
+      const paginatedTransactions = settlements_transactions.slice(
+        startIndex,
+        endIndex,
+      );
+
+      // add school_name in the paginated result
+      paginatedTransactions.forEach((transaction: any) => {
+        if (transaction?.order_id) {
+          transaction.school_name = school.school_name;
+        }
+      });
+      let totalPages = Math.ceil(settlements_transactions.length / limit) || 0;
+      const payload = { page: Number(page + 1), totalPages: totalPages };
+      let cursorToken = this.jwtService.sign(payload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      let updateCursor = page == totalPages ? null : cursorToken;
+
+      return {
+        limit: limit || 0,
+        cursor: updateCursor,
+        page: page || 0,
         totalCount: settlements_transactions.length || 0,
         totalPages: Math.ceil(settlements_transactions.length / limit) || 0,
         settlements_transactions: paginatedTransactions,
