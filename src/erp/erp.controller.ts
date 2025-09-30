@@ -3088,17 +3088,24 @@ export class ErpController {
 
       if (startDate && endDate) {
         const start_date = new Date(startDate);
+        const istStartDate=await this.formatIST(start_date)
         const end_date = new Date(endDate);
-        end_date.setHours(23, 59, 59, 999);
+        const istEndDate=await this.formatIST(end_date)
+
+       const end=new Date(istEndDate)
+     end.setHours(23, 59, 59, 999);
+     end.setHours(end.getHours() + 5); 
 
         filterQuery = {
           ...filterQuery,
           settlementDate: {
-            $gte: start_date,
-            $lte: end_date,
+            $gte: new Date(istStartDate),
+            $lte: end,
           },
         };
       }
+      console.log(filterQuery);
+      
       //paginated query
       const settlements = await this.settlementModel
         .find(filterQuery, null, {
