@@ -4140,6 +4140,8 @@ export class ErpController {
         return res;
       }
     } catch (e) {
+      console.log(e);
+      
       throw new BadRequestException(e.message);
     }
   }

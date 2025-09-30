@@ -3791,7 +3791,7 @@ export class TrusteeService {
 
       const config = {
         method: 'post',
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/settlement-recon/v2`,
+        url: `https://payments.edviron.com/easebuzz/settlement-recon/v2`,
         headers: {
           'Content-Type': 'application/json',
           accept: 'application/json',
