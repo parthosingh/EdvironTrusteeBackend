@@ -111,7 +111,7 @@ export class TrusteeService {
     private ReportsLogsModel: mongoose.Model<ReportsLogs>,
     @InjectModel(SubTrustee.name)
     private SubTrusteeModel: mongoose.Model<SubTrustee>,
-  ) {}
+  ) { }
 
   async loginAndGenerateToken(
     emailId: string,
@@ -246,12 +246,12 @@ export class TrusteeService {
           ? Types.ObjectId.isValid(searchQuery)
             ? { school_id: new mongoose.Types.ObjectId(searchQuery) }
             : {
-                $or: [
-                  { school_name: { $regex: searchQuery, $options: 'i' } },
-                  { email: { $regex: searchQuery, $options: 'i' } },
-                  { pg_key: { $regex: searchQuery, $options: 'i' } },
-                ],
-              }
+              $or: [
+                { school_name: { $regex: searchQuery, $options: 'i' } },
+                { email: { $regex: searchQuery, $options: 'i' } },
+                { pg_key: { $regex: searchQuery, $options: 'i' } },
+              ],
+            }
           : {}),
       };
       if (kycStatus && kycStatus.length > 0) {
@@ -1746,9 +1746,8 @@ export class TrusteeService {
       if (chequeExtension === 'pdf') {
         mimeType = 'application/pdf';
       } else if (['jpg', 'jpeg', 'png'].includes(chequeExtension)) {
-        mimeType = `image/${
-          chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
-        }`;
+        mimeType = `image/${chequeExtension === 'jpg' ? 'jpeg' : chequeExtension
+          }`;
       } else {
         throw new Error('Unsupported file type file type.');
       }
@@ -2834,13 +2833,13 @@ export class TrusteeService {
         ...(status && { dispute_status: status }),
         ...(start_date || end_date
           ? {
-              dispute_created_date: {
-                ...(start_date && { $gte: new Date(start_date) }),
-                ...(end_date && {
-                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
+            dispute_created_date: {
+              ...(start_date && { $gte: new Date(start_date) }),
+              ...(end_date && {
+                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+              }),
+            },
+          }
           : {}),
       };
       const skip = (page - 1) * limit;
@@ -2878,13 +2877,13 @@ export class TrusteeService {
         ...(school_id && { schoolId: new Types.ObjectId(school_id) }),
         ...(start_date || end_date
           ? {
-              settlementDate: {
-                ...(start_date && { $gte: new Date(start_date) }),
-                ...(end_date && {
-                  $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-                }),
-              },
-            }
+            settlementDate: {
+              ...(start_date && { $gte: new Date(start_date) }),
+              ...(end_date && {
+                $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+              }),
+            },
+          }
           : {}),
       };
 
@@ -2902,7 +2901,7 @@ export class TrusteeService {
         totalCount,
         totalPages,
       };
-    } catch (e) {}
+    } catch (e) { }
   }
 
   async fetchTransactionInfo(collect_id: string) {
@@ -3378,9 +3377,9 @@ export class TrusteeService {
           : '',
         settlement_initiated_on: item.settlement_initiated_on
           ? format(
-              new Date(item.settlement_initiated_on),
-              'd/M/yyyy, h:mm:ss a',
-            )
+            new Date(item.settlement_initiated_on),
+            'd/M/yyyy, h:mm:ss a',
+          )
           : '',
         payment_from: item.payment_from
           ? format(new Date(item.payment_from), 'd/M/yyyy, h:mm:ss a')
@@ -3800,14 +3799,14 @@ export class TrusteeService {
       };
 
       console.log(config);
-      
+
       const response = await axios.request(config);
-      console.log(response.data.transactions.length,'pp');
-      
+      console.log(response.data.transactions.length, 'pp');
+
       const settlements_transactions = response.data?.transactions;
       // console.log(response.data, 'check');
       if (!school) throw new BadRequestException(`Could not find school `);
-     
+
 
       const startIndex = (page - 1) * limit;
       const endIndex = page * limit;
@@ -3844,7 +3843,7 @@ export class TrusteeService {
     }
   }
 
-   async easebuzzSettlementReconV2(
+  async easebuzzSettlementReconV2(
     submerchant_id: string,
     start_date: string,
     end_date: string,
@@ -3898,15 +3897,15 @@ export class TrusteeService {
       };
 
       console.log(config);
-      
+
       const response = await axios.request(config);
       return response.data
-      console.log(response.data.transactions.length,'pp');
-      
+      console.log(response.data.transactions.length, 'pp');
+
       const settlements_transactions = response.data?.transactions;
       // console.log(response.data, 'check');
       if (!school) throw new BadRequestException(`Could not find school `);
-     
+
 
       const startIndex = (page - 1) * limit;
       const endIndex = page * limit;
@@ -3944,9 +3943,12 @@ export class TrusteeService {
   }
 
   async formatDateToDDMMYYYY(date: Date) {
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    return `${d}-${m}-${y}`;
+    try {
+
+      return date.toLocaleDateString('en-GB').replace(/\//g, '-'); // DD-MM-YYYY
+
+    } catch (e) {
+
+    }
   }
 }
