@@ -4146,6 +4146,94 @@ export class ErpController {
     }
   }
 
+    @UseGuards(ErpGuard)
+  @Get('settlement-transactions/v2')
+  async getSettlementTransactionsV2(
+    @Query('settlement_id') settlement_id: string,
+    @Query('utr_number') utr_number: string,
+    @Query('cursor') cursor: string | null,
+    @Query('limit') limit: string,
+    @Query('skip') skip: number,
+    @Query('page') page: number,
+  ) {
+    let dataLimit = Number(limit) || 10;
+
+    if (dataLimit < 10 || dataLimit > 1000) {
+      throw new BadRequestException('Limit should be between 10 and 1000');
+    }
+    let utrNumber = utr_number;
+    try {
+      if (settlement_id) {
+        const settlement = await this.settlementModel.findById(settlement_id);
+        if (!settlement) {
+          throw new NotFoundException(
+            'Settlement not found for ' + settlement_id,
+          );
+        }
+        utrNumber = settlement.utrNumber;
+      }
+      const settlement = await this.settlementModel.findOne({
+        utrNumber: utrNumber,
+      });
+
+  
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: settlement.schoolId,
+      });
+      if (!school) {
+        throw new NotFoundException('School not found');
+      }
+      if (
+        school.isEasebuzzNonPartner &&
+        school.easebuzz_non_partner.easebuzz_key &&
+        school.easebuzz_non_partner.easebuzz_salt &&
+        school.easebuzz_non_partner.easebuzz_submerchant_id
+      ) {
+        console.log('settlement from date');
+        const settlements = await this.settlementModel
+          .find({
+            schoolId: settlement.schoolId,
+            settlementDate: { $lt: settlement.settlementDate },
+          })
+          .sort({ settlementDate: -1 })
+          .select('settlementDate')
+          .limit(2);
+        const previousSettlementDate = settlements[1]?.settlementDate;
+        const formatted_start_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            previousSettlementDate,
+          );
+        console.log({ formatted_start_date }); // e.g. 06-09-2025
+
+        const formatted_end_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            settlement.settlementDate,
+          );
+        console.log({ formatted_end_date }); // e.g. 06-09-2025
+        const paginatioNPage = page || 1;
+        const res = await this.trusteeService.easebuzzSettlementRecon(
+          school.easebuzz_non_partner.easebuzz_submerchant_id,
+          formatted_start_date,
+          formatted_end_date,
+          school.easebuzz_non_partner.easebuzz_key,
+          school.easebuzz_non_partner.easebuzz_salt,
+          utrNumber,
+          Number(limit),
+          skip,
+          settlement.schoolId.toString(),
+          paginatioNPage,
+          cursor,
+        );
+
+        return res;
+      }
+    } catch (e) {
+      console.log(e);
+      
+      throw new BadRequestException(e.message);
+    }
+  }
+
   async formatIST(date: Date) {
     const options: Intl.DateTimeFormatOptions = {
       timeZone: 'Asia/Kolkata',

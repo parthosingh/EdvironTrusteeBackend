@@ -3791,7 +3791,7 @@ export class TrusteeService {
 
       const config = {
         method: 'post',
-        url: `https://payments.edviron.com/easebuzz/settlement-recon/v2`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/settlement-recon/v2`,
         headers: {
           'Content-Type': 'application/json',
           accept: 'application/json',
@@ -3802,6 +3802,8 @@ export class TrusteeService {
       console.log(config);
       
       const response = await axios.request(config);
+      console.log(response.data.transactions.length,'pp');
+      
       const settlements_transactions = response.data?.transactions;
       // console.log(response.data, 'check');
       if (!school) throw new BadRequestException(`Could not find school `);
