@@ -3944,9 +3944,7 @@ export class TrusteeService {
 
   async formatDateToDDMMYYYY(date: Date) {
     try {
-
       return date.toLocaleDateString('en-GB').replace(/\//g, '-'); // DD-MM-YYYY
-
     } catch (e) {
 
     }

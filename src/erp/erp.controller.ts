@@ -4211,7 +4211,7 @@ export class ErpController {
           );
         console.log({ formatted_end_date }); // e.g. 06-09-2025
         const paginatioNPage = page || 1;
-        const res = await this.trusteeService.easebuzzSettlementRecon(
+        const res = await this.trusteeService.easebuzzSettlementReconV2(
           school.easebuzz_non_partner.easebuzz_submerchant_id,
           formatted_start_date,
           formatted_end_date,
