@@ -4126,7 +4126,9 @@ export class ErpController {
         const formattedPrev = `${partsPrev[2]}-${partsPrev[1]}-${partsPrev[0]}`;
         // e.g. 06-09-2025
 
-        const endSettlementDate = settlement?.settlementDate.toISOString();
+        const end =settlement.settlementDate
+        end.setDate(end.getDate() + 2);
+        const endSettlementDate =  end.toISOString();
         const tempEnd = endSettlementDate.split('T')[0]
         const partsEnd = tempEnd.split('-');
         const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
