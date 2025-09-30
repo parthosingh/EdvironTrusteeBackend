@@ -101,7 +101,7 @@ export class ErpController {
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
     @InjectModel(Disputes.name)
     private disputeModel: mongoose.Model<Disputes>,
-  ) {}
+  ) { }
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -415,7 +415,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -546,7 +546,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -1279,7 +1279,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1366,7 +1366,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2060,7 +2060,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2148,7 +2148,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2586,7 +2586,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -2820,14 +2820,13 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2891,16 +2890,15 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3088,13 +3086,13 @@ export class ErpController {
 
       if (startDate && endDate) {
         const start_date = new Date(startDate);
-        const istStartDate=await this.formatIST(start_date)
+        const istStartDate = await this.formatIST(start_date)
         const end_date = new Date(endDate);
-        const istEndDate=await this.formatIST(end_date)
+        const istEndDate = await this.formatIST(end_date)
 
-       const end=new Date(istEndDate)
-     end.setHours(23, 59, 59, 999);
-     end.setHours(end.getHours() + 5); 
+        const end = new Date(istEndDate)
+        end.setHours(23, 59, 59, 999);
+        end.setHours(end.getHours() + 5);
 
         filterQuery = {
           ...filterQuery,
@@ -3105,7 +3103,7 @@ export class ErpController {
         };
       }
       console.log(filterQuery);
-      
+
       //paginated query
       const settlements = await this.settlementModel
         .find(filterQuery, null, {
@@ -3117,13 +3115,13 @@ export class ErpController {
       const formattedSettlements = await Promise.all(
         settlements.map(async (settlement: any) => {
           if (settlement.settlementDate) {
-            settlement = settlement.toObject(); 
+            settlement = settlement.toObject();
             settlement.settlementDate = await this.formatIST(
               settlement.settlementDate,
             );
           }
           if (settlement.settlementInitiatedOn) {
-             settlement.settlementInitiatedOn = await this.formatIST(
+            settlement.settlementInitiatedOn = await this.formatIST(
               settlement.settlementInitiatedOn,
             );
           }
@@ -3135,7 +3133,7 @@ export class ErpController {
       return {
         page,
         limit,
-        settlements:formattedSettlements,
+        settlements: formattedSettlements,
         total_pages,
       };
     } catch (error) {
@@ -3912,7 +3910,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -4121,12 +4119,23 @@ export class ErpController {
           await this.trusteeService.formatDateToDDMMYYYY(
             settlement.settlementDate,
           );
+
+        const previousSettlementDate2 = settlements[1]?.settlementDate.toISOString();
+        const tempPrev = previousSettlementDate2.split('T')[0]
+        const partsPrev = tempPrev.split('-');
+        const formattedPrev = `${partsPrev[2]}-${partsPrev[1]}-${partsPrev[0]}`;
+        // e.g. 06-09-2025
+
+        const endSettlementDate = settlement?.settlementDate.toISOString();
+        const tempEnd = endSettlementDate.split('T')[0]
+        const partsEnd = tempEnd.split('-');
+        const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
         console.log({ formatted_end_date }); // e.g. 06-09-2025
         const paginatioNPage = page || 1;
         const res = await this.trusteeService.easebuzzSettlementRecon(
           school.easebuzz_non_partner.easebuzz_submerchant_id,
-          formatted_start_date,
-          formatted_end_date,
+          formattedPrev,
+          formattedEnd,
           school.easebuzz_non_partner.easebuzz_key,
           school.easebuzz_non_partner.easebuzz_salt,
           utrNumber,
@@ -4141,12 +4150,12 @@ export class ErpController {
       }
     } catch (e) {
       console.log(e);
-      
+
       throw new BadRequestException(e.message);
     }
   }
 
-    @UseGuards(ErpGuard)
+  @UseGuards(ErpGuard)
   @Get('settlement-transactions/v2')
   async getSettlementTransactionsV2(
     @Query('settlement_id') settlement_id: string,
@@ -4176,7 +4185,7 @@ export class ErpController {
         utrNumber: utrNumber,
       });
 
-  
+
       const school = await this.trusteeSchoolModel.findOne({
         school_id: settlement.schoolId,
       });
@@ -4229,7 +4238,7 @@ export class ErpController {
       }
     } catch (e) {
       console.log(e);
-      
+
       throw new BadRequestException(e.message);
     }
   }
@@ -4346,8 +4355,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -4632,8 +4641,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -5420,7 +5429,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -5673,8 +5682,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-          error.message ||
-          'Failed to fetch settlements',
+        error.message ||
+        'Failed to fetch settlements',
       );
     }
   }
@@ -5756,8 +5765,7 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${
-            error.response?.data?.message || error.message
+          `External API error: ${error.response?.data?.message || error.message
           }`,
         );
       }
