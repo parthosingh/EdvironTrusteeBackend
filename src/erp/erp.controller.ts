@@ -3804,7 +3804,16 @@ export class ErpController {
 
       const erpCommission = school_commission - trustee_base; // ERP/Trustee commission(MDR2-Trustee Base rate)
       // const edvCommission = trustee_base - cashfree_commission; // Edviron Earnings (Trustee base rate - cashfree Commission)
-      const erpCommissionWithGST = erpCommission + erpCommission * 0.18;
+      let erpCommissionWithGST = erpCommission
+      if (platform_type === 'DebitCard' || platform_type === 'CreditCard') {
+        if (order_amount >= 2000) {
+          erpCommissionWithGST = erpCommission + erpCommission * 0.18
+        } else {
+          erpCommissionWithGST = erpCommission
+        }
+      } else {
+        erpCommissionWithGST = erpCommission + erpCommission * 0.18;
+      }
 
       await this.commissionModel.findOneAndUpdate(
         { collect_id: new Types.ObjectId(collect_id) }, // Filter by collect_id
@@ -7131,6 +7140,70 @@ export class ErpController {
 
     } catch (e) {
       console.log(e);
+      throw new BadRequestException(e.message)
+    }
+  }
+
+  @Post('/import-school-base-mdr')
+  async importData(
+    @Body() body: {
+      school_ids: string[],
+      trustee_id: string
+    }
+  ) {
+    try {
+      const { school_ids, trustee_id } = body
+      if (!trustee_id) {
+        throw new BadRequestException('Trustee id missing')
+      }
+      if (!school_ids || school_ids.length === 0) {
+        throw new BadRequestException('Invalid School ids')
+      }
+
+      await Promise.all(
+        school_ids.map(async (id) => {
+          await this.importSchoolbase(trustee_id, id)
+        })
+      )
+
+      return school_ids
+
+    } catch (e) {
+      throw new BadRequestException(e.message)
+    }
+  }
+
+  async importSchoolbase(
+    trustee_id: string,
+    school_id: string
+  ) {
+    try {
+      const trusteeBase = await this.baseMdrModel.findOne({
+        trustee_id: new Types.ObjectId(trustee_id)
+      })
+      if (!trusteeBase) {
+        throw new BadRequestException('Trustee base not found')
+      }
+      await this.SchoolBaseMdrModel.findOneAndUpdate(
+        {
+          trustee_id: new Types.ObjectId(trustee_id),
+          school_id: new Types.ObjectId(school_id)
+        },
+        {
+          $set: {
+            trustee_id: new Types.ObjectId(trustee_id),
+            school_id: new Types.ObjectId(school_id),
+            platform_charges: trusteeBase.platform_charges
+          }
+        },
+        {
+          upsert: true,
+          new: true
+        }
+      )
+
+      return 'data updated'
+    } catch (e) {
       throw new BadRequestException(e.message)
     }
   }
