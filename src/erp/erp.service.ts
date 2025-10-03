@@ -542,6 +542,12 @@ export class ErpService {
     }
   }
 
+  @Cron('0 30 8 * * *', { timeZone: 'Asia/Kolkata' })
+  async ezbSettlementCorn() {
+    await this.easebuzzSettlements()
+    return true
+  }
+
   @Cron('0 20 * * *')
   async easebuzzSettlements(settlementDate?: Date) {
     if (!settlementDate) {
