@@ -60,6 +60,7 @@ import { ApiKeyLogs, ApiKeyLogsSchema } from 'src/schema/apiKey.logs.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
+import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
 
 config();
 
@@ -122,9 +123,12 @@ config();
     MongooseModule.forFeature([
       { name: ReportsLogs.name, schema: ReportsLogsSchema },
     ]),
-      MongooseModule.forFeature([
-          { name: SubTrustee.name, schema: SubTrusteeSchema },
-        ]),
+    MongooseModule.forFeature([
+      { name: SubTrustee.name, schema: SubTrusteeSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },
@@ -156,6 +160,9 @@ config();
     MongooseModule.forFeature([
       { name: ErrorLogs.name, schema: ErrorLogsSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
+    ]),
   ],
   controllers: [],
   providers: [
@@ -170,4 +177,4 @@ config();
     BusinessAlarmService,
   ],
 })
-export class TrusteeModule {}
+export class TrusteeModule { }

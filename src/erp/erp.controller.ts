@@ -65,6 +65,7 @@ import {
   KycBusinessSubCategory,
   KycDocType,
 } from 'src/utils/enums';
+import { SchoolBaseMdr } from 'src/schema/school.base.mdr.schema';
 
 @Controller('erp')
 export class ErpController {
@@ -101,6 +102,8 @@ export class ErpController {
     private VirtualAccountModel: mongoose.Model<VirtualAccount>,
     @InjectModel(Disputes.name)
     private disputeModel: mongoose.Model<Disputes>,
+    @InjectModel(SchoolBaseMdr.name)
+    private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
   ) { }
 
   @Get('payment-link')
@@ -817,21 +820,21 @@ export class ErpController {
           const res = await axios.request(config);
           console.log(res);
           const response = {
-          collect_request_id: res.data.collect_request_id,
-          collect_request_url: res.data.collect_request_url,
-          sign: this.jwtService.sign(
-            {
-              collect_request_id: res.data.collect_request_id,
-              collect_request_url: res.data.collect_request_url,
-              custom_order_id: custom_order_id || null,
-            },
-            { noTimestamp: true, secret: school.pg_key },
-          ),
-          // sign: res.data.jwt,
-          // jwt: res.data.jwt
-        };
+            collect_request_id: res.data.collect_request_id,
+            collect_request_url: res.data.collect_request_url,
+            sign: this.jwtService.sign(
+              {
+                collect_request_id: res.data.collect_request_id,
+                collect_request_url: res.data.collect_request_url,
+                custom_order_id: custom_order_id || null,
+              },
+              { noTimestamp: true, secret: school.pg_key },
+            ),
+            // sign: res.data.jwt,
+            // jwt: res.data.jwt
+          };
 
-        return response
+          return response
           return res.data;
         }
 
@@ -3767,12 +3770,16 @@ export class ErpController {
       const baseMdr = await this.baseMdrModel.findOne({
         trustee_id: trustee._id,
       });
+      let trustee_platform_charges = baseMdr.platform_charges; //Trustee base rate charges
+      const schoolBaseMdr = await this.SchoolBaseMdrModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      if (schoolBaseMdr) {
+        trustee_platform_charges = schoolBaseMdr.platform_charges;
+      }
       if (!baseMdr) {
         throw new ConflictException('Trustee has no Base MDR set ');
       }
 
       const school_platform_charges = school.platform_charges; //MDR 2 charges
-      const trustee_platform_charges = baseMdr.platform_charges; //Trustee base rate charges
       let paymentMode = payment_mode;
       if (
         platform_type === 'CreditCard' ||
@@ -3908,7 +3915,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2025-08-03T23:59:59.695Z');
+    const settlementDate = new Date('2025-09-04T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
 
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
@@ -6795,7 +6802,7 @@ export class ErpController {
         throw new BadRequestException('Required Parameter missing')
       }
 
-       
+
 
       const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
       if (!school) {
@@ -6805,7 +6812,7 @@ export class ErpController {
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       if (
         decoded.school_id != school_id ||
-        decoded.settlemt_date != settlemt_date 
+        decoded.settlemt_date != settlemt_date
       ) {
         throw new ForbiddenException('request forged');
       }
@@ -7063,31 +7070,31 @@ export class ErpController {
 
 
         }
-        if(gateway === 'RAZORPAY'){
+        if (gateway === 'RAZORPAY') {
           const razropay_secret = school?.razorpay?.razorpay_secret;
           const razorpay_id = settlementInfo.razorpay_id;
-          const transactions= await this.trusteeService.getRazorpayTransactionForSettlement(
-          utrNumber,
-          razorpay_id,
-          razropay_secret,
-          1000,
-          cursor,
-          0,
-          settlementInfo.fromDate,
-        );
+          const transactions = await this.trusteeService.getRazorpayTransactionForSettlement(
+            utrNumber,
+            razorpay_id,
+            razropay_secret,
+            1000,
+            cursor,
+            0,
+            settlementInfo.fromDate,
+          );
 
-        // transactionsRecon.push(transactions.settlements_transactions)
-        for(const tx of transactions.settlements_transactions){
-          let additional_fields = null;
+          // transactionsRecon.push(transactions.settlements_transactions)
+          for (const tx of transactions.settlements_transactions) {
+            let additional_fields = null;
             try {
               additional_fields = JSON.parse(tx.additional_data)?.additional_fields || null;
             } catch (err) {
               additional_fields = null;
             }
             console.log(tx);
-            
 
-             transactionsRecon.push({
+
+            transactionsRecon.push({
               order_amount: tx.order_amount,
               transaction_amount: tx.event_amount,
               settlement_amount: tx.event_settlement_amount,
@@ -7095,8 +7102,8 @@ export class ErpController {
               custom_order_id: tx.custom_order_id,
               transaction_time: tx.event_time,
               order_time: tx.order_time || null,
-              bank_ref: tx.payment_utr,      
-              payment_mode: tx.payment_group, 
+              bank_ref: tx.payment_utr,
+              payment_mode: tx.payment_group,
               payment_details: tx.payment_details,
               status: tx.event_status,
               additional_data: additional_fields,
@@ -7110,8 +7117,8 @@ export class ErpController {
               split_info: tx.split || []
             })
             // transactionsRecon.push(transactionsRecon)
-        }
-         settlementsRecon.transactions = transactionsRecon
+          }
+          settlementsRecon.transactions = transactionsRecon
         }
         // console.log({dste:settlementInfo.settlementDate});
 

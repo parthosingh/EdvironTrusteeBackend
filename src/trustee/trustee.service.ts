@@ -57,6 +57,7 @@ import e from 'express';
 import { url } from 'inspector';
 import { log } from 'console';
 import { SubTrustee } from 'src/schema/subTrustee.schema';
+import { SchoolBaseMdr } from 'src/schema/school.base.mdr.schema';
 
 var otps: any = {}; //reset password
 var editOtps: any = {}; // edit email
@@ -111,6 +112,8 @@ export class TrusteeService {
     private ReportsLogsModel: mongoose.Model<ReportsLogs>,
     @InjectModel(SubTrustee.name)
     private SubTrusteeModel: mongoose.Model<SubTrustee>,
+    @InjectModel(SchoolBaseMdr.name)
+    private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
   ) { }
 
   async loginAndGenerateToken(
@@ -1025,6 +1028,7 @@ export class TrusteeService {
     }
   }
 
+  // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE --> SCHOOL FINAL
   async saveBulkMdr(trustee_id: string, platform_charges: PlatformCharge[]) {
     console.log('update req received', { trustee_id, platform_charges });
     const trusteeId = new Types.ObjectId(trustee_id);
@@ -1064,6 +1068,7 @@ export class TrusteeService {
       trustee_id: trusteeId,
     });
     for (const school of trusteeSchools) {
+      await this.saveSchoolBulkMdr(trusteeId.toString(), school.school_id.toString(), existingCharges)
       const schoolMdr = await this.trusteeSchoolModel.findOneAndUpdate(
         { school_id: school.school_id },
         { platform_charges: existingCharges, school_id: school.school_id },
@@ -1073,6 +1078,100 @@ export class TrusteeService {
 
     return 'mdr updated';
   }
+
+  // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE 
+  async saveBulkMdrTrusteeAndSchool(trustee_id: string, platform_charges: PlatformCharge[]) {
+    console.log('update req received', { trustee_id, platform_charges });
+    const trusteeId = new Types.ObjectId(trustee_id);
+    let existingCharges = (
+      (await this.baseMdrModel.findOne({
+        trustee_id: trusteeId,
+      })) as BaseMdr
+    )?.platform_charges;
+    if (!existingCharges) existingCharges = [];
+    console.log({ fromdb: existingCharges });
+    existingCharges = existingCharges.filter((charge) => {
+      for (var newCharge of platform_charges) {
+        if (
+          charge.platform_type === newCharge.platform_type &&
+          charge.payment_mode === newCharge.payment_mode
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
+    console.log({ filtered: existingCharges });
+    existingCharges.push(...platform_charges);
+    console.log('final charges', existingCharges);
+    await this.baseMdrModel.findOneAndUpdate(
+      {
+        trustee_id: trusteeId,
+      },
+      {
+        trustee_id: trusteeId,
+        platform_charges: existingCharges,
+      },
+      { upsert: true, new: true },
+    );
+
+    const trusteeSchools = await this.trusteeSchoolModel.find({
+      trustee_id: trusteeId,
+    });
+    for (const school of trusteeSchools) {
+      await this.saveSchoolBulkMdr(trusteeId.toString(), school.school_id.toString(), existingCharges)
+    }
+
+    return 'mdr updated';
+  }
+
+  // UPDATE SCHOOL BASE | SCHOOL BASE ONLY
+  async saveSchoolBulkMdr(trustee_id: string, school_id: string, platform_charges: PlatformCharge[]) {
+    try {
+      console.log('update req received school base only', { trustee_id, platform_charges });
+      const trusteeId = new Types.ObjectId(trustee_id);
+      let existingCharges = (
+        (await this.SchoolBaseMdrModel.findOne({
+          trustee_id: trusteeId,
+          school_id: new Types.ObjectId(school_id)
+        })) as SchoolBaseMdr
+      )?.platform_charges;
+      if (!existingCharges) existingCharges = [];
+
+      existingCharges = existingCharges.filter((charge) => {
+        for (var newCharge of platform_charges) {
+          if (
+            charge.platform_type === newCharge.platform_type &&
+            charge.payment_mode === newCharge.payment_mode
+          ) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      existingCharges.push(...platform_charges);
+      await this.SchoolBaseMdrModel.findOneAndUpdate(
+        {
+          trustee_id: trusteeId,
+          school_id: new Types.ObjectId(school_id)
+        },
+        {
+          trustee_id: trusteeId,
+          school_id: new Types.ObjectId(school_id),
+          platform_charges: existingCharges,
+        },
+        { upsert: true, new: true },
+      );
+
+      return 'mdr updated';
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(e.message)
+      
+     }
+  }
+
 
   async rejectMdr(id: string, comment: string) {
     const mdr = await this.requestMDRModel.findById(id);
@@ -4035,14 +4134,14 @@ export class TrusteeService {
 
   async getRefundInfo(collect_id: string, school_id: string) {
     try {
-      console.log({collect_id,school_id});
-      
-      const refunds = await this.refundRequestModel.find({ 
+      console.log({ collect_id, school_id });
+
+      const refunds = await this.refundRequestModel.find({
         order_id: new Types.ObjectId(collect_id),
         // school_id: new Types.ObjectId(school_id)
-         })
-        console.log(refunds);
-        
+      })
+      console.log(refunds);
+
       if (refunds.length === 0) {
         return false
       }

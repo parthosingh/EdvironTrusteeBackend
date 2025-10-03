@@ -50,6 +50,7 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
 import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
+import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
 
 @Module({
   imports: [
@@ -132,6 +133,9 @@ import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member
     ]),
     MongooseModule.forFeature([
       { name: SubTrustee.name, schema: SubTrusteeSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
     ]),
   ],
   providers: [

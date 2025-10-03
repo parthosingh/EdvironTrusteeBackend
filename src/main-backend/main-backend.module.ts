@@ -35,6 +35,7 @@ import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service'
 import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
+import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
 
 @Module({
   imports: [
@@ -80,11 +81,14 @@ import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
       { name: ErrorLogs.name, schema: ErrorLogsSchema },
     ]),
     MongooseModule.forFeature([
-          { name: ReportsLogs.name, schema: ReportsLogsSchema },
+      { name: ReportsLogs.name, schema: ReportsLogsSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: SubTrustee.name, schema: SubTrusteeSchema },
+    ]),
+    MongooseModule.forFeature([
+          { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
         ]),
-          MongooseModule.forFeature([
-              { name: SubTrustee.name, schema: SubTrusteeSchema },
-            ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET_FOR_INTRANET,
@@ -101,4 +105,4 @@ import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
   ],
   controllers: [MainBackendController],
 })
-export class MainBackendModule {}
+export class MainBackendModule { }

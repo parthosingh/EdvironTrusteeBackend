@@ -39,6 +39,7 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { OTP, OTPSchema } from 'src/schema/otp.schema';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
+import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
 
 
 @Module({
@@ -74,9 +75,12 @@ import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
     MongooseModule.forFeature([
       { name: Reconciliation.name, schema: ReconciliationSchema },
     ]),
-      MongooseModule.forFeature([
-          { name: SubTrustee.name, schema: SubTrusteeSchema },
-        ]),
+    MongooseModule.forFeature([
+      { name: SubTrustee.name, schema: SubTrusteeSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
+    ]),
     JwtModule.registerAsync({
       useFactory: () => ({
         signOptions: { expiresIn: '30d' },
@@ -122,4 +126,4 @@ import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
   ],
   exports: [MerchantService],
 })
-export class MerchantModule {}
+export class MerchantModule { }

@@ -28,6 +28,7 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
 import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account.schema';
+import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
 
 
 @Module({
@@ -53,7 +54,7 @@ import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account
     MongooseModule.forFeature([
       { name: Disputes.name, schema: DisputesSchema },
     ]),
-     MongooseModule.forFeature([
+    MongooseModule.forFeature([
       { name: Vendors.name, schema: VendorsSchema },
     ]),
     MongooseModule.forFeature([
@@ -90,14 +91,17 @@ import { VirtualAccount, VirtualAccountSchema } from 'src/schema/virtual.account
     MongooseModule.forFeature([
       { name: ReportsLogs.name, schema: ReportsLogsSchema },
     ]),
-      MongooseModule.forFeature([
+    MongooseModule.forFeature([
       { name: MerchantMember.name, schema: MerchantMemberSchema },
     ]),
-      MongooseModule.forFeature([
+    MongooseModule.forFeature([
       { name: VirtualAccount.name, schema: VirtualAccountSchema },
     ]),
     MongooseModule.forFeature([
       { name: VendorsSettlement.name, schema: VendorsSettlementSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
     ]),
     JwtModule.registerAsync({
       useFactory: () => ({

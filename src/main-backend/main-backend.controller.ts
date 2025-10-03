@@ -349,6 +349,7 @@ export class MainBackendController {
     return `MDR status Update`;
   }
 
+   // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE --> SCHOOL FINAL
   @Post('save-base-mdr')
   async savebaseMdr(@Body('data') token: string) {
     const data = this.jwtService.verify(token, {
@@ -359,6 +360,50 @@ export class MainBackendController {
       data.base_mdr.platform_charges,
     );
   }
+
+  // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE 
+  @Post('save-base-mdr/trustee-and-school')
+  async savebaseMdrTrusteeAndSchool(@Body('data') token: string) {
+    try{
+
+      const data = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      return await this.trusteeService.saveBulkMdrTrusteeAndSchool(
+        data.base_mdr.trustee_id,
+        data.base_mdr.platform_charges,
+      );
+    }catch(e){
+      throw new BadRequestException(e.message)
+    }
+  }
+
+ // UPDATE SCHOOL BASE | SCHOOL BASE ONLY
+  @Post('save-base-mdr/school')
+  async savebaseMdrSchool(@Body() body: { token: string, school_ids: string[] }) {
+    try {
+      console.log('debug 0001');
+      
+      const { token, school_ids } = body
+      const data = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET_FOR_INTRANET,
+      });
+      console.log({school_ids});
+      
+      for (const school_id of school_ids) {
+        return await this.trusteeService.saveSchoolBulkMdr(
+          data.base_mdr.trustee_id,
+          school_id,
+          data.base_mdr.platform_charges,
+        );
+      }
+    } catch (e) {
+      console.log(e);
+      
+      throw new BadRequestException(e.message)
+    }
+  }
+
 
   @Get('get-school-mdr')
   async schoolMdr(@Query('token') token: string) {
