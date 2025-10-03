@@ -3169,6 +3169,82 @@ export class TrusteeService {
     }
   }
 
+
+  async getRazorpayTransactionForSettlementV2(
+    utr: string,
+    razorpay_id: string,
+    razropay_secret: string,
+    limit: number,
+    cursor: string,
+    skip: number,
+    fromDate: Date,
+    page?: number,
+  ) {
+    let verifyPage = null;
+
+    if (cursor && cursor !== '') {
+      verifyPage = this.jwtService.verify(cursor, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+    }
+    page = verifyPage?.page || 0;
+    const token = this.jwtService.sign(
+      { utr, razorpay_id },
+      { secret: process.env.PAYMENTS_SERVICE_SECRET },
+    );
+    skip = limit * page;
+    const paginationData = {
+      cursor: cursor,
+      limit: limit,
+      skip: skip,
+      fromDate,
+    };
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay-nonseamless/settlements-transactions?token=${token}&utr=${utr}&razorpay_id=${razorpay_id}&razropay_secret=${razropay_secret}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      data: paginationData,
+    };
+    try {
+      const { data: transactions } = await axios.request(config);
+      console.log({ transactions });
+
+      const settlements_transactions = transactions.settlements_transactions;
+      if (!settlements_transactions && settlements_transactions.length === 0) {
+        throw new BadRequestException('no more transaction found');
+      }
+      const school = await this.trusteeSchoolModel.findOne({
+        'razorpay.razorpay_id': razorpay_id,
+      });
+      let settlementTransactions = [];
+      if (!school) throw new BadRequestException(`Could not find school `);
+      settlements_transactions?.forEach((transaction: any) => {
+        if (transaction?.order_id) {
+          transaction.school_name = school.school_name;
+        }
+      });
+
+      const payload = { page: Number(page + 1) };
+      let cursorToken = this.jwtService.sign(payload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+      let updateCursor =
+        limit > settlements_transactions.length ? null : cursorToken;
+      return {
+        limit: transactions.limit,
+        cursor: updateCursor,
+        settlements_transactions,
+      };
+    } catch (e) {
+      console.log(e.message);
+      throw new BadRequestException(e.message);
+    }
+  }
+
   async scheduleRefundNotificationEmail(
     merchant: any,
     refundRequest: any,
@@ -3798,23 +3874,23 @@ export class TrusteeService {
         data,
       };
 
-      console.log(config);
+      // console.log(config);
 
       const response = await axios.request(config);
-      console.log(response.data.transactions.length, 'pp');
+      // console.log(response.data.transactions.length, 'pp');
 
       const settlements_transactions = response.data?.transactions;
       // console.log(response.data, 'check');
       if (!school) throw new BadRequestException(`Could not find school `);
 
-      
+
       const startIndex = (page - 1) * limit;
-      console.log(page);
-      
-      console.log(page - 1,'page');
-      console.log(startIndex,'nin');
-      
-      
+      // console.log(page);
+
+      console.log(page - 1, 'page');
+      console.log(startIndex, 'nin');
+
+
       const endIndex = page * limit;
 
       const paginatedTransactions = settlements_transactions.slice(
@@ -3954,6 +4030,25 @@ export class TrusteeService {
       return date.toLocaleDateString('en-GB').replace(/\//g, '-'); // DD-MM-YYYY
     } catch (e) {
 
+    }
+  }
+
+  async getRefundInfo(collect_id: string, school_id: string) {
+    try {
+      console.log({collect_id,school_id});
+      
+      const refunds = await this.refundRequestModel.find({ 
+        order_id: new Types.ObjectId(collect_id),
+        // school_id: new Types.ObjectId(school_id)
+         })
+        console.log(refunds);
+        
+      if (refunds.length === 0) {
+        return false
+      }
+      return refunds
+    } catch (e) {
+      throw new BadRequestException(e.message)
     }
   }
 }

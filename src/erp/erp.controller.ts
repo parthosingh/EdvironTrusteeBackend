@@ -4126,9 +4126,9 @@ export class ErpController {
         const formattedPrev = `${partsPrev[2]}-${partsPrev[1]}-${partsPrev[0]}`;
         // e.g. 06-09-2025
 
-        const end =settlement.settlementDate
+        const end = settlement.settlementDate
         end.setDate(end.getDate() + 2);
-        const endSettlementDate =  end.toISOString();
+        const endSettlementDate = end.toISOString();
         const tempEnd = endSettlementDate.split('T')[0]
         const partsEnd = tempEnd.split('-');
         const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
@@ -6752,6 +6752,364 @@ export class ErpController {
     } catch (error) {
       console.error('Upload failed:', error?.response?.data || error.message);
       throw error;
+    }
+  }
+
+  /*
+  Settlement reconcilation,
+  take settlement date and return all transactions and refund under that settlements
+  Settlement Date --> get UTR (according to Gateway) -->pass to gateway API
+  */
+
+  @Post('/settlements-recon')
+  @UseGuards(ErpGuard)
+  async settlementRecon(
+    @Body() body: {
+      school_id: string;
+      sign: string;
+      settlemt_date: string,
+      limit: number;
+      cursor?: string,
+      utr?: string
+    }
+  ) {
+    try {
+      const { school_id, sign, settlemt_date, cursor, utr, limit } = body
+
+      if (!school_id || !sign || !settlemt_date) {
+        throw new BadRequestException('Required Parameter missing')
+      }
+
+       
+
+      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      if (!school) {
+        throw new NotFoundException('school not found')
+      }
+
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      if (
+        decoded.school_id != school_id ||
+        decoded.settlemt_date != settlemt_date 
+      ) {
+        throw new ForbiddenException('request forged');
+      }
+      // Start of day in UTC
+      const settlementStartDate = new Date(Date.UTC(
+        Number(settlemt_date.split("-")[0]), // year
+        Number(settlemt_date.split("-")[1]) - 1, // month (0-indexed)
+        Number(settlemt_date.split("-")[2]), // day
+        0, 0, 0, 0
+      ));
+
+      // End of day in UTC
+      const settlementEndDate = new Date(Date.UTC(
+        Number(settlemt_date.split("-")[0]),
+        Number(settlemt_date.split("-")[1]) - 1,
+        Number(settlemt_date.split("-")[2]),
+        23, 59, 59, 999
+      ));
+
+      // 2025-09-24T23:59:59.999 (local)
+      console.log({
+        settlementDate: { $gte: settlementStartDate, $lte: settlementEndDate }, schoolId: new Types.ObjectId(school_id)
+      });
+
+
+      const settlements = await this.settlementModel.find({
+        settlementDate: { $gte: settlementStartDate, $lte: settlementEndDate }, schoolId: new Types.ObjectId(school_id)
+      })
+      console.log(settlements, 'settlements');
+
+      if (settlements.length === 0) {
+        throw new BadRequestException("No Settlement Found for this Date")
+      }
+
+
+      let response: any[] = [];
+
+      for (const settlementInfo of settlements) {
+
+
+        const {
+          utrNumber,
+          fromDate,
+          tillDate,
+          settlementDate,
+          schoolId,
+          settlementAmount,
+          adjustment,
+          settlementInitiatedOn,
+          clientId
+        } = settlementInfo;
+
+        const gateway: String = await this.erpService.getSettlementGateway(settlementInfo);
+
+        const settlementsRecon: any = {
+          utrNumber,
+          fromDate,
+          tillDate,
+          settlement_date: settlementDate,
+          school_id: schoolId,
+          settlementAmount,
+          adjustment,
+          settlement_initiated_on: settlementInitiatedOn,
+          transactions: [],
+          refunds: []
+        };
+
+
+        const transactionsRecon: any[] = [];
+        const refundsRecon: any[] = [];
+        if (gateway === 'CASHFREE') {
+          console.log('Cashfree settlements');
+
+          const token = this.jwtService.sign(
+            { utrNumber, client_id: clientId },
+            { secret: process.env.PAYMENTS_SERVICE_SECRET }
+          );
+
+          const paginationData = { cursor, limit: 1000 };
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/settlements-transactions?token=${token}&utr=${utrNumber}&client_id=${clientId}`,
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json'
+            },
+            data: paginationData
+          };
+
+          let settlements_transactions: any[] = [];
+          try {
+            const { data } = await axios.request(config);
+            settlements_transactions = data.settlements_transactions || [];
+          } catch (err) {
+            console.error('Error fetching transactions:', err);
+            settlements_transactions = [];
+          }
+
+
+
+          for (const tx of settlements_transactions) {
+            if (tx.event_type === 'PAYMENT') {
+              let additional_fields = null;
+              try {
+                additional_fields = JSON.parse(tx.additional_data)?.additional_fields || null;
+              } catch (err) {
+                additional_fields = null;
+              }
+
+              transactionsRecon.push({
+                order_amount: tx.order_amount,
+                transaction_amount: tx.event_amount,
+                settlement_amount: tx.event_settlement_amount,
+                collect_id: tx.order_id,
+                custom_order_id: tx.custom_order_id,
+                transaction_time: tx.event_time,
+                order_time: tx.order_time,
+                bank_ref: tx.payment_utr,      // Fixed typo
+                payment_mode: tx.payment_group, // Fixed typo
+                payment_details: tx.payment_details,
+                status: tx.event_status,
+                additional_data: additional_fields,
+                payment_id: tx.payment_id,
+                student_details: {
+                  student_id: tx.student_id,
+                  student_name: tx.student_name,
+                  student_email: tx.student_email,
+                  student_phone_no: tx.student_phone_no
+                },
+                split_info: tx.split
+              });
+            }
+
+            if (tx.event_type === 'REFUND') {
+              const refundInfo = await this.trusteeService.getRefundInfo(tx.order_id, schoolId.toString());
+              if (!refundInfo || refundInfo.length === 0) continue;
+
+              for (const refund of refundInfo) {
+                refundsRecon.push({
+                  refund_id: refund._id,
+                  collect_id: refund.order_id,
+                  custom_order_id: tx.custom_order_id,
+                  refund_amount: refund.refund_amount,
+                  order_amount: refund.order_amount,
+                  split_refund_details: refund.split_refund_details
+                });
+              }
+            }
+          }
+
+          settlementsRecon.transactions = transactionsRecon;
+          settlementsRecon.refunds = refundsRecon;
+        }
+        if (gateway === 'EASEBUZZ') {
+
+          if (school.isEasebuzzNonPartner &&
+            !school.easebuzz_non_partner?.easebuzz_key &&
+            !school.easebuzz_non_partner?.easebuzz_salt &&
+            !school.easebuzz_non_partner?.easebuzz_submerchant_id) {
+            return
+          }
+
+          const previousSettlementDate = settlementInfo.settlementDate;
+          const formatted_start_date =
+            await this.trusteeService.formatDateToDDMMYYYY(
+              previousSettlementDate,
+            );
+          console.log(settlementInfo, 'settlement info');
+          console.log({ formatted_start_date }); // e.g. 06-09-2025
+          const formatted_end_date =
+            await this.trusteeService.formatDateToDDMMYYYY(
+              settlementInfo.settlementDate,
+            );
+
+          const previousSettlementDate2 = settlementInfo.settlementDate.toISOString();
+          const tempPrev = previousSettlementDate2.split('T')[0]
+          const partsPrev = tempPrev.split('-');
+          const formattedPrev = `${partsPrev[2]}-${partsPrev[1]}-${partsPrev[0]}`;
+          // e.g. 06-09-2025
+
+          const end = new Date(settlementInfo.settlementDate); // clone instead of referencing
+          end.setDate(end.getDate() + 2);
+
+          // console.log(settlementsRecon, 'settlementsRecon');
+          const endSettlementDate = end.toISOString();
+          const tempEnd = endSettlementDate.split('T')[0]
+          const partsEnd = tempEnd.split('-');
+          const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
+          console.log({ formatted_end_date }); // e.g. 06-09-2025
+          const paginatioNPage = 1;
+          const tokenPayload = {
+            submerchant_id: school.easebuzz_non_partner.easebuzz_submerchant_id,
+          };
+
+          const token = await this.jwtService.sign(tokenPayload, {
+            secret: process.env.PAYMENTS_SERVICE_SECRET,
+          });
+          const data = {
+            submerchant_id: school.easebuzz_non_partner.easebuzz_submerchant_id,
+            easebuzz_key: school.easebuzz_non_partner.easebuzz_key,
+            easebuzz_salt: school.easebuzz_non_partner.easebuzz_salt,
+            start_date: formattedPrev,
+            end_date: formattedEnd,
+            page_size: 1000,
+            token,
+            utr: settlementInfo.utrNumber,
+          };
+
+          const config = {
+            method: 'post',
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/settlement-recon/v2`,
+            headers: {
+              'Content-Type': 'application/json',
+              accept: 'application/json',
+            },
+            data,
+          };
+
+          const { data: ezbres } = await axios.request(config)
+          for (const tx of ezbres.transactions) {
+            let additional_fields = null;
+            try {
+              additional_fields = JSON.parse(tx.additional_data)?.additional_fields || null;
+            } catch (err) {
+              additional_fields = null;
+            }
+            transactionsRecon.push({
+              order_amount: tx.order_amount,
+              transaction_amount: tx.event_amount,
+              settlement_amount: tx.event_settlement_amount,
+              collect_id: tx.order_id,
+              custom_order_id: tx.custom_order_id,
+              transaction_time: tx.event_time,
+              order_time: tx.order_time,
+              bank_ref: tx.payment_utr,      // Fixed typo
+              payment_mode: tx.payment_group, // Fixed typo
+              payment_details: tx.payment_details,
+              status: tx.event_status,
+              additional_data: additional_fields,
+              payment_id: tx.payment_id,
+              student_details: {
+                student_id: tx.student_id,
+                student_name: tx.student_name,
+                student_email: tx.student_email,
+                student_phone_no: tx.student_phone_no
+              },
+              split_info: tx.split
+            })
+          }
+
+          // transactionsRecon.push(ezbres)
+          settlementsRecon.transactions = transactionsRecon
+          settlementsRecon.refunds = refundsRecon;
+
+
+        }
+        if(gateway === 'RAZORPAY'){
+          const razropay_secret = school?.razorpay?.razorpay_secret;
+          const razorpay_id = settlementInfo.razorpay_id;
+          const transactions= await this.trusteeService.getRazorpayTransactionForSettlement(
+          utrNumber,
+          razorpay_id,
+          razropay_secret,
+          1000,
+          cursor,
+          0,
+          settlementInfo.fromDate,
+        );
+
+        // transactionsRecon.push(transactions.settlements_transactions)
+        for(const tx of transactions.settlements_transactions){
+          let additional_fields = null;
+            try {
+              additional_fields = JSON.parse(tx.additional_data)?.additional_fields || null;
+            } catch (err) {
+              additional_fields = null;
+            }
+            console.log(tx);
+            
+
+             transactionsRecon.push({
+              order_amount: tx.order_amount,
+              transaction_amount: tx.event_amount,
+              settlement_amount: tx.event_settlement_amount,
+              collect_id: tx.order_id,
+              custom_order_id: tx.custom_order_id,
+              transaction_time: tx.event_time,
+              order_time: tx.order_time || null,
+              bank_ref: tx.payment_utr,      
+              payment_mode: tx.payment_group, 
+              payment_details: tx.payment_details,
+              status: tx.event_status,
+              additional_data: additional_fields,
+              payment_id: tx.entity_id,
+              student_details: {
+                student_id: tx.student_id,
+                student_name: tx.student_name,
+                student_email: tx.student_email,
+                student_phone_no: tx.student_phone_no
+              },
+              split_info: tx.split || []
+            })
+            // transactionsRecon.push(transactionsRecon)
+        }
+         settlementsRecon.transactions = transactionsRecon
+        }
+        // console.log({dste:settlementInfo.settlementDate});
+
+        settlementsRecon.settlement_date = settlementInfo.settlementDate
+        response.push(settlementsRecon);
+      }
+
+      return response
+
+
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(e.message)
     }
   }
 }

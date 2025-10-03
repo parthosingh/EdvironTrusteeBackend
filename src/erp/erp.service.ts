@@ -1809,7 +1809,7 @@ export class ErpService {
   ) {
     try {
       console.log('init kyc');
-      
+
       const token = this.jwtService.sign({ school_id },
         { secret: process.env.JWT_SECRET_FOR_INTRANET! },)
 
@@ -1847,4 +1847,17 @@ export class ErpService {
       throw new BadRequestException(e.message)
     }
   }
+
+
+  // async getISTTime(dateString:string){
+  //   const date=new Date(dateString)
+  //   const istDate=
+  // }
+
+  async getSettlementGateway(settlement: SettlementReport): Promise<String> {
+    if (settlement.clientId) return "CASHFREE";
+    if (settlement.razorpay_id) return "RAZORPAY";
+    return "EASEBUZZ";
+  }
+
 }
