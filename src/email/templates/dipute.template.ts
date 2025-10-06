@@ -210,3 +210,76 @@ export function getDisputeReceivedEmailForUser(
     </html>
 `;
 }
+
+
+export function generatePaymentEmail(payment_url, student_name, school_name, amount) {
+  return `
+  
+  <!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Request</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; margin:0; padding:0; background-color:#f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; margin-top:20px; border-radius:8px; overflow:hidden;">
+            
+            <!-- Header Image / Logo -->
+            <tr>
+              <td align="center" style="padding:20px 0; background-color:#ffffff;">
+                <img src="https://uniyal10.github.io/edviron-email-icons/logo1.png" alt="Edviron" width="150" />
+              </td>
+            </tr>
+            
+            <!-- Payment Banner -->
+            <tr>
+              <td align="center" style=" color:#ffffff; ">
+                <h2 style="margin:0; color:#333333; font-size:28px;">Payment Request</h2>
+                <p style="margin:10px 0 0 0; font-size:22px; color:#333333; font-weight:bold;">INR ${amount}</p>
+                <img src="https://ci3.googleusercontent.com/meips/ADKq_NZUH7MtkIOGbYCAvgOFacScs1QxX2WW2O80gTxxkIHyU16KVXBILi38wBX3299uH1tDeQLljXtrhUO9rEQrLZ60K6uZ7bzxKjMhErjArKvEzjJOlCrPajsWO3lfeQkKgk9AmXXz85azVgWQIg=s0-d-e1-ft#https://billpayresourcespublic.s3.ap-south-1.amazonaws.com/mailers/Payment-Request.png" alt="Payment Icon" style="width:80px; margin-top:20px;" />
+              </td>
+            </tr>
+
+            <!-- Payment Details -->
+            <tr>
+              <td style="padding:30px 40px; color:#333333; font-size:16px;">
+                <p>Dear ${student_name},</p>
+                <p>
+                  <strong>${school_name}</strong> has sent you a payment link for <strong>INR ${amount}</strong>.
+                </p>
+                <p>Payment For:<br/><strong>${school_name}</strong></p>
+                
+                <!-- Pay Button -->
+                <table cellpadding="0" cellspacing="0" width="100%" style="margin-top:30px;">
+                  <tr>
+                    <td align="center">
+                      <a href="${payment_url}" style="background-color:#6c4eff; color:#ffffff; padding:15px 30px; text-decoration:none; border-radius:5px; display:inline-block; font-weight:bold;">Pay INR ${amount}</a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin-top:20px; font-size:12px; color:#888888;">
+                  The payment link will expire on 15 minutes.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td align="center" style="padding:20px; font-size:12px; color:#666666; background-color:#f4f4f4;">
+                &copy; 2025 Edviron. All Rights Reserved.
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+`;
+}

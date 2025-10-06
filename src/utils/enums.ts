@@ -10,6 +10,12 @@ export enum KycDocType {
     ADDITIONALDOCUMENT = 'additionalDocument',
 }
 
+export enum fileType {
+  PDF='PDF',
+  JPEG = "JPEG",
+  JPG = "JPG"
+}
+
 export enum BusinessTypes {
     Individual = "Individual",
     Proprietorship = "Proprietorship",

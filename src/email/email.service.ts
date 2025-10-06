@@ -8,6 +8,7 @@ import { SETTLEMENT_ERROR_EMAIL } from '../utils/email.group';
 import { sendEnablePgInfotemp } from './templates/enable.pg.template';
 import { sendQueryErrortemplate } from './templates/error.template';
 import axios from 'axios';
+import { generatePaymentEmail } from './templates/dipute.template';
 @Injectable()
 export class EmailService {
   transporter: any;
@@ -414,6 +415,32 @@ export class EmailService {
       }
     });
   }
+
+  async sendPaymentUrlMail(
+    email_id: string,
+    payment_url: string,
+    student_name: string,
+    school_name: string,
+    amount: number,
+  ) {
+    if (!email_id) throw new Error('Invalid email id');
+
+    const html = await generatePaymentEmail(
+      payment_url,
+      student_name,
+      school_name,
+      amount,
+    );
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email_id,
+      subject: `${school_name} is requesting payment for INR ${amount} (via EDVIRON-PAY)`,
+      html: html,
+    };
+    await this.sendMail(mailOptions);
+    return {
+      success: true,
+      msg: 'email sent',
+    };
+  }
 }
-
-

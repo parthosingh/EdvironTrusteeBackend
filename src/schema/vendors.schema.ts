@@ -54,19 +54,27 @@ export class vendorBankDetails {
   ifsc: string;
 }
 
-@ObjectType()
-export class razorpayVendor {
-  @Field(() => String, { nullable: true })
-  @Prop()
-  account: string
-  ifsc: string;
-}
+
+// export enum GATEWAY {
+//   CASHFREE = 'CASHFREE',
+//   EASEBUZZ = 'EASEBUZZ',
+//   WORLDLINE = 'WORLDLINE',
+// }
+
 
 export enum GATEWAY {
   CASHFREE = 'CASHFREE',
   EASEBUZZ = 'EASEBUZZ',
   WORLDLINE = 'WORLDLINE',
   RAZORPAY='RAZORPAY'
+}
+
+@ObjectType()
+export class razorpayVendor {
+  @Field(() => String, { nullable: true })
+  @Prop()
+  account: string
+  ifsc: string;
 }
 
 @ObjectType()
@@ -96,6 +104,10 @@ export class Vendors extends Document {
   @Prop()
   easebuzz_vendor_id: string;
 
+  @Prop({})
+  @Field(()=> razorpayVendor,{nullable:true})
+  razorpayVendor:razorpayVendor
+
   @Field()
   @Prop()
   email: string;
@@ -119,10 +131,6 @@ export class Vendors extends Document {
   @Prop({})
   @Field(() => vendorBankDetails, { nullable: true })
   bank_details: vendorBankDetails;
-
-  @Prop({})
-  @Field(()=> razorpayVendor,{nullable:true})
-  razorpayVendor:razorpayVendor
 
   @Field()
   @Prop()

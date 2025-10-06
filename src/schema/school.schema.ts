@@ -48,6 +48,7 @@ interface CASHFREE_CREDENTIALS {
   cf_x_client_id: string;
   cf_x_client_secret: string;
   cf_api_key: string;
+  cf_clientId: string;
 }
 
 @ObjectType()
@@ -460,6 +461,7 @@ export class TrusteeSchool {
     type: {
       cf_x_client_id: { type: String, required: false, default: null },
       cf_x_client_secret: { type: String, required: false, default: null },
+      cf_api_key: { type: String, required: false, default: null },
     },
     _id: false,
   })

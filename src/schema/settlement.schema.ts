@@ -5,7 +5,7 @@ import { Document, Types } from 'mongoose';
 import { Trustee, TrusteeSchema } from './trustee.schema';
 
 @ObjectType()
-@Schema({ timestamps: true })
+@Schema({ timestamps:true })
 export class SettlementReport {
   @Prop({ required: true, type: Number })
   @Field(() => Number)
@@ -24,7 +24,7 @@ export class SettlementReport {
   fromDate: Date;
 
   @Prop({  type: Date })
-  @Field(() => Date)
+  @Field(() => Date) 
   createdAt: Date;
 
   @Prop({  type: Date })

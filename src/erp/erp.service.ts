@@ -1718,6 +1718,55 @@ export class ErpService {
     });
   }
 
+  async getGatewayForSchool(school_id: string) {
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('Invalid School ID');
+      }
+
+      const gateways = {
+        cashfree: false,
+        razorpay: false,
+        easebuzz: false,
+        paytm: false,
+        pay_u: false,
+        easebuzzNonseamless: false,
+        cashfreeNonseamless: false,
+        worldline: false,
+        ccavenue: false,
+        razorPayNonseamless: false,
+        getepay:false
+      }
+      if(school.client_id && school.client_secret){
+        gateways.cashfree = true;
+      }
+      if(school.isCcavenue){
+        gateways.ccavenue = true;
+      }
+      if(
+        school.easebuzz_non_partner
+        && school.easebuzz_non_partner.easebuzz_key
+        && school.easebuzz_non_partner.easebuzz_salt
+        && school.easebuzz_non_partner.easebuzz_submerchant_id
+        && school.easebuzz_non_partner.easebuzz_merchant_email
+      ){
+        gateways.easebuzz = true;
+      }
+
+      if(school.razorpay && school.razorpay.razorpay_id && school.razorpay.razorpay_secret){
+        gateways.razorpay = true;
+      }
+
+      return gateways;
+      
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+
   async createmechant(
     phone_number: string,
     name: string,

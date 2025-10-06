@@ -30,6 +30,7 @@ import { Args } from '@nestjs/graphql';
 import { EmailService } from '../email/email.service';
 import { sendQueryErrortemplate } from '../email/templates/error.template';
 import { ReportsLogs } from 'src/schema/reports.logs.schmea';
+import { Vendors } from 'src/schema/vendors.schema';
 
 @Controller('main-backend')
 export class MainBackendController {
@@ -47,6 +48,8 @@ export class MainBackendController {
     private refundRequestModel: mongoose.Model<RefundRequest>,
     @InjectModel(Invoice.name)
     private readonly invoiceModel: mongoose.Model<Invoice>,
+    @InjectModel(Vendors.name)
+    private readonly vendorsModel: mongoose.Model<Vendors>,
     @InjectModel(ReportsLogs.name)
     private readonly reportsLogsModel: mongoose.Model<ReportsLogs>,
     private readonly emailService: EmailService,
@@ -1201,6 +1204,28 @@ export class MainBackendController {
       school_id,
     )
 
+  }
+
+
+  @Get('/get-vendors-list')
+  async getVendorsList(
+    @Query('school_id') school_id:string,
+    @Query('token') token:string
+  ){
+    try{
+      console.log(school_id);
+      
+      const vendors=await this.vendorsModel.find(
+        {
+          school_id:new Types.ObjectId(school_id),
+          status:'ACTIVE'
+        }
+      ).select('name email')
+      return vendors
+    }catch(e){
+      console.log(e);
+      throw new BadRequestException(e.message || "internal server error")
+    }
   }
 
   @Get('/get-key-iv')
