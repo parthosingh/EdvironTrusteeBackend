@@ -21,6 +21,7 @@ import axios from 'axios';
 import { SettlementReport } from '../schema/settlement.schema';
 import { error } from 'console';
 import * as jwt from 'jsonwebtoken';
+const crypto = require('crypto');
 
 @Injectable()
 export class MainBackendService {
@@ -34,7 +35,7 @@ export class MainBackendService {
     @InjectModel(SettlementReport.name)
     private settlementReportModel: mongoose.Model<SettlementReport>,
     // private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   private debounceMap = new Map<string, NodeJS.Timeout>();
 
@@ -583,5 +584,35 @@ export class MainBackendService {
     );
 
     return `${data.modifiedCount} documents updated. and total is ${info.length}`;
+  }
+
+  async merchantKeyIv(
+    merchant_id: string,
+    pg_key: string
+  ) {
+    try {
+      let merchantKey = merchant_id;
+      let salt = pg_key;
+
+      const key = crypto
+        .createHash('sha256')
+        .update(merchantKey)
+        .digest()
+        .toString('hex')
+        .slice(0, 32);
+      const iv = crypto
+        .createHash('sha256')
+        .update(salt)
+        .digest()
+        .toString('hex')
+        .slice(0, 16);
+      return {
+        key,
+        iv,
+      };
+
+    } catch (e) {
+      throw new BadRequestException(e.message)
+    }
   }
 }

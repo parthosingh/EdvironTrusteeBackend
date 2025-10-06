@@ -26,6 +26,7 @@ import { InjectModel, Schema } from '@nestjs/mongoose';
 import { DisabledModes, TrusteeSchool } from '../schema/school.schema';
 import mongoose, { isValidObjectId, Types } from 'mongoose';
 import * as moment from 'moment-timezone';
+import * as jwt from 'jsonwebtoken'
 import axios from 'axios';
 import { Express } from 'express';
 import {
@@ -2803,6 +2804,9 @@ export class ErpController {
       if (!collect_request_id) {
         throw new BadRequestException('Collect request id is required');
       }
+      if (!mongoose.Types.ObjectId.isValid(collect_request_id)) {
+        throw new BadRequestException(`Invalid collect id: ${collect_request_id}`);
+      }
       if (!school_id) {
         throw new BadRequestException('School id is required');
       }
@@ -2861,6 +2865,9 @@ export class ErpController {
       };
       return responseWithSign;
     } catch (error) {
+      if (error.response?.data?.message) {
+        throw new BadRequestException(error.response?.data?.message)
+      }
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       throw error;
@@ -7203,6 +7210,127 @@ export class ErpController {
       )
 
       return 'data updated'
+    } catch (e) {
+      throw new BadRequestException(e.message)
+    }
+  }
+
+  @Post('login-link')
+  async getLoginLink(
+    @Body() body: {
+      trustee_ids: string[]
+    }
+  ) {
+    const { trustee_ids } = body
+    try {
+      let login_links: any = []
+      let invalid: any = []
+      for (const trustee_id of trustee_ids) {
+        const trustee = await this.trusteeModel.findById(trustee_id)
+        if (!trustee) {
+          invalid.push(trustee_id)
+          return
+        }
+        const payload = {
+          id: trustee_id,
+          role: 'owner',
+        };
+
+        const token = jwt.sign(payload, process.env.JWT_SECRET_FOR_TRUSTEE_AUTH, {
+          expiresIn: '30d',
+        })
+        const url = `https://partner.edviron.com/admin?token=${token}`
+        login_links.push({
+          name: trustee.name,
+          login: url
+        })
+
+      }
+
+      return login_links
+
+    } catch (e) {
+      throw new BadRequestException(e.message)
+    }
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('/initiate-seamless')
+  async initSeamless(
+    @Body() body: {
+      school_id: string,
+      sign: string,
+      mode: string,
+      collect_id: string,
+      amount: number,
+      net_banking?: {
+        bank_code: string
+      },
+      card: {
+        enc_card_number: string,
+        enc_card_holder_name: string,
+        enc_card_cvv: string,
+        enc_card_expiry_date: string
+      }
+    },
+    @Res() res: any,
+    @Req() req: any
+  ) {
+    try {
+      const {
+        school_id,
+        sign,
+        mode,
+        amount,
+        collect_id,
+        net_banking,
+        card
+      } = body
+      const trustee_id = req.userTrustee.id;
+      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      if (!school) {
+        throw new BadRequestException("School Not Found")
+      }
+      if (trustee_id.toString() !== school.trustee_id.toString()) {
+        throw new UnauthorizedException('Unauthorize User')
+      }
+      if (!school.pg_key) {
+        throw new BadRequestException('PG is not Active for your Merchant kindly contact tarun.k@edviron.com')
+      }
+      const decoded: any = jwt.verify(sign, school.pg_key)
+      if (decoded.school_id !== school_id || decoded.mode !== mode || decoded.collect_id) {
+        throw new BadRequestException("Request Fordge || Invaid Sign")
+      }
+
+      const token = jwt.sign({ school_id, amount }, process.env.JWT_SECRET_FOR_API_KEY)
+      const data = {
+        school_id,
+        trustee_id,
+        token,
+        mode,
+        collect_id,
+        amount,
+        net_banking: { bank_code: net_banking.bank_code },
+        card: {
+          enc_card_number: card.enc_card_number,
+          enc_card_holder_name: card.enc_card_holder_name,
+          enc_card_cvv: card.enc_card_cvv,
+          enc_card_expiry_date: card.enc_card_expiry_date
+        }
+      }
+
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-seamless/initiate-payment`,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        data
+      }
+      const { data: paymentRes } = await axios.request(config)
+      const responseUrl = paymentRes.url
+      return res.redirect(responseUrl)
     } catch (e) {
       throw new BadRequestException(e.message)
     }

@@ -349,7 +349,7 @@ export class MainBackendController {
     return `MDR status Update`;
   }
 
-   // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE --> SCHOOL FINAL
+  // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE --> SCHOOL FINAL
   @Post('save-base-mdr')
   async savebaseMdr(@Body('data') token: string) {
     const data = this.jwtService.verify(token, {
@@ -364,7 +364,7 @@ export class MainBackendController {
   // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE 
   @Post('save-base-mdr/trustee-and-school')
   async savebaseMdrTrusteeAndSchool(@Body('data') token: string) {
-    try{
+    try {
 
       const data = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
@@ -373,23 +373,23 @@ export class MainBackendController {
         data.base_mdr.trustee_id,
         data.base_mdr.platform_charges,
       );
-    }catch(e){
+    } catch (e) {
       throw new BadRequestException(e.message)
     }
   }
 
- // UPDATE SCHOOL BASE | SCHOOL BASE ONLY
+  // UPDATE SCHOOL BASE | SCHOOL BASE ONLY
   @Post('save-base-mdr/school')
   async savebaseMdrSchool(@Body() body: { token: string, school_ids: string[] }) {
     try {
       console.log('debug 0001');
-      
+
       const { token, school_ids } = body
       const data = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
-      console.log({school_ids});
-      
+      console.log({ school_ids });
+
       for (const school_id of school_ids) {
         return await this.trusteeService.saveSchoolBulkMdr(
           data.base_mdr.trustee_id,
@@ -399,7 +399,7 @@ export class MainBackendController {
       }
     } catch (e) {
       console.log(e);
-      
+
       throw new BadRequestException(e.message)
     }
   }
@@ -1201,5 +1201,39 @@ export class MainBackendController {
       school_id,
     )
 
+  }
+
+  @Get('/get-key-iv')
+  async generateKeyAndIv(
+    @Req() req: any
+  ) {
+    try {
+      const { school_id,sign } = req.query
+      if(!school_id || !sign){
+        throw new BadRequestException('Requred Parameter Missing')
+      }
+
+      const decoded = this.jwtService.verify(sign, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      }) 
+
+      if(decoded.school_id !== school_id){
+        throw new BadRequestException('Request Fordge')
+      }
+
+      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      if (!school) {
+        throw new BadRequestException("Invalid School Id")
+      }
+
+      if (!school.pg_key) {
+        throw new BadRequestException("PG is not Active")
+      }
+      console.log({school_id,pg:school.pg_key});
+      
+      return await this.mainBackendService.merchantKeyIv(school_id, school.pg_key)
+    } catch (e) {
+      throw new BadRequestException(e.message)
+    }
   }
 }
