@@ -8532,7 +8532,7 @@ export class ErpController {
         mode,
         collect_id,
         amount,
-        net_banking: { bank_code: net_banking.bank_code },
+        net_banking: { bank_code: net_banking?.bank_code },
         card: {
           enc_card_number: card.enc_card_number,
           enc_card_holder_name: card.enc_card_holder_name,
@@ -8552,8 +8552,13 @@ export class ErpController {
       }
       const { data: paymentRes } = await axios.request(config)
       const responseUrl = paymentRes.url
+      if(mode==="UPI"){
+        return res.send(responseUrl)
+      }
       return res.redirect(responseUrl)
     } catch (e) {
+      console.log(e);
+      
       throw new BadRequestException(e.message)
     }
   }
