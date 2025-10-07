@@ -433,7 +433,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -564,7 +564,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -1312,7 +1312,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1399,7 +1399,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2093,7 +2093,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2181,7 +2181,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2619,7 +2619,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -2856,14 +2856,13 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2930,16 +2929,15 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3964,7 +3962,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -4409,8 +4407,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -4697,8 +4695,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -5485,7 +5483,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -5738,8 +5736,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-          error.message ||
-          'Failed to fetch settlements',
+        error.message ||
+        'Failed to fetch settlements',
       );
     }
   }
@@ -5821,8 +5819,7 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${
-            error.response?.data?.message || error.message
+          `External API error: ${error.response?.data?.message || error.message
           }`,
         );
       }
@@ -6572,7 +6569,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
 
@@ -6843,7 +6840,7 @@ export class ErpController {
         }),
       );
 
-      if(totalNetAmount !== net_amount){
+      if (totalNetAmount !== net_amount) {
         throw new BadRequestException(
           `Net amount mismatch: expected ${totalNetAmount}, but received ${net_amount}.`,
         )
@@ -6879,9 +6876,10 @@ export class ErpController {
       // console.log(response.data);
 
       const sign = this.jwtService.sign(
-        { school_id, 
-          url : response.data.url + '&token=' + token
-         },
+        {
+          school_id,
+          url: response.data.url + '&token=' + token
+        },
         {
           secret: school.pg_key,
         },
@@ -6889,7 +6887,7 @@ export class ErpController {
       const res = {
         ...response.data,
         url: response.data.url + '&token=' + token,
-        sign : sign
+        sign: sign
       };
       return { res: res, message: 'Installment saved successfully' };
     } catch (e) {
@@ -7104,7 +7102,7 @@ export class ErpController {
         document_url = link;
         console.log('Uploaded to S3:', link);
       }
-     
+
       if (isSplit && !vendors_info) {
         throw new BadRequestException(
           'Vendors information is required for split payments',
@@ -7134,7 +7132,7 @@ export class ErpController {
               vendor.vendor_id,
               school_id,
             );
-            if (!vendors_data  ) {
+            if (!vendors_data) {
               throw new NotFoundException(
                 'Invalid vendor id for ' + vendor.vendor_id,
               );
@@ -7143,7 +7141,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -7273,7 +7271,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -7550,8 +7548,8 @@ export class ErpController {
         console.log(e?.response, 'e?.response');
         throw new BadRequestException(
           e?.response?.data?.message ||
-            e?.response?.message ||
-            'cashfree error',
+          e?.response?.message ||
+          'cashfree error',
         );
       }
       console.log(e, 'error');
@@ -8033,20 +8031,20 @@ export class ErpController {
     @Body() body: {
       school_id: string;
       sign: string;
-      settlemt_date: string,
+      settlement_date: string,
       limit: number;
       cursor?: string,
       utr?: string
     }
   ) {
     try {
-      const { school_id, sign, settlemt_date, cursor, utr, limit } = body
+      const { school_id, sign, settlement_date, cursor, utr, limit } = body
 
-      if (!school_id || !sign || !settlemt_date) {
+      if (!school_id || !sign || !settlement_date) {
         throw new BadRequestException('Required Parameter missing')
       }
 
-
+      const settlemt_date = settlement_date
 
       const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
       if (!school) {
@@ -8055,8 +8053,8 @@ export class ErpController {
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       if (
-        decoded.school_id != school_id ||
-        decoded.settlemt_date != settlemt_date
+        decoded.school_id !== school_id ||
+        decoded.settlement_date !== settlement_date
       ) {
         throw new ForbiddenException('request forged');
       }
@@ -8075,11 +8073,6 @@ export class ErpController {
         Number(settlemt_date.split("-")[2]),
         23, 59, 59, 999
       ));
-
-      // 2025-09-24T23:59:59.999 (local)
-      console.log({
-        settlementDate: { $gte: settlementStartDate, $lte: settlementEndDate }, schoolId: new Types.ObjectId(school_id)
-      });
 
 
       const settlements = await this.settlementModel.find({
@@ -8378,6 +8371,7 @@ export class ErpController {
       throw new BadRequestException(e.message)
     }
   }
+
 
   @Post('/import-school-base-mdr')
   async importData(
