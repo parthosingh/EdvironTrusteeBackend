@@ -3954,7 +3954,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2025-09-04T23:59:59.695Z');
+    const settlementDate = new Date('2025-10-08T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
 
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
@@ -8245,17 +8245,6 @@ export class ErpController {
             return;
           }
 
-          const previousSettlementDate = settlementInfo.settlementDate;
-          const formatted_start_date =
-            await this.trusteeService.formatDateToDDMMYYYY(
-              previousSettlementDate,
-            );
-          console.log(settlementInfo, 'settlement info');
-          console.log({ formatted_start_date }); // e.g. 06-09-2025
-          const formatted_end_date =
-            await this.trusteeService.formatDateToDDMMYYYY(
-              settlementInfo.settlementDate,
-            );
 
           const previousSettlementDate2 =
             settlementInfo.settlementDate.toISOString();
@@ -8272,7 +8261,7 @@ export class ErpController {
           const tempEnd = endSettlementDate.split('T')[0];
           const partsEnd = tempEnd.split('-');
           const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
-          console.log({ formatted_end_date }); // e.g. 06-09-2025
+          // e.g. 06-09-2025
           const paginatioNPage = 1;
           const tokenPayload = {
             submerchant_id: school.easebuzz_non_partner.easebuzz_submerchant_id,
@@ -8362,7 +8351,6 @@ export class ErpController {
             } catch (err) {
               additional_fields = null;
             }
-            console.log(tx);
 
             transactionsRecon.push({
               order_amount: tx.order_amount,
@@ -8513,6 +8501,10 @@ export class ErpController {
       pay_later: {
         bank_code: EasebuzzPayLater
       }
+      upi: {
+        mode: string,
+        vpa: string
+      }
       card: {
         enc_card_number: string;
         enc_card_holder_name: string;
@@ -8577,6 +8569,24 @@ export class ErpController {
 
       }
 
+      if (!Object.values(PaymentMode).includes(mode)) {
+        throw new BadRequestException("Invalid Payment Mode")
+      }
+
+      if (mode === "NB" && Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
+        if (!Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
+          throw new BadRequestException('Invalid Input for bank code')
+        }
+      }
+
+      if (mode === PaymentMode.WALLET && !Object.values(EasebuzzWallets).includes(wallet.bank_code)) {
+        throw new BadRequestException("Invalid Wallet Code")
+      }
+
+      if (mode == PaymentMode.PAY_LATER && !Object.values(EasebuzzPayLater).includes(pay_later?.bank_code)) {
+        throw new BadRequestException("Invalid Pay_Later Code")
+      }
+
       const token = jwt.sign({ school_id, amount }, process.env.JWT_SECRET_FOR_API_KEY)
       const data = {
         school_id,
@@ -8587,12 +8597,14 @@ export class ErpController {
         amount,
         net_banking: { bank_code: net_banking?.bank_code },
         card: {
-          enc_card_number: card.enc_card_number,
-          enc_card_holder_name: card.enc_card_holder_name,
-          enc_card_cvv: card.enc_card_cvv,
-          enc_card_expiry_date: card.enc_card_expiry_date,
+          enc_card_number: card?.enc_card_number,
+          enc_card_holder_name: card?.enc_card_holder_name,
+          enc_card_cvv: card?.enc_card_cvv,
+          enc_card_expiry_date: card?.enc_card_expiry_date
         },
-      };
+        wallet,
+        pay_later
+      }
 
       const config = {
         method: 'post',
