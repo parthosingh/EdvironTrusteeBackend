@@ -82,6 +82,7 @@ import {
   KycBusinessSubCategory,
   KycDocType,
   PaymentMode,
+  UpiModes,
 } from 'src/utils/enums';
 import { SchoolBaseMdr } from 'src/schema/school.base.mdr.schema';
 
@@ -122,7 +123,7 @@ export class ErpController {
     private disputeModel: mongoose.Model<Disputes>,
     @InjectModel(SchoolBaseMdr.name)
     private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
-  ) {}
+  ) { }
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -436,7 +437,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -567,7 +568,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -1315,7 +1316,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1402,7 +1403,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2096,7 +2097,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2184,7 +2185,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2622,7 +2623,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -2861,14 +2862,13 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2935,16 +2935,15 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3971,7 +3970,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -4416,8 +4415,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -4704,8 +4703,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -5492,7 +5491,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -5745,8 +5744,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-          error.message ||
-          'Failed to fetch settlements',
+        error.message ||
+        'Failed to fetch settlements',
       );
     }
   }
@@ -5828,8 +5827,7 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${
-            error.response?.data?.message || error.message
+          `External API error: ${error.response?.data?.message || error.message
           }`,
         );
       }
@@ -6579,7 +6577,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
 
@@ -7152,7 +7150,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -7282,7 +7280,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -7411,13 +7409,13 @@ export class ErpController {
 
       if (
         gateways.easebuzz &&
-        school.easebuzz_non_partner.easebuzz_key 
+        school.easebuzz_non_partner.easebuzz_key
       ) {
         easebuzz = {
-          key : school.easebuzz_non_partner.easebuzz_key,
-          salt : school.easebuzz_non_partner.easebuzz_salt,
-          mid : school.easebuzz_non_partner.easebuzz_submerchant_id,
-          easebuzz_merchant_email : school.easebuzz_non_partner.easebuzz_merchant_email,
+          key: school.easebuzz_non_partner.easebuzz_key,
+          salt: school.easebuzz_non_partner.easebuzz_salt,
+          mid: school.easebuzz_non_partner.easebuzz_submerchant_id,
+          easebuzz_merchant_email: school.easebuzz_non_partner.easebuzz_merchant_email,
           // isPartner : true
         }
       }
@@ -7567,8 +7565,8 @@ export class ErpController {
         console.log(e?.response, 'e?.response');
         throw new BadRequestException(
           e?.response?.data?.message ||
-            e?.response?.message ||
-            'cashfree error',
+          e?.response?.message ||
+          'cashfree error',
         );
       }
       console.log(e, 'error');
@@ -8502,7 +8500,7 @@ export class ErpController {
         bank_code: EasebuzzPayLater
       }
       upi: {
-        mode: string,
+        mode: UpiModes,
         vpa: string
       }
       card: {
@@ -8525,7 +8523,8 @@ export class ErpController {
         net_banking,
         wallet,
         pay_later,
-        card
+        card,
+        upi
       } = body
       const trustee_id = req.userTrustee.id;
       const school = await this.trusteeSchoolModel.findOne({
@@ -8555,18 +8554,27 @@ export class ErpController {
         throw new BadRequestException("Invalid Payment Mode")
       }
 
-      if (mode === "NB"  && Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
-        if (!Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
-          throw new BadRequestException('Invalid Input for bank code')
-        }
+      if (mode === "NB" && !Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
+
+        throw new BadRequestException('Invalid Input for bank code')
+
       }
 
-      if (mode === PaymentMode.WALLET && !Object.values(EasebuzzWallets).includes(wallet.bank_code)) {
+
+      if (!Object.values(PaymentMode).includes(mode)) {
+        throw new BadRequestException("Invalid Payment Mode")
+      }
+
+      if (mode === PaymentMode.WALLET && !Object.values(EasebuzzWallets).includes(wallet?.bank_code)) {
         throw new BadRequestException("Invalid Wallet Code")
       }
 
       if (mode == PaymentMode.PAY_LATER && !Object.values(EasebuzzPayLater).includes(pay_later?.bank_code)) {
+        throw new BadRequestException("Invalid Pay_Later Code")
+      }
 
+      if (mode == PaymentMode.UPI && !Object.values(UpiModes).includes(upi?.mode)) {
+        throw new BadRequestException("Invalid mode for UPI")
       }
 
       if (!Object.values(PaymentMode).includes(mode)) {
@@ -8603,7 +8611,8 @@ export class ErpController {
           enc_card_expiry_date: card?.enc_card_expiry_date
         },
         wallet,
-        pay_later
+        pay_later,
+        upi
       }
 
       const config = {
@@ -8618,7 +8627,11 @@ export class ErpController {
       const { data: paymentRes } = await axios.request(config)
       const responseUrl = paymentRes.url
       if (mode === "UPI") {
-        return res.send(responseUrl)
+        if (upi?.mode == UpiModes.QR) {
+          return res.send(paymentRes)
+        } else if (upi.mode === UpiModes.VPA) {
+          return res.redirect(responseUrl)
+        }
       }
       return res.redirect(responseUrl)
     } catch (e) {

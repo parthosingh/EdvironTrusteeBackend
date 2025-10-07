@@ -173,3 +173,8 @@ export class SettlementRecon {
     ]
 
 }
+
+export enum UpiModes {
+    QR="QR",
+    VPA="VPA"
+}
