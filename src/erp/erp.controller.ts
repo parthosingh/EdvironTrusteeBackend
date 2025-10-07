@@ -26,7 +26,7 @@ import { InjectModel, Schema } from '@nestjs/mongoose';
 import { DisabledModes, TrusteeSchool } from '../schema/school.schema';
 import mongoose, { isValidObjectId, Types } from 'mongoose';
 import * as moment from 'moment-timezone';
-import * as jwt from 'jsonwebtoken'
+import * as jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { Express } from 'express';
 import {
@@ -122,8 +122,7 @@ export class ErpController {
     private disputeModel: mongoose.Model<Disputes>,
     @InjectModel(SchoolBaseMdr.name)
     private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
-  ) { }
-
+  ) {}
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -437,7 +436,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -568,7 +567,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -853,7 +852,7 @@ export class ErpController {
             // jwt: res.data.jwt
           };
 
-          return response
+          return response;
           return res.data;
         }
 
@@ -1316,7 +1315,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1403,7 +1402,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2097,7 +2096,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2185,7 +2184,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2623,7 +2622,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -2823,7 +2822,9 @@ export class ErpController {
         throw new BadRequestException('Collect request id is required');
       }
       if (!mongoose.Types.ObjectId.isValid(collect_request_id)) {
-        throw new BadRequestException(`Invalid collect id: ${collect_request_id}`);
+        throw new BadRequestException(
+          `Invalid collect id: ${collect_request_id}`,
+        );
       }
       if (!school_id) {
         throw new BadRequestException('School id is required');
@@ -2860,13 +2861,14 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: collect_request_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: collect_request_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2884,7 +2886,7 @@ export class ErpController {
       return responseWithSign;
     } catch (error) {
       if (error.response?.data?.message) {
-        throw new BadRequestException(error.response?.data?.message)
+        throw new BadRequestException(error.response?.data?.message);
       }
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
@@ -2933,15 +2935,16 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: order_id,
-              trusteeId: trustee_id,
-              school_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: order_id,
+            trusteeId: trustee_id,
+            school_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3796,7 +3799,9 @@ export class ErpController {
         trustee_id: trustee._id,
       });
       let trustee_platform_charges = baseMdr.platform_charges; //Trustee base rate charges
-      const schoolBaseMdr = await this.SchoolBaseMdrModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      const schoolBaseMdr = await this.SchoolBaseMdrModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
       if (schoolBaseMdr) {
         trustee_platform_charges = schoolBaseMdr.platform_charges;
       }
@@ -3829,12 +3834,12 @@ export class ErpController {
 
       const erpCommission = school_commission - trustee_base; // ERP/Trustee commission(MDR2-Trustee Base rate)
       // const edvCommission = trustee_base - cashfree_commission; // Edviron Earnings (Trustee base rate - cashfree Commission)
-      let erpCommissionWithGST = erpCommission
+      let erpCommissionWithGST = erpCommission;
       if (platform_type === 'DebitCard' || platform_type === 'CreditCard') {
         if (order_amount >= 2000) {
-          erpCommissionWithGST = erpCommission + erpCommission * 0.18
+          erpCommissionWithGST = erpCommission + erpCommission * 0.18;
         } else {
-          erpCommissionWithGST = erpCommission
+          erpCommissionWithGST = erpCommission;
         }
       } else {
         erpCommissionWithGST = erpCommission + erpCommission * 0.18;
@@ -3966,7 +3971,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) { }
+  async test(@Req() req: any) {}
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -4181,10 +4186,10 @@ export class ErpController {
         const partsPrev = tempPrev.split('-');
         const formattedPrev = `${partsPrev[2]}-${partsPrev[1]}-${partsPrev[0]}`;
         // e.g. 06-09-2025
-        const end = settlement.settlementDate
+        const end = settlement.settlementDate;
         end.setDate(end.getDate() + 2);
         const endSettlementDate = end.toISOString();
-        const tempEnd = endSettlementDate.split('T')[0]
+        const tempEnd = endSettlementDate.split('T')[0];
         const partsEnd = tempEnd.split('-');
         const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
         console.log({ formatted_end_date }); // e.g. 06-09-2025
@@ -4411,8 +4416,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+              refundableAmount +
+              'Rs',
           );
         }
       }
@@ -4699,8 +4704,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+              refundableAmount +
+              'Rs',
           );
         }
       }
@@ -5487,7 +5492,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-          student_id,
+            student_id,
         );
       }
 
@@ -5740,8 +5745,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-        error.message ||
-        'Failed to fetch settlements',
+          error.message ||
+          'Failed to fetch settlements',
       );
     }
   }
@@ -5823,7 +5828,8 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${error.response?.data?.message || error.message
+          `External API error: ${
+            error.response?.data?.message || error.message
           }`,
         );
       }
@@ -6573,7 +6579,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
 
@@ -6847,7 +6853,7 @@ export class ErpController {
       if (totalNetAmount !== net_amount) {
         throw new BadRequestException(
           `Net amount mismatch: expected ${totalNetAmount}, but received ${net_amount}.`,
-        )
+        );
       }
       const data = {
         school_id,
@@ -6882,7 +6888,7 @@ export class ErpController {
       const sign = this.jwtService.sign(
         {
           school_id,
-          url: response.data.url + '&token=' + token
+          url: response.data.url + '&token=' + token,
         },
         {
           secret: school.pg_key,
@@ -6891,7 +6897,7 @@ export class ErpController {
       const res = {
         ...response.data,
         url: response.data.url + '&token=' + token,
-        sign: sign
+        sign: sign,
       };
       return { res: res, message: 'Installment saved successfully' };
     } catch (e) {
@@ -7031,7 +7037,8 @@ export class ErpController {
         static_qr,
         netBankingDetails,
         cheque_detail,
-        date
+        date,
+        parents_info,
       } = body;
       let { student_id, student_name, student_email, student_number } =
         student_detail;
@@ -7145,7 +7152,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -7275,7 +7282,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -7372,16 +7379,17 @@ export class ErpController {
       //   cashfreeVedors.push(updatedVendor);
       // }
 
-
       let userGateway = {
         cashfree: false,
         razorpay: false,
         easebuzz: false,
       };
       let cashfree: any = {};
-      console.log(gateway, 'gateway');
+      let easebuzz: any = {};
 
-      if (gateway.cashfree && school.client_id && school.client_id !== '0') {
+      const gateways = await this.erpService.getGatewayForSchool(school_id);
+
+      if (gateways.cashfree && school.client_id && school.client_id !== '0') {
         if (!school.cashfree_credentials) {
           throw new BadRequestException('Credentials not found');
         }
@@ -7398,16 +7406,22 @@ export class ErpController {
             vba_account_number: null,
             vba_ifsc: null,
           },
-          // cashfreeVedors?: [
-          //     {
-          //         vendor_id: null;
-          //         percentage?: number;
-          //         amount?: number;
-          //         name?: string;
-          //     },
-          // ];
         };
       }
+
+      if (
+        gateways.easebuzz &&
+        school.easebuzz_non_partner.easebuzz_key 
+      ) {
+        easebuzz = {
+          key : school.easebuzz_non_partner.easebuzz_key,
+          salt : school.easebuzz_non_partner.easebuzz_salt,
+          mid : school.easebuzz_non_partner.easebuzz_submerchant_id,
+          easebuzz_merchant_email : school.easebuzz_non_partner.easebuzz_merchant_email,
+          // isPartner : true
+        }
+      }
+
       let isVBAPayment = false;
       if (school.isVBAActive) {
         isVBAPayment = true;
@@ -7445,7 +7459,6 @@ export class ErpController {
           secret: process.env.PAYMENTS_SERVICE_SECRET,
         },
       );
-
       const payload = {
         mode,
         isInstallment,
@@ -7455,7 +7468,7 @@ export class ErpController {
         callback_url,
         webhook_url,
         token,
-        gateway,
+        gateway: gateways,
         amount,
         disable_mode,
         custom_order_id,
@@ -7463,6 +7476,7 @@ export class ErpController {
         isSplit,
         additional_data,
         cashfree,
+        easebuzz,
         isVBAPayment: isVBAPayment || false,
         vba_account_number: vba_account_number || 'NA',
         split_payments: splitPay || false,
@@ -7479,7 +7493,8 @@ export class ErpController {
         static_qr,
         netBankingDetails,
         cheque_detail,
-        date
+        date,
+        parents_info,
       };
 
       const config = {
@@ -7552,8 +7567,8 @@ export class ErpController {
         console.log(e?.response, 'e?.response');
         throw new BadRequestException(
           e?.response?.data?.message ||
-          e?.response?.message ||
-          'cashfree error',
+            e?.response?.message ||
+            'cashfree error',
         );
       }
       console.log(e, 'error');
@@ -8032,27 +8047,30 @@ export class ErpController {
   @Post('/settlements-recon')
   @UseGuards(ErpGuard)
   async settlementRecon(
-    @Body() body: {
+    @Body()
+    body: {
       school_id: string;
       sign: string;
-      settlement_date: string,
+      settlement_date: string;
       limit: number;
-      cursor?: string,
-      utr?: string
-    }
+      cursor?: string;
+      utr?: string;
+    },
   ) {
     try {
-      const { school_id, sign, settlement_date, cursor, utr, limit } = body
+      const { school_id, sign, settlement_date, cursor, utr, limit } = body;
 
       if (!school_id || !sign || !settlement_date) {
-        throw new BadRequestException('Required Parameter missing')
+        throw new BadRequestException('Required Parameter missing');
       }
 
-      const settlemt_date = settlement_date
+      const settlemt_date = settlement_date;
 
-      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
       if (!school) {
-        throw new NotFoundException('school not found')
+        throw new NotFoundException('school not found');
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
@@ -8063,37 +8081,44 @@ export class ErpController {
         throw new ForbiddenException('request forged');
       }
       // Start of day in UTC
-      const settlementStartDate = new Date(Date.UTC(
-        Number(settlemt_date.split("-")[0]), // year
-        Number(settlemt_date.split("-")[1]) - 1, // month (0-indexed)
-        Number(settlemt_date.split("-")[2]), // day
-        0, 0, 0, 0
-      ));
+      const settlementStartDate = new Date(
+        Date.UTC(
+          Number(settlemt_date.split('-')[0]), // year
+          Number(settlemt_date.split('-')[1]) - 1, // month (0-indexed)
+          Number(settlemt_date.split('-')[2]), // day
+          0,
+          0,
+          0,
+          0,
+        ),
+      );
 
       // End of day in UTC
-      const settlementEndDate = new Date(Date.UTC(
-        Number(settlemt_date.split("-")[0]),
-        Number(settlemt_date.split("-")[1]) - 1,
-        Number(settlemt_date.split("-")[2]),
-        23, 59, 59, 999
-      ));
-
+      const settlementEndDate = new Date(
+        Date.UTC(
+          Number(settlemt_date.split('-')[0]),
+          Number(settlemt_date.split('-')[1]) - 1,
+          Number(settlemt_date.split('-')[2]),
+          23,
+          59,
+          59,
+          999,
+        ),
+      );
 
       const settlements = await this.settlementModel.find({
-        settlementDate: { $gte: settlementStartDate, $lte: settlementEndDate }, schoolId: new Types.ObjectId(school_id)
-      })
+        settlementDate: { $gte: settlementStartDate, $lte: settlementEndDate },
+        schoolId: new Types.ObjectId(school_id),
+      });
       console.log(settlements, 'settlements');
 
       if (settlements.length === 0) {
-        throw new BadRequestException("No Settlement Found for this Date")
+        throw new BadRequestException('No Settlement Found for this Date');
       }
-
 
       let response: any[] = [];
 
       for (const settlementInfo of settlements) {
-
-
         const {
           utrNumber,
           fromDate,
@@ -8103,10 +8128,11 @@ export class ErpController {
           settlementAmount,
           adjustment,
           settlementInitiatedOn,
-          clientId
+          clientId,
         } = settlementInfo;
 
-        const gateway: String = await this.erpService.getSettlementGateway(settlementInfo);
+        const gateway: String =
+          await this.erpService.getSettlementGateway(settlementInfo);
 
         const settlementsRecon: any = {
           utrNumber,
@@ -8118,9 +8144,8 @@ export class ErpController {
           adjustment,
           settlement_initiated_on: settlementInitiatedOn,
           transactions: [],
-          refunds: []
+          refunds: [],
         };
-
 
         const transactionsRecon: any[] = [];
         const refundsRecon: any[] = [];
@@ -8129,7 +8154,7 @@ export class ErpController {
 
           const token = this.jwtService.sign(
             { utrNumber, client_id: clientId },
-            { secret: process.env.PAYMENTS_SERVICE_SECRET }
+            { secret: process.env.PAYMENTS_SERVICE_SECRET },
           );
 
           const paginationData = { cursor, limit: 1000 };
@@ -8139,9 +8164,9 @@ export class ErpController {
             url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/settlements-transactions?token=${token}&utr=${utrNumber}&client_id=${clientId}`,
             headers: {
               accept: 'application/json',
-              'content-type': 'application/json'
+              'content-type': 'application/json',
             },
-            data: paginationData
+            data: paginationData,
           };
 
           let settlements_transactions: any[] = [];
@@ -8153,13 +8178,12 @@ export class ErpController {
             settlements_transactions = [];
           }
 
-
-
           for (const tx of settlements_transactions) {
             if (tx.event_type === 'PAYMENT') {
               let additional_fields = null;
               try {
-                additional_fields = JSON.parse(tx.additional_data)?.additional_fields || null;
+                additional_fields =
+                  JSON.parse(tx.additional_data)?.additional_fields || null;
               } catch (err) {
                 additional_fields = null;
               }
@@ -8172,7 +8196,7 @@ export class ErpController {
                 custom_order_id: tx.custom_order_id,
                 transaction_time: tx.event_time,
                 order_time: tx.order_time,
-                bank_ref: tx.payment_utr,      // Fixed typo
+                bank_ref: tx.payment_utr, // Fixed typo
                 payment_mode: tx.payment_group, // Fixed typo
                 payment_details: tx.payment_details,
                 status: tx.event_status,
@@ -8182,14 +8206,17 @@ export class ErpController {
                   student_id: tx.student_id,
                   student_name: tx.student_name,
                   student_email: tx.student_email,
-                  student_phone_no: tx.student_phone_no
+                  student_phone_no: tx.student_phone_no,
                 },
-                split_info: tx.split
+                split_info: tx.split,
               });
             }
 
             if (tx.event_type === 'REFUND') {
-              const refundInfo = await this.trusteeService.getRefundInfo(tx.order_id, schoolId.toString());
+              const refundInfo = await this.trusteeService.getRefundInfo(
+                tx.order_id,
+                schoolId.toString(),
+              );
               if (!refundInfo || refundInfo.length === 0) continue;
 
               for (const refund of refundInfo) {
@@ -8199,7 +8226,7 @@ export class ErpController {
                   custom_order_id: tx.custom_order_id,
                   refund_amount: refund.refund_amount,
                   order_amount: refund.order_amount,
-                  split_refund_details: refund.split_refund_details
+                  split_refund_details: refund.split_refund_details,
                 });
               }
             }
@@ -8209,12 +8236,13 @@ export class ErpController {
           settlementsRecon.refunds = refundsRecon;
         }
         if (gateway === 'EASEBUZZ') {
-
-          if (school.isEasebuzzNonPartner &&
+          if (
+            school.isEasebuzzNonPartner &&
             !school.easebuzz_non_partner?.easebuzz_key &&
             !school.easebuzz_non_partner?.easebuzz_salt &&
-            !school.easebuzz_non_partner?.easebuzz_submerchant_id) {
-            return
+            !school.easebuzz_non_partner?.easebuzz_submerchant_id
+          ) {
+            return;
           }
 
           const previousSettlementDate = settlementInfo.settlementDate;
@@ -8229,8 +8257,9 @@ export class ErpController {
               settlementInfo.settlementDate,
             );
 
-          const previousSettlementDate2 = settlementInfo.settlementDate.toISOString();
-          const tempPrev = previousSettlementDate2.split('T')[0]
+          const previousSettlementDate2 =
+            settlementInfo.settlementDate.toISOString();
+          const tempPrev = previousSettlementDate2.split('T')[0];
           const partsPrev = tempPrev.split('-');
           const formattedPrev = `${partsPrev[2]}-${partsPrev[1]}-${partsPrev[0]}`;
           // e.g. 06-09-2025
@@ -8240,7 +8269,7 @@ export class ErpController {
 
           // console.log(settlementsRecon, 'settlementsRecon');
           const endSettlementDate = end.toISOString();
-          const tempEnd = endSettlementDate.split('T')[0]
+          const tempEnd = endSettlementDate.split('T')[0];
           const partsEnd = tempEnd.split('-');
           const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
           console.log({ formatted_end_date }); // e.g. 06-09-2025
@@ -8273,11 +8302,12 @@ export class ErpController {
             data,
           };
 
-          const { data: ezbres } = await axios.request(config)
+          const { data: ezbres } = await axios.request(config);
           for (const tx of ezbres.transactions) {
             let additional_fields = null;
             try {
-              additional_fields = JSON.parse(tx.additional_data)?.additional_fields || null;
+              additional_fields =
+                JSON.parse(tx.additional_data)?.additional_fields || null;
             } catch (err) {
               additional_fields = null;
             }
@@ -8289,7 +8319,7 @@ export class ErpController {
               custom_order_id: tx.custom_order_id,
               transaction_time: tx.event_time,
               order_time: tx.order_time,
-              bank_ref: tx.payment_utr,      // Fixed typo
+              bank_ref: tx.payment_utr, // Fixed typo
               payment_mode: tx.payment_group, // Fixed typo
               payment_details: tx.payment_details,
               status: tx.event_status,
@@ -8299,41 +8329,40 @@ export class ErpController {
                 student_id: tx.student_id,
                 student_name: tx.student_name,
                 student_email: tx.student_email,
-                student_phone_no: tx.student_phone_no
+                student_phone_no: tx.student_phone_no,
               },
-              split_info: tx.split
-            })
+              split_info: tx.split,
+            });
           }
 
           // transactionsRecon.push(ezbres)
-          settlementsRecon.transactions = transactionsRecon
+          settlementsRecon.transactions = transactionsRecon;
           settlementsRecon.refunds = refundsRecon;
-
-
         }
         if (gateway === 'RAZORPAY') {
           const razropay_secret = school?.razorpay?.razorpay_secret;
           const razorpay_id = settlementInfo.razorpay_id;
-          const transactions = await this.trusteeService.getRazorpayTransactionForSettlement(
-            utrNumber,
-            razorpay_id,
-            razropay_secret,
-            1000,
-            cursor,
-            0,
-            settlementInfo.fromDate,
-          );
+          const transactions =
+            await this.trusteeService.getRazorpayTransactionForSettlement(
+              utrNumber,
+              razorpay_id,
+              razropay_secret,
+              1000,
+              cursor,
+              0,
+              settlementInfo.fromDate,
+            );
 
           // transactionsRecon.push(transactions.settlements_transactions)
           for (const tx of transactions.settlements_transactions) {
             let additional_fields = null;
             try {
-              additional_fields = JSON.parse(tx.additional_data)?.additional_fields || null;
+              additional_fields =
+                JSON.parse(tx.additional_data)?.additional_fields || null;
             } catch (err) {
               additional_fields = null;
             }
             console.log(tx);
-
 
             transactionsRecon.push({
               order_amount: tx.order_amount,
@@ -8353,130 +8382,116 @@ export class ErpController {
                 student_id: tx.student_id,
                 student_name: tx.student_name,
                 student_email: tx.student_email,
-                student_phone_no: tx.student_phone_no
+                student_phone_no: tx.student_phone_no,
               },
-              split_info: tx.split || []
-            })
+              split_info: tx.split || [],
+            });
             // transactionsRecon.push(transactionsRecon)
           }
-          settlementsRecon.transactions = transactionsRecon
+          settlementsRecon.transactions = transactionsRecon;
         }
         // console.log({dste:settlementInfo.settlementDate});
 
-        settlementsRecon.settlement_date = settlementInfo.settlementDate
+        settlementsRecon.settlement_date = settlementInfo.settlementDate;
         response.push(settlementsRecon);
       }
 
-      return response
-
-
+      return response;
     } catch (e) {
       console.log(e);
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
 
-
   @Post('/import-school-base-mdr')
-  async importData(
-    @Body() body: {
-      school_ids: string[],
-      trustee_id: string
-    }
-  ) {
+  async importData(@Body() body: { school_ids: string[]; trustee_id: string }) {
     try {
-      const { school_ids, trustee_id } = body
+      const { school_ids, trustee_id } = body;
       if (!trustee_id) {
-        throw new BadRequestException('Trustee id missing')
+        throw new BadRequestException('Trustee id missing');
       }
       if (!school_ids || school_ids.length === 0) {
-        throw new BadRequestException('Invalid School ids')
+        throw new BadRequestException('Invalid School ids');
       }
 
       await Promise.all(
         school_ids.map(async (id) => {
-          await this.importSchoolbase(trustee_id, id)
-        })
-      )
+          await this.importSchoolbase(trustee_id, id);
+        }),
+      );
 
-      return school_ids
-
+      return school_ids;
     } catch (e) {
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
 
-  async importSchoolbase(
-    trustee_id: string,
-    school_id: string
-  ) {
+  async importSchoolbase(trustee_id: string, school_id: string) {
     try {
       const trusteeBase = await this.baseMdrModel.findOne({
-        trustee_id: new Types.ObjectId(trustee_id)
-      })
+        trustee_id: new Types.ObjectId(trustee_id),
+      });
       if (!trusteeBase) {
-        throw new BadRequestException('Trustee base not found')
+        throw new BadRequestException('Trustee base not found');
       }
       await this.SchoolBaseMdrModel.findOneAndUpdate(
         {
           trustee_id: new Types.ObjectId(trustee_id),
-          school_id: new Types.ObjectId(school_id)
+          school_id: new Types.ObjectId(school_id),
         },
         {
           $set: {
             trustee_id: new Types.ObjectId(trustee_id),
             school_id: new Types.ObjectId(school_id),
-            platform_charges: trusteeBase.platform_charges
-          }
+            platform_charges: trusteeBase.platform_charges,
+          },
         },
         {
           upsert: true,
-          new: true
-        }
-      )
+          new: true,
+        },
+      );
 
-      return 'data updated'
+      return 'data updated';
     } catch (e) {
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
 
   @Post('login-link')
-  async getLoginLink(
-    @Body() body: {
-      trustee_ids: string[]
-    }
-  ) {
-    const { trustee_ids } = body
+  async getLoginLink(@Body() body: { trustee_ids: string[] }) {
+    const { trustee_ids } = body;
     try {
-      let login_links: any = []
-      let invalid: any = []
+      let login_links: any = [];
+      let invalid: any = [];
       for (const trustee_id of trustee_ids) {
-        const trustee = await this.trusteeModel.findById(trustee_id)
+        const trustee = await this.trusteeModel.findById(trustee_id);
         if (!trustee) {
-          invalid.push(trustee_id)
-          return
+          invalid.push(trustee_id);
+          return;
         }
         const payload = {
           id: trustee_id,
           role: 'owner',
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET_FOR_TRUSTEE_AUTH, {
-          expiresIn: '30d',
-        })
-        const url = `https://partner.edviron.com/admin?token=${token}`
+        const token = jwt.sign(
+          payload,
+          process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
+          {
+            expiresIn: '30d',
+          },
+        );
+        const url = `https://partner.edviron.com/admin?token=${token}`;
         login_links.push({
           name: trustee.name,
-          login: url
-        })
-
+          login: url,
+        });
       }
 
-      return login_links
-
+      return login_links;
     } catch (e) {
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
 
@@ -8499,14 +8514,14 @@ export class ErpController {
         bank_code: EasebuzzPayLater
       }
       card: {
-        enc_card_number: string,
-        enc_card_holder_name: string,
-        enc_card_cvv: string,
-        enc_card_expiry_date: string
-      }
+        enc_card_number: string;
+        enc_card_holder_name: string;
+        enc_card_cvv: string;
+        enc_card_expiry_date: string;
+      };
     },
     @Res() res: any,
-    @Req() req: any
+    @Req() req: any,
   ) {
     try {
       const {
@@ -8521,19 +8536,27 @@ export class ErpController {
         card
       } = body
       const trustee_id = req.userTrustee.id;
-      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
       if (!school) {
-        throw new BadRequestException("School Not Found")
+        throw new BadRequestException('School Not Found');
       }
       if (trustee_id.toString() !== school.trustee_id.toString()) {
-        throw new UnauthorizedException('Unauthorize User')
+        throw new UnauthorizedException('Unauthorize User');
       }
       if (!school.pg_key) {
-        throw new BadRequestException('PG is not Active for your Merchant kindly contact tarun.k@edviron.com')
+        throw new BadRequestException(
+          'PG is not Active for your Merchant kindly contact tarun.k@edviron.com',
+        );
       }
-      const decoded: any = jwt.verify(sign, school.pg_key)
-      if (decoded.school_id !== school_id || decoded.mode !== mode || decoded.collect_id) {
-        throw new BadRequestException("Request Fordge || Invaid Sign")
+      const decoded: any = jwt.verify(sign, school.pg_key);
+      if (
+        decoded.school_id !== school_id ||
+        decoded.mode !== mode ||
+        decoded.collect_id
+      ) {
+        throw new BadRequestException('Request Fordge || Invaid Sign');
       }
 
       if (!Object.values(PaymentMode).includes(mode)) {
@@ -8567,9 +8590,9 @@ export class ErpController {
           enc_card_number: card.enc_card_number,
           enc_card_holder_name: card.enc_card_holder_name,
           enc_card_cvv: card.enc_card_cvv,
-          enc_card_expiry_date: card.enc_card_expiry_date
-        }
-      }
+          enc_card_expiry_date: card.enc_card_expiry_date,
+        },
+      };
 
       const config = {
         method: 'post',
