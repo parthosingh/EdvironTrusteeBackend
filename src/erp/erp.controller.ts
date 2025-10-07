@@ -74,10 +74,14 @@ import {
 import { AwsS3Service } from 'src/aws.s3/aws.s3.service';
 import {
   BusinessTypes,
+  EasebuzzBankCode,
+  EasebuzzPayLater,
+  EasebuzzWallets,
   fileType,
   KycBusinessCategory,
   KycBusinessSubCategory,
   KycDocType,
+  PaymentMode,
 } from 'src/utils/enums';
 import { SchoolBaseMdr } from 'src/schema/school.base.mdr.schema';
 
@@ -8482,12 +8486,18 @@ export class ErpController {
     @Body() body: {
       school_id: string,
       sign: string,
-      mode: string,
+      mode: PaymentMode,
       collect_id: string,
       amount: number,
       net_banking?: {
-        bank_code: string
+        bank_code: EasebuzzBankCode
       },
+      wallet: {
+        bank_code: EasebuzzWallets
+      },
+      pay_later: {
+        bank_code: EasebuzzPayLater
+      }
       card: {
         enc_card_number: string,
         enc_card_holder_name: string,
@@ -8506,6 +8516,8 @@ export class ErpController {
         amount,
         collect_id,
         net_banking,
+        wallet,
+        pay_later,
         card
       } = body
       const trustee_id = req.userTrustee.id;
@@ -8522,6 +8534,24 @@ export class ErpController {
       const decoded: any = jwt.verify(sign, school.pg_key)
       if (decoded.school_id !== school_id || decoded.mode !== mode || decoded.collect_id) {
         throw new BadRequestException("Request Fordge || Invaid Sign")
+      }
+
+      if (!Object.values(PaymentMode).includes(mode)) {
+        throw new BadRequestException("Invalid Payment Mode")
+      }
+
+      if (mode === "NB"  && Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
+        if (!Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
+          throw new BadRequestException('Invalid Input for bank code')
+        }
+      }
+
+      if (mode === PaymentMode.WALLET && !Object.values(EasebuzzWallets).includes(wallet.bank_code)) {
+        throw new BadRequestException("Invalid Wallet Code")
+      }
+
+      if (mode == PaymentMode.PAY_LATER && !Object.values(EasebuzzPayLater).includes(pay_later?.bank_code)) {
+
       }
 
       const token = jwt.sign({ school_id, amount }, process.env.JWT_SECRET_FOR_API_KEY)
@@ -8552,14 +8582,15 @@ export class ErpController {
       }
       const { data: paymentRes } = await axios.request(config)
       const responseUrl = paymentRes.url
-      if(mode==="UPI"){
+      if (mode === "UPI") {
         return res.send(responseUrl)
       }
       return res.redirect(responseUrl)
     } catch (e) {
       console.log(e);
-      
+
       throw new BadRequestException(e.message)
     }
   }
+
 }
