@@ -542,10 +542,25 @@ export class ErpService {
     }
   }
 
-  @Cron('0 30 8 * * *', { timeZone: 'Asia/Kolkata' })
+ @Cron('30 8,16 * * *')  // Runs at 8:30 AM UTC & 4:30 PM UTC → 2 PM & 10 PM IST
   async ezbSettlementCorn() {
-    await this.easebuzzSettlements()
-    return true
+    try {
+      try {
+        const date = new Date()
+        await this.errorLogModel.create({
+          source: "EASEBUZZ_CRON",
+          error: date.toISOString()
+        })
+      } catch (e) {
+        console.log('error in saving CRON logs');
+
+      }
+      await this.easebuzzSettlements()
+      return true
+    } catch (e) {
+      console.log(e);
+
+    }
   }
 
   @Cron('0 20 * * *')
