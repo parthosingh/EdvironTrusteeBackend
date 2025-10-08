@@ -667,7 +667,7 @@ export class ErpService {
                     settlementDate: new Date(data.payout_actual_date),
                     trustee: merchant.trustee_id,
                     schoolId: merchant.school_id,
-                    clientId: merchant.client_id,
+                    // clientId: merchant.client_id,
                   });
                   //add mail option
                   console.log(

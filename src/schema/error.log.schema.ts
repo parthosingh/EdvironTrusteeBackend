@@ -10,6 +10,7 @@ export class ErrorLogs {
 
   @Prop({ nullable: true })
   trustee_id: string;
+  
   @Prop({ nullable: true })
   school_id: string;
 
