@@ -8482,8 +8482,8 @@ export class ErpController {
   }
 
   @UseGuards(ErpGuard)
-  @Post('/initiate-seamless')
-  async initSeamless(
+  @Post('/initiate-seamless/v2')
+  async initSeamlessV2(
     @Body() body: {
       school_id: string,
       sign: string,
@@ -8634,6 +8634,166 @@ export class ErpController {
         }
       }
       return res.redirect(responseUrl)
+    } catch (e) {
+      console.log(e);
+
+      throw new BadRequestException(e.message)
+    }
+  }
+
+  @UseGuards(ErpGuard)
+  @Post('/initiate-seamless')
+  async initSeamless(
+    @Body() body: {
+      school_id: string,
+      sign: string,
+      mode: PaymentMode,
+      collect_id: string,
+      amount: number,
+      net_banking?: {
+        bank_code: EasebuzzBankCode
+      },
+      wallet: {
+        bank_code: EasebuzzWallets
+      },
+      pay_later: {
+        bank_code: EasebuzzPayLater
+      }
+      upi: {
+        mode: UpiModes,
+        vpa: string
+      }
+      card: {
+        enc_card_number: string;
+        enc_card_holder_name: string;
+        enc_card_cvv: string;
+        enc_card_expiry_date: string;
+      };
+    },
+    @Res() res: any,
+    @Req() req: any,
+  ) {
+    try {
+      const {
+        school_id,
+        sign,
+        mode,
+        amount,
+        collect_id,
+        net_banking,
+        wallet,
+        pay_later,
+        card,
+        upi
+      } = body
+      const trustee_id = req.userTrustee.id;
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('School Not Found');
+      }
+      if (trustee_id.toString() !== school.trustee_id.toString()) {
+        throw new UnauthorizedException('Unauthorize User');
+      }
+      if (!school.pg_key) {
+        throw new BadRequestException(
+          'PG is not Active for your Merchant kindly contact tarun.k@edviron.com',
+        );
+      }
+      const decoded: any = jwt.verify(sign, school.pg_key);
+      if (
+        decoded.school_id !== school_id ||
+        decoded.mode !== mode ||
+        decoded.collect_id
+      ) {
+        throw new BadRequestException('Request Fordge || Invaid Sign');
+      }
+
+      if (!Object.values(PaymentMode).includes(mode)) {
+        throw new BadRequestException("Invalid Payment Mode")
+      }
+
+      if (mode === "NB" && !Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
+
+        throw new BadRequestException('Invalid Input for bank code')
+
+      }
+
+
+      if (!Object.values(PaymentMode).includes(mode)) {
+        throw new BadRequestException("Invalid Payment Mode")
+      }
+
+      if (mode === PaymentMode.WALLET && !Object.values(EasebuzzWallets).includes(wallet?.bank_code)) {
+        throw new BadRequestException("Invalid Wallet Code")
+      }
+
+      if (mode == PaymentMode.PAY_LATER && !Object.values(EasebuzzPayLater).includes(pay_later?.bank_code)) {
+        throw new BadRequestException("Invalid Pay_Later Code")
+      }
+
+      if (mode == PaymentMode.UPI && !Object.values(UpiModes).includes(upi?.mode)) {
+        throw new BadRequestException("Invalid mode for UPI")
+      }
+
+      if (!Object.values(PaymentMode).includes(mode)) {
+        throw new BadRequestException("Invalid Payment Mode")
+      }
+
+      if (mode === "NB" && Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
+        if (!Object.values(EasebuzzBankCode).includes(net_banking?.bank_code)) {
+          throw new BadRequestException('Invalid Input for bank code')
+        }
+      }
+
+      if (mode === PaymentMode.WALLET && !Object.values(EasebuzzWallets).includes(wallet.bank_code)) {
+        throw new BadRequestException("Invalid Wallet Code")
+      }
+
+      if (mode == PaymentMode.PAY_LATER && !Object.values(EasebuzzPayLater).includes(pay_later?.bank_code)) {
+        throw new BadRequestException("Invalid Pay_Later Code")
+      }
+
+      const token = jwt.sign({ school_id, amount }, process.env.JWT_SECRET_FOR_API_KEY)
+      const data = {
+        school_id,
+        trustee_id,
+        token,
+        mode,
+        collect_id,
+        amount,
+        net_banking: { bank_code: net_banking?.bank_code },
+        card: {
+          enc_card_number: card?.enc_card_number,
+          enc_card_holder_name: card?.enc_card_holder_name,
+          enc_card_cvv: card?.enc_card_cvv,
+          enc_card_expiry_date: card?.enc_card_expiry_date
+        },
+        wallet,
+        pay_later,
+        upi
+      }
+
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-seamless/initiate-payment`,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        data
+      }
+      const { data: paymentRes } = await axios.request(config)
+      const responseUrl = paymentRes.url
+      if (mode === "UPI") {
+        if (upi?.mode == UpiModes.QR) {
+          return res.send(paymentRes)
+        } else if (upi.mode === UpiModes.VPA) {
+          return res.send(paymentRes)
+        }
+      }
+      return res.send(paymentRes)
     } catch (e) {
       console.log(e);
 
