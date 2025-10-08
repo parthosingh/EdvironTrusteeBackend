@@ -661,7 +661,7 @@ export class TrusteeResolver {
               JSON.parse(item?.additional_data).student_details?.receipt || '',
             additional_data:
               JSON.parse(item?.additional_data).additional_fields || '',
-            currency: 'INR',
+            currency: item.currency || 'INR',
             school_id: item.merchant_id,
             school_name:
               merchant_ids_to_merchant_map[item.merchant_id].school_name,
@@ -747,7 +747,7 @@ export class TrusteeResolver {
           student_phone: parsedData.student_details?.student_phone_no || '',
           receipt: parsedData.student_details?.receipt || '',
           additional_data: parsedData.additional_fields || '',
-          currency: 'INR',
+          currency: item.currency || 'INR',
           school_id: item?.school_id,
           school_name: school?.school_name,
           remarks: remark,
@@ -4556,6 +4556,8 @@ class Error_Details {
 export class TransactionReport {
   @Field({ nullable: true })
   collect_id: string;
+  @Field({ nullable: true })
+  currency: string;
   @Field({ nullable: true })
   payment_id: string;
   @Field({ nullable: true })
