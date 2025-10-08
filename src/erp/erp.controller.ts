@@ -8636,7 +8636,9 @@ export class ErpController {
       return res.redirect(responseUrl)
     } catch (e) {
       console.log(e);
-
+      if(e.response?.data?.message){
+        throw new BadRequestException(e.response?.data?.message)
+      }
       throw new BadRequestException(e.message)
     }
   }
@@ -8796,7 +8798,9 @@ export class ErpController {
       return res.send(paymentRes)
     } catch (e) {
       console.log(e);
-
+      if(e.response?.data?.message){
+        throw new BadRequestException(e.response?.data?.message)
+      }
       throw new BadRequestException(e.message)
     }
   }
