@@ -426,7 +426,7 @@ export class MerchantResolver {
               JSON.parse(item?.additional_data).student_details?.receipt || '',
             additional_data:
               JSON.parse(item?.additional_data).additional_fields || '',
-            currency: 'INR',
+            currency: item?.currency || 'INR',
             school_id: item.merchant_id,
             school_name: merchant.school_name,
             remarks: remark,
@@ -504,7 +504,7 @@ export class MerchantResolver {
           student_phone: parsedData.student_details?.student_phone_no || '',
           receipt: parsedData.student_details?.receipt || '',
           additional_data: parsedData.additional_fields || '',
-          currency: 'INR',
+          currency: item?.currency || 'INR',
           school_id: item?.school_id,
           school_name: school?.school_name,
           remarks: remark,
