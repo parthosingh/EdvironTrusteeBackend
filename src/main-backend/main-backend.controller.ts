@@ -53,7 +53,7 @@ export class MainBackendController {
     @InjectModel(ReportsLogs.name)
     private readonly reportsLogsModel: mongoose.Model<ReportsLogs>,
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   @Post('create-trustee')
   async createTrustee(
@@ -364,11 +364,10 @@ export class MainBackendController {
     );
   }
 
-  // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE 
+  // FULL UPDATE TRUSTEE BASE --> SCHOOL BASE
   @Post('save-base-mdr/trustee-and-school')
   async savebaseMdrTrusteeAndSchool(@Body('data') token: string) {
     try {
-
       const data = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
@@ -377,17 +376,19 @@ export class MainBackendController {
         data.base_mdr.platform_charges,
       );
     } catch (e) {
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
 
   // UPDATE SCHOOL BASE | SCHOOL BASE ONLY
   @Post('save-base-mdr/school')
-  async savebaseMdrSchool(@Body() body: { token: string, school_ids: string[] }) {
+  async savebaseMdrSchool(
+    @Body() body: { token: string; school_ids: string[] },
+  ) {
     try {
       console.log('debug 0001');
 
-      const { token, school_ids } = body
+      const { token, school_ids } = body;
       const data = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
@@ -403,10 +404,9 @@ export class MainBackendController {
     } catch (e) {
       console.log(e);
 
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
-
 
   @Get('get-school-mdr')
   async schoolMdr(@Query('token') token: string) {
@@ -471,23 +471,22 @@ export class MainBackendController {
   @Get('/get-single-refund')
   async getSingleRefund(
     @Query('refund_id') refund_id: string,
-    @Query('token') token: string
+    @Query('token') token: string,
   ) {
     try {
       const decodedPayload = await this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET_FOR_INTRANET,
       });
       if (decodedPayload.refund_id !== refund_id) {
-        throw new BadRequestException('Request fordge')
+        throw new BadRequestException('Request fordge');
       }
-      const refund = await this.refundRequestModel.findById(refund_id)
+      const refund = await this.refundRequestModel.findById(refund_id);
       if (!refund) {
-        throw new BadRequestException('Invalid refund id')
+        throw new BadRequestException('Invalid refund id');
       }
-      return refund
-
+      return refund;
     } catch (e) {
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
     }
   }
 
@@ -608,8 +607,9 @@ export class MainBackendController {
           'Platform Type': item.platform_type,
           'Payment Mode': item.payment_mode,
           Upto: charge.upto || 'infinity',
-          Charge: `${charge.charge}${charge.charge_type === 'PERCENT' ? '%' : ''
-            }`,
+          Charge: `${charge.charge}${
+            charge.charge_type === 'PERCENT' ? '%' : ''
+          }`,
         });
       });
     });
@@ -656,8 +656,9 @@ export class MainBackendController {
             'Platform Type': item.platform_type,
             'Payment Mode': item.payment_mode,
             Upto: charge.upto || 'infinity',
-            Charge: `${charge.charge}${charge.charge_type === 'PERCENT' ? '%' : ''
-              }`,
+            Charge: `${charge.charge}${
+              charge.charge_type === 'PERCENT' ? '%' : ''
+            }`,
           });
         });
       });
@@ -924,7 +925,7 @@ export class MainBackendController {
         throw new NotFoundException('refund not found');
       }
       return refund;
-    } catch (e) { }
+    } catch (e) {}
   }
 
   @Post('get-settlement-reco')
@@ -1190,75 +1191,93 @@ export class MainBackendController {
 
   @Get('/get-report')
   async getReport(@Req() req: any) {
-    const {
-      school_id,
-      trustee_id,
-      start_date,
-      end_date
-    } = req.query;
+    const { school_id, trustee_id, start_date, end_date } = req.query;
 
     return await this.trusteeService.generateSettlementRecon(
       trustee_id,
       start_date,
       end_date,
       school_id,
-    )
-
+    );
   }
-
 
   @Get('/get-vendors-list')
   async getVendorsList(
-    @Query('school_id') school_id:string,
-    @Query('token') token:string
-  ){
-    try{
+    @Query('school_id') school_id: string,
+    @Query('token') token: string,
+  ) {
+    try {
       console.log(school_id);
-      
-      const vendors=await this.vendorsModel.find(
-        {
-          school_id:new Types.ObjectId(school_id),
-          status:'ACTIVE'
-        }
-      ).select('name email')
-      return vendors
-    }catch(e){
+
+      const vendors = await this.vendorsModel
+        .find({
+          school_id: new Types.ObjectId(school_id),
+          status: 'ACTIVE',
+        })
+        .select('name email');
+      return vendors;
+    } catch (e) {
       console.log(e);
-      throw new BadRequestException(e.message || "internal server error")
+      throw new BadRequestException(e.message || 'internal server error');
     }
   }
 
   @Get('/get-key-iv')
-  async generateKeyAndIv(
-    @Req() req: any
-  ) {
+  async generateKeyAndIv(@Req() req: any) {
     try {
-      const { school_id,sign } = req.query
-      if(!school_id || !sign){
-        throw new BadRequestException('Requred Parameter Missing')
+      const { school_id, sign } = req.query;
+      if (!school_id || !sign) {
+        throw new BadRequestException('Requred Parameter Missing');
       }
 
       const decoded = this.jwtService.verify(sign, {
         secret: process.env.PAYMENTS_SERVICE_SECRET,
-      }) 
+      });
 
-      if(decoded.school_id !== school_id){
-        throw new BadRequestException('Request Fordge')
+      if (decoded.school_id !== school_id) {
+        throw new BadRequestException('Request Fordge');
       }
 
-      const school = await this.trusteeSchoolModel.findOne({ school_id: new Types.ObjectId(school_id) })
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
       if (!school) {
-        throw new BadRequestException("Invalid School Id")
+        throw new BadRequestException('Invalid School Id');
       }
 
       if (!school.pg_key) {
-        throw new BadRequestException("PG is not Active")
+        throw new BadRequestException('PG is not Active');
       }
-      console.log({school_id,pg:school.pg_key});
-      
-      return await this.mainBackendService.merchantKeyIv(school_id, school.pg_key)
+      console.log({ school_id, pg: school.pg_key });
+
+      return await this.mainBackendService.merchantKeyIv(
+        school_id,
+        school.pg_key,
+      );
     } catch (e) {
-      throw new BadRequestException(e.message)
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @Get('is-razorpay-school')
+  async isRazorpaySchool(@Query('school_id') school_id: string) {
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('school not found');
+      }
+      if (school?.razorpay_seamless && school?.razorpay_seamless?.razorpay_id) {
+        return {
+          isRazorpaySchool: true,
+        };
+      }
+      return {
+        isRazorpaySchool: false,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message || '')
     }
   }
 }

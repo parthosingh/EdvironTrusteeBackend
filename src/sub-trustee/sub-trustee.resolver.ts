@@ -315,7 +315,7 @@ export class SubTrusteeResolver {
           payment_modes,
           isQRCode,
           gateway,
-          school_ids: schoolIds,
+          school_id: schoolIds,
         },
       };
 
