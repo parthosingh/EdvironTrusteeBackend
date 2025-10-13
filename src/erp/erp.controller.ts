@@ -7119,10 +7119,16 @@ export class ErpController {
           );
         }
       }
+      
 
-      if (mode === 'DEMAND_DRAFT') {
-        if (dd_detail.amount < 0) {
+     if (mode === 'DEMAND_DRAFT') {
+        if (dd_detail.amount < 0 ) {
           throw new BadRequestException('amount can not be less then zero');
+        }
+        if (dd_detail.amount !== amount) {
+          throw new BadRequestException(
+            `Demand draft amount mismatch: expected ${amount}, got ${dd_detail.amount}`,
+          );
         }
         if (
           !dd_detail.amount ||
@@ -7133,21 +7139,29 @@ export class ErpController {
         ) {
           throw new BadRequestException('all fields required');
         }
+        if(dd_detail.dd_number.length > 7){
+          throw new BadRequestException('Invalid DD number.');
+        }
       }
 
       if (mode === 'EDVIRON_NETBANKING') {
         if (Number(netBankingDetails.amount) < 0) {
           throw new BadRequestException('amount can not be less then zero');
         }
+
         if (
-          !netBankingDetails.amount ||
-          !netBankingDetails.payer ||
-          !netBankingDetails.recivers
+          !netBankingDetails?.amount ||
+          !netBankingDetails?.payer?.bank_holder_name ||
+          !netBankingDetails?.payer?.bank_name ||
+          !netBankingDetails?.payer?.ifsc ||
+          !netBankingDetails?.recivers?.bank_holder_name ||
+          !netBankingDetails?.recivers?.bank_name ||
+          !netBankingDetails?.recivers?.ifsc 
         ) {
           throw new BadRequestException('all fields required');
         }
       }
-      if (mode === 'CHEQUE') {
+      if (mode.toUpperCase() === 'CHEQUE') {
         if (
           !cheque_detail.accountHolderName ||
           !cheque_detail.bankName ||
@@ -7155,6 +7169,9 @@ export class ErpController {
           !cheque_detail.dateOnCheque
         ) {
           throw new BadRequestException('all fields required');
+        }
+        if(cheque_detail.chequeNo.length !== 6){
+          throw new BadRequestException('Invalid Cheque number.')
         }
       }
 
@@ -7199,9 +7216,7 @@ export class ErpController {
         );
 
         document_url = link;
-        console.log('Uploaded to S3:', link);
       }
-
       if (isSplit && !vendors_info) {
         throw new BadRequestException(
           'Vendors information is required for split payments',
