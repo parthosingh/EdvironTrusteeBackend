@@ -27,6 +27,8 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { BusinessAlarmModule } from './business-alarm/business-alarm.module';
 import { PdfServiceModule } from './pdf-service/pdf-service.module';
 import { SubTrusteeModule } from './sub-trustee/sub-trustee.module';
+import { DatabaseModule } from './database/database.module';
+import { CanteenModule } from './canteen/canteen.module';
 config();
 
 @Module({
@@ -56,6 +58,8 @@ config();
     BusinessAlarmModule,
     PdfServiceModule,
     SubTrusteeModule,
+    DatabaseModule,
+    CanteenModule,
   ],
 
   controllers: [AppController],

@@ -126,8 +126,7 @@ export class ErpService {
       );
 
       if (!trustee) throw new NotFoundException('trustee not found');
-      console.log(trustee);
-
+      
       if (trustee.IndexOfApiKey !== decodedPayload.IndexOfApiKey)
         throw new Error('API key expired');
 
