@@ -281,7 +281,6 @@ export class ErpController {
           name?: string;
         },
       ];
-      isSelectGateway?: boolean;
     },
     @Req() req,
   ) {
@@ -302,8 +301,7 @@ export class ErpController {
         req_webhook_urls,
         split_payments,
         vendors_info,
-        currency,
-        isSelectGateway,
+        currency
       } = body;
       let { disabled_modes } = body;
 
@@ -376,6 +374,7 @@ export class ErpController {
           HttpStatus.NOT_FOUND,
         );
       }
+      const isSelectGateway =school.isMasterGateway || false
 
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
