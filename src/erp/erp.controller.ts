@@ -6764,6 +6764,7 @@ export class ErpController {
         },
       ];
       installment_name: string;
+      webhook_url ?: string;
     },
   ) {
     const trustee_id = req.userTrustee.id;
@@ -6784,6 +6785,7 @@ export class ErpController {
       isInstallement,
       installments,
       installment_name,
+      webhook_url,
     } = body;
     const { student_id, student_number, student_name, student_email } =
       student_detail;
@@ -6794,9 +6796,11 @@ export class ErpController {
       if (!school) {
         throw new BadRequestException('School not found');
       }
-      console.log(trustee_id, 'tid', school.trustee_id);
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new BadRequestException('Invalid School Id');
+      }
+      if(!callback_url){
+        throw new BadRequestException('callback url required')
       }
 
       const token = this.jwtService.sign(
@@ -6873,6 +6877,7 @@ export class ErpController {
         installments,
         installment_name,
         callback_url,
+        webhook_url,
         sign: 'update later',
       };
 
@@ -6937,6 +6942,7 @@ export class ErpController {
           bank_holder_name: string;
           bank_name: string;
           ifsc: string;
+          account_no: string;
         };
         recivers: {
           bank_holder_name: string;
@@ -7094,7 +7100,7 @@ export class ErpController {
           },
           0,
         );
-        if (totalCash < amount) {
+        if (totalCash !== amount) {
           throw new BadRequestException(
             `Cash mismatch: expected ${amount}, got ${totalCash}`,
           );
@@ -7154,9 +7160,11 @@ export class ErpController {
           !netBankingDetails?.payer?.bank_holder_name ||
           !netBankingDetails?.payer?.bank_name ||
           !netBankingDetails?.payer?.ifsc ||
-          !netBankingDetails?.recivers?.bank_holder_name ||
-          !netBankingDetails?.recivers?.bank_name ||
-          !netBankingDetails?.recivers?.ifsc 
+          !netBankingDetails?.payer?.account_no
+          // ||
+          // !netBankingDetails?.recivers?.bank_holder_name ||
+          // !netBankingDetails?.recivers?.bank_name ||
+          // !netBankingDetails?.recivers?.ifsc 
         ) {
           throw new BadRequestException('all fields required');
         }
