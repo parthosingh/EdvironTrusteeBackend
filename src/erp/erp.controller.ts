@@ -87,6 +87,7 @@ import {
   UpiModes,
 } from 'src/utils/enums';
 import { SchoolBaseMdr } from 'src/schema/school.base.mdr.schema';
+import { stat } from 'fs';
 
 @Controller('erp')
 export class ErpController {
@@ -3189,7 +3190,7 @@ export class ErpController {
         throw error;
       }
       if (error.response?.data?.message) {
-        if(error.response.data.message === 'Collect request not found'){
+        if (error.response.data.message === 'Collect request not found') {
           throw new NotFoundException('Invalid Order id');
         }
         throw new BadRequestException(error.response.data.message);
@@ -3292,7 +3293,7 @@ export class ErpController {
 
   @Get('settlements')
   @UseGuards(ErpGuard)
-  async getSettlements(@Req() req) {
+  async getSettlements(@Req() req: any) {
     try {
       const trustee_id = req.userTrustee.id;
       const school_id = req.query.school_id;
@@ -3306,16 +3307,30 @@ export class ErpController {
       };
 
       if (school_id) {
+        const school = await this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(school_id),
+          trustee_id: trustee_id,
+        });
+        if (!school) {
+          throw new HttpException(
+            {
+              message: `Merchant Not found for school_id: ${school_id}`,
+              error: 'Not Found Error',
+              statusCode: '404'
+            },
+            HttpStatus.NOT_FOUND,
+          );
+        }
         filterQuery = {
           ...filterQuery,
           schoolId: new Types.ObjectId(school_id),
         };
       }
-      const dateRegex =/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+      const dateRegex = /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
 
 
       if (startDate && endDate) {
-        if(!dateRegex.test(startDate) || !dateRegex.test(endDate)){
+        if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
           throw new HttpException(
             {
               message: `Invalid date format. Please use 'YYYY-MM-DD' format.`,
@@ -3348,12 +3363,16 @@ export class ErpController {
       const count = await this.settlementModel.countDocuments(filterQuery);
       const total_pages = Math.ceil(count / limit);
       return {
+        statusCode: '200',
         page,
         limit,
         settlements,
         total_pages,
       };
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new BadRequestException(error.message);
     }
   }
@@ -3566,7 +3585,14 @@ export class ErpController {
         trustee_id: trustee_id,
       });
       if (!school) {
-        throw new NotFoundException('School not found');
+        throw new HttpException(
+          {
+            message: `Merchant Not found for school_id: ${req.params.school_id}`,
+            error: 'Not Found Error',
+            statusCode: '404'
+          },
+          HttpStatus.NOT_FOUND,
+        );
       }
 
       const page = Number(req.query.page || 1);
@@ -3608,47 +3634,115 @@ export class ErpController {
       };
       let transactions = [];
       const response = await axios.request(config);
+
       if (
         response.data?.transactions &&
         response.data !== 'No orders found for clientId'
       ) {
-        const modifiedResponseData = response.data.transactions.map((item) => ({
-          ...item,
-          student_id:
-            JSON.parse(item?.additional_data).student_details?.student_id || '',
 
-          student_name:
-            JSON.parse(item?.additional_data).student_details?.student_name ||
-            '',
+        const transactions_rep = response.data.transactions.map((item: any) => {
+          const date = new Date(item.updatedAt);
+          const {
+            easebuzzVendors,
+            cashfreeVedors,
+            worldline_vendors_info,
+            razorpay_vendors_info,
+            cashfree_credentials,
+            easebuzz_non_partner_cred,
+            document_url,
+            ntt_data,
+            easebuzz_non_partner,
+            cashfree_non_partner,
+            isMasterGateway,
+            razorpay_partner,
+            razorpay,
+            razorpay_seamless,
+            isVBAPaymentComplete,
+            isCFNonSeamless,
+            ...rest
+          } = item;
 
-          student_email:
-            JSON.parse(item?.additional_data).student_details?.student_email ||
-            '',
-          student_phone:
-            JSON.parse(item?.additional_data).student_details
-              ?.student_phone_no || '',
-          receipt:
-            JSON.parse(item?.additional_data).student_details?.receipt || '',
-          additional_data:
-            JSON.parse(item?.additional_data).additional_fields || '',
 
-          merchant_name: school.school_name,
-          school_id: school_id,
-          school_name: school.school_name,
-          currency: 'INR',
-        }));
-        transactions.push(...modifiedResponseData);
+          const additionalData = item?.additional_data ? JSON.parse(item.additional_data) : null;
+
+          const student_id = additionalData?.student_details?.student_id || '';
+          const student_name = additionalData?.student_details?.student_name || '';
+          const student_email = additionalData?.student_details?.student_email || '';
+          const student_phone = additionalData?.student_details?.student_phone_no || '';
+          const receipt = additionalData?.student_details?.receipt || '';
+          const extra_fields = additionalData?.additional_fields || '';
+
+          return {
+            ...rest,
+            merchant_name:
+              school.school_name,
+            student_id,
+            student_name,
+            student_email,
+            student_phone,
+            receipt,
+            additional_data: additionalData?.additional_fields || '',
+            school_id: school.school_id,
+            school_name: school.school_name,
+            formattedDate: `${date.getFullYear()}-${String(
+              date.getMonth() + 1,
+            ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+          };
+        });
+
+        // const modifiedResponseData = response.data.transactions.map((item:any) => (
+        //   {
+        //   ...item,
+        //   // student_id:
+        //   //   JSON.parse(item?.additional_data)?.student_details?.student_id || '',
+
+        //   // student_name:
+        //   //   JSON.parse(item?.additional_data)?.student_details?.student_name ||
+        //   //   '',
+
+        //   // student_email:
+        //   //   JSON.parse(item?.additional_data)?.student_details?.student_email ||
+        //   //   '',
+        //   // student_phone:
+        //   //   JSON.parse(item?.additional_data)?.student_details
+        //   //     ?.student_phone_no || '',
+        //   receipt:
+        //     JSON.parse(item?.additional_data)?.student_details?.receipt || '',
+        //   additional_data:
+        //     JSON.parse(item?.additional_data)?.additional_fields || '',
+        //   merchant_name: school.school_name,
+        //   school_id: school_id,
+        //   school_name: school.school_name,
+        //   currency: 'INR',
+        // }));
+        // transactions.push(...modifiedResponseData);
+        const total_pages = Math.ceil(response.data.totalTransactions / limit);
+        return {
+          page,
+          limit,
+          statusCode: '200',
+          transactions: transactions_rep,
+          total_records: response.data.totalTransactions,
+          total_pages,
+        };
       }
 
-      const total_pages = Math.ceil(response.data.totalTransactions / limit);
-      return {
-        page,
-        limit,
-        transactions,
-        total_records: response.data.totalTransactions,
-        total_pages,
-      };
+      throw new HttpException(
+        {
+          message: `No transactions found`,
+          error: 'Not Found Error',
+          statusCode: '404'
+        },
+        HttpStatus.NOT_FOUND
+      )
+
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      if (error.response?.data?.message) {
+        throw new BadRequestException(error.response.data.message);
+      }
       throw new BadRequestException(error.message);
     }
   }
@@ -3664,9 +3758,24 @@ export class ErpController {
       const start_date = req.query.start_date || null;
       const end_date = req.query.end_date || null;
 
+      const dateRegex = /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+      if (start_date && end_date) {
+        if (!dateRegex.test(start_date) || !dateRegex.test(end_date)) {
+          throw new HttpException(
+            {
+              message: `Invalid date format. Please use 'YYYY-MM-DD' format.`,
+              error: 'Bad Request Error',
+              statusCode: '422'
+            },
+            HttpStatus.UNPROCESSABLE_ENTITY
+          )
+        }
+      }
+
       const merchants = await this.trusteeSchoolModel.find({
         trustee_id: trustee_id,
       });
+
       const merchant_ids_to_merchant_map = {};
       merchants.map((merchant: any) => {
         merchant_ids_to_merchant_map[merchant.school_id] = merchant;
@@ -3699,8 +3808,27 @@ export class ErpController {
       const total_pages = Math.ceil(response.data.totalTransactions / limit);
       const transactions = response.data.transactions.map((item: any) => {
         const date = new Date(item.updatedAt);
+        const {
+          easebuzzVendors,
+          cashfreeVedors,
+          worldline_vendors_info,
+          razorpay_vendors_info,
+          cashfree_credentials,
+          easebuzz_non_partner_cred,
+          document_url,
+          ntt_data,
+          easebuzz_non_partner,
+          cashfree_non_partner,
+          isMasterGateway,
+          razorpay_partner,
+          razorpay,
+          razorpay_seamless,
+          isCFNonSeamless,
+          isVBAPaymentComplete,
+          ...rest
+        } = item;
         return {
-          ...item,
+          ...rest,
           merchant_name:
             merchant_ids_to_merchant_map[item.merchant_id].school_name,
           student_id:
@@ -3732,11 +3860,18 @@ export class ErpController {
       return {
         page,
         limit,
+        statusCode: '200',
         transactions,
         total_records: response.data.totalTransactions,
         total_pages,
       };
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      if (error.response?.data?.message) {
+        throw new BadRequestException(error.response.data.message);
+      }
       throw new Error(error.message);
     }
   }
