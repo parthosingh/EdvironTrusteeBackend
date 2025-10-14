@@ -126,7 +126,7 @@ export class ErpController {
     private disputeModel: mongoose.Model<Disputes>,
     @InjectModel(SchoolBaseMdr.name)
     private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
-  ) { }
+  ) {}
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -317,7 +317,7 @@ export class ErpController {
           {
             message: `School id is Required`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
@@ -327,7 +327,7 @@ export class ErpController {
           {
             message: `amount is Required`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
@@ -337,7 +337,7 @@ export class ErpController {
           {
             message: `Callback url is Required`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
@@ -347,12 +347,11 @@ export class ErpController {
           {
             message: `sign is Required`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
       }
-
 
       // if (body.student_phone_no || body.student_email) {
       //   if (!body.student_name) {
@@ -372,7 +371,7 @@ export class ErpController {
           {
             message: `Merchant Not found for school_id: ${school_id}`,
             error: 'Not Found Error',
-            statusCode: '404'
+            statusCode: '404',
           },
           HttpStatus.NOT_FOUND,
         );
@@ -386,7 +385,7 @@ export class ErpController {
           {
             message: `PG Gatreway is Not Activated for school_id: ${school_id}`,
             error: 'Forbidden Error',
-            statusCode: '403'
+            statusCode: '403',
           },
           HttpStatus.FORBIDDEN,
         );
@@ -396,7 +395,7 @@ export class ErpController {
           {
             message: `Split Information Not Configure Please contact tarun.k@edviron.com`,
             error: 'Bad Request Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.BAD_REQUEST,
         );
@@ -418,7 +417,7 @@ export class ErpController {
               {
                 message: `Student details are required for VBA payment`,
                 error: 'Validation Error',
-                statusCode: '400'
+                statusCode: '400',
               },
               HttpStatus.UNPROCESSABLE_ENTITY,
             );
@@ -448,7 +447,7 @@ export class ErpController {
             {
               message: `Invalid Payment Mode for disable Modes`,
               error: 'Forbidden Error',
-              statusCode: '403'
+              statusCode: '403',
             },
             HttpStatus.FORBIDDEN,
           );
@@ -463,7 +462,7 @@ export class ErpController {
           {
             message: `Vendors information is Required for Split payments`,
             error: 'Forbidden Error',
-            statusCode: '403'
+            statusCode: '403',
           },
           HttpStatus.FORBIDDEN,
         );
@@ -491,7 +490,7 @@ export class ErpController {
                 {
                   message: `Vendor id is Required`,
                   error: 'Bad Request',
-                  statusCode: '403'
+                  statusCode: '403',
                 },
                 HttpStatus.UNPROCESSABLE_ENTITY,
               );
@@ -505,7 +504,7 @@ export class ErpController {
                 {
                   message: `Vendor Not found for ${vendor.vendor_id}`,
                   error: 'Not Found Error',
-                  statusCode: '404'
+                  statusCode: '404',
                 },
                 HttpStatus.NOT_FOUND,
               );
@@ -516,7 +515,7 @@ export class ErpController {
                 {
                   message: `Vendor is not Active for ${vendor.vendor_id}`,
                   error: 'Forbidden Error',
-                  statusCode: '403'
+                  statusCode: '403',
                 },
                 HttpStatus.FORBIDDEN,
               );
@@ -527,7 +526,7 @@ export class ErpController {
                 {
                   message: `Split not Active for your Account`,
                   error: 'Forbidden Error',
-                  statusCode: '403'
+                  statusCode: '403',
                 },
                 HttpStatus.FORBIDDEN,
               );
@@ -545,7 +544,7 @@ export class ErpController {
                 {
                   message: `Split not Active for your Account`,
                   error: 'Forbidden Error',
-                  statusCode: '403'
+                  statusCode: '403',
                 },
                 HttpStatus.FORBIDDEN,
               );
@@ -567,7 +566,7 @@ export class ErpController {
                 {
                   message: `Vendor id is Required`,
                   error: 'Bad Request',
-                  statusCode: '403'
+                  statusCode: '403',
                 },
                 HttpStatus.UNPROCESSABLE_ENTITY,
               );
@@ -583,7 +582,7 @@ export class ErpController {
                 {
                   message: `Vendor not found for ${vendor.vendor_id}`,
                   error: 'Not Found Error',
-                  statusCode: '443'
+                  statusCode: '443',
                 },
                 HttpStatus.NOT_FOUND,
               );
@@ -675,7 +674,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -841,7 +840,7 @@ export class ErpController {
           {
             message: `Request Forged | Invalid Sign`,
             error: 'Unauthorized Error',
-            statusCode: '401'
+            statusCode: '401',
           },
           HttpStatus.UNAUTHORIZED,
         );
@@ -891,7 +890,7 @@ export class ErpController {
             {
               message: `Gateway not Configured`,
               error: 'Bad Request Error',
-              statusCode: '500'
+              statusCode: '500',
             },
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
@@ -902,7 +901,7 @@ export class ErpController {
             {
               message: `Split not Configured`,
               error: 'Bad Request Error',
-              statusCode: '500'
+              statusCode: '500',
             },
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
@@ -1111,7 +1110,6 @@ export class ErpController {
           ),
         };
       }
-
 
       const data = JSON.stringify({
         amount,
@@ -1445,7 +1443,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1532,7 +1530,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2226,7 +2224,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2314,7 +2312,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2752,7 +2750,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -2953,7 +2951,7 @@ export class ErpController {
           {
             message: `Missing required field collect id`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
         );
@@ -2963,7 +2961,7 @@ export class ErpController {
           {
             message: `Invalid Collect id`,
             error: 'Not Found Error',
-            statusCode: '404'
+            statusCode: '404',
           },
           HttpStatus.NOT_FOUND, // You can change this (e.g., 422, 401, etc.)
         );
@@ -2973,7 +2971,7 @@ export class ErpController {
           {
             message: `Missing required field school id`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
         );
@@ -2983,7 +2981,7 @@ export class ErpController {
           {
             message: `Missing required field Sign`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
         );
@@ -2996,7 +2994,7 @@ export class ErpController {
           {
             message: `Merchant Not found for school_id: ${school_id}`,
             error: 'Not Found Error',
-            statusCode: '404'
+            statusCode: '404',
           },
           HttpStatus.NOT_FOUND,
         );
@@ -3007,7 +3005,7 @@ export class ErpController {
           {
             message: `UNAUTHORIZED User`,
             error: 'Unauthorized Error',
-            statusCode: '401'
+            statusCode: '401',
           },
           HttpStatus.UNAUTHORIZED,
         );
@@ -3018,7 +3016,7 @@ export class ErpController {
           {
             message: `PG Gatreway is Not Activated for school_id: ${school_id}`,
             error: 'Forbidden Error',
-            statusCode: '403'
+            statusCode: '403',
           },
           HttpStatus.FORBIDDEN,
         );
@@ -3034,7 +3032,7 @@ export class ErpController {
           {
             message: `Request Forged | Invalid Sign`,
             error: 'Unauthorized Error',
-            statusCode: '401'
+            statusCode: '401',
           },
           HttpStatus.UNAUTHORIZED,
         );
@@ -3043,13 +3041,14 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: collect_request_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: collect_request_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3093,7 +3092,7 @@ export class ErpController {
           {
             message: `Missing required field order_id`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
         );
@@ -3103,7 +3102,7 @@ export class ErpController {
           {
             message: `Missing required field school_id`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
         );
@@ -3113,7 +3112,7 @@ export class ErpController {
           {
             message: `Missing required field sign`,
             error: 'Validation Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
         );
@@ -3126,7 +3125,7 @@ export class ErpController {
           {
             message: `Merchant Not found for school_id: ${school_id}`,
             error: 'Not Found Error',
-            statusCode: '404'
+            statusCode: '404',
           },
           HttpStatus.NOT_FOUND,
         );
@@ -3137,7 +3136,7 @@ export class ErpController {
           {
             message: `UNAUTHORIZED User`,
             error: 'Unauthorized Error',
-            statusCode: '401'
+            statusCode: '401',
           },
           HttpStatus.UNAUTHORIZED,
         );
@@ -3146,9 +3145,10 @@ export class ErpController {
       if (!school.pg_key) {
         throw new HttpException(
           {
-            message: 'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+            message:
+              'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
             error: 'Bad Request Error',
-            statusCode: '400'
+            statusCode: '400',
           },
           HttpStatus.BAD_REQUEST,
         );
@@ -3160,7 +3160,7 @@ export class ErpController {
           {
             message: `Request Forged | Invalid Sign`,
             error: 'Unauthorized Error',
-            statusCode: '401'
+            statusCode: '401',
           },
           HttpStatus.UNAUTHORIZED,
         );
@@ -3169,15 +3169,16 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: order_id,
-              trusteeId: trustee_id,
-              school_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: order_id,
+            trusteeId: trustee_id,
+            school_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3316,7 +3317,7 @@ export class ErpController {
             {
               message: `Merchant Not found for school_id: ${school_id}`,
               error: 'Not Found Error',
-              statusCode: '404'
+              statusCode: '404',
             },
             HttpStatus.NOT_FOUND,
           );
@@ -3328,17 +3329,16 @@ export class ErpController {
       }
       const dateRegex = /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
 
-
       if (startDate && endDate) {
         if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
           throw new HttpException(
             {
               message: `Invalid date format. Please use 'YYYY-MM-DD' format.`,
               error: 'Bad Request Error',
-              statusCode: '422'
+              statusCode: '422',
             },
-            HttpStatus.UNPROCESSABLE_ENTITY
-          )
+            HttpStatus.UNPROCESSABLE_ENTITY,
+          );
         }
         const start_date = new Date(startDate);
         const end_date = new Date(endDate);
@@ -3589,7 +3589,7 @@ export class ErpController {
           {
             message: `Merchant Not found for school_id: ${req.params.school_id}`,
             error: 'Not Found Error',
-            statusCode: '404'
+            statusCode: '404',
           },
           HttpStatus.NOT_FOUND,
         );
@@ -3639,7 +3639,6 @@ export class ErpController {
         response.data?.transactions &&
         response.data !== 'No orders found for clientId'
       ) {
-
         const transactions_rep = response.data.transactions.map((item: any) => {
           const date = new Date(item.updatedAt);
           const {
@@ -3662,20 +3661,23 @@ export class ErpController {
             ...rest
           } = item;
 
-
-          const additionalData = item?.additional_data ? JSON.parse(item.additional_data) : null;
+          const additionalData = item?.additional_data
+            ? JSON.parse(item.additional_data)
+            : null;
 
           const student_id = additionalData?.student_details?.student_id || '';
-          const student_name = additionalData?.student_details?.student_name || '';
-          const student_email = additionalData?.student_details?.student_email || '';
-          const student_phone = additionalData?.student_details?.student_phone_no || '';
+          const student_name =
+            additionalData?.student_details?.student_name || '';
+          const student_email =
+            additionalData?.student_details?.student_email || '';
+          const student_phone =
+            additionalData?.student_details?.student_phone_no || '';
           const receipt = additionalData?.student_details?.receipt || '';
           const extra_fields = additionalData?.additional_fields || '';
 
           return {
             ...rest,
-            merchant_name:
-              school.school_name,
+            merchant_name: school.school_name,
             student_id,
             student_name,
             student_email,
@@ -3731,11 +3733,10 @@ export class ErpController {
         {
           message: `No transactions found`,
           error: 'Not Found Error',
-          statusCode: '404'
+          statusCode: '404',
         },
-        HttpStatus.NOT_FOUND
-      )
-
+        HttpStatus.NOT_FOUND,
+      );
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -3765,10 +3766,10 @@ export class ErpController {
             {
               message: `Invalid date format. Please use 'YYYY-MM-DD' format.`,
               error: 'Bad Request Error',
-              statusCode: '422'
+              statusCode: '422',
             },
-            HttpStatus.UNPROCESSABLE_ENTITY
-          )
+            HttpStatus.UNPROCESSABLE_ENTITY,
+          );
         }
       }
 
@@ -3882,20 +3883,48 @@ export class ErpController {
     try {
       const { sign, school_id, collect_request_id } = req.query;
       if (!sign) {
-        throw new BadRequestException('Invalid signature');
+        throw new HttpException(
+          {
+            message: `Request Forged | Invalid Sign`,
+            error: 'Unauthorized Error',
+            statusCode: '401',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
       if (!school_id) {
-        throw new BadRequestException('Invalid school_id');
+        throw new HttpException(
+          {
+            message: `Missing required field school id`,
+            error: 'Validation Error',
+            statusCode: '400',
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+        );
       }
       if (!collect_request_id) {
-        throw new BadRequestException('Invalid collect_request_id');
+        throw new HttpException(
+          {
+            message: `Invalid Collect id`,
+            error: 'Not Found Error',
+            statusCode: '404',
+          },
+          HttpStatus.NOT_FOUND, // You can change this (e.g., 422, 401, etc.)
+        );
       }
 
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
       if (!school) {
-        throw new BadRequestException('Invalid school_id');
+        throw new HttpException(
+          {
+            message: `Missing required field school id`,
+            error: 'Validation Error',
+            statusCode: '400',
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+        );
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
@@ -3903,7 +3932,14 @@ export class ErpController {
         decoded.collect_request_id != collect_request_id ||
         decoded.school_id != school_id
       ) {
-        throw new ForbiddenException('request forged');
+        throw new HttpException(
+          {
+            message: `UNAUTHORIZED User`,
+            error: 'Unauthorized Error',
+            statusCode: '401',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       const token = this.jwtService.sign(
@@ -3924,22 +3960,41 @@ export class ErpController {
 
       const transactions = response.data.map((item: any) => {
         const date = new Date(item.updatedAt);
+
+        const {
+          easebuzzVendors,
+          cashfreeVedors,
+          worldline_vendors_info,
+          razorpay_vendors_info,
+          cashfree_credentials,
+          easebuzz_non_partner_cred,
+          document_url,
+          ntt_data,
+          easebuzz_non_partner,
+          cashfree_non_partner,
+          isMasterGateway,
+          razorpay_partner,
+          razorpay,
+          razorpay_seamless,
+          isVBAPaymentComplete,
+          isCFNonSeamless,
+          ...rest
+        } = item;
+
+        const additionalData = item?.additional_data
+          ? JSON.parse(item.additional_data)
+          : {};
+
+        const studentDetails = additionalData?.student_details || {};
+        const additionalFields = additionalData?.additional_fields || {};
+
         return {
-          ...item,
+          ...rest,
           merchant_name: school.school_name,
-          student_id:
-            JSON.parse(item?.additional_data).student_details?.student_id || '',
-
-          student_name:
-            JSON.parse(item?.additional_data).student_details?.student_name ||
-            '',
-
-          student_email:
-            JSON.parse(item?.additional_data).student_details?.student_email ||
-            '',
-          student_phone:
-            JSON.parse(item?.additional_data).student_details
-              ?.student_phone_no || '',
+          student_id: studentDetails?.student_id || '',
+          student_name: studentDetails?.student_name || '',
+          student_email: studentDetails?.student_email || '',
+          student_phone: studentDetails?.student_phone_no || '',
           receipt:
             JSON.parse(item?.additional_data).student_details?.receipt || '',
           additional_data:
@@ -3955,8 +4010,24 @@ export class ErpController {
       if (transactions.length > 0) {
         return transactions[0];
       }
-      return {};
+      throw new HttpException(
+        {
+          message: `No transactions found`,
+          error: 'Not Found Error',
+          statusCode: '404',
+        },
+        HttpStatus.NOT_FOUND,
+      );
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      if (error.response?.data?.message) {
+        if (error.response.data.message === 'Collect request not found') {
+          throw new NotFoundException('Invalid Collect id');
+        }
+        throw new BadRequestException(error.response.data.message);
+      }
       if (error?.response?.data) {
         throw new BadRequestException(error?.response?.data?.message);
       }
@@ -4356,7 +4427,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) { }
+  async test(@Req() req: any) {}
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -4373,9 +4444,11 @@ export class ErpController {
 
       throw new HttpException(
         {
-          message: `Missing required field${missingFields.length > 1 ? 's' : ''}: ${missingFields.join(', ')}`,
+          message: `Missing required field${
+            missingFields.length > 1 ? 's' : ''
+          }: ${missingFields.join(', ')}`,
           error: 'Validation Error',
-          statusCode: '400'
+          statusCode: '400',
         },
         HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
       );
@@ -4389,7 +4462,7 @@ export class ErpController {
           {
             message: `Merchant Not found for school_id: ${school_id}`,
             error: 'Not Found Error',
-            statusCode: '404'
+            statusCode: '404',
           },
           HttpStatus.NOT_FOUND,
         );
@@ -4400,7 +4473,7 @@ export class ErpController {
           {
             message: `PG Gatreway is Not Activated for school_id: ${school_id}`,
             error: 'Forbidden Error',
-            statusCode: '403'
+            statusCode: '403',
           },
           HttpStatus.FORBIDDEN,
         );
@@ -4412,7 +4485,7 @@ export class ErpController {
           {
             message: `Request Forged | Invalid Sign`,
             error: 'Unauthorized Error',
-            statusCode: '401'
+            statusCode: '401',
           },
           HttpStatus.UNAUTHORIZED,
         );
@@ -4422,7 +4495,7 @@ export class ErpController {
           {
             message: `Request Forged | Invalid Sign`,
             error: 'Unauthorized Error',
-            statusCode: '401'
+            statusCode: '401',
           },
           HttpStatus.UNAUTHORIZED,
         );
@@ -4443,8 +4516,8 @@ export class ErpController {
       const { data: response } = await axios.request(config);
       const dqrRes = {
         ...response,
-        statusCode: '200'
-      }
+        statusCode: '200',
+      };
       return dqrRes;
     } catch (e) {
       if (e instanceof HttpException) {
@@ -4494,16 +4567,39 @@ export class ErpController {
     let dataLimit = Number(limit) || 10;
 
     if (dataLimit < 10 || dataLimit > 1000) {
-      throw new BadRequestException('Limit should be between 10 and 1000');
+      throw new HttpException(
+          {
+            message: `Limit should be between 10 and 1000`,
+            error: 'Bad Request Error',
+            statusCode: '400',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
     }
     let utrNumber = utr_number;
+    if(!utr_number){
+      throw new HttpException(
+          {
+            message: `UTR Number is Required`,
+            error: 'Not Found Error',
+            statusCode: '404',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+    }
+    
     try {
       if (settlement_id) {
         const settlement = await this.settlementModel.findById(settlement_id);
         if (!settlement) {
-          throw new NotFoundException(
-            'Settlement not found for ' + settlement_id,
-          );
+        throw new HttpException(
+          {
+            message: `Settlement not found for: ${settlement_id}`,
+            error: 'Not Found Error',
+            statusCode: '404',
+          },
+          HttpStatus.NOT_FOUND,
+        );
         }
         utrNumber = settlement.utrNumber;
       }
@@ -4553,6 +4649,7 @@ export class ErpController {
           }),
         );
 
+        console.log(settlements_transactions, "settlements_transactions")
         return {
           limit: transactions.limit,
           cursor: transactions.cursor,
@@ -4640,6 +4737,14 @@ export class ErpController {
 
         return res;
       }
+      throw new HttpException(
+        {
+          message: `No settlement found`,
+          error: 'Not Found Error',
+          statusCode: '404',
+        },
+        HttpStatus.NOT_FOUND,
+      );
     } catch (e) {
       console.log(e);
 
@@ -4846,8 +4951,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+              refundableAmount +
+              'Rs',
           );
         }
       }
@@ -5134,8 +5239,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+              refundableAmount +
+              'Rs',
           );
         }
       }
@@ -5922,7 +6027,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-          student_id,
+            student_id,
         );
       }
 
@@ -6175,8 +6280,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-        error.message ||
-        'Failed to fetch settlements',
+          error.message ||
+          'Failed to fetch settlements',
       );
     }
   }
@@ -6258,7 +6363,8 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${error.response?.data?.message || error.message
+          `External API error: ${
+            error.response?.data?.message || error.message
           }`,
         );
       }
@@ -7008,7 +7114,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
 
@@ -7228,7 +7334,7 @@ export class ErpController {
         throw new BadRequestException('Invalid School Id');
       }
       if (!callback_url) {
-        throw new BadRequestException('callback url required')
+        throw new BadRequestException('callback url required');
       }
 
       const token = this.jwtService.sign(
@@ -7554,7 +7660,6 @@ export class ErpController {
         }
       }
 
-
       if (mode === 'DEMAND_DRAFT') {
         if (dd_detail.amount < 0) {
           throw new BadRequestException('amount can not be less then zero');
@@ -7592,7 +7697,7 @@ export class ErpController {
           // ||
           // !netBankingDetails?.recivers?.bank_holder_name ||
           // !netBankingDetails?.recivers?.bank_name ||
-          // !netBankingDetails?.recivers?.ifsc 
+          // !netBankingDetails?.recivers?.ifsc
         ) {
           throw new BadRequestException('all fields required');
         }
@@ -7607,7 +7712,7 @@ export class ErpController {
           throw new BadRequestException('all fields required');
         }
         if (cheque_detail.chequeNo.length !== 6) {
-          throw new BadRequestException('Invalid Cheque number.')
+          throw new BadRequestException('Invalid Cheque number.');
         }
       }
 
@@ -7691,7 +7796,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -7821,7 +7926,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -8105,8 +8210,8 @@ export class ErpController {
         console.log(e?.response, 'e?.response');
         throw new BadRequestException(
           e?.response?.data?.message ||
-          e?.response?.message ||
-          'cashfree error',
+            e?.response?.message ||
+            'cashfree error',
         );
       }
       console.log(e, 'error');
