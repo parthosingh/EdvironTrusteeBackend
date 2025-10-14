@@ -91,6 +91,9 @@ export class I_Razorpay {
 
   @Field(() => String)
   razorpay_mid: string;
+
+  @Field(() => String)
+  razorpay_account: string;
 }
 
 registerEnumType(MinKycStatus, {
@@ -479,6 +482,10 @@ export class TrusteeSchool {
   @Prop({})
   @Field(() => Boolean, { defaultValue: false })
   nonSeamless: boolean;
+
+    @Prop({})
+  @Field(() => Boolean, { defaultValue: false })
+  isMasterGateway: boolean;
 
   createdAt?: Date;
   updatedAt?: Date;

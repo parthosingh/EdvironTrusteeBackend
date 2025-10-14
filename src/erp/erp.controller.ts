@@ -616,7 +616,25 @@ export class ErpController {
               vendors_data.gateway.includes(GATEWAY.RAZORPAY)
             ) {
               console.log('checking vendors for razorpay');
+              if (
+                school.razorpay &&
+                school.razorpay?.razorpay_id &&
+                school.razorpay?.razorpay_secret &&
+                school.razorpay?.razorpay_mid &&
+                !school.razorpay?.razorpay_account
+              ) {
+                throw new BadRequestException("Split is not Configured For your Account")
+              }
 
+              if (
+                school.razorpay_seamless &&
+                school.razorpay_seamless?.razorpay_id &&
+                school.razorpay_seamless?.razorpay_secret &&
+                school.razorpay_seamless?.razorpay_mid &&
+                !school.razorpay_seamless?.razorpay_account
+              ) {
+                throw new BadRequestException("Split is not Configured For your Account")
+              }
               if (!vendors_data.razorpayVendor?.account) {
                 throw new BadRequestException(
                   `Split Information Not Configure Please contact tarun.k@edviron.com`,
@@ -1172,14 +1190,16 @@ export class ErpController {
           razorpay_id: school.razorpay?.razorpay_id || null,
           razorpay_secret: school.razorpay?.razorpay_secret || null,
           razorpay_mid: school.razorpay?.razorpay_mid || null,
-        },
+          razorpay_account: school.razorpay?.razorpay_account || null,
+        },//non seamless
         razorpay_seamless_credentials: {
           razorpay_id: school.razorpay_seamless?.razorpay_id || null,
           razorpay_secret: school.razorpay_seamless?.razorpay_secret || null,
           razorpay_mid: school.razorpay_seamless?.razorpay_mid || null,
-        },
+          razorpay_account: school.razorpay_seamless?.razorpay_account || null,
+        },//seamless
         worldLine_vendors: worldLine_vendors || null,
-        isSelectGateway: isSelectGateway || false,
+        isSelectGateway: school.isMasterGateway || false,
         gatepay_credentials: {
           gatepay_mid: school?.gatepay?.gatepay_mid || null,
           gatepay_terminal_id: school?.gatepay?.gatepay_terminal_id || null,

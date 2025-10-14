@@ -2795,7 +2795,7 @@ export class TrusteeResolver {
       }
       console.log('here')
       if (
-        school.isEasebuzzNonPartner &&
+        // school.isEasebuzzNonPartner &&
         school.easebuzz_non_partner.easebuzz_key &&
         school.easebuzz_non_partner.easebuzz_salt &&
         school.easebuzz_non_partner.easebuzz_submerchant_id
