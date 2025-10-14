@@ -17,6 +17,8 @@ import {
   UseInterceptors,
   UploadedFiles,
   UploadedFile,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ErpService } from './erp.service';
@@ -123,7 +125,7 @@ export class ErpController {
     private disputeModel: mongoose.Model<Disputes>,
     @InjectModel(SchoolBaseMdr.name)
     private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
-  ) {}
+  ) { }
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -310,17 +312,46 @@ export class ErpController {
 
       let splitPay = split_payments;
       if (!school_id) {
-        throw new BadRequestException('School id is required');
+        throw new HttpException(
+          {
+            message: `School id is Required`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
       if (!amount) {
-        throw new BadRequestException('Amount is required');
+        throw new HttpException(
+          {
+            message: `amount is Required`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
       if (!callback_url) {
-        throw new BadRequestException('Callback url is required');
+        throw new HttpException(
+          {
+            message: `Callback url is Required`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
       if (!sign) {
-        throw new BadRequestException('sign is required');
+        throw new HttpException(
+          {
+            message: `sign is Required`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
+
 
       // if (body.student_phone_no || body.student_email) {
       //   if (!body.student_name) {
@@ -336,21 +367,37 @@ export class ErpController {
       });
 
       if (!school) {
-        throw new NotFoundException('Inalid Institute id');
+        throw new HttpException(
+          {
+            message: `Merchant Not found for school_id: ${school_id}`,
+            error: 'Not Found Error',
+            statusCode: '404'
+          },
+          HttpStatus.NOT_FOUND,
+        );
       }
-      console.log(trustee_id, school.trustee_id.toString(), 'trustee_id');
 
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
       }
       if (!school.pg_key) {
-        throw new BadRequestException(
-          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        throw new HttpException(
+          {
+            message: `PG Gatreway is Not Activated for school_id: ${school_id}`,
+            error: 'Forbidden Error',
+            statusCode: '403'
+          },
+          HttpStatus.FORBIDDEN,
         );
       }
       if (school.easebuzz_id && !school.easebuzz_school_label) {
-        throw new BadRequestException(
-          `Split Information Not Configure Please contact tarun.k@edviron.com`,
+        throw new HttpException(
+          {
+            message: `Split Information Not Configure Please contact tarun.k@edviron.com`,
+            error: 'Bad Request Error',
+            statusCode: '400'
+          },
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -366,8 +413,13 @@ export class ErpController {
             !student_name ||
             !student_phone_no
           ) {
-            throw new BadRequestException(
-              `Student details required for NEFT/RTGS`,
+            throw new HttpException(
+              {
+                message: `Student details are required for VBA payment`,
+                error: 'Validation Error',
+                statusCode: '400'
+              },
+              HttpStatus.UNPROCESSABLE_ENTITY,
             );
           }
           const vba = await this.erpService.createStudentVBA(
@@ -391,7 +443,14 @@ export class ErpController {
           (enumValue) => enumValue.toLowerCase() === lowerMode,
         ) as keyof typeof DisabledModes;
         if (!validMode) {
-          throw new BadRequestException(`Invalid payment mode: ${mode}`);
+          throw new HttpException(
+            {
+              message: `Invalid Payment Mode for disable Modes`,
+              error: 'Forbidden Error',
+              statusCode: '403'
+            },
+            HttpStatus.FORBIDDEN,
+          );
         }
         return DisabledModes[validMode];
       });
@@ -399,8 +458,13 @@ export class ErpController {
       // console.log(disabled_modes, 'disabled_modes');
 
       if (split_payments && !vendors_info) {
-        throw new BadRequestException(
-          'Vendors information is required for split payments',
+        throw new HttpException(
+          {
+            message: `Vendors information is Required for Split payments`,
+            error: 'Forbidden Error',
+            statusCode: '403'
+          },
+          HttpStatus.FORBIDDEN,
         );
       }
 
@@ -422,27 +486,50 @@ export class ErpController {
         if (school.worldline && school.worldline.encryption_key) {
           for (const vendor of vendors_info) {
             if (!vendor.vendor_id) {
-              throw new BadRequestException('Vendor ID is required');
+              throw new HttpException(
+                {
+                  message: `Vendor id is Required`,
+                  error: 'Bad Request',
+                  statusCode: '403'
+                },
+                HttpStatus.UNPROCESSABLE_ENTITY,
+              );
             }
             const vendors_data = await this.trusteeService.getVenodrInfo(
               vendor.vendor_id,
               school_id,
             );
             if (!vendors_data) {
-              throw new NotFoundException(
-                'Invalid vendor id for ' + vendor.vendor_id,
+              throw new HttpException(
+                {
+                  message: `Vendor Not found for ${vendor.vendor_id}`,
+                  error: 'Not Found Error',
+                  statusCode: '404'
+                },
+                HttpStatus.NOT_FOUND,
               );
             }
 
             if (vendors_data.status !== 'ACTIVE') {
-              throw new BadRequestException(
-                'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+              throw new HttpException(
+                {
+                  message: `Vendor is not Active for ${vendor.vendor_id}`,
+                  error: 'Forbidden Error',
+                  statusCode: '403'
+                },
+                HttpStatus.FORBIDDEN,
               );
             }
 
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
-              throw new BadRequestException('Split Not configure');
+              throw new HttpException(
+                {
+                  message: `Split not Active for your Account`,
+                  error: 'Forbidden Error',
+                  statusCode: '403'
+                },
+                HttpStatus.FORBIDDEN,
+              );
             }
             if (vendor.percentage) {
               throw new BadRequestException(
@@ -453,7 +540,14 @@ export class ErpController {
               !vendors_data.worldline_vendor_name &&
               vendors_data.worldline_vendor_id
             ) {
-              throw new BadRequestException('Split Not Configure');
+              throw new HttpException(
+                {
+                  message: `Split not Active for your Account`,
+                  error: 'Forbidden Error',
+                  statusCode: '403'
+                },
+                HttpStatus.FORBIDDEN,
+              );
             }
             vendorgateway.worldline = true;
             let worldlineVenodr: any = {};
@@ -468,7 +562,14 @@ export class ErpController {
           for (const vendor of vendors_info) {
             // Check if vendor_id is present
             if (!vendor.vendor_id) {
-              throw new BadRequestException('Vendor ID is required');
+              throw new HttpException(
+                {
+                  message: `Vendor id is Required`,
+                  error: 'Bad Request',
+                  statusCode: '403'
+                },
+                HttpStatus.UNPROCESSABLE_ENTITY,
+              );
             }
 
             const vendors_data = await this.trusteeService.getVenodrInfo(
@@ -477,8 +578,13 @@ export class ErpController {
             );
 
             if (!vendors_data) {
-              throw new NotFoundException(
-                'Invalid vendor id for ' + vendor.vendor_id,
+              throw new HttpException(
+                {
+                  message: `Vendor not found for ${vendor.vendor_id}`,
+                  error: 'Not Found Error',
+                  statusCode: '443'
+                },
+                HttpStatus.NOT_FOUND,
               );
             }
 
@@ -568,7 +674,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -730,7 +836,14 @@ export class ErpController {
         decoded.callback_url != callback_url ||
         decoded.school_id != school_id
       ) {
-        throw new ForbiddenException('request forged');
+        throw new HttpException(
+          {
+            message: `Request Forged | Invalid Sign`,
+            error: 'Unauthorized Error',
+            statusCode: '401'
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
       const trusteeObjId = new mongoose.Types.ObjectId(trustee_id);
       const trustee = await this.trusteeModel.findById(trusteeObjId);
@@ -773,11 +886,25 @@ export class ErpController {
           !school.easebuzz_non_partner?.easebuzz_salt ||
           !school.easebuzz_non_partner?.easebuzz_submerchant_id
         ) {
-          throw new BadRequestException('Gateway Configration Error');
+          throw new HttpException(
+            {
+              message: `Gateway not Configured`,
+              error: 'Bad Request Error',
+              statusCode: '500'
+            },
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
         }
 
         if (splitPay && !school.easebuzz_school_label) {
-          throw new BadRequestException('Split payment Not Configure');
+          throw new HttpException(
+            {
+              message: `Split not Configured`,
+              error: 'Bad Request Error',
+              statusCode: '500'
+            },
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
         }
         const webHookUrl = req_webhook_urls?.length;
         const additionalInfo = {
@@ -837,7 +964,6 @@ export class ErpController {
           };
 
           const res = await axios.request(config);
-          console.log(res);
           const response = {
             collect_request_id: res.data.collect_request_id,
             collect_request_url: res.data.collect_request_url,
@@ -985,7 +1111,6 @@ export class ErpController {
         };
       }
 
-      console.log(updatedVendorsInfo, 'updatedvendor');
 
       const data = JSON.stringify({
         amount,
@@ -1106,6 +1231,9 @@ export class ErpController {
       };
     } catch (error) {
       // console.log(error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
       if (error?.response?.data?.message) {
@@ -1316,7 +1444,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1403,7 +1531,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2097,7 +2225,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2185,7 +2313,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2623,7 +2751,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -2820,33 +2948,78 @@ export class ErpController {
       const { collect_request_id } = req.params;
       const { school_id, sign } = req.query;
       if (!collect_request_id) {
-        throw new BadRequestException('Collect request id is required');
+        throw new HttpException(
+          {
+            message: `Missing required field collect id`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+        );
       }
       if (!mongoose.Types.ObjectId.isValid(collect_request_id)) {
-        throw new BadRequestException(
-          `Invalid collect id: ${collect_request_id}`,
+        throw new HttpException(
+          {
+            message: `Invalid Collect id`,
+            error: 'Not Found Error',
+            statusCode: '404'
+          },
+          HttpStatus.NOT_FOUND, // You can change this (e.g., 422, 401, etc.)
         );
       }
       if (!school_id) {
-        throw new BadRequestException('School id is required');
+        throw new HttpException(
+          {
+            message: `Missing required field school id`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+        );
       }
       if (!sign) {
-        throw new BadRequestException('sign is required');
+        throw new HttpException(
+          {
+            message: `Missing required field Sign`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+        );
       }
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
       if (!school) {
-        throw new NotFoundException('School not found');
+        throw new HttpException(
+          {
+            message: `Merchant Not found for school_id: ${school_id}`,
+            error: 'Not Found Error',
+            statusCode: '404'
+          },
+          HttpStatus.NOT_FOUND,
+        );
       }
 
       if (school.trustee_id.toString() !== trustee_id.toString()) {
-        throw new UnauthorizedException('Unauthorized');
+        throw new HttpException(
+          {
+            message: `UNAUTHORIZED User`,
+            error: 'Unauthorized Error',
+            statusCode: '401'
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       if (!school.pg_key) {
-        throw new BadRequestException(
-          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        throw new HttpException(
+          {
+            message: `PG Gatreway is Not Activated for school_id: ${school_id}`,
+            error: 'Forbidden Error',
+            statusCode: '403'
+          },
+          HttpStatus.FORBIDDEN,
         );
       }
 
@@ -2856,20 +3029,26 @@ export class ErpController {
         decoded.collect_request_id != collect_request_id ||
         decoded.school_id != school_id
       ) {
-        throw new ForbiddenException('request forged');
+        throw new HttpException(
+          {
+            message: `Request Forged | Invalid Sign`,
+            error: 'Unauthorized Error',
+            statusCode: '401'
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2886,8 +3065,14 @@ export class ErpController {
       };
       return responseWithSign;
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       if (error.response?.data?.message) {
-        throw new BadRequestException(error.response?.data?.message);
+        if (error.response.data.message === 'Collect request not found') {
+          throw new NotFoundException('Invalid Collect id');
+        }
+        throw new BadRequestException(error.response.data.message);
       }
       if (error.name === 'JsonWebTokenError')
         throw new BadRequestException('Invalid sign');
@@ -2903,49 +3088,95 @@ export class ErpController {
       const { order_id } = req.params;
       const { school_id, sign } = req.query;
       if (!order_id) {
-        throw new BadRequestException('Order id is required');
+        throw new HttpException(
+          {
+            message: `Missing required field order_id`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+        );
       }
       if (!school_id) {
-        throw new BadRequestException('School id is required');
+        throw new HttpException(
+          {
+            message: `Missing required field school_id`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+        );
       }
       if (!sign) {
-        throw new BadRequestException('sign is required');
+        throw new HttpException(
+          {
+            message: `Missing required field sign`,
+            error: 'Validation Error',
+            statusCode: '400'
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+        );
       }
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
       if (!school) {
-        throw new NotFoundException('School not found');
+        throw new HttpException(
+          {
+            message: `Merchant Not found for school_id: ${school_id}`,
+            error: 'Not Found Error',
+            statusCode: '404'
+          },
+          HttpStatus.NOT_FOUND,
+        );
       }
 
       if (school.trustee_id.toString() !== trustee_id.toString()) {
-        throw new UnauthorizedException('Unauthorized');
+        throw new HttpException(
+          {
+            message: `UNAUTHORIZED User`,
+            error: 'Unauthorized Error',
+            statusCode: '401'
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       if (!school.pg_key) {
-        throw new BadRequestException(
-          'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+        throw new HttpException(
+          {
+            message: 'Edviron PG is not enabled for this school yet. Kindly contact us at tarun.k@edviron.com.',
+            error: 'Bad Request Error',
+            statusCode: '400'
+          },
+          HttpStatus.BAD_REQUEST,
         );
       }
 
       const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
       if (decoded.custom_order_id != order_id) {
-        throw new ForbiddenException('request forged');
+        throw new HttpException(
+          {
+            message: `Request Forged | Invalid Sign`,
+            error: 'Unauthorized Error',
+            statusCode: '401'
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -2954,7 +3185,13 @@ export class ErpController {
       const { data: paymentsServiceResp } = await axios.request(config);
       return paymentsServiceResp;
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       if (error.response?.data?.message) {
+        if(error.response.data.message === 'Collect request not found'){
+          throw new NotFoundException('Invalid Order id');
+        }
         throw new BadRequestException(error.response.data.message);
       }
 
@@ -3074,8 +3311,20 @@ export class ErpController {
           schoolId: new Types.ObjectId(school_id),
         };
       }
+      const dateRegex =/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+
 
       if (startDate && endDate) {
+        if(!dateRegex.test(startDate) || !dateRegex.test(endDate)){
+          throw new HttpException(
+            {
+              message: `Invalid date format. Please use 'YYYY-MM-DD' format.`,
+              error: 'Bad Request Error',
+              statusCode: '422'
+            },
+            HttpStatus.UNPROCESSABLE_ENTITY
+          )
+        }
         const start_date = new Date(startDate);
         const end_date = new Date(endDate);
         end_date.setHours(23, 59, 59, 999);
@@ -3955,7 +4204,7 @@ export class ErpController {
 
   @Get('/test-cron')
   async checkSettlement() {
-    const settlementDate = new Date('2025-10-08T23:59:59.695Z');
+    const settlementDate = new Date('2025-10-12T23:59:59.695Z');
     const date = new Date(settlementDate.getTime());
 
     // date.setUTCHours(0, 0, 0, 0); // Use setUTCHours to avoid time zone issues
@@ -3972,7 +4221,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -3982,28 +4231,66 @@ export class ErpController {
     @Query('sign') sign: string,
   ) {
     if (!sign || !collect_id || !school_id) {
-      throw new BadRequestException('Invalid parameters');
+      const missingFields = [];
+      if (!sign) missingFields.push('sign');
+      if (!collect_id) missingFields.push('collect_id');
+      if (!school_id) missingFields.push('school_id');
+
+      throw new HttpException(
+        {
+          message: `Missing required field${missingFields.length > 1 ? 's' : ''}: ${missingFields.join(', ')}`,
+          error: 'Validation Error',
+          statusCode: '400'
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY, // You can change this (e.g., 422, 401, etc.)
+      );
     }
     try {
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
       if (!school) {
-        throw new NotFoundException('Invalid school');
+        throw new HttpException(
+          {
+            message: `Merchant Not found for school_id: ${school_id}`,
+            error: 'Not Found Error',
+            statusCode: '404'
+          },
+          HttpStatus.NOT_FOUND,
+        );
       }
       const pg_key = school.pg_key;
       if (!pg_key) {
-        throw new NotFoundException(
-          'Payment Gateway is Not active yet for this merchant',
+        throw new HttpException(
+          {
+            message: `PG Gatreway is Not Activated for school_id: ${school_id}`,
+            error: 'Forbidden Error',
+            statusCode: '403'
+          },
+          HttpStatus.FORBIDDEN,
         );
       }
       const decrypted = this.jwtService.verify(sign, { secret: pg_key });
 
       if (decrypted.collect_id !== collect_id) {
-        throw new BadRequestException('incorrect sign');
+        throw new HttpException(
+          {
+            message: `Request Forged | Invalid Sign`,
+            error: 'Unauthorized Error',
+            statusCode: '401'
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
       if (decrypted.school_id !== school_id) {
-        throw new BadRequestException('incorrect sign');
+        throw new HttpException(
+          {
+            message: `Request Forged | Invalid Sign`,
+            error: 'Unauthorized Error',
+            statusCode: '401'
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       const pg_token = await this.jwtService.sign(
@@ -4019,8 +4306,15 @@ export class ErpController {
         },
       };
       const { data: response } = await axios.request(config);
-      return response;
+      const dqrRes = {
+        ...response,
+        statusCode: '200'
+      }
+      return dqrRes;
     } catch (e) {
+      if (e instanceof HttpException) {
+        throw e;
+      }
       if (e.response?.data?.message) {
         throw new BadRequestException(e.response.data.message);
       }
@@ -4417,8 +4711,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -4705,8 +4999,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -5493,7 +5787,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -5746,8 +6040,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-          error.message ||
-          'Failed to fetch settlements',
+        error.message ||
+        'Failed to fetch settlements',
       );
     }
   }
@@ -5829,8 +6123,7 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${
-            error.response?.data?.message || error.message
+          `External API error: ${error.response?.data?.message || error.message
           }`,
         );
       }
@@ -6580,7 +6873,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
 
@@ -6733,7 +7026,7 @@ export class ErpController {
         student_name: string;
         student_email: string;
       };
-      callback_url : string;
+      callback_url: string;
       additional_data: any;
       amount: number;
       net_amount: number;
@@ -6764,7 +7057,7 @@ export class ErpController {
         },
       ];
       installment_name: string;
-      webhook_url ?: string;
+      webhook_url?: string;
     },
   ) {
     const trustee_id = req.userTrustee.id;
@@ -6799,7 +7092,7 @@ export class ErpController {
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new BadRequestException('Invalid School Id');
       }
-      if(!callback_url){
+      if (!callback_url) {
         throw new BadRequestException('callback url required')
       }
 
@@ -7125,10 +7418,10 @@ export class ErpController {
           );
         }
       }
-      
 
-     if (mode === 'DEMAND_DRAFT') {
-        if (dd_detail.amount < 0 ) {
+
+      if (mode === 'DEMAND_DRAFT') {
+        if (dd_detail.amount < 0) {
           throw new BadRequestException('amount can not be less then zero');
         }
         if (dd_detail.amount !== amount) {
@@ -7145,7 +7438,7 @@ export class ErpController {
         ) {
           throw new BadRequestException('all fields required');
         }
-        if(dd_detail.dd_number.length > 7){
+        if (dd_detail.dd_number.length > 7) {
           throw new BadRequestException('Invalid DD number.');
         }
       }
@@ -7178,7 +7471,7 @@ export class ErpController {
         ) {
           throw new BadRequestException('all fields required');
         }
-        if(cheque_detail.chequeNo.length !== 6){
+        if (cheque_detail.chequeNo.length !== 6) {
           throw new BadRequestException('Invalid Cheque number.')
         }
       }
@@ -7263,7 +7556,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -7393,7 +7686,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -7677,8 +7970,8 @@ export class ErpController {
         console.log(e?.response, 'e?.response');
         throw new BadRequestException(
           e?.response?.data?.message ||
-            e?.response?.message ||
-            'cashfree error',
+          e?.response?.message ||
+          'cashfree error',
         );
       }
       console.log(e, 'error');
