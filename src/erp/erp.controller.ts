@@ -7305,6 +7305,7 @@ export class ErpController {
           gst: number;
           year: string;
           month: string;
+          preSelected?: boolean;
           fee_heads: [
             {
               label: string;
