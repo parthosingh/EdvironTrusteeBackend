@@ -745,6 +745,7 @@ export class TrusteeResolver {
           student_name: parsedData.student_details?.student_name || '',
           student_email: parsedData.student_details?.student_email || '',
           student_phone: parsedData.student_details?.student_phone_no || '',
+          class_name: parsedData?.additional_fields?.class_name || '',
           receipt: parsedData.student_details?.receipt || '',
           additional_data: parsedData.additional_fields || '',
           currency: item.currency || 'INR',
@@ -4572,6 +4573,8 @@ export class TransactionReport {
   payment_method: string;
   @Field({ nullable: true })
   school_name: string;
+  @Field({ nullable: true })
+  class_name: string;
   @Field({ nullable: true })
   school_id: string;
   @Field({ nullable: true })
