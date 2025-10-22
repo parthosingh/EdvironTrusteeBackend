@@ -7620,6 +7620,17 @@ export class ErpController {
         console.log(InstallmentsIds, 'InstallmentsIds');
         throw new ConflictException(`Installment Id's cant be empty`);
       }
+       const additionalInfo = {
+        student_details: {
+          student_id: student_id,
+          student_email: student_email,
+          student_name: student_name,
+          student_phone_no: student_number,
+        },
+        additional_fields: {
+          ...additional_data,
+        },
+      };
 
       if (!school_id) {
         throw new BadRequestException('School id is required');
@@ -8136,7 +8147,7 @@ export class ErpController {
         custom_order_id,
         school_name: school.school_name || 'NA',
         isSplit,
-        additional_data,
+        additional_data : additionalInfo || {},
         cashfree,
         easebuzz,
         isVBAPayment: isVBAPayment || false,
