@@ -7695,7 +7695,7 @@ export class ErpController {
         if (dd_detail.amount < 0) {
           throw new BadRequestException('amount can not be less then zero');
         }
-        if (dd_detail.amount !== amount) {
+        if (dd_detail.amount.toString() !== amount.toString()) {
           throw new BadRequestException(
             `Demand draft amount mismatch: expected ${amount}, got ${dd_detail.amount}`,
           );
