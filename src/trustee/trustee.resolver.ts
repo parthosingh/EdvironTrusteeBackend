@@ -640,35 +640,51 @@ export class TrusteeResolver {
       transactionReport = await Promise.all(
         response.data.transactions.map(async (item: any) => {
           let remark = null;
+          let additional_data = item.additional_data || ""
+          if (additional_data === "") {
+            additional_data = {}
+          }else{
+            additional_data=JSON.parse(item.additional_data)
+          }
+          // console.log(additional_data);
+          
+          try {
 
-          return {
-            ...item,
-            merchant_name:
-              merchant_ids_to_merchant_map[item.merchant_id].school_name,
-            student_id:
-              JSON.parse(item?.additional_data).student_details?.student_id ||
-              '',
-            student_name:
-              JSON.parse(item?.additional_data).student_details?.student_name ||
-              '',
-            student_email:
-              JSON.parse(item?.additional_data).student_details
-                ?.student_email || '',
-            student_phone:
-              JSON.parse(item?.additional_data).student_details
-                ?.student_phone_no || '',
-            receipt:
-              JSON.parse(item?.additional_data).student_details?.receipt || '',
-            additional_data:
-              JSON.parse(item?.additional_data).additional_fields || '',
-            currency: item.currency || 'INR',
-            school_id: item.merchant_id,
-            school_name:
-              merchant_ids_to_merchant_map[item.merchant_id].school_name,
-            remarks: remark,
-            // commission: commissionAmount,
-            custom_order_id: item?.custom_order_id || null,
-          };
+            
+            return {
+              ...item,
+              merchant_name:
+                merchant_ids_to_merchant_map[item.merchant_id].school_name,
+              student_id:
+                additional_data.student_details?.student_id ||
+                '',
+              student_name:
+                additional_data.student_details?.student_name ||
+                '',
+              student_email:
+                additional_data.student_details
+                  ?.student_email || '',
+              student_phone:
+                additional_data.student_details
+                  ?.student_phone_no || '',
+              receipt:
+                additional_data.student_details?.receipt || '',
+              additional_data:
+                additional_data.additional_fields || '',
+              currency: item.currency || 'INR',
+              school_id: item.merchant_id,
+              school_name:
+                merchant_ids_to_merchant_map[item.merchant_id].school_name,
+              remarks: remark,
+              // commission: commissionAmount,
+              custom_order_id: item?.custom_order_id || null,
+            };
+          } catch (e) {
+            console.log(item.collect_id);
+            
+            console.log(e);
+
+          }
         }),
       );
 
@@ -692,7 +708,7 @@ export class TrusteeResolver {
         current_page: transactionPage,
       };
     } catch (error) {
-      // console.log(error,'response');
+      console.log(error,'response');
       if (error?.response?.data?.message) {
         throw new BadRequestException(error?.response?.data?.message);
       }
@@ -2744,7 +2760,7 @@ export class TrusteeResolver {
       const settlement = await this.settlementReportModel.findOne({
         utrNumber: utr,
       });
-     
+
       if (settlement.trustee.toString() !== context.req.trustee.toString()) {
         throw new ForbiddenException(
           'You are not authorized to access this settlement',
@@ -2803,10 +2819,10 @@ export class TrusteeResolver {
 
       ) {
         console.log('settlement from date');
-        const settlements=await this.settlementReportModel.find({
+        const settlements = await this.settlementReportModel.find({
           schoolId: settlement.schoolId,
-          settlementDate: {$lt:settlement.settlementDate}
-        }).sort({settlementDate:-1}).select('settlementDate').limit(2);
+          settlementDate: { $lt: settlement.settlementDate }
+        }).sort({ settlementDate: -1 }).select('settlementDate').limit(2);
         let previousSettlementDate = settlements[1]?.settlementDate;
         if (!previousSettlementDate) {
           console.log('No previous settlement date found');
@@ -2819,7 +2835,7 @@ export class TrusteeResolver {
 
         const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
         console.log({ formatted_end_date }); // e.g. 06-09-2025
-        const paginatioNPage=page||1
+        const paginatioNPage = page || 1
         const res = await this.trusteeService.easebuzzSettlementRecon(
           school.easebuzz_non_partner.easebuzz_submerchant_id,
           formatted_start_date,
