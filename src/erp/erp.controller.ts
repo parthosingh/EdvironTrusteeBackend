@@ -301,7 +301,7 @@ export class ErpController {
         req_webhook_urls,
         split_payments,
         vendors_info,
-        currency
+        currency,
       } = body;
       let { disabled_modes } = body;
 
@@ -374,7 +374,7 @@ export class ErpController {
           HttpStatus.NOT_FOUND,
         );
       }
-      const isSelectGateway =school.isMasterGateway || false
+      const isSelectGateway = school.isMasterGateway || false;
 
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new UnauthorizedException('Unauthorized');
@@ -622,7 +622,9 @@ export class ErpController {
                 school.razorpay?.razorpay_mid &&
                 !school.razorpay?.razorpay_account
               ) {
-                throw new BadRequestException("Split is not Configured For your Account")
+                throw new BadRequestException(
+                  'Split is not Configured For your Account',
+                );
               }
 
               if (
@@ -632,7 +634,9 @@ export class ErpController {
                 school.razorpay_seamless?.razorpay_mid &&
                 !school.razorpay_seamless?.razorpay_account
               ) {
-                throw new BadRequestException("Split is not Configured For your Account")
+                throw new BadRequestException(
+                  'Split is not Configured For your Account',
+                );
               }
               if (!vendors_data.razorpayVendor?.account) {
                 throw new BadRequestException(
@@ -1190,13 +1194,13 @@ export class ErpController {
           razorpay_secret: school.razorpay?.razorpay_secret || null,
           razorpay_mid: school.razorpay?.razorpay_mid || null,
           razorpay_account: school.razorpay?.razorpay_account || null,
-        },//non seamless
+        }, //non seamless
         razorpay_seamless_credentials: {
           razorpay_id: school.razorpay_seamless?.razorpay_id || null,
           razorpay_secret: school.razorpay_seamless?.razorpay_secret || null,
           razorpay_mid: school.razorpay_seamless?.razorpay_mid || null,
           razorpay_account: school.razorpay_seamless?.razorpay_account || null,
-        },//seamless
+        }, //seamless
         worldLine_vendors: worldLine_vendors || null,
         isSelectGateway: school.isMasterGateway || false,
         gatepay_credentials: {
@@ -4587,38 +4591,38 @@ export class ErpController {
 
     if (dataLimit < 10 || dataLimit > 1000) {
       throw new HttpException(
-          {
-            message: `Limit should be between 10 and 1000`,
-            error: 'Bad Request Error',
-            statusCode: '400',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
+        {
+          message: `Limit should be between 10 and 1000`,
+          error: 'Bad Request Error',
+          statusCode: '400',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     }
     let utrNumber = utr_number;
-    if(!utr_number){
+    if (!utr_number) {
       throw new HttpException(
-          {
-            message: `UTR Number is Required`,
-            error: 'Not Found Error',
-            statusCode: '404',
-          },
-          HttpStatus.NOT_FOUND,
-        );
+        {
+          message: `UTR Number is Required`,
+          error: 'Not Found Error',
+          statusCode: '404',
+        },
+        HttpStatus.NOT_FOUND,
+      );
     }
-    
+
     try {
       if (settlement_id) {
         const settlement = await this.settlementModel.findById(settlement_id);
         if (!settlement) {
-        throw new HttpException(
-          {
-            message: `Settlement not found for: ${settlement_id}`,
-            error: 'Not Found Error',
-            statusCode: '404',
-          },
-          HttpStatus.NOT_FOUND,
-        );
+          throw new HttpException(
+            {
+              message: `Settlement not found for: ${settlement_id}`,
+              error: 'Not Found Error',
+              statusCode: '404',
+            },
+            HttpStatus.NOT_FOUND,
+          );
         }
         utrNumber = settlement.utrNumber;
       }
@@ -4668,7 +4672,7 @@ export class ErpController {
           }),
         );
 
-        console.log(settlements_transactions, "settlements_transactions")
+        console.log(settlements_transactions, 'settlements_transactions');
         return {
           limit: transactions.limit,
           cursor: transactions.cursor,
@@ -7620,7 +7624,7 @@ export class ErpController {
         console.log(InstallmentsIds, 'InstallmentsIds');
         throw new ConflictException(`Installment Id's cant be empty`);
       }
-       const additionalInfo = {
+      const additionalInfo = {
         student_details: {
           student_id: student_id,
           student_email: student_email,
@@ -7695,7 +7699,7 @@ export class ErpController {
         if (dd_detail.amount < 0) {
           throw new BadRequestException('amount can not be less then zero');
         }
-        if (dd_detail.amount.toString() !== amount.toString()) {
+        if (dd_detail.amount !== amount) {
           throw new BadRequestException(
             `Demand draft amount mismatch: expected ${amount}, got ${dd_detail.amount}`,
           );
@@ -8147,7 +8151,7 @@ export class ErpController {
         custom_order_id,
         school_name: school.school_name || 'NA',
         isSplit,
-        additional_data : additionalInfo || {},
+        additional_data: additionalInfo || {},
         cashfree,
         easebuzz,
         isVBAPayment: isVBAPayment || false,
@@ -8247,6 +8251,59 @@ export class ErpController {
       }
       console.log(e, 'error');
       throw new BadRequestException(e.message);
+    }
+  }
+
+  @Post('update-cheque-status')
+  @UseGuards(ErpGuard)
+  async updateChequeStatus(
+    @Body()
+    body: {
+      collect_id: string;
+      school_id: string;
+      status: string;
+      sign: string;
+    },
+  ) {
+    try {
+      const { collect_id, school_id, status, sign } = body;
+      await new this.webhooksLogsModel({
+        type: 'cheque status',
+        order_id: collect_id,
+        body: JSON.stringify(body),
+      }).save();
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('school not found');
+      }
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      if (decoded.school_id.toString() !== school_id.toString()) {
+        throw new ForbiddenException('request forged');
+      }
+      const token = this.jwtService.sign(
+        { school_id: school_id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET! },
+      );
+
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pay/update-cheque-status?token=${token}&collect_id=${collect_id}&status=${status}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+      };
+      const { data } = await axios.request(config);
+      return data;
+    } catch (error) {
+      console.log(error.response.data);
+      throw new BadRequestException(
+        error?.response?.data?.message || 'internal server error',
+      );
     }
   }
 
