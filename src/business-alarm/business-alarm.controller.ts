@@ -198,6 +198,7 @@ export class BusinessAlarmController {
     }
   }
 
+  //dynamic alter field create mail group
   @Post('create-mail-groups')
   async createMailgroup(
     @Body()
@@ -207,10 +208,11 @@ export class BusinessAlarmController {
       school_id: string;
       emails: string[];
       cc: string[];
-      isNotification: boolean;
     },
   ) {
+    console.log('Received body:', body);
     const { event_name, group_name, school_id, emails, cc } = body;
+
     try {
       const school = await this.trusteeSchool.findOne({
         school_id: new Types.ObjectId(school_id),
@@ -218,30 +220,22 @@ export class BusinessAlarmController {
       if (!school) {
         throw new BadRequestException('School not found for ' + school_id);
       }
+
       const event = await this.EmailEventModel.findOne({ event_name });
       if (!event) {
         throw new BadRequestException('Event Not found ' + event_name);
       }
+
+      // Ensure object exists
       if (!school.isNotificationOn) {
-        school.isNotificationOn = {
-          for_refund: false,
-          for_settlement: false,
-          for_transaction: false,
-        };
+        school.isNotificationOn = {};
       }
-      switch (event_name) {
-        case 'SETTLEMENT_ALERT':
-          school.isNotificationOn.for_settlement = true;
-          break;
-        case 'TRANSACTION_ALERT':
-          school.isNotificationOn.for_transaction = true;
-          break;
-        case 'REFUND_ALERT':
-          school.isNotificationOn.for_refund = true;
-          break;
-        default:
-          throw new BadRequestException('INVALID EVENT NAME');
-      }
+
+      // Dynamic key: "SETTLEMENT_ALERT" → "settlement"
+      const key = event_name.replace('_ALERT', '').toLowerCase(); // <- this is for _ALERT events
+
+      // Enable notification for this key
+      school.isNotificationOn['for_' + key] = true;
 
       school.markModified('isNotificationOn');
       await school.save();
@@ -262,6 +256,10 @@ export class BusinessAlarmController {
   @Post('create-event')
   async createEvent(@Body() body: { name: string }) {
     try {
+      if (!body.name.endsWith('_ALERT')) {
+        throw new BadRequestException('Event name must end with "_ALERT"');
+      }
+
       const event = await this.EmailEventModel.findOne({
         event_name: body.name,
       });

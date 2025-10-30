@@ -2,6 +2,8 @@ import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectType, Field, ID, registerEnumType } from '@nestjs/graphql';
 import { ObjectId, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
+import { GraphQLJSON } from 'graphql-type-json';
+
 
 export enum charge_type {
   FLAT = 'FLAT',
@@ -184,21 +186,6 @@ export class gatewaysEmails {
 }
 
 @ObjectType()
-export class isNotificationOn {
-  @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false, nullable: true })
-  for_transaction: Boolean;
-
-  @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false, nullable: true })
-  for_refund: Boolean;
-
-  @Field(() => Boolean, { nullable: true })
-  @Prop({ default: false, nullable: true })
-  for_settlement: Boolean;
-}
-
-@ObjectType()
 @Schema({ timestamps: true })
 export class TrusteeSchool {
   @Prop({ type: Types.ObjectId })
@@ -250,9 +237,10 @@ export class TrusteeSchool {
   @Field(() => gatewaysEmails, { nullable: true })
   gatewaysMail: gatewaysEmails;
 
-  @Prop()
-  @Field(() => isNotificationOn, { nullable: true })
-  isNotificationOn: isNotificationOn;
+  //dynamic alter field
+  @Prop({ type: Object, default: {} })
+  @Field(() => GraphQLJSON, { nullable: true })
+  isNotificationOn: Record<string, boolean>; // <- allows dynamic keys
 
   @Prop({})
   @Field(() => String, { nullable: true })
@@ -479,7 +467,6 @@ export class TrusteeSchool {
   @Field(() => Boolean, { defaultValue: false })
   isEasebuzzNonPartner: boolean;
 
-  
   @Prop({})
   @Field(() => Boolean, { defaultValue: false })
   cf_non_partner: boolean;
@@ -488,7 +475,7 @@ export class TrusteeSchool {
   @Field(() => Boolean, { defaultValue: false })
   nonSeamless: boolean;
 
-    @Prop({})
+  @Prop({})
   @Field(() => Boolean, { defaultValue: false })
   isMasterGateway: boolean;
 
