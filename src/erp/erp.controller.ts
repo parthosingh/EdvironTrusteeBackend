@@ -281,6 +281,7 @@ export class ErpController {
           name?: string;
         },
       ];
+      displayName?: string;
     },
     @Req() req,
   ) {
@@ -302,6 +303,7 @@ export class ErpController {
         split_payments,
         vendors_info,
         currency,
+        displayName,
       } = body;
       let { disabled_modes } = body;
 
@@ -1132,6 +1134,9 @@ export class ErpController {
         };
       }
 
+      let finalDisplayName = displayName || school.display_name || school.school_name
+
+
       const data = JSON.stringify({
         amount,
         callbackUrl: callback_url,
@@ -1154,7 +1159,7 @@ export class ErpController {
         additional_data: additionalInfo || {},
         custom_order_id: custom_order_id || null,
         req_webhook_urls: all_webhooks || null,
-        school_name: school.school_name || null,
+        school_name: finalDisplayName || null,
         easebuzz_sub_merchant_id: school.easebuzz_id || null,
         ccavenue_access_code: school.ccavenue_access_code || null,
         ccavenue_merchant_id: school.ccavenue_merchant_id || null,
@@ -3208,7 +3213,11 @@ export class ErpController {
       };
 
       const { data: paymentsServiceResp } = await axios.request(config);
-      return paymentsServiceResp;
+      return {
+        success: true,
+        message: 'Payment request fetched successfully',
+        data: paymentsServiceResp
+      };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -3225,6 +3234,105 @@ export class ErpController {
       throw error;
     }
   }
+
+
+// collect request status V2 
+@Get('collect-request-status/v2/:order_id')
+@UseGuards(ErpGuard)  
+async getCollectRequestV2(@Req() req) {
+  try {
+    const trustee_id = req.userTrustee.id;
+    const { order_id } = req.params;
+    const { school_id, sign } = req.query;
+
+    if (!order_id) {
+      throw new BadRequestException('Order id is required');
+    }
+    if (!school_id) {
+      throw new BadRequestException('School id is required');
+    }
+
+    if (!sign) {
+      throw new BadRequestException('sign is required');
+    }
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+    });
+    if (!school) {
+      throw new NotFoundException('School not found');
+    }
+
+    if (school.trustee_id.toString() !== trustee_id.toString()) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    if (!school.pg_key) {
+      throw new BadRequestException(
+        'Edviron PG is not enabled for this school yet. Kindly contact support.',
+      );
+    }
+
+    const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+    if (decoded.custom_order_id != order_id) {
+      throw new ForbiddenException('request forged');
+    }
+
+    const config = {
+      method: 'get',
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+        {
+          transactionId: order_id,
+          trusteeId: trustee_id,
+          school_id
+        },
+        { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+      )}`,
+      headers: { accept: 'application/json' },
+    };
+
+    const { data: paymentsServiceResp } = await axios.request(config);
+
+    const response = {
+      collect_id: paymentsServiceResp.collect_id,
+      custom_order_id: paymentsServiceResp.custom_order_id,
+      order_amount: paymentsServiceResp.order_amount,
+      order_time: paymentsServiceResp.order_time,
+      payment_mode: paymentsServiceResp.payment_mode,
+      payment_details: {
+        bank_ref: paymentsServiceResp.bank_ref,
+        transaction_time: paymentsServiceResp.transaction_time,
+      },
+      settlement: {
+        isSettlementComplete: paymentsServiceResp.isSettlementComplete,
+        utr: paymentsServiceResp.utr_number
+      },
+      callback_url: paymentsServiceResp.callback_url,
+      webhook: paymentsServiceResp.webhook,
+      receipt: paymentsServiceResp.receipt,
+      school_id: school_id,
+      school_name: school.school_name,
+      currency: paymentsServiceResp.currency,
+      refunds: paymentsServiceResp.refunds || [],
+      disputes: paymentsServiceResp.disputes || [],
+    };
+
+    return {
+      success: true,
+      message: 'Payment request fetched successfully',
+      data: response,
+    };;
+  } catch (error) {
+    if (error.response?.data?.message) {
+      throw new BadRequestException(error.response.data.message);
+    }
+    if (error.name === 'JsonWebTokenError') {
+      throw new BadRequestException('Invalid sign');
+    }
+    throw error;
+  }
+}
+
+
 
   @Post('sendPaymentLink')
   @UseGuards(ErpGuard)
@@ -3400,6 +3508,8 @@ export class ErpController {
     }
   }
 
+
+
   @Get('settlements/v2')
   @UseGuards(ErpGuard)
   async getSettlementsV2(@Req() req) {
@@ -3478,6 +3588,52 @@ export class ErpController {
       throw new BadRequestException(error.message);
     }
   }
+
+
+
+  //V2 for settlements    
+  @Post('settlements/v2')
+  @UseGuards(ErpGuard)
+  async getSettlementsv2(@Body() body) {
+    try {
+      const { school_id, date, status, settlement_id, page = 1, limit = 50 } = body;
+
+      const safeLimit = Math.min(limit, 1000);
+      const query: any = {};
+      if (school_id) query.school_id = school_id;
+      if (status) query.status = status;
+      if (settlement_id) query.settlement_id = settlement_id;
+      if (date) {
+        if (!date.from || !date.to) {
+          throw new BadRequestException("Both 'from' and 'to' dates are required");
+        }
+        query.settlementDate = { $gte: date.from, $lte: date.to };
+      }
+
+      const settlements = await this.settlementModel
+        .find(query)
+        .skip((page - 1) * safeLimit)
+        .limit(safeLimit)
+        .sort({ createdAt: -1 });
+
+      const total = await this.settlementModel.countDocuments(query);
+
+      return {
+        message: "Settlements fetched successfully",
+        page,
+        limit: safeLimit,
+        total,
+        settlements,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+     throw new InternalServerErrorException(error.message || 'Failed to fetch settlements');
+    }
+    }
+
+  
 
   @Get('/vendors-settlement')
   @UseGuards(ErpGuard)
@@ -5341,7 +5497,6 @@ export class ErpController {
       if (decrypted.school_id !== school_id)
         throw new BadRequestException('Invalid Sign');
 
-      // Helper to format refund response
       const formatRefunds = (refunds: any[]) =>
         refunds.map((data: any) => ({
           refund_id: data._id,
@@ -5379,8 +5534,49 @@ export class ErpController {
         msg: `refund request fetched`,
         refundRequests: formatRefunds(refunds),
       };
-    } catch (e) {
-      throw new BadRequestException(e.message);
+    }catch (e) {
+      if (e instanceof BadRequestException || e instanceof NotFoundException) {
+        throw e; 
+      }
+      throw new InternalServerErrorException(e.message || 'Something went wrong');
+    }
+  }
+
+  //V2 get-refund-details
+  @UseGuards(ErpGuard)
+  @Get('/get-refund-details/v2/:order_id')
+  async getRefundDetailsV2(@Param('order_id') order_id: string){
+    try {
+       if (!Types.ObjectId.isValid(order_id)) {
+        throw new BadRequestException("Invalid order_id format");
+       }
+
+       const refunds = await this.refundRequestModel.find({
+       order_id: new Types.ObjectId(order_id),
+       }).sort({ createdAt: -1 });
+
+       if (!refunds || refunds.length === 0) {
+       throw new NotFoundException("No refund requests found for this order");
+       }
+
+      return {
+        order_id,
+        total_requests: refunds.length,
+        latest_status: refunds[0].status,
+        refunds: refunds.map(refund => ({
+          refund_amount: refund.refund_amount,
+          status: refund.status,
+          gateway: refund.gateway,
+          order_amount: refund.order_amount,
+          transaction_amount: refund.transaction_amount,
+        })),
+      };
+
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+      throw error;
+    }
+    throw new InternalServerErrorException(error.message || "Failed to fetch refund details");
     }
   }
 
@@ -7798,9 +7994,11 @@ export class ErpController {
           'Vendors information is required for split payments',
         );
       }
+      
       if (isSplit && vendors_info && vendors_info.length < 0) {
         throw new BadRequestException('At least one vendor is required');
       }
+
       let vendorgateway: any = {};
       const updatedVendorsInfo = [];
       let easebuzzVendors = [];

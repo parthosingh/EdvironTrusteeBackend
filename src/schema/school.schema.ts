@@ -218,6 +218,11 @@ export class TrusteeSchool {
   school_name: string;
 
   @Prop({})
+  @Field(() => String, { nullable: true })
+  display_name: string;
+
+
+  @Prop({})
   @Field(() => String)
   client_id: string;
 

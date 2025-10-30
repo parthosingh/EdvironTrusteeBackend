@@ -298,7 +298,6 @@ export class WebhooksController {
         refundRequest.additonalInfo = status_description;
         await refundRequest.save();
 
-        // Sending ERP webhooks
         try {
           const trustee_id = refundRequest.trustee_id;
           const trustee = await this.TrusteeModel.findById(trustee_id);
