@@ -119,7 +119,7 @@ export class WebhooksController {
       console.log('updated collect id: ' + collect_id);
 
       const details = JSON.stringify(body.data);
-      const easebuzz_refund_status = body.data.refund_status;
+      const easebuzz_refund_status = data.refund_status;
       await new this.webhooksLogsModel({
         type: 'Refund Webhook',
         order_id: collect_id,
@@ -137,8 +137,9 @@ export class WebhooksController {
         }
         let status = refund_status.INITIATED;
         const merchant = await this.TrusteeSchoolmodel.findOne({
-          _id: refundRequest.school_id,
+          school_id: refundRequest.school_id,
         });
+        console.log('merchant', refundRequest);
         if (
           easebuzz_refund_status === 'accepted' ||
           easebuzz_refund_status === 'refunded'

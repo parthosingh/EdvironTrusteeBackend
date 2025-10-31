@@ -43,6 +43,7 @@ import { Commission } from '../schema/commission.schema';
 import { MerchantMember } from '../schema/merchant.member.schema';
 import * as moment from 'moment';
 import { Invoice, invoice_status, InvoiceData } from '../schema/invoice.schema';
+import jwt from 'jsonwebtoken';
 
 import * as path from 'path';
 import * as ejs from 'ejs';
@@ -69,6 +70,10 @@ import { PosMachine } from 'src/schema/pos.machine.schema';
 import { ApiKeyLogs } from 'src/schema/apiKey.logs.schema';
 import { ReportsLogs } from 'src/schema/reports.logs.schmea';
 import { SubTrustee } from 'src/schema/subTrustee.schema';
+import {
+  RefundDelayType,
+  RefundTrigger,
+} from 'src/schema/refund.trigger.schema';
 
 export enum webhookType {
   PAYMENTS = 'PAYMENTS',
@@ -84,6 +89,15 @@ export class invoiceDetails {
   tax: number;
   @Field({ nullable: true })
   total: number;
+}
+
+@InputType()
+export class SchoolInput {
+  @Field()
+  id: string;
+
+  @Field()
+  name: string;
 }
 
 @InputType()
@@ -228,7 +242,9 @@ export class TrusteeResolver {
     private apiKeyLogsModel: mongoose.Model<ApiKeyLogs>,
     @InjectModel(SubTrustee.name)
     private SubTrusteeModel: mongoose.Model<SubTrustee>,
-  ) { }
+    @InjectModel(RefundTrigger.name)
+    private readonly refundTriggerModel: mongoose.Model<RefundTrigger>,
+  ) {}
 
   @Mutation(() => AuthResponse) // Use the AuthResponse type
   async loginTrustee(
@@ -628,7 +644,6 @@ export class TrusteeResolver {
       console.time('fetching all transaction');
 
       const response = await axios.request(config);
-
       const transactionLimit = Number(limit) || 100;
       const transactionPage = Number(page) || 1;
       let total_pages = response.data.totalTransactions / transactionLimit;
@@ -684,7 +699,36 @@ export class TrusteeResolver {
             
             console.log(e);
 
-          }
+          return {
+            ...item,
+            merchant_name:
+              merchant_ids_to_merchant_map[item.merchant_id]?.school_name ||
+              'NA',
+            student_id:
+              JSON.parse(item?.additional_data).student_details?.student_id ||
+              '',
+            student_name:
+              JSON.parse(item?.additional_data).student_details?.student_name ||
+              '',
+            student_email:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_email || '',
+            student_phone:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_phone_no || '',
+            receipt:
+              JSON.parse(item?.additional_data).student_details?.receipt || '',
+            additional_data:
+              JSON.parse(item?.additional_data).additional_fields || '',
+            currency: item.currency || 'INR',
+            school_id: item.merchant_id,
+            school_name:
+              merchant_ids_to_merchant_map[item.merchant_id]?.school_name ||
+              'NA',
+            remarks: remark,
+            // commission: commissionAmount,
+            custom_order_id: item?.custom_order_id || null,
+          };
         }),
       );
 
@@ -1086,12 +1130,14 @@ export class TrusteeResolver {
       throw new Error('Invalid phone number!');
 
     const trustee = await this.trusteeModel.findOne({
-      $or: [{ email_id: email }
+      $or: [
+        { email_id: email },
         // , { phone_number: phone_number }
       ],
     });
     const member = await this.trusteeMemberModel.findOne({
-      $or: [{ email }
+      $or: [
+        { email },
         // , { phone_number }
       ],
     });
@@ -2345,19 +2391,19 @@ export class TrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-              $or: [
-                { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                { _id: new mongoose.Types.ObjectId(searchQuery) },
-              ],
-            }
+                $or: [
+                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                  { _id: new mongoose.Types.ObjectId(searchQuery) },
+                ],
+              }
             : {
-              $or: [
-                { status: { $regex: searchQuery, $options: 'i' } },
-                { reason: { $regex: searchQuery, $options: 'i' } },
-                { custom_id: { $regex: searchQuery, $options: 'i' } },
-                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-              ],
-            }
+                $or: [
+                  { status: { $regex: searchQuery, $options: 'i' } },
+                  { reason: { $regex: searchQuery, $options: 'i' } },
+                  { custom_id: { $regex: searchQuery, $options: 'i' } },
+                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
           : {}),
       };
 
@@ -2680,11 +2726,11 @@ export class TrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-        settled_on: {
-          $gte: new Date(start_date),
-          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-        },
-      }),
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -2806,23 +2852,28 @@ export class TrusteeResolver {
           settlement.fromDate,
         );
       }
-      const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: settlement.schoolId,
+      });
       if (!school) {
         throw new NotFoundException('School not found');
       }
-      console.log('here')
+      console.log('here');
       if (
         // school.isEasebuzzNonPartner &&
         school.easebuzz_non_partner.easebuzz_key &&
         school.easebuzz_non_partner.easebuzz_salt &&
         school.easebuzz_non_partner.easebuzz_submerchant_id
-
       ) {
         console.log('settlement from date');
-        const settlements = await this.settlementReportModel.find({
-          schoolId: settlement.schoolId,
-          settlementDate: { $lt: settlement.settlementDate }
-        }).sort({ settlementDate: -1 }).select('settlementDate').limit(2);
+        const settlements = await this.settlementReportModel
+          .find({
+            schoolId: settlement.schoolId,
+            settlementDate: { $lt: settlement.settlementDate },
+          })
+          .sort({ settlementDate: -1 })
+          .select('settlementDate')
+          .limit(2);
         let previousSettlementDate = settlements[1]?.settlementDate;
         if (!previousSettlementDate) {
           console.log('No previous settlement date found');
@@ -2830,12 +2881,18 @@ export class TrusteeResolver {
           date.setDate(date.getDate() - 4);
           previousSettlementDate = date;
         }
-        const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
+        const formatted_start_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            previousSettlementDate,
+          );
         console.log({ formatted_start_date }); // e.g. 06-09-2025
 
-        const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
+        const formatted_end_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            settlement.settlementDate,
+          );
         console.log({ formatted_end_date }); // e.g. 06-09-2025
-        const paginatioNPage = page || 1
+        const paginatioNPage = page || 1;
         const res = await this.trusteeService.easebuzzSettlementRecon(
           school.easebuzz_non_partner.easebuzz_submerchant_id,
           formatted_start_date,
@@ -3127,42 +3184,42 @@ export class TrusteeResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-            files
-              .map(async (data) => {
-                try {
-                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                  if (!matches || matches.length !== 3) {
-                    throw new Error('Invalid base64 file format.');
+              files
+                .map(async (data) => {
+                  try {
+                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                    if (!matches || matches.length !== 3) {
+                      throw new Error('Invalid base64 file format.');
+                    }
+
+                    const contentType = matches[1];
+                    const base64Data = matches[2];
+                    const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                    const last4DigitsOfMs = Date.now().toString().slice(-4);
+                    const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
+
+                    const file_url = await this.awsS3Service.uploadToS3(
+                      fileBuffer,
+                      key,
+                      contentType,
+                      'edviron-backend-dev',
+                    );
+
+                    return {
+                      document_type: data.extension,
+                      file_url,
+                      name: data.name,
+                    };
+                  } catch (error) {
+                    throw new InternalServerErrorException(
+                      error.message || 'File upload failed',
+                    );
                   }
-
-                  const contentType = matches[1];
-                  const base64Data = matches[2];
-                  const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const last4DigitsOfMs = Date.now().toString().slice(-4);
-                  const key = `trustee/${last4DigitsOfMs}_${disputDetails.dispute_id}_${sanitizedFileName}`;
-
-                  const file_url = await this.awsS3Service.uploadToS3(
-                    fileBuffer,
-                    key,
-                    contentType,
-                    'edviron-backend-dev',
-                  );
-
-                  return {
-                    document_type: data.extension,
-                    file_url,
-                    name: data.name,
-                  };
-                } catch (error) {
-                  throw new InternalServerErrorException(
-                    error.message || 'File upload failed',
-                  );
-                }
-              })
-              .filter((file) => file !== null),
-          )
+                })
+                .filter((file) => file !== null),
+            )
           : [];
 
       const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
@@ -3559,16 +3616,17 @@ export class TrusteeResolver {
           ? Types.ObjectId.isValid(searchQuery)
             ? { _id: new mongoose.Types.ObjectId(searchQuery) }
             : {
-              $or: [
-                { name: { $regex: searchQuery, $options: 'i' } },
-                { email: { $regex: searchQuery, $options: 'i' } },
-                { phone: { $regex: searchQuery, $options: 'i' } },
-              ],
-            }
+                $or: [
+                  { name: { $regex: searchQuery, $options: 'i' } },
+                  { email: { $regex: searchQuery, $options: 'i' } },
+                  { phone: { $regex: searchQuery, $options: 'i' } },
+                ],
+              }
           : {}),
       };
 
-      const totalSubtrustees = await this.SubTrusteeModel.countDocuments(searchFilter);
+      const totalSubtrustees =
+        await this.SubTrusteeModel.countDocuments(searchFilter);
 
       const subTrustees = await this.SubTrusteeModel.aggregate([
         { $match: searchFilter },
@@ -3584,13 +3642,13 @@ export class TrusteeResolver {
             createdAt: 1,
             updatedAt: 1,
             // password_hash: 0,
-          }
+          },
         },
         { $skip: skip },
         { $limit: limit },
       ]).exec();
 
-      console.log(subTrustees, "subTrustees")
+      console.log(subTrustees, 'subTrustees');
 
       const totalPages = Math.ceil(totalSubtrustees / limit);
       return {
@@ -3601,6 +3659,57 @@ export class TrusteeResolver {
       };
     } catch (error) {
       console.log(error);
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async addRefundTriggers(
+    @Args('schools', { type: () => [SchoolInput] }) schools: SchoolInput[],
+    @Args('delay_type', { type: () => RefundDelayType })
+    delay_type: RefundDelayType,
+    @Context() context,
+  ) {
+    try {
+      const trusteeId = context.req.trustee;
+
+      for (const school of schools) {
+        const { id: school_id, name: school_name } = school;
+
+        await this.refundTriggerModel.findOneAndUpdate(
+          {
+            school_id: new Types.ObjectId(school_id),
+            trustee_id: new Types.ObjectId(trusteeId),
+          },
+          {
+            $set: {
+              delay_type,
+              trustee_id: new Types.ObjectId(trusteeId),
+              schoolName: school_name, // 👈 now storing name too
+            },
+          },
+          { upsert: true, new: true },
+        );
+      }
+
+      return 'Refund triggers saved or updated successfully';
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Query(() => [RefundTrigger])
+  async getRefundTriggers(@Context() context): Promise<any[]> {
+    const trusteeId = context.req.trustee;
+    try {
+      const refundData = await this.refundTriggerModel
+        .find({ trustee_id: new Types.ObjectId(trusteeId) })
+        .sort({ updatedAt: -1 })
+        .exec();
+      return refundData;
+    } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
@@ -3636,7 +3745,6 @@ export class SubTrusteeIInstance {
   updatedAt?: Date;
 }
 
-
 @ObjectType()
 export class SubTrusteeResponse {
   @Field(() => [SubTrusteeIInstance], { nullable: true })
@@ -3650,9 +3758,7 @@ export class SubTrusteeResponse {
 
   @Field({ nullable: true })
   currentPage: number;
-
 }
-
 
 @ObjectType()
 export class ReportsLogsRes {

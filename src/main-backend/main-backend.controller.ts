@@ -753,8 +753,11 @@ export class MainBackendController {
     const decodedPayload = await this.jwtService.verify(token, {
       secret: process.env.PAYMENTS_SERVICE_SECRET,
     });
-
-    const refundId = decodedPayload.refund_id;
+    console.log(decodedPayload.refund_id);
+    let refundId = decodedPayload.refund_id;
+    if (typeof refundId === 'string') {
+      refundId = new Types.ObjectId(refundId);
+    }
     const refundRequest = await this.refundRequestModel.findById(refundId);
     if (!refundRequest) {
       throw new NotFoundException('Refund Request not found');
@@ -1277,7 +1280,7 @@ export class MainBackendController {
         isRazorpaySchool: false,
       };
     } catch (error) {
-      throw new BadRequestException(error.message || '')
+      throw new BadRequestException(error.message || '');
     }
   }
 }
