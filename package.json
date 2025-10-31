@@ -56,6 +56,7 @@
     "multer": "^2.0.2",
     "nodemailer": "^6.9.9",
     "number-to-words": "^1.2.4",
+    "p-limit": "^7.2.0",
     "pdfmake": "^0.2.18",
     "puppeteer": "^23.1.0",
     "qrcode": "^1.5.4",

@@ -9167,6 +9167,8 @@ async getCollectRequestV2(@Req() req) {
           settlementsRecon.refunds = refundsRecon;
         }
         if (gateway === 'EASEBUZZ') {
+          console.log('Easebuzz');
+          
           if (
             school.isEasebuzzNonPartner &&
             !school.easebuzz_non_partner?.easebuzz_key &&
