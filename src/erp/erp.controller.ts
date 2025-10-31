@@ -322,10 +322,12 @@ export class ErpController {
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
       }
-      if (!amount) {
+      console.log({amount});
+      
+      if (!amount || Number(amount) <= 0) {
         throw new HttpException(
           {
-            message: `amount is Required`,
+            message: `Invalid Amount`,
             error: 'Validation Error',
             statusCode: '400',
           },
