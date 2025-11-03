@@ -7,6 +7,7 @@ import qs from 'qs';
 import pLimit from 'p-limit';
 import * as jwt from 'jsonwebtoken'
 import { ReconRefundInfo, ReconTransactionInfo } from 'src/schema/Reconciliation.schema';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class ReconcilationService {
@@ -21,6 +22,16 @@ export class ReconcilationService {
     - It will save Settlements in Settlement DB
     - It will save Settlement Recon (Transactions, Refunds & Chargeback Under that Settlement  with utr )
     */
+
+    /* SHIFT THIS FROM TEMP DATABASE TO PERMANENT DATABASE FOR SETTLEMENT */
+
+    /**
+     * CRON JOBS
+     * Runs at 2 PM, 6 PM, and 11 PM IST
+     */
+    @Cron('0 14,18,23 * * *', {
+        timeZone: 'Asia/Kolkata',
+    })
     async easebuzzSettlements(settlementDate?: Date) {
         const date = new Date(settlementDate || new Date());
         date.setUTCHours(0, 0, 0, 0);
