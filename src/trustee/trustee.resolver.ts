@@ -663,42 +663,6 @@ export class TrusteeResolver {
           }
           // console.log(additional_data);
           
-          try {
-
-            
-            return {
-              ...item,
-              merchant_name:
-                merchant_ids_to_merchant_map[item.merchant_id].school_name,
-              student_id:
-                additional_data.student_details?.student_id ||
-                '',
-              student_name:
-                additional_data.student_details?.student_name ||
-                '',
-              student_email:
-                additional_data.student_details
-                  ?.student_email || '',
-              student_phone:
-                additional_data.student_details
-                  ?.student_phone_no || '',
-              receipt:
-                additional_data.student_details?.receipt || '',
-              additional_data:
-                additional_data.additional_fields || '',
-              currency: item.currency || 'INR',
-              school_id: item.merchant_id,
-              school_name:
-                merchant_ids_to_merchant_map[item.merchant_id].school_name,
-              remarks: remark,
-              // commission: commissionAmount,
-              custom_order_id: item?.custom_order_id || null,
-            };
-          } catch (e) {
-            console.log(item.collect_id);
-            
-            console.log(e);
-
           return {
             ...item,
             merchant_name:
