@@ -4,7 +4,7 @@ import { ErpService } from 'src/erp/erp.service';
 import { Types } from 'mongoose'
 import axios from 'axios';
 import qs from 'qs';
-const pLimit = require('p-limit');
+// const pLimit = require('p-limit');
 import * as jwt from 'jsonwebtoken'
 import { ReconRefundInfo, ReconTransactionInfo } from 'src/schema/Reconciliation.schema';
 import { Cron } from '@nestjs/schedule';
@@ -34,171 +34,147 @@ export class ReconcilationService {
         timeZone: 'Asia/Kolkata',
     })
     async easebuzzSettlements(settlementDate?: Date) {
-     
         const date = new Date(settlementDate || new Date());
         date.setUTCHours(0, 0, 0, 0);
         const formattedDate = date.toLocaleDateString('en-GB').split('/').join('-'); // DD-MM-YYYY
-        console.log(formattedDate,'formattedDate');
-        
+
         console.log('Running Easebuzz settlements for:', formattedDate);
 
         const merchants = await this.databaseService.trusteeSchoolModel.find({
             easebuzz_non_partner: { $exists: true },
-            school_id: new Types.ObjectId("67ea89a4498210d65b537832")
+            school_id: new Types.ObjectId("67ea89a4498210d65b537832"),
         });
-
-        console.log({ merchants });
 
         if (!merchants.length) {
             console.log('No Easebuzz non-partner merchants found.');
             return true;
         }
-        let transactions: any = []
-        let formatter: any = []
-        // limit concurrency to 5 requests at a time
-        const limit = pLimit(5);
-        let resEzb: any
-        let totalAdj = 0
-        const tasks = merchants.map((merchant) =>
-            limit(async () => {
-                try {
-                    const { easebuzz_non_partner, school_name, school_id } = merchant;
-                    const { easebuzz_key, easebuzz_salt } = easebuzz_non_partner;
-                    console.log(easebuzz_non_partner, 'easebuzz_non_partner');
-                    
-                    const hashBody = `${easebuzz_key}||${formattedDate}|${easebuzz_salt}`;
-                    const hash = await this.erpService.calculateSHA512Hash(hashBody);
 
-                    const data = qs.stringify({
-                        merchant_key: easebuzz_key,
-                        hash,
-                        payout_date: formattedDate,
+        let transactions: any[] = [];
+        let formatter: any[] = [];
+        let resEzb: any;
+        let totalAdj = 0;
+
+        for (const merchant of merchants) {
+            try {
+                const { easebuzz_non_partner, school_name, school_id } = merchant;
+                const { easebuzz_key, easebuzz_salt } = easebuzz_non_partner;
+
+                const hashBody = `${easebuzz_key}||${formattedDate}|${easebuzz_salt}`;
+                const hash = await this.erpService.calculateSHA512Hash(hashBody);
+
+                const data = qs.stringify({
+                    merchant_key: easebuzz_key,
+                    hash,
+                    payout_date: formattedDate,
+                });
+
+                const config = {
+                    method: 'POST',
+                    url: `${process.env.EASEBUZZ_ENDPOINT_PROD_DB}/payout/v1/retrieve`,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        Accept: 'application/json',
+                    },
+                    data,
+                };
+
+                const response = await axios.request(config);
+                const payouts = response?.data?.payouts_history_data || [];
+                resEzb = response?.data;
+
+                if (payouts.length === 0) {
+                    console.log(`No settlements for ${school_name}`);
+                    continue;
+                }
+
+                for (const payout of payouts) {
+                    let adjustment = 0;
+                    let total_transaction_amount = 0;
+                    let total_order_amount = 0;
+
+                    let reconTransactions: ReconTransactionInfo[] = [];
+                    let reconRefunds: ReconRefundInfo[] = [];
+
+                    const utr = payout.bank_transaction_id;
+                    const easebuzzDate = new Date(payout.payout_actual_date);
+
+                    transactions = payout.peb_transactions.map((item) => {
+                        total_transaction_amount += item.amount;
+                        total_order_amount += item.peb_settlement_amount;
+                        return item.txnid;
                     });
 
-                    const config = {
-                        method: 'POST',
-                        url: `${process.env.EASEBUZZ_ENDPOINT_PROD_DB}/payout/v1/retrieve`,
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            Accept: 'application/json',
+                    const refundIds = payout.peb_refunds.map((item: any) => {
+                        adjustment += item.refund_amount;
+                        totalAdj += item.refund_amount;
+                        return item.txnid;
+                    });
+
+                    reconTransactions = await this.getReconInfoEzb(transactions, utr);
+
+                    const times = reconTransactions.map((d:any) => new Date(d.payment_time).getTime());
+                    const oldest = new Date(Math.min(...times));
+                    const latest = new Date(Math.max(...times));
+
+                    reconRefunds = await this.reconRefund(refundIds, utr);
+                    formatter = reconTransactions;
+
+                    const settlement = await this.databaseService.TempSettlementReportModel.findOneAndUpdate(
+                        { utrNumber: utr },
+                        {
+                            settlementAmount: payout.payout_amount,
+                            adjustment: '0.0',
+                            netSettlementAmount: payout.payout_amount,
+                            easebuzz_id: merchant.easebuzz_id,
+                            fromDate: oldest,
+                            tillDate: latest,
+                            status: 'Settled',
+                            utrNumber: utr,
+                            settlementDate: easebuzzDate,
+                            trustee: merchant.trustee_id,
+                            schoolId: school_id,
                         },
-                        data,
-                    };
-                    console.log(config, 'config');
-                    
+                        { upsert: true, new: true }
+                    );
 
-                    const response = await axios.request(config);
-                    const payouts = response?.data?.payouts_history_data || [];
-                    resEzb = response?.data
-                    // console.log(payouts, 'payouts');
-
-                    if (payouts.length === 0) {
-                        console.log(`No settlements for ${school_name}`);
-                        return;
-                    }
-
-                    for (const payout of payouts) {
-                        let adjustment = 0
-                        let total_transaction_amount = 0
-                        let total_order_amount = 0
-                        let reconTransactions: ReconTransactionInfo[] | [] = []
-                        let reconRefunds: ReconRefundInfo[] | [] = []
-                        const utr = payout.bank_transaction_id;
-                        const easebuzzDate = new Date(payout.payout_actual_date);
-                        transactions = payout.peb_transactions.map((item) => {
-                            total_transaction_amount += item.amount
-                            total_order_amount += item.peb_settlement_amount
-                            return item.txnid
-                        })
-                        let refundIds = payout.peb_refunds.map((item: any) => {
-                            adjustment = adjustment + item.refund_amount
-                            totalAdj = totalAdj + item.refund_amount
-                            return item.txnid
-                        })
-
-                        reconTransactions = await this.getReconInfoEzb(transactions, utr)
-
-                        const times = reconTransactions.map(d => new Date(d.payment_time).getTime());
-                        const oldest = new Date(Math.min(...times));
-                        const latest = new Date(Math.max(...times));
-
-                        reconRefunds = await this.reconRefund(refundIds, utr)
-                        formatter = reconTransactions
-
-                        const settlement = await this.databaseService.TempSettlementReportModel.findOneAndUpdate(
-                            {
-                                utrNumber: utr
-                            },
-                            {
-                                settlementAmount: payout.payout_amount,
-                                adjustment: '0.0',
-                                netSettlementAmount: payout.payout_amount,
-                                easebuzz_id: merchant.easebuzz_id,
+                    const recon = await this.databaseService.reconModel.findOneAndUpdate(
+                        { utrNumber: utr },
+                        {
+                            $set: {
                                 fromDate: oldest,
                                 tillDate: latest,
-                                status: 'Settled',
-                                utrNumber: utr,
-                                settlementDate: easebuzzDate,
+                                settlementAmount: payout.payout_amount,
+                                totaltransactionAmount: total_transaction_amount,
+                                totalOrderAmount: total_order_amount,
+                                refundSum: adjustment,
+                                totalAdjustmentAmount: adjustment,
+                                transactions: reconTransactions,
+                                settlementDate: settlement.settlementDate,
+                                refunds: reconRefunds,
+                                school_name: merchant.school_name,
+                                schoolId: merchant.school_id,
                                 trustee: merchant.trustee_id,
-                                schoolId: school_id,
                             },
-                            {
-                                upsert: true,
-                                new: true
-                            }
-                        )
-
-                       const recon = await this.databaseService.reconModel.findOneAndUpdate(
-                            { utrNumber: utr }, // find condition
-                            {
-                                $set: {
-                                    fromDate: oldest,
-                                    tillDate: latest,
-                                    settlementAmount: payout.payout_amount,
-                                    totaltransactionAmount: total_transaction_amount,
-                                    totalOrderAmount: total_order_amount,
-                                    refundSum: adjustment,
-                                    totalAdjustmentAmount: adjustment,
-                                    transactions: reconTransactions,
-                                    settlementDate: settlement.settlementDate,
-                                    refunds: reconRefunds,
-                                    school_name: merchant.school_name,
-                                    schoolId: merchant.school_id,
-                                    trustee: merchant.trustee_id
-                                }
-                            },
-                            { upsert: true, new: true } // create if not found, return updated doc
-                        );
-
-                        console.log(recon, 'recon saved');
-                        
-
-                    }
-
-                } catch (error) {
-                    console.log(error, 'error');
-                    
-                    console.error(
-                        `Error processing merchant ${merchant.school_name}:`,
-                        error.message
+                        },
+                        { upsert: true, new: true }
                     );
+
+                    console.log(`Recon saved for ${school_name}:`, recon._id);
                 }
-            })
-        );
-        await Promise.all(tasks);
-        // const info = await this.getReconInfoEzb(transactions, 'utr')
+            } catch (error) {
+                console.error(`Error processing merchant ${merchant.school_name}:`, error.message);
+            }
+        }
+
+        console.log('✅ Easebuzz settlement cron completed.');
         return {
             adjustment: totalAdj,
             resEzb,
-            formatter
-        }
-        return formatter
-        // return info
-        return transactions
-
-        console.log('✅ Easebuzz settlement cron completed.');
-        return true;
+            formatter,
+        };
     }
+
 
     /*
    Replicate the obove feature for 
@@ -231,7 +207,7 @@ export class ReconcilationService {
             return transactions
         } catch (e) {
             console.log(e);
-            
+
             throw new BadRequestException(e.message)
         }
     }
