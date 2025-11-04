@@ -7770,6 +7770,13 @@ async getCollectRequestV2(@Req() req) {
         bankReferenceNo: string;
         appName?: string;
       };
+      beneficiaryBankingDetails?: {
+        buyerName?: string;
+        payeeBankName?: string;
+        payeeAccountNumber?: string;
+        payeeIFSC?: string;
+        payeeBranch?: string;
+      };
       date?: string;
       file?: any;
     },
@@ -7802,6 +7809,7 @@ async getCollectRequestV2(@Req() req) {
         date,
         parents_info,
         remark,
+        beneficiaryBankingDetails
       } = body;
       let { student_id, student_name, student_email, student_number } =
         student_detail;
@@ -7828,6 +7836,9 @@ async getCollectRequestV2(@Req() req) {
         additional_fields: {
           ...additional_data,
         },
+        beneficiary_fields : {
+          ...beneficiaryBankingDetails
+        }
       };
 
       if (!school_id) {
@@ -8369,6 +8380,7 @@ async getCollectRequestV2(@Req() req) {
         date,
         parents_info,
         remark,
+        beneficiaryBankingDetails
       };
 
       const config = {

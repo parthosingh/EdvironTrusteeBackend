@@ -1283,4 +1283,30 @@ export class MainBackendController {
       throw new BadRequestException(error.message || '');
     }
   }
+  @Get('get-trustee-school-logo')
+  async getLogo(
+    @Query('school_id') school_id: string,
+    @Query('trustee_id') trustee_id: string,
+  ) {
+    try {
+      const [school, trustee] = await Promise.all([
+        this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(school_id),
+        }),
+        this.trusteeModel.findById(trustee_id),
+      ]);
+      if (!school || !trustee) {
+        throw new BadRequestException('trustee or school not found');
+      }
+      const school_logo = school.logo || null;
+      const trustee_logo = trustee.logo || null;
+
+      return {
+        school_logo,
+        trustee_logo,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 }
