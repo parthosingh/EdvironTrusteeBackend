@@ -1813,6 +1813,7 @@ export class MerchantResolver {
         for_transaction: false,
         for_refund: false,
         for_settlement: false,
+        for_dispute: false,
       };
     }
     if (for_transaction !== undefined) {

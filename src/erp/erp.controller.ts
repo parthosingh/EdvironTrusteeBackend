@@ -6525,12 +6525,20 @@ async getCollectRequestV2(@Req() req) {
           ? 'CASHFREE'
           : paymentsResponse.data?.gateway;
 
+
+          const school = await this.trusteeSchoolModel.findOne({
+            school_id : new Types.ObjectId(paymentsResponse.data?.school_id)
+          })
+
+          if(!school){
+            throw new BadRequestException('school not found')
+          }
       await this.disputeModel.findOneAndUpdate(
         { collect_id: paymentsResponse.data?.collect_id },
         {
           $set: {
             dispute_id:
-              paymentsResponse.data?.cashfreeDispute[0].cf_dispute_id || null,
+              paymentsResponse.data?.cashfreeDispute[0]?.cf_dispute_id || null,
             custom_order_id: paymentsResponse.data?.custom_order_id || null,
             school_id:
               new Types.ObjectId(paymentsResponse.data?.school_id) || null,
@@ -6567,6 +6575,13 @@ async getCollectRequestV2(@Req() req) {
             payment_amount:
               paymentsResponse.data?.cashfreeDispute[0]?.order_details
                 ?.payment_amount || null,
+            bank_reference : paymentsResponse?.data?.bank_reference,
+            school_name : school.school_name || "N/A",
+             settlement_id:
+              paymentsResponse?.data?.cashfreeDispute[0]?.cf_settlement_id ||
+              'N/A',
+            utr_number:
+              paymentsResponse?.data?.cashfreeDispute[0]?.transfer_utr || 'N/A',
             // dispute_status:paymentsResponse.data?.cashfreeDispute[0]?.dispute_status
           },
         },

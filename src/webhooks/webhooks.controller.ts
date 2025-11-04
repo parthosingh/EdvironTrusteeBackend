@@ -1274,6 +1274,16 @@ export class WebhooksController {
       if (!school) {
         throw new BadRequestException('School not found');
       }
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-dispute-byOrderId?collect_id=${order_id}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+      };
+      const { data: paymentsResponse } = await axios.request(config);
 
       const dispute = await this.DisputesModel.findOneAndUpdate(
         { dispute_id },
@@ -1293,10 +1303,17 @@ export class WebhooksController {
             dispute_respond_by_date: new Date(respond_by),
             dispute_status,
             dispute_remark: cf_dispute_remarks,
-            // dispute_resolved_at_date: new Date(resolved_at),
-            // resolved_at,
-            // cf_dispute_remarks,
             gateway: DisputeGateways.CASHFREE,
+            student_name:
+              JSON.parse(paymentsResponse.data.student_detail)?.student_details
+                ?.student_name || '',
+            school_name: school.school_name || 'N/A',
+            bank_reference: paymentsResponse?.data?.bank_reference,
+            settlement_id:
+              paymentsResponse?.data?.cashfreeDispute[0]?.cf_settlement_id ||
+              'N/A',
+            utr_number:
+              paymentsResponse?.data?.cashfreeDispute[0]?.transfer_utr || 'N/A',
           },
         },
         { upsert: true, new: true },
@@ -1336,74 +1353,79 @@ export class WebhooksController {
         dispute.event_steps.push(eventUpdate);
         await dispute.save();
       }
-      // console.log(dispute, "dispute")
-      if (dispute_status === 'DISPUTE_CREATED') {
-        // const trusteeEmail = await this.TrusteeModel.findById(
-        //   school.trustee_id,
-        // );
-        const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
-        const htmlBody =
-          'Please find the attached receipt for dispute details.';
 
-        // Generate PDF buffer (you need to implement this part)
-        const pdfBuffer = await this.generateDisputePDF(dispute, false);
+      if (
+        school.isNotificationOn &&
+        school.isNotificationOn.for_dispute === true
+      ) {
+        const eventName = 'DISPUTE_ALERT';
 
-        this.emailService.sendErrorMail2(subject, htmlBody, [
-          {
-            filename: `Dispute-${dispute.dispute_id}.pdf`,
-            content: pdfBuffer,
-          },
-        ]);
+        const emailList = await this.businessServices.getMails(
+          eventName,
+          school_id,
+        );
+        if (
+          dispute_status === 'CHARGEBACK_CREATED' ||
+          dispute_status === 'DISPUTE_CREATED'
+        ) {
+          const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
+          const htmlBody =
+            'Please find the attached receipt for dispute details.';
 
-        // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+          const pdfBuffer = await this.generateDisputePDF(dispute, false);
 
-        const gatewayMailSubject = `Dispute invoice against transaction id: ${dispute.collect_id}`;
+          this.emailService.sendErrorMail2(subject, htmlBody, [
+            {
+              filename: `Dispute-${dispute.dispute_id}.pdf`,
+              content: pdfBuffer,
+            },
+          ]);
 
-        const gatewayMailData = {
-          transactionId: transactionInfo.collect_id,
-          custom_order_id: transactionInfo.custom_order_id || 'NA',
-          disputeStatus: transactionInfo.dispute_status,
-          date: new Date(transactionInfo.payment_time).toLocaleDateString(
-            'en-IN',
-            { timeZone: 'Asia/Kolkata' },
-          ),
-          schoolName: school.school_name,
-          amount: transactionInfo.transaction_amount,
-          bank_reference: transactionInfo.bank_reference,
-          student_details: transactionInfo?.additional_data
-            ? JSON.parse(transactionInfo.additional_data)
-            : {},
-          payment_method: transactionInfo.payment_method,
-          payment_details: transactionInfo.details,
-          gateway: dispute.gateway,
-        };
+          const gatewayMailSubject = `Dispute invoice against transaction id: ${dispute.collect_id}`;
 
-        this.pdfService.generatePDF(gatewayMailData).then((pdf: any) => {
-          this.emailService.sendMailWithAttachment(
-            gatewayMailSubject,
-            `<h3> Please find the attached invoice againest dispute case id: ${dispute.dispute_id} </h3>`,
-            DISPUT_INVOICE_MAIL_GATEWAY,
-            `receipt_${gatewayMailData.transactionId}.pdf`,
-            pdf,
-          );
-        });
-      }
-      if (resolved_at) {
-        dispute.dispute_resolved_at_date = new Date(resolved_at);
-        await dispute.save();
-        // const trusteeEmail = await this.TrusteeModel.findById(
-        //   school.trustee_id,
-        // );
-        const subject = `A dispute has been resolved against transaction id: ${dispute.collect_id}`;
-        const innerMailTemp = getAdminEmailTemplate(dispute, false);
-        // const userMailTemp = getCustomerEmailTemplate(
-        //   dispute,
-        //   school.school_name,
-        //   false,
-        // );
-        this.emailService.sendErrorMail(subject, innerMailTemp);
+          const gatewayMailData = {
+            transactionId: transactionInfo.collect_id,
+            custom_order_id: transactionInfo.custom_order_id || 'NA',
+            disputeStatus: dispute_status,
+            date: new Date(updated_at),
+            schoolName: school.school_name,
+            amount: transactionInfo.transaction_amount,
+            bank_reference: transactionInfo.bank_reference,
+            student_details: transactionInfo?.additional_data
+              ? JSON.parse(transactionInfo.additional_data)
+              : {},
+            payment_method: transactionInfo.payment_method,
+            payment_details: transactionInfo.details,
+            gateway: dispute.gateway,
+          };
 
-        // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+          this.pdfService.generatePDF(gatewayMailData).then((pdf: any) => {
+            this.emailService.sendMailWithAttachment(
+              gatewayMailSubject,
+              `<h3> Please find the attached invoice against dispute case id: ${dispute.dispute_id} </h3>`,
+              emailList,
+              `receipt_${gatewayMailData.transactionId}.pdf`,
+              pdf,
+            );
+          });
+        }
+        if (resolved_at) {
+          dispute.dispute_resolved_at_date = new Date(resolved_at);
+          await dispute.save();
+          // const trusteeEmail = await this.TrusteeModel.findById(
+          //   school.trustee_id,
+          // );
+          const subject = `A dispute has been resolved against transaction id: ${dispute.collect_id}`;
+          const innerMailTemp = getAdminEmailTemplate(dispute, false);
+          // const userMailTemp = getCustomerEmailTemplate(
+          //   dispute,
+          //   school.school_name,
+          //   false,
+          // );
+          this.emailService.sendErrorMail(subject, innerMailTemp);
+
+          // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+        }
       }
 
       res.status(200).send('OK');

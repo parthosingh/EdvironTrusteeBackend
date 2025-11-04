@@ -180,7 +180,8 @@ export class EmailService {
 
   async sendErrorMail2(subject: string, htmlBody: string, attachments?: any[]) {
     await this.transporter.sendMail({
-      to: 'admin@example.com',
+      from: process.env.EMAIL_USER,
+      to: 'manish.verma@edviron.com',
       subject,
       html: htmlBody,
       attachments: attachments || [],
@@ -443,4 +444,35 @@ export class EmailService {
       msg: 'email sent',
     };
   }
+
+  async sendDisputeAlert(
+    emailBody: string,
+    subject: string,
+    emailRecipient: string | string[],
+    emailRecipientCC?: string[]
+  ): Promise<void> {
+    try {
+      const toEmails = Array.isArray(emailRecipient)
+        ? emailRecipient.join(',')
+        : emailRecipient;
+
+      const ccEmails = Array.isArray(emailRecipientCC)
+        ? emailRecipientCC.join(',')
+        : emailRecipientCC || undefined;
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: toEmails,
+        cc: ccEmails,
+        subject,
+        html: emailBody,
+      };
+
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Alert email sent successfully:', info.messageId);
+    } catch (error) {
+      console.error('Error sending alert email:', error);
+    }
+  }
+
 }
