@@ -4,10 +4,11 @@ import { ErpService } from 'src/erp/erp.service';
 import { Types } from 'mongoose'
 import axios from 'axios';
 import qs from 'qs';
-import pLimit from 'p-limit';
+import pLimit from 'p-limit'; 
 import * as jwt from 'jsonwebtoken'
 import { ReconRefundInfo, ReconTransactionInfo } from 'src/schema/Reconciliation.schema';
 import { Cron } from '@nestjs/schedule';
+import e from 'express';
 
 @Injectable()
 export class ReconcilationService {
@@ -33,18 +34,20 @@ export class ReconcilationService {
         timeZone: 'Asia/Kolkata',
     })
     async easebuzzSettlements(settlementDate?: Date) {
+     
         const date = new Date(settlementDate || new Date());
         date.setUTCHours(0, 0, 0, 0);
         const formattedDate = date.toLocaleDateString('en-GB').split('/').join('-'); // DD-MM-YYYY
-
+        console.log(formattedDate,'formattedDate');
+        
         console.log('Running Easebuzz settlements for:', formattedDate);
 
         const merchants = await this.databaseService.trusteeSchoolModel.find({
-            easebuzz_non_partner: { $exists: true }
+            easebuzz_non_partner: { $exists: true },
+            school_id: new Types.ObjectId("67ea89a4498210d65b537832")
         });
 
-        console.log();
-
+        console.log({ merchants });
 
         if (!merchants.length) {
             console.log('No Easebuzz non-partner merchants found.');
@@ -61,7 +64,8 @@ export class ReconcilationService {
                 try {
                     const { easebuzz_non_partner, school_name, school_id } = merchant;
                     const { easebuzz_key, easebuzz_salt } = easebuzz_non_partner;
-
+                    console.log(easebuzz_non_partner, 'easebuzz_non_partner');
+                    
                     const hashBody = `${easebuzz_key}||${formattedDate}|${easebuzz_salt}`;
                     const hash = await this.erpService.calculateSHA512Hash(hashBody);
 
@@ -80,11 +84,13 @@ export class ReconcilationService {
                         },
                         data,
                     };
+                    console.log(config, 'config');
+                    
 
                     const response = await axios.request(config);
                     const payouts = response?.data?.payouts_history_data || [];
                     resEzb = response?.data
-                    console.log(payouts, 'payouts');
+                    // console.log(payouts, 'payouts');
 
                     if (payouts.length === 0) {
                         console.log(`No settlements for ${school_name}`);
@@ -142,7 +148,7 @@ export class ReconcilationService {
                             }
                         )
 
-                        await this.databaseService.reconModel.findOneAndUpdate(
+                       const recon = await this.databaseService.reconModel.findOneAndUpdate(
                             { utrNumber: utr }, // find condition
                             {
                                 $set: {
@@ -164,9 +170,14 @@ export class ReconcilationService {
                             { upsert: true, new: true } // create if not found, return updated doc
                         );
 
+                        console.log(recon, 'recon saved');
+                        
+
                     }
 
                 } catch (error) {
+                    console.log(error, 'error');
+                    
                     console.error(
                         `Error processing merchant ${merchant.school_name}:`,
                         error.message
@@ -219,6 +230,8 @@ export class ReconcilationService {
             const { data: transactions } = await axios.request(config)
             return transactions
         } catch (e) {
+            console.log(e);
+            
             throw new BadRequestException(e.message)
         }
     }
@@ -249,6 +262,32 @@ export class ReconcilationService {
             return formattedResponse
 
         } catch (e) { }
+    }
+
+    async reconSettlemet(
+        school_id: string,
+        settlementDate: Date,
+        startDate: Date,
+        endDate: Date
+    ) {
+        try {
+            const settlements = await this.databaseService.SettlementReportModel.find({
+                schoolId: new Types.ObjectId(school_id), // Match the school_id
+                settlementDate: {
+                    $gte: startDate,
+                    $lt: endDate,
+                },
+            });
+
+            let totalSettlementAmount = 0;
+            settlements.forEach((settlement) => {
+                totalSettlementAmount += settlement.netSettlementAmount;
+
+            });
+
+        } catch (e) {
+            throw new BadRequestException(e.message)
+        }
     }
 
 }
