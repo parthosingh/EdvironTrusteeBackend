@@ -3215,11 +3215,7 @@ export class ErpController {
       };
 
       const { data: paymentsServiceResp } = await axios.request(config);
-      return {
-        success: true,
-        message: 'Payment request fetched successfully',
-        data: paymentsServiceResp
-      };
+      return paymentsServiceResp
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
