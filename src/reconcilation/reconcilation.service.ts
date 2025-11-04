@@ -4,7 +4,7 @@ import { ErpService } from 'src/erp/erp.service';
 import { Types } from 'mongoose'
 import axios from 'axios';
 import qs from 'qs';
-import pLimit from 'p-limit'; 
+const pLimit = require('p-limit');
 import * as jwt from 'jsonwebtoken'
 import { ReconRefundInfo, ReconTransactionInfo } from 'src/schema/Reconciliation.schema';
 import { Cron } from '@nestjs/schedule';
