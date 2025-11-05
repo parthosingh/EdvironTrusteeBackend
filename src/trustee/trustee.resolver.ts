@@ -54,7 +54,7 @@ import { refund_status, RefundRequest } from '../schema/refund.schema';
 import { TransactionInfo } from '../schema/transaction.info.schema';
 import { kyc_details, Vendors } from '../schema/vendors.schema';
 import { VendorsSettlement } from '../schema/vendor.settlements.schema';
-import { MerchantRefundRequestRes } from '../merchant/merchant.resolver';
+import { MerchantRefundRequestRes, SplitRefundDetails } from '../merchant/merchant.resolver';
 import { DisputeGateways, Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
 import { TempSettlementReport } from '../schema/tempSettlements.schema';
@@ -1521,6 +1521,278 @@ export class TrusteeResolver {
     } catch (error) {
       console.error('Error:', error.response.data);
     }
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async initiateRefundRequestTrustee(
+    @Args('order_id') order_id: string,
+    @Args('school_id') school_id: string,
+    @Args('refund_amount') refund_amount: number,
+    @Args('order_amount') order_amount: number,
+    @Args('transaction_amount') transaction_amount: number,
+    @Context() context: any,
+    @Args('reason', { nullable: true }) reason?: string,
+  ) {
+    const trustee_id = context.req.trustee;
+    const trustee = await this.trusteeModel.findById(trustee_id);
+
+    if (!trustee) throw new NotFoundException('Trustee not found');
+
+    // Validate trustee-school relationship
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id : new Types.ObjectId(school_id),
+      trustee_id: trustee_id
+    });
+
+    if (!school) throw new NotFoundException('School not found for trustee');
+    
+    const checkRefundRequest = await this.refundRequestModel
+      .findOne({
+        order_id: new Types.ObjectId(order_id),
+        isSplitRedund: { $ne: true },
+      })
+      .sort({ createdAt: -1 });
+
+    if (refund_amount > order_amount) {
+      throw new Error('Refund amount cannot be more than order amount');
+    }
+
+    if (checkRefundRequest?.status === refund_status.INITIATED) {
+      throw new Error('Refund request already initiated for this order');
+    }
+
+    let pgConfig = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-custom-id?collect_id=${order_id}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+
+    const response = await axios.request(pgConfig);
+    const custom_id = response.data;
+
+    if (checkRefundRequest?.status === refund_status.APPROVED) {
+      const totalRefunds = await this.refundRequestModel.find({
+        order_id: new Types.ObjectId(order_id),
+        status: refund_status.APPROVED,
+      });
+      let totalRefundAmount = 0;
+      totalRefunds.map((refund: any) => {
+        totalRefundAmount += refund.refund_amount;
+      });
+      console.log(totalRefundAmount, 'amount refunded');
+      const refundableAmount =
+        checkRefundRequest.transaction_amount - totalRefundAmount;
+      console.log(refundableAmount, 'amount can be refunded');
+
+      if (refund_amount > refundableAmount) {
+        throw new Error(
+          'Refund amount cannot be more than remaining refundable amount ' +
+          refundableAmount +
+          'Rs',
+        );
+      }
+    }
+
+    const token = this.jwtService.sign(
+      { order_id },
+      { secret: process.env.JWT_SECRET_FOR_TRUSTEE },
+    );
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/gatewat-name?token=${token}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+
+    const res = await axios.request(config);
+    let gateway = res.data;
+    if (gateway === 'EDVIRON_PG') {
+      gateway = 'EDVIRON_CASHFREE';
+    }
+
+    const refund = await new this.refundRequestModel({
+      trustee_id: new Types.ObjectId(trustee_id),
+      school_id: school._id,
+      order_id: new Types.ObjectId(order_id),
+      status: refund_status.INITIATED,
+      refund_amount,
+      order_amount,
+      transaction_amount,
+      gateway: gateway || null,
+      custom_id: custom_id,
+      reason: reason || 'NA',
+    }).save();
+    console.log(school_id, 'school');
+    
+    // Send notification email if enabled
+    if (refund) {
+      this.trusteeService.scheduleRefundNotificationEmail(
+        refund.school_id.toString(),
+        refund,
+        refund.status,
+        refund.order_id.toString(),
+        refund.trustee_id.toString(),
+      );
+    }
+
+    return `Refund Request Created`;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => String)
+  async initiateSplitRefundTrustee(
+    @Args('order_id') order_id: string,
+    @Args('school_id') school_id: string,
+    @Args('refund_amount') refund_amount: number,
+    @Args('order_amount') order_amount: number,
+    @Args('transaction_amount') transaction_amount: number,
+    @Args('reason') reason: string,
+    @Args('split_refund_details', { type: () => [SplitRefundDetails] })
+    split_refund_details: SplitRefundDetails[],
+    @Context() context: any,
+  ) {
+    const trustee_id = context.req.trustee;
+    const trustee = await this.trusteeModel.findById(trustee_id);
+
+    if (!trustee) throw new NotFoundException('Trustee not found');
+
+    const school = await this.trusteeSchoolModel.findOne({
+      school_id: new Types.ObjectId(school_id),
+      trustee_id: trustee_id
+    });
+
+    const checkRefundRequest = await this.refundRequestModel
+      .findOne({
+        order_id: new Types.ObjectId(order_id),
+      })
+      .sort({ createdAt: -1 });
+
+    if (refund_amount > order_amount) {
+      throw new Error('Refund amount cannot be more than order amount');
+    }
+
+    if (
+      checkRefundRequest &&
+      checkRefundRequest.split_refund_details[0]?.vendor_id ===
+      split_refund_details[0].vendor_id &&
+      checkRefundRequest.status === refund_status.INITIATED
+    ) {
+      throw new ConflictException(
+        'Refund request already initiated for this vendor',
+      );
+    }
+
+    let pgConfig = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-custom-id?collect_id=${order_id}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+
+    const response = await axios.request(pgConfig);
+    const custom_id = response.data;
+
+    if (checkRefundRequest?.status === refund_status.APPROVED) {
+      const totalRefunds = await this.refundRequestModel.find({
+        order_id: new Types.ObjectId(order_id),
+        status: refund_status.APPROVED,
+      });
+      let totalRefundAmount = 0;
+      totalRefunds.map((refund: any) => {
+        totalRefundAmount += refund.refund_amount;
+      });
+      console.log(totalRefundAmount, 'amount refunded');
+      const refundableAmount =
+        checkRefundRequest.transaction_amount - totalRefundAmount;
+      console.log(refundableAmount, 'amount can be refunded');
+
+      if (refund_amount > refundableAmount) {
+        throw new Error(
+          'Refund amount cannot be more than remaining refundable amount ' +
+          refundableAmount +
+          'Rs',
+        );
+      }
+    }
+
+    const token = this.jwtService.sign(
+      { order_id },
+      { secret: process.env.JWT_SECRET_FOR_TRUSTEE },
+    );
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/gatewat-name?token=${token}`,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+    };
+
+    const res = await axios.request(config);
+    let gateway = res.data;
+
+    if (gateway === 'EDVIRON_PG') {
+      gateway = 'EDVIRON_CASHFREE';
+    }
+
+    await new this.refundRequestModel({
+      trustee_id: trustee._id,
+      school_id: school._id,
+      order_id: new Types.ObjectId(order_id),
+      status: refund_status.INITIATED,
+      refund_amount,
+      order_amount,
+      transaction_amount,
+      gateway: gateway || null,
+      custom_id: custom_id,
+      isSplitRedund: true,
+      split_refund_details,
+      reason,
+    }).save();
+
+    return `Refund Request Created`;
+  }
+
+  @UseGuards(TrusteeGuard)
+  @Mutation(() => RefundRequest)
+  async deleteRefundRequestTrustee(
+    @Args('refund_id') refund_id: string,
+    @Context() context: any,
+  ) {
+    const trustee_id = context.req.trustee;
+
+    const refundRequests = await this.refundRequestModel
+      .findById(refund_id)
+      .sort({ createdAt: -1 });
+
+    if (!refundRequests) {
+      throw new NotFoundException(`No Active Not Found`);
+    }
+
+    // Verify the refund request belongs to this trustee
+    if (refundRequests.trustee_id.toString() !== trustee_id.toString()) {
+      throw new UnauthorizedException('You are not authorized to delete this refund request');
+    }
+
+    if (refundRequests.status === refund_status.APPROVED) {
+      throw new Error(`Refund request already approved for this order`);
+    }
+
+    refundRequests.status = refund_status.DELETED;
+    await refundRequests.save();
+    return refundRequests;
   }
 
   @UseGuards(TrusteeGuard)
