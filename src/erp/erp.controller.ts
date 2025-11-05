@@ -7962,7 +7962,7 @@ export class ErpController {
           `tarun.k@edviron.com`
           // 'manish.verma@edviron.com'
         );
-        return 'POS request has been raised successfully.'
+        return { message: 'POS request has been raised successfully.' };
       }
 
       if (mode === 'EDVIRON_STATIC_QR') {
