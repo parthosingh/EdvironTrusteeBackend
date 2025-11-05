@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { EmailService } from 'src/email/email.service';
 import { Reconciliation } from 'src/schema/Reconciliation.schema';
 import { RefundRequest } from 'src/schema/refund.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';

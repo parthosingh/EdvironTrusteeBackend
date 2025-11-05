@@ -417,6 +417,28 @@ export class EmailService {
     });
   }
 
+  
+  async sendPOSMail(
+    emailBody: string,
+    sub: string,
+    emailRecipient: any
+  ) {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: emailRecipient,
+      subject: sub,
+      html: emailBody,
+    };
+
+    this.transporter.sendMail(mailOptions, (err) => {
+      if (err) {
+        console.error('Error sending  alert email:');
+      } else {
+        console.log('alert email sent successfully.');
+      }
+    });
+  }
+
   async sendPaymentUrlMail(
     email_id: string,
     payment_url: string,
