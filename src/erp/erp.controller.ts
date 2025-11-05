@@ -7683,6 +7683,37 @@ async getCollectRequestV2(@Req() req) {
     }
   }
 
+  @Get('/installment-sign')
+  async getInstallmentSign(
+    @Req() req:any
+  ){
+    try{
+      const { school_id } = req.query;
+      if (!school_id) {
+        throw new BadRequestException('school_id is required');
+      }
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('School not found');
+      }
+      if (!school.pg_key) {
+        throw new BadRequestException('PG is not activated for your school');
+      }
+      const sign = this.jwtService.sign(
+        { school_id },
+        {          secret: school.pg_key,
+        },
+      );
+      return { sign };
+    }catch(error){
+      console.log(error);
+      
+      throw new BadRequestException(error.message);
+    }
+  }
+
   // @UseGuards(ErpGuard)
   @Post('/edviron-pay')
   async collectInstallments(
