@@ -138,43 +138,53 @@ export class BusinessAlarmController {
       if (!school) {
         throw new BadRequestException('School not found');
       }
+      const htmlContent = await generateTransactionMailReciept(
+        amount,
+        gateway,
+        additional_data,
+        school_id,
+        trustee_id,
+        custom_order_id,
+        vendors_info,
+        isQRPayment,
+        createdAt,
+        updatedAt,
+        collect_id,
+        status,
+        bank_reference,
+        details,
+        transactionAmount,
+        transactionStatus,
+        transactionTime,
+        payment_method,
+        payment_time,
+        transaction_amount,
+        order_amount,
+        isAutoRefund,
+        reason,
+        error_details,
+      );
+      const decode_additional_data = JSON.parse(additional_data);
+      const student_detail = decode_additional_data.student_details;
+      if (school.isNotificationOn && school.isNotificationOn.for_student && student_detail.student_email) {
+        this.emailService.sendTransactionAlert(
+          htmlContent,
+          `Edviron | Transaction Success Report - ${school.school_name}`,
+          student_detail.student_email,
+          [],
+        );
+      }
       if (
         school.isNotificationOn &&
         school.isNotificationOn.for_transaction === true &&
         status.toUpperCase() === 'SUCCESS'
       ) {
-        const htmlContent = await generateTransactionMailReciept(
-          amount,
-          gateway,
-          additional_data,
-          school_id,
-          trustee_id,
-          custom_order_id,
-          vendors_info,
-          isQRPayment,
-          createdAt,
-          updatedAt,
-          collect_id,
-          status,
-          bank_reference,
-          details,
-          transactionAmount,
-          transactionStatus,
-          transactionTime,
-          payment_method,
-          payment_time,
-          transaction_amount,
-          order_amount,
-          isAutoRefund,
-          reason,
-          error_details,
-        );
-        let emailRecipient = school.email;
         const eventName = 'TRANSACTION_ALERT';
         const emails = await this.businessServices.getMails(
           eventName,
           school_id,
         );
+
         const ccMails = await this.businessServices.getMailsCC(
           eventName,
           school_id,

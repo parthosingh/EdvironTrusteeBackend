@@ -655,14 +655,14 @@ export class TrusteeResolver {
       transactionReport = await Promise.all(
         response.data.transactions.map(async (item: any) => {
           let remark = null;
-          let additional_data = item.additional_data || ""
-          if (additional_data === "") {
-            additional_data = {}
-          }else{
-            additional_data=JSON.parse(item.additional_data)
+          let additional_data = item.additional_data || '';
+          if (additional_data === '') {
+            additional_data = {};
+          } else {
+            additional_data = JSON.parse(item.additional_data);
           }
           // console.log(additional_data);
-          
+
           return {
             ...item,
             merchant_name:
@@ -716,7 +716,7 @@ export class TrusteeResolver {
         current_page: transactionPage,
       };
     } catch (error) {
-      console.log(error,'response');
+      console.log(error, 'response');
       if (error?.response?.data?.message) {
         throw new BadRequestException(error?.response?.data?.message);
       }
@@ -3403,20 +3403,17 @@ export class TrusteeResolver {
     files: UploadedFile[],
     @Args('reason', { type: () => String, nullable: true }) reason?: string,
   ) {
-    let uploadedFiles: Array<{ document_type: string; file_url: string }> = [];
+    let uploadedFiles: any = [];
     try {
       const trustee_id = context.req.trustee;
       const trustee = await this.trusteeModel.findById(trustee_id);
       if (!trustee) throw new NotFoundException('Trustee not found');
-      // const collectObjectId = new Types.ObjectId(collect_id);
       const disputDetails = await this.DisputesModel.findOne({
         collect_id: collect_id,
       });
-
       if (!disputDetails) {
         throw new BadRequestException('Dispute not found');
       }
-
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
@@ -3427,7 +3424,6 @@ export class TrusteeResolver {
                     if (!matches || matches.length !== 3) {
                       throw new Error('Invalid base64 file format.');
                     }
-
                     const contentType = matches[1];
                     const base64Data = matches[2];
                     const fileBuffer = Buffer.from(base64Data, 'base64');
@@ -3442,6 +3438,7 @@ export class TrusteeResolver {
                       contentType,
                       'edviron-backend-dev',
                     );
+                    console.log(file_url, 'file_url');
 
                     return {
                       document_type: data.extension,
@@ -3466,7 +3463,6 @@ export class TrusteeResolver {
         },
         { new: true },
       );
-
       if (disputDetails.gateway === DisputeGateways.EASEBUZZ) {
         await this.trusteeService.handleEasebuzzDispute({
           case_id: disputDetails.case_id,
@@ -3474,7 +3470,15 @@ export class TrusteeResolver {
           reason,
           documents: uploadedFiles,
         });
-      } else {
+      }
+      if (disputDetails.gateway === DisputeGateways.CASHFREE) {
+        await this.trusteeService.handleCashfreeDispute({
+          dispute_id: disputDetails.dispute_id.toString(),
+          action: action,
+          documents: uploadedFiles,
+          collect_id: disputDetails.collect_id.toString(),
+        });
+
         const school_details = await this.trusteeSchoolModel.findOne({
           school_id: disputDetails.school_id,
         });
@@ -3515,27 +3519,28 @@ export class TrusteeResolver {
           cc,
           dusputeUpdate.documents,
         );
+
+        const teamMailSubject = `Dispute documents received for dispute id: ${disputDetails.dispute_id}`;
+
+        const teamMailTemplate = getDisputeReceivedEmailForTeam(
+          disputDetails.dispute_id,
+          disputDetails.collect_id,
+          action,
+          reason,
+          disputDetails.gateway,
+          uploadedFiles,
+        );
+
+        // mail to trustee
+        // const userMailSubject = `Dispute documents received for transaction id: ${disputDetails.collect_id}`;
+        // const userMailTemplate = getDisputeReceivedEmailForUser(
+        //   disputDetails.dispute_id,
+        //   disputDetails.collect_id,
+        //   action,
+        //   reason,
+        //   uploadedFiles,
+        // );
       }
-      const teamMailSubject = `Dispute documents received for dispute id: ${disputDetails.dispute_id}`;
-
-      const teamMailTemplate = getDisputeReceivedEmailForTeam(
-        disputDetails.dispute_id,
-        disputDetails.collect_id,
-        action,
-        reason,
-        disputDetails.gateway,
-        uploadedFiles,
-      );
-
-      // mail to trustee
-      // const userMailSubject = `Dispute documents received for transaction id: ${disputDetails.collect_id}`;
-      // const userMailTemplate = getDisputeReceivedEmailForUser(
-      //   disputDetails.dispute_id,
-      //   disputDetails.collect_id,
-      //   action,
-      //   reason,
-      //   uploadedFiles,
-      // );
 
       console.log('before return');
 

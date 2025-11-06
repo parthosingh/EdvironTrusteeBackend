@@ -3098,20 +3098,16 @@ export class TrusteeService {
     dispute_id,
     action,
     documents,
-    client_id,
+    collect_id,
   }: {
-    dispute_id: string;
+    dispute_id: any;
     action: string;
-    documents: Array<{
-      file: string;
-      doc_type: string;
-      note: string;
-    }>;
-    client_id: string;
+    documents: any;
+    collect_id: string;
   }) {
     try {
       const sign = this.jwtService.sign(
-        { dispute_id, action, client_id },
+        { dispute_id, action },
         {
           secret: process.env.PAYMENTS_SERVICE_SECRET,
         },
@@ -3122,21 +3118,21 @@ export class TrusteeService {
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/update-dispute`,
         headers: {
           accept: 'application/json',
-          'Content-Type': 'multipart/form-data',
         },
         data: {
           dispute_id,
           action,
           documents,
-          client_id,
           sign,
+          collect_id
         },
       };
       const { data: response } = await axios.request(config);
       return response;
     } catch (error) {
+      console.log(error.response.data.message, "error.response.data.message")
       throw new InternalServerErrorException(
-        error.message || 'Something went wrong',
+        error.response.data.message || 'Something went wrong',
       );
     }
   }
