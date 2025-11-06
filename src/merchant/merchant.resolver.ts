@@ -66,6 +66,10 @@ import { getDisputeReceivedEmailForTeam } from 'src/email/templates/dipute.templ
 import { PosMachine } from 'src/schema/pos.machine.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { ErrorLogs } from 'src/schema/error.log.schema';
+import {
+  RefundDelayType,
+  RefundTrigger,
+} from 'src/schema/refund.trigger.schema';
 
 @InputType()
 export class SplitRefundDetails {
@@ -101,7 +105,9 @@ export class MerchantResolver {
     private readonly businessServices: BusinessAlarmService,
     @InjectModel(ErrorLogs.name)
     private ErrorLogsModel: mongoose.Model<ErrorLogs>,
-  ) { }
+    @InjectModel(RefundTrigger.name)
+    private readonly refundTriggerModel: mongoose.Model<RefundTrigger>,
+  ) {}
   // private emailService: EmailService,
   // ) { }
 
@@ -606,7 +612,8 @@ export class MerchantResolver {
     // });
     const merchant = await this.trusteeSchoolModel.findOne({ email: email });
     const member = await this.merchantMemberModel.findOne({
-      $or: [{ email }
+      $or: [
+        { email },
         // , { phone_number }
       ],
     });
@@ -979,8 +986,9 @@ export class MerchantResolver {
     @Context() context: any,
     @Args('reason', { nullable: true }) reason?: string,
   ) {
-    const school_id = context.req.merchant;
-    const school = await this.trusteeSchoolModel.findById(school_id);
+    const merchant_id = context.req.merchant;
+    const school = await this.trusteeSchoolModel.findById(merchant_id);
+    const school_id = school.school_id;
     const checkRefundRequest = await this.refundRequestModel
       .findOne({
         order_id: new Types.ObjectId(order_id),
@@ -1028,8 +1036,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -1081,7 +1089,77 @@ export class MerchantResolver {
         refund.trustee_id.toString(),
       );
     }
-    return `Refund Request Created`;
+
+    try {
+      const schoolTrigger = await this.refundTriggerModel.findOne({
+        school_id: school_id,
+      });
+
+      if (!schoolTrigger) {
+        // No trigger then behaves normally
+        return `Refund Request Created`;
+      }
+
+      let scheduledAt = new Date();
+      switch (schoolTrigger.delay_type) {
+        case 'AFTER_24_HOURS':
+          scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          break;
+        case 'T_PLUS_1_9AM':
+          const now = new Date();
+          const tPlus1 = new Date(now);
+          tPlus1.setDate(now.getDate() + 1);
+          tPlus1.setHours(9, 0, 0, 0);
+          scheduledAt = tPlus1;
+          break;
+      }
+
+      const payload = {
+        collect_id: order_id,
+        amount: refund_amount,
+        refund_id: refund._id.toString(),
+      };
+
+      const refundStatusToken = this.jwtService.sign(payload, {
+        secret: process.env.PAYMENTS_SERVICE_SECRET,
+      });
+
+      const initiateRefund = async () => {
+        try {
+          const token = this.jwtService.sign(payload, {
+            secret: process.env.PAYMENTS_SERVICE_SECRET,
+          });
+          const res = await axios.post(
+            `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/initiate-refund`,
+            { ...payload, token },
+            { headers: { 'Content-Type': 'application/json' } },
+          );
+          const statusRes = await axios.post(
+            `${process.env.URL}/main-backend/update-refund-status?token=${refundStatusToken}`,
+            {},
+            { headers: { 'Content-Type': 'application/json' } },
+          );
+        } catch (error) {
+          throw new BadRequestException('Refund failed:', error.message);
+        }
+      };
+
+      switch (schoolTrigger.delay_type) {
+        case 'IMMEDIATE':
+          await initiateRefund();
+          break;
+        case 'AFTER_24_HOURS':
+          setTimeout(initiateRefund, 24 * 60 * 60 * 1000);
+          break;
+        case 'T_PLUS_1_9AM':
+          setTimeout(initiateRefund, scheduledAt.getTime() - Date.now());
+          break;
+      }
+
+      return `Refund initiated successfully`;
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
   }
   @UseGuards(MerchantGuard)
   @Query(() => PaginatedRefundRequestResponse)
@@ -1201,11 +1279,11 @@ export class MerchantResolver {
       ...(vendor_id && { vendor_id }),
       ...(startDate &&
         endDate && {
-        updatedAt: {
-          $gte: new Date(startDate),
-          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
-        },
-      }),
+          updatedAt: {
+            $gte: new Date(startDate),
+            $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     console.log(query, ':query');
@@ -1362,11 +1440,11 @@ export class MerchantResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-        settled_on: {
-          $gte: new Date(start_date),
-          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-        },
-      }),
+          settled_on: {
+            $gte: new Date(start_date),
+            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+          },
+        }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -1417,7 +1495,7 @@ export class MerchantResolver {
     if (
       checkRefundRequest &&
       checkRefundRequest.split_refund_details[0]?.vendor_id ===
-      split_refund_details[0].vendor_id &&
+        split_refund_details[0].vendor_id &&
       checkRefundRequest.status === refund_status.INITIATED
     ) {
       throw new ConflictException(
@@ -1457,8 +1535,8 @@ export class MerchantResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -1580,42 +1658,42 @@ export class MerchantResolver {
       uploadedFiles =
         files && files.length > 0
           ? await Promise.all(
-            files
-              .map(async (data) => {
-                try {
-                  const matches = data.file.match(/^data:(.*);base64,(.*)$/);
-                  if (!matches || matches.length !== 3) {
-                    throw new Error('Invalid base64 file format.');
+              files
+                .map(async (data) => {
+                  try {
+                    const matches = data.file.match(/^data:(.*);base64,(.*)$/);
+                    if (!matches || matches.length !== 3) {
+                      throw new Error('Invalid base64 file format.');
+                    }
+
+                    const contentType = matches[1];
+                    const base64Data = matches[2];
+                    const fileBuffer = Buffer.from(base64Data, 'base64');
+
+                    const sanitizedFileName = data.name.replace(/\s+/g, '_');
+                    const last4DigitsOfMs = Date.now().toString().slice(-4);
+                    const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
+
+                    const file_url = await this.awsS3Service.uploadToS3(
+                      fileBuffer,
+                      key,
+                      contentType,
+                      'edviron-backend-dev',
+                    );
+
+                    return {
+                      document_type: data.extension,
+                      file_url,
+                      name: data.name,
+                    };
+                  } catch (error) {
+                    throw new InternalServerErrorException(
+                      error.message || 'File upload failed',
+                    );
                   }
-
-                  const contentType = matches[1];
-                  const base64Data = matches[2];
-                  const fileBuffer = Buffer.from(base64Data, 'base64');
-
-                  const sanitizedFileName = data.name.replace(/\s+/g, '_');
-                  const last4DigitsOfMs = Date.now().toString().slice(-4);
-                  const key = `merchant/${last4DigitsOfMs}_${disputDetails._id.toString()}_${sanitizedFileName}`;
-
-                  const file_url = await this.awsS3Service.uploadToS3(
-                    fileBuffer,
-                    key,
-                    contentType,
-                    'edviron-backend-dev',
-                  );
-
-                  return {
-                    document_type: data.extension,
-                    file_url,
-                    name: data.name,
-                  };
-                } catch (error) {
-                  throw new InternalServerErrorException(
-                    error.message || 'File upload failed',
-                  );
-                }
-              })
-              .filter((file) => file !== null),
-          )
+                })
+                .filter((file) => file !== null),
+            )
           : [];
       const dusputeUpdate = await this.DisputesModel.findOneAndUpdate(
         { collect_id: collect_id },
@@ -1735,6 +1813,7 @@ export class MerchantResolver {
         for_transaction: false,
         for_refund: false,
         for_settlement: false,
+        for_dispute: false,
       };
     }
     if (for_transaction !== undefined) {
@@ -1816,8 +1895,9 @@ export class MerchantResolver {
         );
       }
 
-
-      const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: settlement.schoolId,
+      });
       if (!school) {
         throw new NotFoundException('School not found');
       }
@@ -1826,20 +1906,29 @@ export class MerchantResolver {
         school.easebuzz_non_partner.easebuzz_key &&
         school.easebuzz_non_partner.easebuzz_salt &&
         school.easebuzz_non_partner.easebuzz_submerchant_id
-
       ) {
         console.log('settlement from date');
-        const settlements = await this.settlementReportModel.find({
-          schoolId: settlement.schoolId,
-          settlementDate: { $lt: settlement.settlementDate }
-        }).sort({ settlementDate: -1 }).select('settlementDate').limit(2);
+        const settlements = await this.settlementReportModel
+          .find({
+            schoolId: settlement.schoolId,
+            settlementDate: { $lt: settlement.settlementDate },
+          })
+          .sort({ settlementDate: -1 })
+          .select('settlementDate')
+          .limit(2);
         const previousSettlementDate = settlements[1]?.settlementDate;
-        const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
+        const formatted_start_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            previousSettlementDate,
+          );
         console.log({ formatted_start_date }); // e.g. 06-09-2025
 
-        const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
+        const formatted_end_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            settlement.settlementDate,
+          );
         console.log({ formatted_end_date }); // e.g. 06-09-2025
-        const paginatioNPage = page || 1
+        const paginatioNPage = page || 1;
         const res = await this.trusteeService.easebuzzSettlementRecon(
           school.easebuzz_non_partner.easebuzz_submerchant_id,
           formatted_start_date,
@@ -1903,7 +1992,9 @@ export class MerchantResolver {
           settlement.fromDate,
         );
       }
-      const school = await this.trusteeSchoolModel.findOne({ school_id: settlement.schoolId });
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: settlement.schoolId,
+      });
       if (!school) {
         throw new NotFoundException('School not found');
       }
@@ -1912,20 +2003,29 @@ export class MerchantResolver {
         school.easebuzz_non_partner.easebuzz_key &&
         school.easebuzz_non_partner.easebuzz_salt &&
         school.easebuzz_non_partner.easebuzz_submerchant_id
-
       ) {
         console.log('settlement from date');
-        const settlements = await this.settlementReportModel.find({
-          schoolId: settlement.schoolId,
-          settlementDate: { $lt: settlement.settlementDate }
-        }).sort({ settlementDate: -1 }).select('settlementDate').limit(2);
+        const settlements = await this.settlementReportModel
+          .find({
+            schoolId: settlement.schoolId,
+            settlementDate: { $lt: settlement.settlementDate },
+          })
+          .sort({ settlementDate: -1 })
+          .select('settlementDate')
+          .limit(2);
         const previousSettlementDate = settlements[1]?.settlementDate;
-        const formatted_start_date = await this.trusteeService.formatDateToDDMMYYYY(previousSettlementDate);
+        const formatted_start_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            previousSettlementDate,
+          );
         console.log({ formatted_start_date }); // e.g. 06-09-2025
 
-        const formatted_end_date = await this.trusteeService.formatDateToDDMMYYYY(settlement.settlementDate);
+        const formatted_end_date =
+          await this.trusteeService.formatDateToDDMMYYYY(
+            settlement.settlementDate,
+          );
         console.log({ formatted_end_date }); // e.g. 06-09-2025
-        const paginatioNPage = page || 1
+        const paginatioNPage = page || 1;
         const res = await this.trusteeService.easebuzzSettlementRecon(
           school.easebuzz_non_partner.easebuzz_submerchant_id,
           formatted_start_date,

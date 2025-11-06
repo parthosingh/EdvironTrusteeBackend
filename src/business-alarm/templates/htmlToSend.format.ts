@@ -1206,3 +1206,55 @@ export function generateCSV(settlements_transactions) {
   const csvContent = [headers, ...rows].map((e) => e.join(',')).join('\n');
   return csvContent;
 }
+
+
+
+export function generatePosRequest(
+  school_id : string,
+  school_name:string,
+){
+return `
+   <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New POS Request from ${school_name}</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+
+  <body class="bg-gray-100 font-sans antialiased">
+    <div class="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-xl overflow-hidden border border-gray-200">
+
+      <!-- Header -->
+      <div class="bg-blue-600 text-white py-6 text-center">
+        <h1 class="text-2xl font-bold">🧾 New POS Machine Request</h1>
+      </div>
+
+      <!-- Body -->
+      <div class="p-8">
+        <p class="text-gray-800 mb-4">
+          Hello <span class="font-semibold text-blue-600">Edviron Team</span>,
+        </p>
+
+        <p class="text-gray-700 leading-relaxed mb-6">
+          A new <span class="font-semibold">POS Machine Request</span> has been submitted by a school under trustee supervision.
+          Below are the request details:
+        </p>
+
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-5 text-gray-800">
+          <p class="mb-2"><span class="font-semibold">🏫 School Name:</span> ${school_name }</p>
+          <p class="mb-2"><span class="font-semibold">🏷️ School ID:</span> ${school_id}</p>
+        </div>
+
+        <p class="mt-6 text-gray-700">
+          Kindly review this request and proceed with further action for POS machine allocation.
+        </p>
+      </div>
+    </div>
+  </body>
+  </html>
+`
+}

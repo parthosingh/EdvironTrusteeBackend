@@ -75,7 +75,7 @@ export class SubTrusteeResolver {
     @InjectModel(VendorsSettlement.name)
     private vendorsSettlementModel: mongoose.Model<VendorsSettlement>,
     private readonly trusteeService: TrusteeService,
-  ) {}
+  ) { }
 
   @Mutation(() => loginToken)
   async subTrusteeLogin(
@@ -322,7 +322,6 @@ export class SubTrusteeResolver {
       console.time('fetching all transaction');
 
       const response = await axios.request(config);
-
       const transactionLimit = Number(limit) || 100;
       const transactionPage = Number(page) || 1;
       let total_pages = response.data.totalTransactions / transactionLimit;
@@ -541,19 +540,19 @@ export class SubTrusteeResolver {
         ...(searchQuery
           ? Types.ObjectId.isValid(searchQuery)
             ? {
-                $or: [
-                  { order_id: new mongoose.Types.ObjectId(searchQuery) },
-                  { _id: new mongoose.Types.ObjectId(searchQuery) },
-                ],
-              }
+              $or: [
+                { order_id: new mongoose.Types.ObjectId(searchQuery) },
+                { _id: new mongoose.Types.ObjectId(searchQuery) },
+              ],
+            }
             : {
-                $or: [
-                  { status: { $regex: searchQuery, $options: 'i' } },
-                  { reason: { $regex: searchQuery, $options: 'i' } },
-                  { custom_id: { $regex: searchQuery, $options: 'i' } },
-                  { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
-                ],
-              }
+              $or: [
+                { status: { $regex: searchQuery, $options: 'i' } },
+                { reason: { $regex: searchQuery, $options: 'i' } },
+                { custom_id: { $regex: searchQuery, $options: 'i' } },
+                { gatway_refund_id: { $regex: searchQuery, $options: 'i' } },
+              ],
+            }
           : {}),
       };
       if (!searchQuery && startDate && endDate) {
@@ -894,11 +893,11 @@ export class SubTrusteeResolver {
       ...(utr && { utr: utr }),
       ...(start_date &&
         end_date && {
-          settled_on: {
-            $gte: new Date(start_date),
-            $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
-          },
-        }),
+        settled_on: {
+          $gte: new Date(start_date),
+          $lte: new Date(new Date(end_date).setHours(23, 59, 59, 999)),
+        },
+      }),
     };
 
     const totalCount = await this.vendorsSettlementModel.countDocuments(query);
@@ -1189,6 +1188,83 @@ export class SubTrusteeResolver {
       throw new BadRequestException(e.message);
     }
   }
+  @UseGuards(SubTrusteeGuard)
+  @Query(() => transactionV2)
+  async getSubTrusteeTransactionSummary(
+    @Context() context: any,
+    @Args('startDate', { type: () => String, nullable: true })
+    startDate?: string,
+    @Args('endDate', { type: () => String, nullable: true })
+    endDate?: string,
+    @Args('status', { type: () => String, nullable: true }) status?: string,
+    @Args('isQRPayment', { type: () => Boolean, nullable: true })
+    isQRPayment?: boolean,
+    @Args('mode', { type: () => [String], nullable: true }) mode?: string[],
+    @Args('gateway', { type: () => [String], nullable: true })
+    gateway?: string[],
+    @Args('school_ids', { type: () => [String], nullable: true })
+    school_ids?: string[],
+  ): Promise<transactionV2> {
+    try {
+      const subTrusteeId = context.req.subtrustee;
+      const trusteeId = context.req.trustee;
+      let filtered_school_ids = school_ids || [];
+      if (!filtered_school_ids || filtered_school_ids.length === 0) {
+        const schoolIds = await this.subTrusteeService.getSubTrusteeSchoolIds(
+          subTrusteeId.toString(),
+          trusteeId.toString(),
+        );
+        filtered_school_ids = schoolIds;
+      }
+
+      const config = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-transaction-report-batched-v2`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: {
+          trustee_id: trusteeId,
+          school_id: filtered_school_ids,
+          gateway: gateway,
+          start_date: startDate,
+          end_date: endDate,
+          status: status,
+          mode: mode,
+          isQRPayment: isQRPayment,
+        },
+      };
+      const response = await axios.request(config);
+      return {
+        length: response.data.length || 0,
+        transaction: response.data.transactions || [],
+      };
+    } catch (e) {
+      throw new BadRequestException(e.message);
+    }
+  }
+}
+
+@ObjectType()
+class TRANSACTION {
+  @Field({ nullable: true })
+  totalTransactionAmount: number;
+
+  @Field({ nullable: true })
+  totalOrderAmount: number;
+
+  @Field({ nullable: true })
+  totalTransactions: number;
+}
+
+@ObjectType()
+export class transactionV2 {
+  @Field(() => Number)
+  length: number;
+
+  @Field(() => [TRANSACTION])
+  transaction: TRANSACTION[];
 }
 
 @ObjectType()

@@ -40,6 +40,7 @@ import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { OTP, OTPSchema } from 'src/schema/otp.schema';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
 import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
+import { RefundTrigger, RefundTriggerSchema } from 'src/schema/refund.trigger.schema';
 
 
 @Module({
@@ -113,6 +114,7 @@ import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.s
       { name: ReportsLogs.name, schema: ReportsLogsSchema },
     ]),
     MongooseModule.forFeature([{ name: OTP.name, schema: OTPSchema }]),
+    MongooseModule.forFeature([{name:RefundTrigger.name , schema:RefundTriggerSchema}])
   ],
   controllers: [],
   providers: [

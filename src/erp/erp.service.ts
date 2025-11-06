@@ -1460,7 +1460,7 @@ export class ErpService {
                 razorpay_id: merchant.razorpay.razorpay_id,
                 fromDate: new Date(startDatenew),
                 tillDate: new Date(startDatenew),
-                status: value.status === 'processed' ? 'SUCCESS' : value.status,
+                 status: value.status?.toLowerCase() === 'processed' ? 'Settled' : value.status,
                 gateway: 'EDVIRON_RAZORPAY',
                 utrNumber: value.utr,
                 settlementDate: new Date(value.created_at * 1000).toISOString(),

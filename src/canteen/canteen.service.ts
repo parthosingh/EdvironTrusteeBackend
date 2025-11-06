@@ -1,4 +1,4 @@
-import { BadGatewayException, Body, Injectable, Post, UnauthorizedException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Body, Injectable, Post, UnauthorizedException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
@@ -95,6 +95,39 @@ export class CanteenService {
 
         } catch (error) {
             throw new BadGatewayException(error.message);
+        }
+    }
+
+    async authSchool(
+        school_id: string,
+        sign: string
+    ) {
+        try {
+            if (!process.env.JWT_SECRET_FOR_CANTEEN) {
+                throw new BadRequestException('Canteen Auth Required')
+            }
+            const decoded = jwt.verify(sign, process.env.JWT_SECRET_FOR_CANTEEN) as any;
+
+            if (decoded.school_id !== school_id) {
+                throw new BadGatewayException(`Request Fordge | Invalid Sign`)
+            }
+            const school = await this.databaseService.trusteeSchoolModel.findOne({
+                school_id: new Types.ObjectId(school_id)
+            })
+            if(!school){
+                throw new BadRequestException(`Invalid Schoo ID`)
+            }
+            return {
+                school_id,
+                school_name:school.school_name,
+                school_email:school.email || 'NA',
+                school_number:school.phone_number || 'NA',
+                trustee_id:school.trustee_id,
+                logo:school.logo || null
+            }
+
+        } catch (e) {
+            throw new BadGatewayException(e.message)
         }
     }
 }

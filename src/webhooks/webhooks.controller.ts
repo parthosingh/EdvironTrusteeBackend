@@ -119,7 +119,7 @@ export class WebhooksController {
       console.log('updated collect id: ' + collect_id);
 
       const details = JSON.stringify(body.data);
-      const easebuzz_refund_status = body.data.refund_status;
+      const easebuzz_refund_status = data.refund_status;
       await new this.webhooksLogsModel({
         type: 'Refund Webhook',
         order_id: collect_id,
@@ -137,8 +137,9 @@ export class WebhooksController {
         }
         let status = refund_status.INITIATED;
         const merchant = await this.TrusteeSchoolmodel.findOne({
-          _id: refundRequest.school_id,
+          school_id: refundRequest.school_id,
         });
+        console.log('merchant', refundRequest);
         if (
           easebuzz_refund_status === 'accepted' ||
           easebuzz_refund_status === 'refunded'
@@ -298,7 +299,6 @@ export class WebhooksController {
         refundRequest.additonalInfo = status_description;
         await refundRequest.save();
 
-        // Sending ERP webhooks
         try {
           const trustee_id = refundRequest.trustee_id;
           const trustee = await this.TrusteeModel.findById(trustee_id);
@@ -1274,6 +1274,16 @@ export class WebhooksController {
       if (!school) {
         throw new BadRequestException('School not found');
       }
+      let config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/get-dispute-byOrderId?collect_id=${order_id}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+      };
+      const { data: paymentsResponse } = await axios.request(config);
 
       const dispute = await this.DisputesModel.findOneAndUpdate(
         { dispute_id },
@@ -1293,10 +1303,17 @@ export class WebhooksController {
             dispute_respond_by_date: new Date(respond_by),
             dispute_status,
             dispute_remark: cf_dispute_remarks,
-            // dispute_resolved_at_date: new Date(resolved_at),
-            // resolved_at,
-            // cf_dispute_remarks,
             gateway: DisputeGateways.CASHFREE,
+            student_name:
+              JSON.parse(paymentsResponse.data.student_detail)?.student_details
+                ?.student_name || '',
+            school_name: school.school_name || 'N/A',
+            bank_reference: paymentsResponse?.data?.bank_reference,
+            settlement_id:
+              paymentsResponse?.data?.cashfreeDispute[0]?.cf_settlement_id ||
+              'N/A',
+            utr_number:
+              paymentsResponse?.data?.cashfreeDispute[0]?.transfer_utr || 'N/A',
           },
         },
         { upsert: true, new: true },
@@ -1336,74 +1353,79 @@ export class WebhooksController {
         dispute.event_steps.push(eventUpdate);
         await dispute.save();
       }
-      // console.log(dispute, "dispute")
-      if (dispute_status === 'DISPUTE_CREATED') {
-        // const trusteeEmail = await this.TrusteeModel.findById(
-        //   school.trustee_id,
-        // );
-        const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
-        const htmlBody =
-          'Please find the attached receipt for dispute details.';
 
-        // Generate PDF buffer (you need to implement this part)
-        const pdfBuffer = await this.generateDisputePDF(dispute, false);
+      if (
+        school.isNotificationOn &&
+        school.isNotificationOn.for_dispute === true
+      ) {
+        const eventName = 'DISPUTE_ALERT';
 
-        this.emailService.sendErrorMail2(subject, htmlBody, [
-          {
-            filename: `Dispute-${dispute.dispute_id}.pdf`,
-            content: pdfBuffer,
-          },
-        ]);
+        const emailList = await this.businessServices.getMails(
+          eventName,
+          school_id,
+        );
+        if (
+          dispute_status === 'CHARGEBACK_CREATED' ||
+          dispute_status === 'DISPUTE_CREATED'
+        ) {
+          const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
+          const htmlBody =
+            'Please find the attached receipt for dispute details.';
 
-        // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+          const pdfBuffer = await this.generateDisputePDF(dispute, false);
 
-        const gatewayMailSubject = `Dispute invoice against transaction id: ${dispute.collect_id}`;
+          this.emailService.sendErrorMail2(subject, htmlBody, [
+            {
+              filename: `Dispute-${dispute.dispute_id}.pdf`,
+              content: pdfBuffer,
+            },
+          ]);
 
-        const gatewayMailData = {
-          transactionId: transactionInfo.collect_id,
-          custom_order_id: transactionInfo.custom_order_id || 'NA',
-          disputeStatus: transactionInfo.dispute_status,
-          date: new Date(transactionInfo.payment_time).toLocaleDateString(
-            'en-IN',
-            { timeZone: 'Asia/Kolkata' },
-          ),
-          schoolName: school.school_name,
-          amount: transactionInfo.transaction_amount,
-          bank_reference: transactionInfo.bank_reference,
-          student_details: transactionInfo?.additional_data
-            ? JSON.parse(transactionInfo.additional_data)
-            : {},
-          payment_method: transactionInfo.payment_method,
-          payment_details: transactionInfo.details,
-          gateway: dispute.gateway,
-        };
+          const gatewayMailSubject = `Dispute invoice against transaction id: ${dispute.collect_id}`;
 
-        this.pdfService.generatePDF(gatewayMailData).then((pdf: any) => {
-          this.emailService.sendMailWithAttachment(
-            gatewayMailSubject,
-            `<h3> Please find the attached invoice againest dispute case id: ${dispute.dispute_id} </h3>`,
-            DISPUT_INVOICE_MAIL_GATEWAY,
-            `receipt_${gatewayMailData.transactionId}.pdf`,
-            pdf,
-          );
-        });
-      }
-      if (resolved_at) {
-        dispute.dispute_resolved_at_date = new Date(resolved_at);
-        await dispute.save();
-        // const trusteeEmail = await this.TrusteeModel.findById(
-        //   school.trustee_id,
-        // );
-        const subject = `A dispute has been resolved against transaction id: ${dispute.collect_id}`;
-        const innerMailTemp = getAdminEmailTemplate(dispute, false);
-        // const userMailTemp = getCustomerEmailTemplate(
-        //   dispute,
-        //   school.school_name,
-        //   false,
-        // );
-        this.emailService.sendErrorMail(subject, innerMailTemp);
+          const gatewayMailData = {
+            transactionId: transactionInfo.collect_id,
+            custom_order_id: transactionInfo.custom_order_id || 'NA',
+            disputeStatus: dispute_status,
+            date: new Date(updated_at),
+            schoolName: school.school_name,
+            amount: transactionInfo.transaction_amount,
+            bank_reference: transactionInfo.bank_reference,
+            student_details: transactionInfo?.additional_data
+              ? JSON.parse(transactionInfo.additional_data)
+              : {},
+            payment_method: transactionInfo.payment_method,
+            payment_details: transactionInfo.details,
+            gateway: dispute.gateway,
+          };
 
-        // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+          this.pdfService.generatePDF(gatewayMailData).then((pdf: any) => {
+            this.emailService.sendMailWithAttachment(
+              gatewayMailSubject,
+              `<h3> Please find the attached invoice against dispute case id: ${dispute.dispute_id} </h3>`,
+              emailList,
+              `receipt_${gatewayMailData.transactionId}.pdf`,
+              pdf,
+            );
+          });
+        }
+        if (resolved_at) {
+          dispute.dispute_resolved_at_date = new Date(resolved_at);
+          await dispute.save();
+          // const trusteeEmail = await this.TrusteeModel.findById(
+          //   school.trustee_id,
+          // );
+          const subject = `A dispute has been resolved against transaction id: ${dispute.collect_id}`;
+          const innerMailTemp = getAdminEmailTemplate(dispute, false);
+          // const userMailTemp = getCustomerEmailTemplate(
+          //   dispute,
+          //   school.school_name,
+          //   false,
+          // );
+          this.emailService.sendErrorMail(subject, innerMailTemp);
+
+          // this.emailService.sendMailToTrustee(subject, userMailTemp, [trusteeEmail.email_id]);
+        }
       }
 
       res.status(200).send('OK');
@@ -1793,116 +1815,189 @@ export class WebhooksController {
       );
     }
   }
+
+    @Post('easebuzz/settlements/v2')
+  async eassebuzzSettlementsV2(
+    @Body() body: any,
+    @Res() res: any,
+    @Req() req: any,
+  ) {
+    try {
+      console.log('debug 1');
+      
+      if (req.query.school_id) {
+        console.log('school i dfound ');
+        
+        const details = JSON.stringify(body);
+        await new this.webhooksLogsModel({
+          type: 'SETTLEMENTS',
+          gateway: 'EASEBUZZ',
+          // type_id:body.data.hash,
+          body: details,
+          status: 'SUCCESS',
+        }).save();
+        const info = body.data;
+        const data = JSON.parse(info);
+        const schoolId = req.query.school_id;
+        const school = await this.TrusteeSchoolmodel.findOne({
+          school_id: new Types.ObjectId(schoolId),
+        });
+        if (!school) {
+          throw new NotFoundException(`School not found for ID: ${schoolId}`);
+        }
+
+        let utr = data.bank_transaction_id;
+        const easebuzzDate = new Date(data.payout_date);
+        if (data.bank_transaction_id === 'SPLIT') {
+          const matchingSplit = data.split_payouts.find(
+            (split: any) => split.account_number === data.account_number,
+          );
+
+          if (matchingSplit) {
+            utr = matchingSplit.bank_transaction_id;
+            console.log('Updated bank_transaction_id:', utr);
+          } else {
+            console.log(
+              'No matching split_payout found for account_number:',
+              data.account_number,
+            );
+          }
+        }
+        const saveSettlements =
+          await this.SettlementReportModel.findOneAndUpdate(
+            { utrNumber: utr },
+            {
+              $set: {
+                settlementAmount: data.payout_amount + data.refund_amount,
+                adjustment: data.refund_amount,
+                gateway: 'EASEBUZZ',
+                netSettlementAmount: data.payout_amount,
+                fromDate: new Date(
+                  easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                ),
+                tillDate: new Date(
+                  easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                ),
+                settlementInitiatedOn: new Date(data.payout_date),
+                status: 'SUCCESS',
+                utrNumber: utr,
+                settlementDate: new Date(data.payout_date),
+                // clientId: data.submerchant_id || 'NA',
+                trustee: school.trustee_id,
+                schoolId: school.school_id,
+                remarks: 'NA',
+              },
+            },
+            {
+              upsert: true,
+              new: true,
+            },
+          );
+
+        return res.status(200).send('OK');
+      }
+
+      console.log('school id not found ');
+      
+      const details = JSON.stringify(body);
+      await new this.webhooksLogsModel({
+        type: 'SETTLEMENTS',
+        gateway: 'EASEBUZZ',
+        // type_id:body.data.hash,
+        body: details,
+        status: 'SUCCESS',
+      }).save();
+      const info = body.data;
+      const data = JSON.parse(info);
+      console.log(data);
+      
+      await Promise.all(
+        data.submerchant_payouts.map(async (payout: any) => {
+          console.log('90909090909');
+          
+          const merchant = await this.TrusteeSchoolmodel.findOne({
+            easebuzz_id: payout.submerchant_id,
+          });
+          if (!merchant) {
+            console.log(
+              `Merchant not found for easebuzz_id: ${payout.submerchant_id}`,
+            );
+            return;
+          }
+          let utr = payout.bank_transaction_id;
+          console.log(utr,'utr');
+          
+          const easebuzzDate = new Date(payout.submerchant_payout_date);
+          if (payout.bank_transaction_id === 'SPLIT') {
+            const matchingSplit = data.split_payouts.find(
+              (split: any) => split.account_number === payout.account_number,
+            );
+
+            if (matchingSplit) {
+              utr = matchingSplit.bank_transaction_id;
+              console.log('Updated bank_transaction_id:', utr);
+            } else {
+              console.log(
+                'No matching split_payout found for account_number:',
+                payout.account_number,
+              );
+            }
+          }
+          const saveSettlements =
+            await this.TempSettlementReportModel.findOneAndUpdate(
+              { utrNumber: utr },
+              {
+                $set: {
+                  settlementAmount: payout.payout_amount + payout.refund_amount,
+                  adjustment: payout.refund_amount,
+                  netSettlementAmount: payout.payout_amount,
+                  fromDate: new Date(
+                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                  ),
+                  tillDate: new Date(
+                    easebuzzDate.getTime() - 24 * 60 * 60 * 1000,
+                  ),
+                  settlementInitiatedOn: new Date(
+                    payout.submerchant_payout_date,
+                  ),
+                  status: 'SUCCESS',
+                  utrNumber: utr,
+                  settlementDate: new Date(payout.submerchant_payout_date),
+                  clientId: payout.submerchant_id || 'NA',
+                  trustee: merchant.trustee_id,
+                  schoolId: merchant.school_id,
+                  remarks: 'NA',
+                },
+              },
+              {
+                upsert: true,
+                new: true,
+              },
+            );
+        }),
+      );
+      console.log('called');
+      res.status(200).send('OK');
+    } catch (e) {
+      const emailSubject = `Error in EASEBUZZ SETTLEMENT WEBHOOK "@Post('easebuzz/settlements')"`;
+      const errorDetails = {
+        environment: process.env.NODE_ENV || 'PRODUCTION',
+        service: 'EASEBUZZ',
+        data: body,
+        timestamp: new Date().toISOString(),
+      };
+      const emailBody = generateErrorEmailTemplate(
+        e,
+        errorDetails,
+        emailSubject,
+      );
+      this.emailService.sendErrorMail(emailSubject, emailBody);
+      console.error('Error saving webhook logs', e);
+      throw new InternalServerErrorException(
+        e.message || 'Something Went Wrong',
+      );
+    }
+  }
+
 }
 
-const easebuzzSplit = {
-  status: '1',
-  data: {
-    hash: '4ed406134cb71b9d4fceb2055ccc688203a291f802e5cd98a380598d148487ca1bcbec2ba7e52601e28c86101f57dbf9cbb48e9f0bbdd870f7836fa74de6fbb4',
-    paid_out: 1,
-    bank_name: 'HDFC Bank',
-    ifsc_code: 'HDFC0001203',
-    payout_id: 'PTDIHTE61Y',
-    payout_date: '2025-06-25 11:52:01.047649',
-    name_on_bank: 'THRIVEDGE EDUTECH PRIVATE LIMITED',
-    total_amount: 37169.19,
-    payout_amount: 37000.0,
-    refund_amount: 0.0,
-    split_payouts: [
-      {
-        paid_out: 1,
-        bank_name: 'Kanakamahalakshmi Co operative Bank',
-        payout_date: '2025-06-25 11:52:01.021813',
-        account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-        payout_amount: 37000.0,
-        account_number: '1016014000064',
-        split_payout_id: 'SPBPOOVPHJ',
-        bank_transaction_id: 'YESB51764261092',
-      },
-    ],
-    account_number: '50200080534081',
-    service_tax_amount: 13.7,
-    bank_transaction_id: 'NA',
-    refund_transactions: [],
-    submerchant_payouts: [
-      {
-        bank_name: 'Kanakamahalakshmi Co operative Bank',
-        ifsc_code: 'IBKL0150KMC',
-        name_on_bank: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-        total_amount: 37169.19,
-        payout_amount: 37000.0,
-        refund_amount: 0.0,
-        account_number: '1016014000064',
-        submerchant_id: 'S128810O8YH',
-        service_tax_amount: 13.7,
-        bank_transaction_id: 'SPLIT',
-        service_charge_amount: 76.09,
-        submerchant_payout_id: 'PTSRGAWI1I',
-        submerchant_payout_date: '2025-06-25 06:22:01.037714',
-      },
-    ],
-    settled_transactions: [
-      {
-        txnid: '685a619b1e5ad99715cb71a5',
-        easepayid: 'E2506240I2W7XW',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'UPI',
-        settlement_amount: 12000.0,
-        split_transactions: [
-          {
-            amount: 12000.0,
-            service_tax: 0.0,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 0.0,
-            split_payout_id: 'SPBPOOVPHJ',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 12011.8,
-      },
-      {
-        txnid: '685a62291e5ad99715cb729c',
-        easepayid: 'E2506240I2WCYG',
-        service_tax: 0.0,
-        service_charge: 0.0,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'UPI',
-        settlement_amount: 15000.0,
-        split_transactions: [
-          {
-            amount: 15000.0,
-            service_tax: 0.0,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 0.0,
-            split_payout_id: 'SPBPOOVPHJ',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 15011.8,
-      },
-      {
-        txnid: '685acd3adbdb777a505e7c06',
-        easepayid: 'E2506240I3NVSE',
-        service_tax: 13.7,
-        service_charge: 76.09,
-        submerchant_id: 'S128810O8YH',
-        transaction_type: 'Credit Card',
-        settlement_amount: 10000.0,
-        split_transactions: [
-          {
-            amount: 10089.79,
-            service_tax: 13.7,
-            account_label: 'LAKSHMIKANTHA EDUCATIONAL TRUST',
-            service_charge: 76.09,
-            split_payout_id: 'SPBPOOVPHJ',
-            split_payout_percentage: 100.0,
-          },
-        ],
-        transaction_amount: 10145.59,
-      },
-    ],
-    service_charge_amount: 76.09,
-  },
-};

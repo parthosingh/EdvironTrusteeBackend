@@ -47,8 +47,8 @@ export class SettlementReport {
   @Field(() => String, { nullable: true })
   status: string;
 
-  @Prop({ required: true, type: String, unique: true })
-  @Field(() => String)
+  @Prop({ required: false, type: String})
+  @Field(() => String,{nullable:true})
   utrNumber: string;
 
   @Prop({ required: true, type: Date })

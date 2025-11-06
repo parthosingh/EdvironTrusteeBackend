@@ -3,9 +3,31 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectId } from 'mongoose';
 import { Document, Types } from 'mongoose';
 import { Trustee, TrusteeSchema } from './trustee.schema';
+import { RefundRequest } from './refund.schema';
+
+    const dummy={
+                    "custom_order_id": "EDVIRON42025102900393300068",
+                    "order_id": "690114ef5a77d55e79117b8c",
+                    "event_status": "SUCCESS",
+                    "event_settlement_amount": 20236,
+                    "order_amount": 20236,
+                    "event_amount": 20462.84,
+                    "event_time": "2025-10-29T00:41:52+05:30",
+                    "payment_group": "CREDIT_CARD",
+                    "settlement_utr": "AXISCN1136869959",
+                    "student_id": "150174186",
+                    "school_name": "BALDWIN GIRLS HIGH SCHOOL",
+                    "student_name": "RABIYA IRAM KHAN",
+                    "student_email": "ARSHISTARZ@GMAIL.COM",
+                    "student_phone_no": "9964123045",
+                    "school_id": "67ea89a4498210d65b537832",
+                    "additional_data": "{\"student_details\":{\"student_id\":\"150174186\",\"student_email\":\"ARSHISTARZ@GMAIL.COM\",\"student_name\":\"RABIYA IRAM KHAN\",\"student_phone_no\":\"9964123045\"},\"additional_fields\":{\"uid1\":\"150174186\",\"uid2\":\"9\",\"uid3\":\"4\",\"uid4\":\"98\",\"uid5\":\"0,3\",\"uid6\":\"8\",\"uid7\":\"9964123045\"}}",
+                    "payment_id": "4509119263",
+                    "__typename": "SettlementsTransactions"
+                }
 
 @ObjectType()
-export class ReconTransactionInfo {
+export class ReconTransactionInfoV2 {
   @Prop()
   @Field(() => String, { nullable: true })
   collect_id: string;
@@ -20,14 +42,113 @@ export class ReconTransactionInfo {
   payment_time: string;
   @Prop()
   @Field(() => String, { nullable: true })
-  custom_id: string;
+  custom_order_id: string;
   @Prop()
   @Field(() => Number, { nullable: true })
   order_amount: number;
+  @Field(() => Number, { nullable: true })
+  transaction_amount: number;
   @Prop()
   @Field(() => Boolean, { nullable: true })
   inSettlements: boolean;
+  @Field(() => String, { nullable: true })
+  additional_info: string;
+
+  @Field(() => String, { nullable: true })
+  event_type: string;
+
+  @Field(() => [RefundRequest], { nullable: true })
+  refunds: RefundRequest[]
 }
+
+@ObjectType()
+export class ReconTransactionInfo {
+  @Prop()
+  @Field(() => String, { nullable: true })
+  custom_order_id: string; // "EDVIRON42025102900393300068"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  order_id: string; // "690114ef5a77d55e79117b8c"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  event_status: string; // "SUCCESS"
+
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  event_settlement_amount: number; // 20236
+
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  order_amount: number; // 20236
+
+  @Prop()
+  @Field(() => Number, { nullable: true })
+  event_amount: number; // 20462.84
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  event_time: string; // "2025-10-29T00:41:52+05:30"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  payment_group: string; // "CREDIT_CARD"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  settlement_utr: string; // "AXISCN1136869959"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  student_id: string; // "150174186"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  school_name: string; // "BALDWIN GIRLS HIGH SCHOOL"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  student_name: string; // "RABIYA IRAM KHAN"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  student_email: string; // "ARSHISTARZ@GMAIL.COM"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  student_phone_no: string; // "9964123045"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  school_id: string; // "67ea89a4498210d65b537832"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  additional_data: string; // JSON string
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  payment_id: string; // "4509119263"
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  typename: string; // "__typename": "SettlementsTransactions"
+
+  // optional common fields
+  @Prop()
+  @Field(() => String, { nullable: true })
+  createdAt?: string;
+
+  @Prop()
+  @Field(() => String, { nullable: true })
+  updatedAt?: string;
+
+  // placeholder for additional event-type mapping or refunds if applicable
+  @Field(() => [RefundRequest], { nullable: true })
+  refunds?: RefundRequest[];
+}
+
 
 @ObjectType()
 export class VendorSplit {
@@ -244,27 +365,19 @@ export class Reconciliation {
 
   @Prop({ nullable: true, type: Number })
   @Field(() => Number, { nullable: true })
+  totalOrderAmount: number;
+
+  @Prop({ nullable: true, type: Number })
+  @Field(() => Number, { nullable: true })
   merchantOtherAdjustment: number;
 
   @Prop({ nullable: true, type: Number })
   @Field(() => Number, { nullable: true })
-  merchantAdjustment: number;
-
-  @Prop({ nullable: true, type: Number })
-  @Field(() => Number, { nullable: true })
-  splitTransactionAmount: number;
-
-  @Prop({ nullable: true, type: Number })
-  @Field(() => Number, { nullable: true })
-  splitSettlementAmount: number;
+  totalAdjustmentAmount: number;
 
   @Prop({ nullable: true, type: Number })
   @Field(() => Number, { nullable: true })
   refundSum: number;
-
-  @Prop({ nullable: true, type: Number })
-  @Field(() => Number, { nullable: true })
-  vendor_refund_sum: number;
 
   @Prop()
   @Field(() => Number, { nullable: true })
@@ -276,11 +389,7 @@ export class Reconciliation {
 
   @Prop()
   @Field(() => [ReconTransactionInfo], { defaultValue: [] })
-  extraInSettlement: ReconTransactionInfo[];
-
-  @Prop()
-  @Field(() => [ReconTransactionInfo], { defaultValue: [] })
-  extraInTransaction: ReconTransactionInfo[];
+  transactions: ReconTransactionInfo[];
 
   @Prop()
   @Field(() => [ReconRefundInfo], { defaultValue: [] })
@@ -291,22 +400,6 @@ export class Reconciliation {
   chargeBacks: ReconRefundInfo[];
 
   @Prop()
-  @Field(() => [VendorRefunds], { defaultValue: [] })
-  vendors_refunds: VendorRefunds[];
-
-  @Prop()
-  @Field(() => [vendorTransactionReconInfo], { defaultValue: [] })
-  vendors_transactions: vendorTransactionReconInfo[];
-
-  @Prop()
-  @Field(() => [SettlementsTransactionsRecon], { defaultValue: [] })
-  settlements_transactions: SettlementsTransactionsRecon[];
-
-  @Prop()
-  @Field(() => [DurationTransactions], { defaultValue: [] })
-  duration_transactions: DurationTransactions[];
-
-  @Prop()
   @Field(() => [otherAdjustments], { defaultValue: [] })
   other_adjustments: otherAdjustments[];
 
@@ -314,16 +407,16 @@ export class Reconciliation {
   @Field(() => Date)
   settlementDate: Date;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Trustee' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Trustee' })
   @Field(() => ID)
   trustee: ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'TrusteeSchool' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'TrusteeSchool' })
   @Field(() => ID)
   schoolId: ObjectId;
 
   @Field(() => String, { nullable: true })
-  @Prop({ required: true, type: String })
+  @Prop({ required: false, type: String })
   school_name: string;
 
   @Field(() => String, { nullable: true })
@@ -337,3 +430,4 @@ export class Reconciliation {
 
 export const ReconciliationSchema =
   SchemaFactory.createForClass(Reconciliation);
+

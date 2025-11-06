@@ -29,6 +29,7 @@ import { PdfServiceModule } from './pdf-service/pdf-service.module';
 import { SubTrusteeModule } from './sub-trustee/sub-trustee.module';
 import { DatabaseModule } from './database/database.module';
 import { CanteenModule } from './canteen/canteen.module';
+import { ReconcilationModule } from './reconcilation/reconcilation.module';
 config();
 
 @Module({
@@ -60,6 +61,7 @@ config();
     SubTrusteeModule,
     DatabaseModule,
     CanteenModule,
+    ReconcilationModule,
   ],
 
   controllers: [AppController],

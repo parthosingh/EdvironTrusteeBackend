@@ -51,6 +51,9 @@ import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
 import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
 import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
+import { DatabaseService } from 'src/database/database.service';
+import { StudentDetail, StudentDetailSchema } from 'src/schema/student.schema';
+import { TempSettlementReport, TempSettlementReportSchema } from 'src/schema/tempSettlements.schema';
 
 @Module({
   imports: [
@@ -137,6 +140,12 @@ import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.s
     MongooseModule.forFeature([
       { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: StudentDetail.name, schema: StudentDetailSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: TempSettlementReport.name, schema: TempSettlementReportSchema },
+    ]),
   ],
   providers: [
     ErpService,
@@ -145,6 +154,7 @@ import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.s
     EmailService,
     AwsS3Service,
     BusinessAlarmService,
+    DatabaseService
   ],
   controllers: [ErpController],
 })

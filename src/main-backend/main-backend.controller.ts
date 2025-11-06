@@ -753,8 +753,11 @@ export class MainBackendController {
     const decodedPayload = await this.jwtService.verify(token, {
       secret: process.env.PAYMENTS_SERVICE_SECRET,
     });
-
-    const refundId = decodedPayload.refund_id;
+    console.log(decodedPayload.refund_id);
+    let refundId = decodedPayload.refund_id;
+    if (typeof refundId === 'string') {
+      refundId = new Types.ObjectId(refundId);
+    }
     const refundRequest = await this.refundRequestModel.findById(refundId);
     if (!refundRequest) {
       throw new NotFoundException('Refund Request not found');
@@ -1277,7 +1280,33 @@ export class MainBackendController {
         isRazorpaySchool: false,
       };
     } catch (error) {
-      throw new BadRequestException(error.message || '')
+      throw new BadRequestException(error.message || '');
+    }
+  }
+  @Get('get-trustee-school-logo')
+  async getLogo(
+    @Query('school_id') school_id: string,
+    @Query('trustee_id') trustee_id: string,
+  ) {
+    try {
+      const [school, trustee] = await Promise.all([
+        this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(school_id),
+        }),
+        this.trusteeModel.findById(trustee_id),
+      ]);
+      if (!school || !trustee) {
+        throw new BadRequestException('trustee or school not found');
+      }
+      const school_logo = school.logo || null;
+      const trustee_logo = trustee.logo || null;
+
+      return {
+        school_logo,
+        trustee_logo,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
   }
 }

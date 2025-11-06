@@ -61,6 +61,7 @@ import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service'
 import { ReportsLogs, ReportsLogsSchema } from 'src/schema/reports.logs.schmea';
 import { SubTrustee, SubTrusteeSchema } from 'src/schema/subTrustee.schema';
 import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
+import { RefundTrigger, RefundTriggerSchema } from 'src/schema/refund.trigger.schema';
 
 config();
 
@@ -163,6 +164,7 @@ config();
     MongooseModule.forFeature([
       { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
     ]),
+      MongooseModule.forFeature([{name:RefundTrigger.name , schema:RefundTriggerSchema}])
   ],
   controllers: [],
   providers: [
