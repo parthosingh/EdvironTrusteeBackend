@@ -9871,4 +9871,130 @@ export class ErpController {
       throw new BadRequestException(e.message);
     }
   }
+
+  @Post('update-pg-credentials')
+  async updatePg(
+    @Body()
+    body: {
+      school_id: string;
+      gateway: GATEWAY;
+      pg_key: string;
+      cashfree?: {
+        client_id: string;
+      };
+      easebuzz?: {
+        easebuzz_key: string;
+        easebuzz_salt: string;
+        easebuzz_submerchant_id: string;
+        easebuzz_email: string;
+      };
+      razorpay?: {
+        razorpay_key_id: string;
+        razorpay_secret: string;
+        razorpay_mid: string;
+        razorpay_account: string;
+        seamless: boolean; // if true insert in razorpay_seamless else in razorpay
+      };
+    },
+    @Req() req: any,
+    @Res() res: any,
+  ) {
+    try {
+      const { school_id, gateway, pg_key, cashfree, easebuzz, razorpay } = body;
+
+      if (!school_id || !gateway || !pg_key) {
+        throw new BadRequestException(
+          'school_id, gateway and pg_key are required',
+        );
+      }
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!school) {
+        throw new BadRequestException('School not found');
+      }
+
+      // update object to hold changes
+      const updateData: any = { pg_key: pg_key };
+
+      switch (gateway) {
+        case GATEWAY.CASHFREE:
+          if (!cashfree?.client_id) {
+            throw new BadRequestException('Cashfree client_id is required');
+          }
+          updateData.client_id = cashfree.client_id;
+          break;
+
+        case GATEWAY.EASEBUZZ:
+          if (
+            !easebuzz?.easebuzz_key ||
+            !easebuzz?.easebuzz_salt ||
+            !easebuzz?.easebuzz_submerchant_id ||
+            !easebuzz?.easebuzz_email
+          ) {
+            throw new BadRequestException(
+              'Easebuzz fields missing — require easebuzz_key, easebuzz_salt, easebuzz_submerchant_id, easebuzz_email',
+            );
+          }
+
+          updateData.easebuzz_non_partner = {
+            easebuzz_key: easebuzz.easebuzz_key,
+            easebuzz_salt: easebuzz.easebuzz_salt,
+            easebuzz_submerchant_id: easebuzz.easebuzz_submerchant_id,
+            easebuzz_merchant_email: easebuzz.easebuzz_email,
+          };
+          updateData.isEasebuzzNonPartner = true;
+          break;
+
+        case GATEWAY.RAZORPAY:
+          if (
+            !razorpay?.razorpay_key_id ||
+            !razorpay?.razorpay_secret ||
+            !razorpay?.razorpay_mid ||
+            !razorpay?.razorpay_account
+          ) {
+            throw new BadRequestException(
+              'Razorpay fields missing — require razorpay_key_id, razorpay_secret, razorpay_mid, razorpay_account',
+            );
+          }
+
+          const razorpayPayload = {
+            razorpay_key_id: razorpay.razorpay_key_id,
+            razorpay_secret: razorpay.razorpay_secret,
+            razorpay_mid: razorpay.razorpay_mid,
+            razorpay_account: razorpay.razorpay_account,
+          };
+
+          if (razorpay.seamless) {
+            updateData.razorpay_seamless = razorpayPayload;
+          } else {
+            updateData.razorpay = razorpayPayload;
+          }
+          break;
+
+        default:
+          throw new BadRequestException('Invalid Gateway');
+      }
+
+      const updated = await this.trusteeSchoolModel.findByIdAndUpdate(
+        school._id,
+        { $set: updateData },
+        { new: true },
+      );
+
+      return res.send({
+        success: true,
+        message: `${gateway} credentials updated successfully`,
+        data: updated,
+      });
+    } catch (e) {
+      console.log(e);
+      if (e.response?.data?.message) {
+        throw new BadRequestException(e.response?.data?.message);
+      }
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
 }
