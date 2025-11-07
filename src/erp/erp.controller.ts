@@ -130,7 +130,7 @@ export class ErpController {
     @InjectModel(SchoolBaseMdr.name)
     private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -703,7 +703,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -907,6 +907,20 @@ export class ErpController {
       const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
       const axios = require('axios');
       console.time('payments1');
+
+      if (school.isEasebuzzNonPartner && body.additional_data) {
+        for (const [key, value] of Object.entries(body.additional_data)) {
+          if (typeof value === 'string') {
+            // Check for | or extra spaces
+            if (value.includes('|')) {
+              throw new BadRequestException(`Invalid value for key "${key}": contains "|"`);
+            }
+            if (value.trim() !== value) {
+              throw new BadRequestException(`Invalid value for key "${key}": has extra spaces`);
+            }
+          }
+        }
+      }
 
       if (!isSelectGateway && school.isEasebuzzNonPartner) {
         if (
@@ -1477,7 +1491,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1564,7 +1578,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2258,7 +2272,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2346,7 +2360,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2784,7 +2798,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -3075,14 +3089,13 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3203,16 +3216,15 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3280,16 +3292,15 @@ export class ErpController {
 
       const config = {
         method: 'get',
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: { accept: 'application/json' },
       };
 
@@ -4615,7 +4626,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -4632,9 +4643,8 @@ export class ErpController {
 
       throw new HttpException(
         {
-          message: `Missing required field${
-            missingFields.length > 1 ? 's' : ''
-          }: ${missingFields.join(', ')}`,
+          message: `Missing required field${missingFields.length > 1 ? 's' : ''
+            }: ${missingFields.join(', ')}`,
           error: 'Validation Error',
           statusCode: '400',
         },
@@ -5139,8 +5149,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -5427,8 +5437,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -6263,7 +6273,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -6516,8 +6526,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-          error.message ||
-          'Failed to fetch settlements',
+        error.message ||
+        'Failed to fetch settlements',
       );
     }
   }
@@ -6613,8 +6623,7 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${
-            error.response?.data?.message || error.message
+          `External API error: ${error.response?.data?.message || error.message
           }`,
         );
       }
@@ -7364,7 +7373,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
 
@@ -7703,9 +7712,9 @@ export class ErpController {
 
   @Get('/installment-sign')
   async getInstallmentSign(
-    @Req() req:any
-  ){
-    try{
+    @Req() req: any
+  ) {
+    try {
       const { school_id } = req.query;
       if (!school_id) {
         throw new BadRequestException('school_id is required');
@@ -7721,13 +7730,14 @@ export class ErpController {
       }
       const sign = this.jwtService.sign(
         { school_id },
-        {          secret: school.pg_key,
+        {
+          secret: school.pg_key,
         },
       );
       return { sign };
-    }catch(error){
+    } catch (error) {
       console.log(error);
-      
+
       throw new BadRequestException(error.message);
     }
   }
@@ -7952,7 +7962,7 @@ export class ErpController {
       }
 
       if (mode === 'POS') {
-        const htmlBody =  generatePosRequest(
+        const htmlBody = generatePosRequest(
           school_id.toString(),
           school.school_name,
         );
@@ -7962,7 +7972,7 @@ export class ErpController {
           `tarun.k@edviron.com`
           // 'manish.verma@edviron.com'
         );
-        return { message: 'POS request has been raised successfully.' };
+        return { message: 'POS request has been raised successfully.' };
       }
 
       if (mode === 'EDVIRON_STATIC_QR') {
@@ -8119,7 +8129,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -8249,7 +8259,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -8534,8 +8544,8 @@ export class ErpController {
         console.log(e?.response, 'e?.response');
         throw new BadRequestException(
           e?.response?.data?.message ||
-            e?.response?.message ||
-            'internal server error',
+          e?.response?.message ||
+          'internal server error',
         );
       }
       console.log(e, 'error');
@@ -9872,7 +9882,7 @@ export class ErpController {
     }
   }
 
-   @Post('/settlements-recon/v2')
+  @Post('/settlements-recon/v2')
   @UseGuards(ErpGuard)
   async settlementReconV2(
     @Body()
@@ -9959,11 +9969,11 @@ export class ErpController {
 
         let gateway: String =
           await this.erpService.getSettlementGateway(settlementInfo);
-        if(school.easebuzz_id){
-          gateway ="EDVIRON_EASEBUZZ_PARTNER"
+        if (school.easebuzz_id) {
+          gateway = "EDVIRON_EASEBUZZ_PARTNER"
         }
         console.log(gateway);
-        
+
         const settlementsRecon: any = {
           utrNumber,
           fromDate,
@@ -10067,7 +10077,7 @@ export class ErpController {
         }
         if (gateway === 'EASEBUZZ') {
           console.log('Easebuzz');
-          
+
           if (
             school.isEasebuzzNonPartner &&
             !school.easebuzz_non_partner?.easebuzz_key &&
@@ -10211,8 +10221,8 @@ export class ErpController {
         }
         if (gateway === 'EDVIRON_EASEBUZZ_PARTNER') {
           console.log('Easebuzz Partner');
-          
-       
+
+
 
           const previousSettlementDate2 =
             settlementInfo.settlementDate.toISOString();
@@ -10260,8 +10270,8 @@ export class ErpController {
           };
 
           const { data: ezbres } = await axios.request(config);
-      
-          
+
+
           for (const tx of ezbres.transactions) {
             let additional_fields = null;
             try {
