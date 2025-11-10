@@ -7888,13 +7888,7 @@ export class ErpController {
       let { student_id, student_name, student_email, student_number } =
         student_detail;
       const authToken = req.headers.authorization.replace('Bearer ', '');
-      const decoded = this.jwtService.verify(authToken, {
-        secret: process.env.PAYMENTS_SERVICE_SECRET,
-      });
-
-      if (decoded.school_id.toString() !== school_id.toString()) {
-        throw new BadRequestException('Authorization Error');
-      }
+     
 
       if (isInstallment && InstallmentsIds.length <= 0) {
         console.log(InstallmentsIds, 'InstallmentsIds');
@@ -7923,6 +7917,13 @@ export class ErpController {
       });
       if (!school) {
         throw new BadRequestException('school not found');
+      }
+      const decoded = this.jwtService.verify(authToken, {
+        secret: school.pg_key,
+      });
+      console.log(decoded)
+      if (decoded.school_id.toString() !== school_id.toString()) {
+        throw new BadRequestException('Authorization Error');
       }
       if (
         mode === 'PAYMENT_LINK' &&
