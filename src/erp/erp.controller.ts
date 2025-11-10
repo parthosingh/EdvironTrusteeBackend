@@ -891,6 +891,7 @@ export class ErpController {
         all_webhooks = req_webhook_urls || [];
       }
 
+   
       const additionalInfo = {
         student_details: {
           student_id: student_id,
@@ -994,6 +995,7 @@ export class ErpController {
             easebuzzVendors,
             easebuzz_school_label: school.easebuzz_school_label,
             easebuzz_non_partner_cred: school.easebuzz_non_partner,
+            additionalDataToggle: school?.additionalDataToggle || false,
           };
 
           const config = {
@@ -1045,6 +1047,7 @@ export class ErpController {
           easebuzzVendors,
           easebuzz_school_label: school.easebuzz_school_label,
           easebuzz_non_partner_cred: school.easebuzz_non_partner,
+          additionalDataToggle: school?.additionalDataToggle || false,
         };
 
         const config = {
@@ -1239,6 +1242,7 @@ export class ErpController {
         easebuzz_non_partner_cred: school.easebuzz_non_partner,
         isEasebuzzNonpartner: school.isEasebuzzNonPartner,
         razorpay_vendors: razorpayVendors,
+        additionalDataToggle: school?.additionalDataToggle || false,
       });
       const config = {
         method: 'post',

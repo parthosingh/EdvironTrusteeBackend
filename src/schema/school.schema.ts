@@ -316,6 +316,10 @@ export class TrusteeSchool {
 
   @Prop({})
   @Field(() => Boolean, { defaultValue: false })
+  additionalDataToggle: boolean;
+
+  @Prop({})
+  @Field(() => Boolean, { defaultValue: false })
   isAdjustment: boolean;
 
   @Prop({})
