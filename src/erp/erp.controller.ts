@@ -8568,7 +8568,7 @@ export class ErpController {
     body: {
       collect_id: string;
       school_id: string;
-      status: string;
+      status: chequeStatus;
       sign: string;
     },
   ) {
@@ -10329,4 +10329,10 @@ export class ErpController {
       throw new BadRequestException(e.message);
     }
   }
+}
+
+
+export enum chequeStatus {
+ SUCCESS = "SUCCESS",
+ BOUNCE = "BOUNCE"
 }
