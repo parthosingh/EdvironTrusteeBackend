@@ -3674,7 +3674,7 @@ export class ErpController {
       }
 
       if (vendor_id) {
-        const vendors = await this.VendorsModel.findOne({ vendor_id });
+    const vendors = await this.VendorsModel.findById( vendor_id );
         if (!vendor_id) {
           throw new NotFoundException('Invalid Vendor ID');
         }
