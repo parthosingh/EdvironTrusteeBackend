@@ -3674,7 +3674,7 @@ export class ErpController {
       }
 
       if (vendor_id) {
-    const vendors = await this.VendorsModel.findById( vendor_id );
+        const vendors = await this.VendorsModel.findById(vendor_id);
         if (!vendor_id) {
           throw new NotFoundException('Invalid Vendor ID');
         }
@@ -3689,9 +3689,12 @@ export class ErpController {
         }
         query = {
           ...query,
-          vendor_id,
+          vendor_id: vendors.vendor_id,
         };
+        
       }
+
+      
       if (startDate && endDate) {
         const startUTC = moment
           .tz(startDate, 'YYYY-MM-DD', 'Asia/Kolkata')
@@ -3742,7 +3745,7 @@ export class ErpController {
         { $limit: limit },
         {
           $project: {
-            vendor_id: 1,
+            vendor_id: vendor_id || 1,
             vendor_name: 1,
             vendor_transaction_amount: 1,
             utr: 1,
@@ -7888,7 +7891,7 @@ export class ErpController {
       let { student_id, student_name, student_email, student_number } =
         student_detail;
       const authToken = req.headers.authorization.replace('Bearer ', '');
-     
+
 
       if (isInstallment && InstallmentsIds.length <= 0) {
         console.log(InstallmentsIds, 'InstallmentsIds');
