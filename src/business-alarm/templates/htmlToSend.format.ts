@@ -785,7 +785,7 @@ export function generateTransactionMailReciept(
     <table style="width:100%;font-size:14px;border-collapse:collapse;">
       <tr>
         <td style="padding:6px 0;"><strong>Payment method:</strong></td>
-        <td>${payment_method || 'NA'}</td>
+        <td>${payment_method.toUpperCase() || 'NA'}</td>
         <td style="padding:6px 0;"><strong>Transaction amount:</strong></td>
         <td>₹${transaction_amount || 'NA'}</td>
       </tr>

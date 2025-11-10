@@ -3102,8 +3102,8 @@ export class TrusteeService {
   }: {
     dispute_id: any;
     action: string;
-    documents: any;
     collect_id: string;
+    documents?: any;
   }) {
     try {
       const sign = this.jwtService.sign(
@@ -3116,6 +3116,51 @@ export class TrusteeService {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/update-dispute`,
+        headers: {
+          accept: 'application/json',
+        },
+        data: {
+          dispute_id,
+          action,
+          documents,
+          sign,
+          collect_id
+        },
+      };
+      const { data: response } = await axios.request(config);
+      return response;
+    } catch (error) {
+      console.log(error.response.data.message, "error.response.data.message")
+      throw new InternalServerErrorException(
+        error.response.data.message || 'Something went wrong',
+      );
+    }
+  }
+
+  async handleRazorpayDispute({
+    dispute_id,
+    action,
+    documents,
+    collect_id,
+    url,
+  }: {
+    dispute_id: any;
+    action: string;
+    collect_id: string;
+    url: string;
+    documents?: any;
+  }) {
+    try {
+      const sign = this.jwtService.sign(
+        { dispute_id, action },
+        {
+          secret: process.env.PAYMENTS_SERVICE_SECRET,
+        },
+      );
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: url,
         headers: {
           accept: 'application/json',
         },

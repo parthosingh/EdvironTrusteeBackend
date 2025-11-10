@@ -3541,9 +3541,68 @@ export class TrusteeResolver {
         //   uploadedFiles,
         // );
       }
+      if (disputDetails.gateway === DisputeGateways.RAZORPAY) {
+        await this.trusteeService.handleRazorpayDispute({
+          dispute_id: disputDetails.dispute_id.toString(),
+          action: action,
+          documents: uploadedFiles,
+          collect_id: disputDetails.collect_id.toString(),
+          url : `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay-nonseamless/update-dispute`
+        });
+        const school_details = await this.trusteeSchoolModel.findOne({
+          school_id: disputDetails.school_id,
+        });
+        if (!school_details) {
+          throw new NotFoundException('School details not found');
+        }
+        const { email, cc } = await this.trusteeService.getMails(
+          disputDetails.school_id.toString(),
+          'DISPUTE_INTERNAL',
+        );
+        const htmlBody =
+          await this.trusteeService.generateDisputePDF(disputDetails);
 
-      console.log('before return');
+        const subject = `A dispute has been raised against ${school_details.school_name} : (${school_details.kyc_mail})`;
 
+        await this.emailService.sendAlertMail2(
+          subject,
+          htmlBody,
+          email,
+          cc,
+          dusputeUpdate.documents,
+        );
+      }
+      if (disputDetails.gateway === DisputeGateways.EDVIRON_RAZORPAY_SEAMLESS) {
+        await this.trusteeService.handleRazorpayDispute({
+          dispute_id: disputDetails.dispute_id.toString(),
+          action: action,
+          documents: uploadedFiles,
+          collect_id: disputDetails.collect_id.toString(),
+          url : `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay/update-dispute`
+        });
+        const school_details = await this.trusteeSchoolModel.findOne({
+          school_id: disputDetails.school_id,
+        });
+        if (!school_details) {
+          throw new NotFoundException('School details not found');
+        }
+        const { email, cc } = await this.trusteeService.getMails(
+          disputDetails.school_id.toString(),
+          'DISPUTE_INTERNAL',
+        );
+        const htmlBody =
+          await this.trusteeService.generateDisputePDF(disputDetails);
+
+        const subject = `A dispute has been raised against ${school_details.school_name} : (${school_details.kyc_mail})`;
+
+        await this.emailService.sendAlertMail2(
+          subject,
+          htmlBody,
+          email,
+          cc,
+          dusputeUpdate.documents,
+        );
+      }
       return { success: true, message: 'Files uploaded successfully' };
     } catch (error) {
       // const disputDetails = await this.DisputesModel.findOne({
