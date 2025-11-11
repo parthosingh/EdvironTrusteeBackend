@@ -130,7 +130,7 @@ export class ErpController {
     @InjectModel(SchoolBaseMdr.name)
     private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -703,7 +703,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -891,6 +891,7 @@ export class ErpController {
         all_webhooks = req_webhook_urls || [];
       }
 
+   
       const additionalInfo = {
         student_details: {
           student_id: student_id,
@@ -907,6 +908,20 @@ export class ErpController {
       const merchantCodeFixed = school.toObject?.()?.worldline?.merchant_code;
       const axios = require('axios');
       console.time('payments1');
+
+      if (school.isEasebuzzNonPartner && body.additional_data) {
+        for (const [key, value] of Object.entries(body.additional_data)) {
+          if (typeof value === 'string') {
+            // Check for | or extra spaces
+            if (value.includes('|')) {
+              throw new BadRequestException(`Invalid value for key "${key}": contains "|"`);
+            }
+            if (value.trim() !== value) {
+              throw new BadRequestException(`Invalid value for key "${key}": has extra spaces`);
+            }
+          }
+        }
+      }
 
       if (!isSelectGateway && school.isEasebuzzNonPartner) {
         if (
@@ -980,6 +995,7 @@ export class ErpController {
             easebuzzVendors,
             easebuzz_school_label: school.easebuzz_school_label,
             easebuzz_non_partner_cred: school.easebuzz_non_partner,
+            additionalDataToggle: school?.additionalDataToggle || false,
           };
 
           const config = {
@@ -1031,6 +1047,7 @@ export class ErpController {
           easebuzzVendors,
           easebuzz_school_label: school.easebuzz_school_label,
           easebuzz_non_partner_cred: school.easebuzz_non_partner,
+          additionalDataToggle: school?.additionalDataToggle || false,
         };
 
         const config = {
@@ -1225,6 +1242,7 @@ export class ErpController {
         easebuzz_non_partner_cred: school.easebuzz_non_partner,
         isEasebuzzNonpartner: school.isEasebuzzNonPartner,
         razorpay_vendors: razorpayVendors,
+        additionalDataToggle: school?.additionalDataToggle || false,
       });
       const config = {
         method: 'post',
@@ -1477,7 +1495,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1564,7 +1582,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2258,7 +2276,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2346,7 +2364,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -2784,7 +2802,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -3075,14 +3093,13 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: collect_request_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: collect_request_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3203,16 +3220,15 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3280,16 +3296,15 @@ export class ErpController {
 
       const config = {
         method: 'get',
-        url: `${
-          process.env.PAYMENTS_SERVICE_ENDPOINT
-        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-          {
-            transactionId: order_id,
-            trusteeId: trustee_id,
-            school_id,
-          },
-          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-        )}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
+          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+            {
+              transactionId: order_id,
+              trusteeId: trustee_id,
+              school_id,
+            },
+            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+          )}`,
         headers: { accept: 'application/json' },
       };
 
@@ -3663,7 +3678,7 @@ export class ErpController {
       }
 
       if (vendor_id) {
-        const vendors = await this.VendorsModel.findOne({ vendor_id });
+        const vendors = await this.VendorsModel.findById(vendor_id);
         if (!vendor_id) {
           throw new NotFoundException('Invalid Vendor ID');
         }
@@ -3678,9 +3693,12 @@ export class ErpController {
         }
         query = {
           ...query,
-          vendor_id,
+          vendor_id: vendors.vendor_id,
         };
+        
       }
+
+      
       if (startDate && endDate) {
         const startUTC = moment
           .tz(startDate, 'YYYY-MM-DD', 'Asia/Kolkata')
@@ -3731,7 +3749,7 @@ export class ErpController {
         { $limit: limit },
         {
           $project: {
-            vendor_id: 1,
+            vendor_id: vendor_id || 1,
             vendor_name: 1,
             vendor_transaction_amount: 1,
             utr: 1,
@@ -4615,7 +4633,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) {}
+  async test(@Req() req: any) { }
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -4632,9 +4650,8 @@ export class ErpController {
 
       throw new HttpException(
         {
-          message: `Missing required field${
-            missingFields.length > 1 ? 's' : ''
-          }: ${missingFields.join(', ')}`,
+          message: `Missing required field${missingFields.length > 1 ? 's' : ''
+            }: ${missingFields.join(', ')}`,
           error: 'Validation Error',
           statusCode: '400',
         },
@@ -5139,8 +5156,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -5427,8 +5444,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-              refundableAmount +
-              'Rs',
+            refundableAmount +
+            'Rs',
           );
         }
       }
@@ -6263,7 +6280,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-            student_id,
+          student_id,
         );
       }
 
@@ -6516,8 +6533,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-          error.message ||
-          'Failed to fetch settlements',
+        error.message ||
+        'Failed to fetch settlements',
       );
     }
   }
@@ -6613,8 +6630,7 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${
-            error.response?.data?.message || error.message
+          `External API error: ${error.response?.data?.message || error.message
           }`,
         );
       }
@@ -7364,7 +7380,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+              vendor.vendor_id,
             );
           }
 
@@ -7703,9 +7719,9 @@ export class ErpController {
 
   @Get('/installment-sign')
   async getInstallmentSign(
-    @Req() req:any
-  ){
-    try{
+    @Req() req: any
+  ) {
+    try {
       const { school_id } = req.query;
       if (!school_id) {
         throw new BadRequestException('school_id is required');
@@ -7721,13 +7737,14 @@ export class ErpController {
       }
       const sign = this.jwtService.sign(
         { school_id },
-        {          secret: school.pg_key,
+        {
+          secret: school.pg_key,
         },
       );
       return { sign };
-    }catch(error){
+    } catch (error) {
       console.log(error);
-      
+
       throw new BadRequestException(error.message);
     }
   }
@@ -7878,13 +7895,7 @@ export class ErpController {
       let { student_id, student_name, student_email, student_number } =
         student_detail;
       const authToken = req.headers.authorization.replace('Bearer ', '');
-      const decoded = this.jwtService.verify(authToken, {
-        secret: process.env.PAYMENTS_SERVICE_SECRET,
-      });
 
-      if (decoded.school_id.toString() !== school_id.toString()) {
-        throw new BadRequestException('Authorization Error');
-      }
 
       if (isInstallment && InstallmentsIds.length <= 0) {
         console.log(InstallmentsIds, 'InstallmentsIds');
@@ -7913,6 +7924,13 @@ export class ErpController {
       });
       if (!school) {
         throw new BadRequestException('school not found');
+      }
+      const decoded = this.jwtService.verify(authToken, {
+        secret: school.pg_key,
+      });
+      console.log(decoded)
+      if (decoded.school_id.toString() !== school_id.toString()) {
+        throw new BadRequestException('Authorization Error');
       }
       if (
         mode === 'PAYMENT_LINK' &&
@@ -7952,7 +7970,7 @@ export class ErpController {
       }
 
       if (mode === 'POS') {
-        const htmlBody =  generatePosRequest(
+        const htmlBody = generatePosRequest(
           school_id.toString(),
           school.school_name,
         );
@@ -7962,7 +7980,7 @@ export class ErpController {
           `tarun.k@edviron.com`
           // 'manish.verma@edviron.com'
         );
-        return { message: 'POS request has been raised successfully.' };
+        return { message: 'POS request has been raised successfully.' };
       }
 
       if (mode === 'EDVIRON_STATIC_QR') {
@@ -8119,7 +8137,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -8249,7 +8267,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                  vendor.vendor_id,
+                vendor.vendor_id,
               );
             }
 
@@ -8534,8 +8552,8 @@ export class ErpController {
         console.log(e?.response, 'e?.response');
         throw new BadRequestException(
           e?.response?.data?.message ||
-            e?.response?.message ||
-            'internal server error',
+          e?.response?.message ||
+          'internal server error',
         );
       }
       console.log(e, 'error');
@@ -8550,7 +8568,7 @@ export class ErpController {
     body: {
       collect_id: string;
       school_id: string;
-      status: string;
+      status: chequeStatus;
       sign: string;
     },
   ) {
@@ -9997,4 +10015,586 @@ export class ErpController {
       throw new BadRequestException(e.message || 'Something went wrong');
     }
   }
+
+  @Post('/settlements-recon/v2')
+  @UseGuards(ErpGuard)
+  async settlementReconV2(
+    @Body()
+    body: {
+      school_id: string;
+      sign: string;
+      settlement_date: string;
+      limit: number;
+      cursor?: string;
+      utr?: string;
+    },
+  ) {
+    try {
+      const { school_id, sign, settlement_date, cursor, utr, limit } = body;
+
+      if (!school_id || !sign || !settlement_date) {
+        throw new BadRequestException('Required Parameter missing');
+      }
+
+      const settlemt_date = settlement_date;
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new NotFoundException('school not found');
+      }
+
+      const decoded = this.jwtService.verify(sign, { secret: school.pg_key });
+      if (
+        decoded.school_id !== school_id ||
+        decoded.settlement_date !== settlement_date
+      ) {
+        throw new ForbiddenException('request forged');
+      }
+      // Start of day in UTC
+      const settlementStartDate = new Date(
+        Date.UTC(
+          Number(settlemt_date.split('-')[0]), // year
+          Number(settlemt_date.split('-')[1]) - 1, // month (0-indexed)
+          Number(settlemt_date.split('-')[2]), // day
+          0,
+          0,
+          0,
+          0,
+        ),
+      );
+
+      // End of day in UTC
+      const settlementEndDate = new Date(
+        Date.UTC(
+          Number(settlemt_date.split('-')[0]),
+          Number(settlemt_date.split('-')[1]) - 1,
+          Number(settlemt_date.split('-')[2]),
+          23,
+          59,
+          59,
+          999,
+        ),
+      );
+
+      const settlements = await this.settlementModel.find({
+        settlementDate: { $gte: settlementStartDate, $lte: settlementEndDate },
+        schoolId: new Types.ObjectId(school_id),
+      });
+      if (settlements.length === 0) {
+        throw new BadRequestException('No Settlement Found for this Date');
+      }
+
+      let response: any[] = [];
+
+      for (const settlementInfo of settlements) {
+        const {
+          utrNumber,
+          fromDate,
+          tillDate,
+          settlementDate,
+          schoolId,
+          settlementAmount,
+          adjustment,
+          settlementInitiatedOn,
+          clientId,
+        } = settlementInfo;
+
+        let gateway: String =
+          await this.erpService.getSettlementGateway(settlementInfo);
+        if (school.easebuzz_id) {
+          gateway = "EDVIRON_EASEBUZZ_PARTNER"
+        }
+        console.log(gateway);
+
+        const settlementsRecon: any = {
+          utrNumber,
+          fromDate,
+          tillDate,
+          settlement_date: settlementDate,
+          school_id: schoolId,
+          settlementAmount,
+          adjustment,
+          settlement_initiated_on: settlementInitiatedOn,
+          transactions: [],
+          refunds: [],
+        };
+
+        const transactionsRecon: any[] = [];
+        const refundsRecon: any[] = [];
+        if (gateway === 'CASHFREE') {
+          console.log('Cashfree settlements');
+
+          const token = this.jwtService.sign(
+            { utrNumber, client_id: clientId },
+            { secret: process.env.PAYMENTS_SERVICE_SECRET },
+          );
+
+          const paginationData = { cursor, limit: 1000 };
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/cashfree/settlements-transactions?token=${token}&utr=${utrNumber}&client_id=${clientId}`,
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            data: paginationData,
+          };
+
+          let settlements_transactions: any[] = [];
+          try {
+            const { data } = await axios.request(config);
+            settlements_transactions = data.settlements_transactions || [];
+          } catch (err) {
+            console.error('Error fetching transactions:', err);
+            settlements_transactions = [];
+          }
+
+          for (const tx of settlements_transactions) {
+            if (tx.event_type === 'PAYMENT') {
+              let additional_fields = null;
+              try {
+                additional_fields =
+                  JSON.parse(tx.additional_data)?.additional_fields || null;
+              } catch (err) {
+                additional_fields = null;
+              }
+
+              transactionsRecon.push({
+                order_amount: tx.order_amount,
+                transaction_amount: tx.event_amount,
+                settlement_amount: tx.event_settlement_amount,
+                collect_id: tx.order_id,
+                custom_order_id: tx.custom_order_id,
+                transaction_time: tx.event_time,
+                order_time: tx.order_time,
+                bank_ref: tx.payment_utr, // Fixed typo
+                payment_mode: tx.payment_group, // Fixed typo
+                payment_details: tx.payment_details,
+                status: tx.event_status,
+                additional_data: additional_fields,
+                payment_id: tx.payment_id,
+                student_details: {
+                  student_id: tx.student_id,
+                  student_name: tx.student_name,
+                  student_email: tx.student_email,
+                  student_phone_no: tx.student_phone_no,
+                },
+                split_info: tx.split,
+              });
+            }
+
+            if (tx.event_type === 'REFUND') {
+              const refundInfo = await this.trusteeService.getRefundInfo(
+                tx.order_id,
+                schoolId.toString(),
+              );
+              if (!refundInfo || refundInfo.length === 0) continue;
+
+              for (const refund of refundInfo) {
+                refundsRecon.push({
+                  refund_id: refund._id,
+                  collect_id: refund.order_id,
+                  custom_order_id: tx.custom_order_id,
+                  refund_amount: refund.refund_amount,
+                  order_amount: refund.order_amount,
+                  split_refund_details: refund.split_refund_details,
+                });
+              }
+            }
+          }
+
+          settlementsRecon.transactions = transactionsRecon;
+          settlementsRecon.refunds = refundsRecon;
+        }
+        if (gateway === 'EASEBUZZ') {
+          console.log('Easebuzz');
+
+          if (
+            school.isEasebuzzNonPartner &&
+            !school.easebuzz_non_partner?.easebuzz_key &&
+            !school.easebuzz_non_partner?.easebuzz_salt &&
+            !school.easebuzz_non_partner?.easebuzz_submerchant_id
+          ) {
+            return;
+          }
+
+          const previousSettlementDate2 =
+            settlementInfo.settlementDate.toISOString();
+          const tempPrev = previousSettlementDate2.split('T')[0];
+          const partsPrev = tempPrev.split('-');
+          const formattedPrev = `${partsPrev[2]}-${partsPrev[1]}-${partsPrev[0]}`;
+          // e.g. 06-09-2025
+
+          const end = new Date(settlementInfo.settlementDate); // clone instead of referencing
+          end.setDate(end.getDate() + 2);
+
+          // console.log(settlementsRecon, 'settlementsRecon');
+          const endSettlementDate = end.toISOString();
+          const tempEnd = endSettlementDate.split('T')[0];
+          const partsEnd = tempEnd.split('-');
+          const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
+          // e.g. 06-09-2025
+          const paginatioNPage = 1;
+          const tokenPayload = {
+            submerchant_id: school.easebuzz_non_partner.easebuzz_submerchant_id,
+          };
+
+          const token = await this.jwtService.sign(tokenPayload, {
+            secret: process.env.PAYMENTS_SERVICE_SECRET,
+          });
+          const data = {
+            submerchant_id: school.easebuzz_non_partner.easebuzz_submerchant_id,
+            easebuzz_key: school.easebuzz_non_partner.easebuzz_key,
+            easebuzz_salt: school.easebuzz_non_partner.easebuzz_salt,
+            start_date: formattedPrev,
+            end_date: formattedEnd,
+            page_size: 1000,
+            token,
+            utr: settlementInfo.utrNumber,
+          };
+
+          const config = {
+            method: 'post',
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/settlement-recon/v3`,
+            headers: {
+              'Content-Type': 'application/json',
+              accept: 'application/json',
+            },
+            data,
+          };
+
+          const { data: ezbres } = await axios.request(config);
+          for (const tx of ezbres.transactions) {
+            let additional_fields = null;
+            try {
+              additional_fields =
+                JSON.parse(tx.additional_data)?.additional_fields || null;
+            } catch (err) {
+              additional_fields = null;
+            }
+            transactionsRecon.push({
+              order_amount: tx.order_amount,
+              transaction_amount: tx.event_amount,
+              settlement_amount: tx.event_settlement_amount,
+              collect_id: tx.order_id,
+              custom_order_id: tx.custom_order_id,
+              transaction_time: tx.event_time,
+              order_time: tx.order_time,
+              bank_ref: tx.payment_utr, // Fixed typo
+              payment_mode: tx.payment_group, // Fixed typo
+              payment_details: tx.payment_details,
+              status: tx.event_status,
+              additional_data: additional_fields,
+              payment_id: tx.payment_id,
+              student_details: {
+                student_id: tx.student_id,
+                student_name: tx.student_name,
+                student_email: tx.student_email,
+                student_phone_no: tx.student_phone_no,
+              },
+              split_info: tx.split,
+            });
+          }
+
+          // transactionsRecon.push(ezbres)
+          settlementsRecon.transactions = transactionsRecon;
+          settlementsRecon.refunds = refundsRecon;
+        }
+        if (gateway === 'RAZORPAY') {
+          const razropay_secret = school?.razorpay?.razorpay_secret;
+          const razorpay_id = settlementInfo.razorpay_id;
+          const transactions =
+            await this.trusteeService.getRazorpayTransactionForSettlement(
+              utrNumber,
+              razorpay_id,
+              razropay_secret,
+              1000,
+              cursor,
+              0,
+              settlementInfo.fromDate,
+            );
+
+          // transactionsRecon.push(transactions.settlements_transactions)
+          for (const tx of transactions.settlements_transactions) {
+            let additional_fields = null;
+            try {
+              additional_fields =
+                JSON.parse(tx.additional_data)?.additional_fields || null;
+            } catch (err) {
+              additional_fields = null;
+            }
+
+            transactionsRecon.push({
+              order_amount: tx.order_amount,
+              transaction_amount: tx.event_amount,
+              settlement_amount: tx.event_settlement_amount,
+              collect_id: tx.order_id,
+              custom_order_id: tx.custom_order_id,
+              transaction_time: tx.event_time,
+              order_time: tx.order_time || null,
+              bank_ref: tx.payment_utr,
+              payment_mode: tx.payment_group,
+              payment_details: tx.payment_details,
+              status: tx.event_status,
+              additional_data: additional_fields,
+              payment_id: tx.entity_id,
+              student_details: {
+                student_id: tx.student_id,
+                student_name: tx.student_name,
+                student_email: tx.student_email,
+                student_phone_no: tx.student_phone_no,
+              },
+              split_info: tx.split || [],
+            });
+            // transactionsRecon.push(transactionsRecon)
+          }
+          settlementsRecon.transactions = transactionsRecon;
+        }
+        if (gateway === 'EDVIRON_EASEBUZZ_PARTNER') {
+          console.log('Easebuzz Partner');
+
+
+
+          const previousSettlementDate2 =
+            settlementInfo.settlementDate.toISOString();
+          const tempPrev = previousSettlementDate2.split('T')[0];
+          const partsPrev = tempPrev.split('-');
+          const formattedPrev = `${partsPrev[2]}-${partsPrev[1]}-${partsPrev[0]}`;
+          // e.g. 06-09-2025
+
+          const end = new Date(settlementInfo.settlementDate); // clone instead of referencing
+          end.setDate(end.getDate() + 2);
+
+          // console.log(settlementsRecon, 'settlementsRecon');
+          const endSettlementDate = end.toISOString();
+          const tempEnd = endSettlementDate.split('T')[0];
+          const partsEnd = tempEnd.split('-');
+          const formattedEnd = `${partsEnd[2]}-${partsEnd[1]}-${partsEnd[0]}`;
+          // e.g. 06-09-2025
+          const paginatioNPage = 1;
+          const tokenPayload = {
+            submerchant_id: school.easebuzz_id,
+          };
+
+          const token = await this.jwtService.sign(tokenPayload, {
+            secret: process.env.PAYMENTS_SERVICE_SECRET,
+          });
+          const data = {
+            submerchant_id: school.easebuzz_id,
+            easebuzz_key: school.easebuzz_non_partner?.easebuzz_key || 'NA',
+            easebuzz_salt: school.easebuzz_non_partner?.easebuzz_salt || 'NA',
+            start_date: formattedPrev,
+            end_date: formattedEnd,
+            page_size: 1000,
+            token,
+            utr: settlementInfo.utrNumber,
+          };
+
+          const config = {
+            method: 'post',
+            url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/easebuzz/settlement-recon/v3`,
+            headers: {
+              'Content-Type': 'application/json',
+              accept: 'application/json',
+            },
+            data,
+          };
+
+          const { data: ezbres } = await axios.request(config);
+
+
+          for (const tx of ezbres.transactions) {
+            let additional_fields = null;
+            try {
+              additional_fields =
+                JSON.parse(tx.additional_data)?.additional_fields || null;
+            } catch (err) {
+              additional_fields = null;
+            }
+            transactionsRecon.push({
+              order_amount: tx.order_amount,
+              transaction_amount: tx.event_amount,
+              settlement_amount: tx.event_settlement_amount,
+              collect_id: tx.order_id,
+              custom_order_id: tx.custom_order_id,
+              transaction_time: tx.event_time,
+              order_time: tx.order_time,
+              bank_ref: tx.payment_utr, // Fixed typo
+              payment_mode: tx.payment_group, // Fixed typo
+              payment_details: tx.payment_details,
+              status: tx.event_status,
+              additional_data: additional_fields,
+              payment_id: tx.payment_id,
+              student_details: {
+                student_id: tx.student_id,
+                student_name: tx.student_name,
+                student_email: tx.student_email,
+                student_phone_no: tx.student_phone_no,
+              },
+              split_info: tx.split,
+            });
+          }
+
+
+          // transactionsRecon.push(ezbres)
+          settlementsRecon.transactions = transactionsRecon;
+          settlementsRecon.refunds = refundsRecon;
+        }
+        // console.log({dste:settlementInfo.settlementDate});
+
+        settlementsRecon.settlement_date = settlementInfo.settlementDate;
+        response.push(settlementsRecon);
+      }
+
+      return response;
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(e.message);
+    }
+  }
+
+   @Post('update-pg-credentials')
+  async updatePg(
+    @Body()
+    body: {
+      school_id: string;
+      gateway: GATEWAY;
+      pg_key?: string;
+      cashfree?: {
+        client_id: string;
+      };
+      easebuzz?: {
+        easebuzz_key: string;
+        easebuzz_salt: string;
+        easebuzz_submerchant_id: string;
+        easebuzz_email: string;
+      };
+      razorpay?: {
+        razorpay_key_id: string;
+        razorpay_secret: string;
+        razorpay_mid: string;
+        razorpay_account: string;
+        seamless: boolean; // if true insert in razorpay_seamless else in razorpay
+      };
+    },
+  ) {
+    try {
+      const { school_id, gateway, pg_key, cashfree, easebuzz, razorpay } = body;
+
+      if (!school_id || !gateway) {
+        throw new BadRequestException('school_id and gateway are required');
+      }
+
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+
+      if (!school) {
+        throw new BadRequestException('School not found');
+      }
+
+      if (!school.pg_key && !pg_key) {
+        throw new BadRequestException(
+          'Pg Key is required for first-time setup',
+        );
+      }
+      if (pg_key && school.pg_key) {
+        throw new BadRequestException('Pg Key Already Exists');
+      }
+      // update object to hold changes
+      const updateData: any = {};
+      if (pg_key) updateData.pg_key = pg_key;
+
+      switch (gateway) {
+        case GATEWAY.CASHFREE:
+          if (!cashfree?.client_id) {
+            throw new BadRequestException('Cashfree client_id is required');
+          }
+          updateData.client_id = cashfree.client_id;
+          updateData.client_secret = '0';
+          break;
+
+        case GATEWAY.EASEBUZZ:
+          if (
+            !easebuzz?.easebuzz_key ||
+            !easebuzz?.easebuzz_salt ||
+            !easebuzz?.easebuzz_submerchant_id ||
+            !easebuzz?.easebuzz_email
+          ) {
+            throw new BadRequestException(
+              'Easebuzz fields missing — require easebuzz_key, easebuzz_salt, easebuzz_submerchant_id, easebuzz_email',
+            );
+          }
+
+          updateData.easebuzz_non_partner = {
+            easebuzz_key: easebuzz.easebuzz_key,
+            easebuzz_salt: easebuzz.easebuzz_salt,
+            easebuzz_submerchant_id: easebuzz.easebuzz_submerchant_id,
+            easebuzz_merchant_email: easebuzz.easebuzz_email,
+          };
+          updateData.isEasebuzzNonPartner = true;
+          break;
+
+        case GATEWAY.RAZORPAY:
+          if (
+            !razorpay?.razorpay_key_id ||
+            !razorpay?.razorpay_secret ||
+            !razorpay?.razorpay_mid ||
+            !razorpay?.razorpay_account ||
+            razorpay.seamless === undefined ||
+            razorpay.seamless === null
+          ) {
+            throw new BadRequestException(
+              'Razorpay fields missing — require razorpay_key_id, razorpay_secret, razorpay_mid, razorpay_account, seamless flag',
+            );
+          }
+
+          const razorpayPayload = {
+            razorpay_key_id: razorpay.razorpay_key_id,
+            razorpay_secret: razorpay.razorpay_secret,
+            razorpay_mid: razorpay.razorpay_mid,
+            razorpay_account: razorpay.razorpay_account,
+          };
+
+          if (razorpay.seamless) {
+            updateData.razorpay_seamless = razorpayPayload;
+          } else {
+            updateData.razorpay = razorpayPayload;
+          }
+          break;
+
+        default:
+          throw new BadRequestException('Invalid Gateway');
+      }
+
+      const updated = await this.trusteeSchoolModel.findByIdAndUpdate(
+        school._id,
+        { $set: updateData },
+        { new: true },
+      );
+      if (!updated) {
+        throw new BadRequestException('Failed to update PG credentials');
+      }
+      return {
+        success: true,
+        message: `${gateway} credentials updated successfully in ${school.school_name}`,
+        data: updated,
+      };
+    } catch (e) {
+      console.log(e);
+      if (e.response?.data?.message) {
+        throw new BadRequestException(e.response?.data?.message);
+      }
+      throw new BadRequestException(e.message || 'Something went wrong');
+    }
+  }
+}
+
+
+export enum chequeStatus {
+ SUCCESS = "SUCCESS",
+ BOUNCE = "BOUNCE"
 }

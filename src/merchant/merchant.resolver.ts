@@ -70,6 +70,7 @@ import {
   RefundDelayType,
   RefundTrigger,
 } from 'src/schema/refund.trigger.schema';
+import { chequeStatus } from 'src/erp/erp.controller';
 
 @InputType()
 export class SplitRefundDetails {
@@ -2067,6 +2068,43 @@ export class MerchantResolver {
       throw new BadRequestException(e.message);
     }
   }
+
+  @UseGuards(MerchantGuard)
+    async updateChequeStatus(
+      @Args ('collect_id')  collect_id : string,
+      @Args('status', { type: () => chequeStatus }) status:string,
+      @Context() context,
+    ) {
+      try { 
+        const schoolId = context.req.merchant;
+        const school = await this.trusteeSchoolModel.findOne({
+          school_id: new Types.ObjectId(schoolId),
+        });
+        if (!school) {
+          throw new BadRequestException('school not found');
+        }
+        const token = this.jwtService.sign(
+          { school_id: schoolId },
+          { secret: process.env.PAYMENTS_SERVICE_SECRET! },
+        );
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pay/update-cheque-status?token=${token}&collect_id=${collect_id}&status=${status}`,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+        };
+        const { data } = await axios.request(config);
+        return data;
+      } catch (error) {
+        console.log(error.response.data);
+        throw new BadRequestException(
+          error?.response?.data?.message || 'internal server error',
+        );
+      }
+    }
 }
 
 @ObjectType()

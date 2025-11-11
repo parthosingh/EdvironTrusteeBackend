@@ -9,6 +9,7 @@ import {
   Post,
   Req,
   Res,
+  Query,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
@@ -46,6 +47,7 @@ import {
 import { ErrorLogs } from 'src/schema/error.log.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { JwtService } from '@nestjs/jwt';
+import { decryptEas } from 'src/utils/crypto.utils';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -83,7 +85,7 @@ export class WebhooksController {
     @InjectModel(ErrorLogs.name)
     private ErrorLogsModel: mongoose.Model<ErrorLogs>,
     private readonly businessServices: BusinessAlarmService,
-  ) {}
+  ) { }
 
   @Post('/easebuzz/refund')
   async easebuzzRefundWebhook(@Body() body: any, @Res() res: any) {
@@ -1711,7 +1713,7 @@ export class WebhooksController {
       // Flatten and remove duplicates
       const emails = [...new Set(groups.flatMap((group) => group.emails))];
       return emails;
-    } catch (e) {}
+    } catch (e) { }
   }
 
   @Post('pay-u/refunds')
@@ -1816,7 +1818,7 @@ export class WebhooksController {
     }
   }
 
-    @Post('easebuzz/settlements/v2')
+  @Post('easebuzz/settlements/v2')
   async eassebuzzSettlementsV2(
     @Body() body: any,
     @Res() res: any,
@@ -1824,10 +1826,10 @@ export class WebhooksController {
   ) {
     try {
       console.log('debug 1');
-      
+
       if (req.query.school_id) {
         console.log('school i dfound ');
-        
+
         const details = JSON.stringify(body);
         await new this.webhooksLogsModel({
           type: 'SETTLEMENTS',
@@ -1898,7 +1900,7 @@ export class WebhooksController {
       }
 
       console.log('school id not found ');
-      
+
       const details = JSON.stringify(body);
       await new this.webhooksLogsModel({
         type: 'SETTLEMENTS',
@@ -1910,11 +1912,11 @@ export class WebhooksController {
       const info = body.data;
       const data = JSON.parse(info);
       console.log(data);
-      
+
       await Promise.all(
         data.submerchant_payouts.map(async (payout: any) => {
           console.log('90909090909');
-          
+
           const merchant = await this.TrusteeSchoolmodel.findOne({
             easebuzz_id: payout.submerchant_id,
           });
@@ -1925,8 +1927,8 @@ export class WebhooksController {
             return;
           }
           let utr = payout.bank_transaction_id;
-          console.log(utr,'utr');
-          
+          console.log(utr, 'utr');
+
           const easebuzzDate = new Date(payout.submerchant_payout_date);
           if (payout.bank_transaction_id === 'SPLIT') {
             const matchingSplit = data.split_payouts.find(
@@ -1999,5 +2001,346 @@ export class WebhooksController {
     }
   }
 
+
+  @Post('razorpay/dispute-webhooks')
+  async razorPayDisputeWebhooks(@Body() body: any, @Res() res: any) {
+    const details = JSON.stringify(body);
+    const webhooklogs = await new this.webhooksLogsModel({
+      body: details,
+    }).save();
+    try {
+      const payment = body.payload?.payment?.entity;
+      const disputeData = body.payload?.dispute?.entity;
+      const paymentId = payment?.id;
+
+      const createdTimestamp = disputeData?.created_at
+        ? new Date(disputeData.created_at * 1000)
+        : new Date();
+
+      const date = createdTimestamp.toISOString().split('T')[0];
+      const settlementReqBody = {
+        limit: 100,
+        cursor: null,
+        skip: 0,
+        fromDate: date,
+      };
+
+      const settlementTransactions = {
+        method: 'post',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay-nonseamless/settlements-transactions`,
+        headers: {
+          accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        data: settlementReqBody,
+      };
+
+      const settlementResponse = await axios.request(settlementTransactions);
+
+      const settlementsList =
+        settlementResponse?.data?.settlements_transactions || [];
+
+      const foundRecord = settlementsList.find(
+        (item: any) => item.payment_id === paymentId,
+      );
+
+      console.log("foundRecord", foundRecord)
+      const {
+        id,
+        reason_code,
+        amount,
+        created_at,
+        respond_by,
+        status,
+        phase
+      } = disputeData;
+      const { order_id } = payment;
+      const webhook_type = disputeData.status;
+      webhooklogs.collect_id = order_id;
+      await webhooklogs.save();
+
+      const eventSteps = {
+        status: foundRecord.event_status || 'N/A',
+        remark: foundRecord.remarks || 'N/A',
+        settlement_id: foundRecord.settlement_id || 'N/A',
+        utr_no: foundRecord.settlement_utr || 'N/A',
+        event_date: new Date(foundRecord.created_at * 1000)
+      }
+      const token = jwt.sign(
+        { collect_request_id: order_id },
+        process.env.PAYMENTS_SERVICE_SECRET,
+      );
+      const orderDetailsConfig = {
+        method: 'get',
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/erp-transaction-info?collect_request_id=${order_id}&token=${token}`,
+        headers: {
+          accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      };
+      const { data: response } = await axios.request(orderDetailsConfig);
+      const transactionInfo = response[0];
+      const custom_order_id = transactionInfo.custom_order_id || 'NA';
+      const school_id = transactionInfo.school_id;
+      const school = await this.TrusteeSchoolmodel.findOne({
+        school_id: new Types.ObjectId(school_id),
+      });
+      if (!school) {
+        throw new BadRequestException('School not found');
+      }
+      const dispute = await this.DisputesModel.findOneAndUpdate(
+        { dispute_id: id },
+        {
+          $set: {
+            school_id: new Types.ObjectId(school_id),
+            trustee_id: school.trustee_id,
+            collect_id: order_id,
+            custom_order_id,
+            dispute_type: phase,
+            reason_description: reason_code,
+            dispute_amount: amount,
+            order_amount: transactionInfo.order_amount,
+            payment_amount: transactionInfo.transaction_amount,
+            dispute_created_date: new Date(created_at * 1000),
+            dispute_respond_by_date: new Date(respond_by * 1000),
+            dispute_status: status,
+            gateway: DisputeGateways.RAZORPAY,
+            school_name: school.school_name || 'N/A',
+            student_name: foundRecord.student_name || 'N/A',
+            settlement_id: foundRecord.settlement_id || 'N/A',
+            utr_number: foundRecord.settlement_utr || 'N/A',
+          },
+          $push: { event_steps: eventSteps }
+        },
+        { upsert: true, new: true },
+      )
+
+      if (school.isNotificationOn && school.isNotificationOn.for_dispute === true) {
+        const eventName = 'DISPUTE_ALERT';
+        const emailList = await this.businessServices.getMails(
+          eventName,
+          school_id,
+        );
+
+        if (status === "open" || body.event === "payment.dispute.created") {
+          const subject = `A dispute has been raised against transaction id: ${dispute.collect_id}`;
+          const htmlBody =
+            'Please find the attached receipt for dispute details.';
+          const pdfBuffer = await this.generateDisputePDF(dispute, false);
+          this.emailService.sendErrorMail2(subject, htmlBody, [
+            {
+              filename: `Dispute-${dispute.dispute_id}.pdf`,
+              content: pdfBuffer,
+            }
+          ]);
+
+          const gatewayMailSubject = `Dispute invoice against transaction id: ${dispute.collect_id}`;
+
+          const gatewayMailData = {
+            transactionId: transactionInfo.collect_id,
+            custom_order_id: transactionInfo.custom_order_id || 'NA',
+            disputeStatus: status,
+            date: new Date(created_at * 1000),
+            schoolName: school.school_name,
+            amount: transactionInfo.transaction_amount,
+            bank_reference: transactionInfo.bank_reference,
+            student_details: transactionInfo?.additional_data
+              ? JSON.parse(transactionInfo.additional_data)
+              : {},
+            payment_method: transactionInfo.payment_method,
+            payment_details: transactionInfo.details,
+            gateway: dispute.gateway
+          };
+          this.pdfService.generatePDF(gatewayMailData).then((pdf: any) => {
+            this.emailService.sendMailWithAttachment(
+              gatewayMailSubject,
+              `<h3> Please find the attached invoice against dispute case id: ${dispute.dispute_id} </h3>`,
+              emailList,
+              `receipt_${gatewayMailData.transactionId}.pdf`,
+              pdf,
+            );
+          });
+        }
+        if (respond_by) {
+          dispute.dispute_respond_by_date = new Date(respond_by * 1000);
+          await dispute.save();
+          const subject = `A dispute has been resolved against transaction id: ${dispute.collect_id}`;
+          const innerMailTemp = getAdminEmailTemplate(dispute, false);
+          this.emailService.sendErrorMail(subject, innerMailTemp);
+        }
+      }
+      res.status(200).send('OK');
+    } catch (e) {
+      console.log(e.message);
+      throw new BadRequestException(e.message);
+    }
+  }
+
+  @Post('getepay/settlements')
+  async getepaySettlements(@Body() body: any, @Res() res:any){
+    try {
+
+      console.log('GetEPay Settlement Webhook Received');
+      const details = JSON.stringify(body)
+
+      await new this.webhooksLogsModel({
+      type: 'SETTLEMENTS',
+      gateway: 'GETEPAY',
+      body: details,
+      status: 'RECEIVED',
+    }).save();
+
+    const { mid, terminalId, response } = body;
+    if (!response) throw new Error('Missing encrypted response from GetEPay');
+
+     let decryptedData: any;
+      try {
+        const decryptedText = await decryptEas(
+          response,
+          process.env.GETEPAY_AES_KEY!,
+          process.env.GETEPAY_AES_IV!,
+        );
+        decryptedData = JSON.parse(decryptedText);
+      } catch (err) {
+        console.error('Failed to decrypt GetEPay response:', err.message);
+        throw new Error('Invalid or corrupted GetEPay encrypted payload');
+      }
+
+     const {
+      transactions = [],
+      settlementStatus,
+      mid: merchantMid,
+      merchantName,
+      vpa,
+      NetSettlementAmount,
+      settlementAmount,
+      deductionAmount,
+    } = decryptedData;
+
+    if (!transactions.length) throw new Error('No transactions found');
+    const txn = transactions[0];
+    const utr = txn.merchantSettlementRefNo || 'NA';
+    const settlementDate = txn.merchantSettlementDate;
+
+     const merchant = await this.TrusteeSchoolmodel.findOne({
+      terminal_id: vpa,
+    });
+    if (!merchant) throw new Error(`Merchant not found for VPA: ${vpa}`);
+
+    const trustee = await this.TrusteeModel.findById(merchant.trustee_id);
+    if (!trustee) throw new Error('Trustee not found');
+
+    const webhook_urls = trustee.settlement_webhook_url
+
+    await this.TempSettlementReportModel.findOneAndUpdate(
+      { utrNumber: utr },
+      {
+        $set: {
+          settlementAmount,
+          netSettlementAmount: NetSettlementAmount,
+          deductionAmount,
+          settlementDate: new Date(settlementDate),
+          status: settlementStatus,
+          utrNumber: utr,
+          clientId: merchantMid || 'NA',
+          trustee: merchant.trustee_id,
+          schoolId: merchant.school_id,
+        },
+      },
+      { upsert: true, new: true },
+    );
+
+
+    if (webhook_urls) {
+      try {
+        const response = await axios.post(webhook_urls, decryptedData);
+        await this.webhooksLogsModel.create({
+          type: 'ERP_SETTLEMENTS_WEBHOOK_SUCCESS',
+          gateway: 'GETEPAY',
+          status: 'SUCCESS',
+          res: JSON.stringify(response.data),
+          trustee_id: merchant.trustee_id,
+          school_id: merchant.school_id,
+        });
+      } catch (e) {
+        await this.webhooksLogsModel.create({
+          type: 'ERP_SETTLEMENTS_WEBHOOK_ERROR',
+          error: e.message,
+          status: 'FAILED',
+          gateway: 'GETEPAY',
+          trustee_id: merchant.trustee_id,
+          school_id: merchant.school_id,
+        });
+      }
+    }
+
+    if (settlementStatus === 'SUCCESS') {
+      setTimeout(async () => {
+        try {
+          const formattedDate = new Date(settlementDate).toISOString().split('T')[0];
+
+          await this.trusteeService.reconSettlementAndTransaction(
+            merchant.trustee_id.toString(),
+            merchant.school_id.toString(),
+            formattedDate,
+            formattedDate,
+            formattedDate,
+            formattedDate,
+            formattedDate,
+          );
+
+          console.log('Reconciliation triggered for GetEPay');
+        } catch (e) {
+          console.error('Error in reconciliation:', e.message);
+        }
+      }, 40 * 60 * 1000); // 40 min delay
+    }
+
+
+     if (merchant.isNotificationOn && merchant.isNotificationOn.for_settlement){
+          setTimeout(async () => {
+            try {
+              const eventName = 'SETTLEMENT_ALERT';
+              const emails = await this.businessServices.getMails(
+                eventName,
+                merchant.school_id.toString(),
+              );
+              const ccMails = await this.businessServices.getMailsCC(
+                eventName,
+                merchant.school_id.toString(),
+              );
+
+              const htmlBody = `<p>Settlement of ₹${NetSettlementAmount} has been processed successfully for ${merchant.school_name} on ${settlementDate}.</p>`;
+
+              this.emailService.sendSettlementMail(
+                htmlBody,
+                `Edviron | GetEPay Settlement Report - ${merchant.school_name}`,
+                emails,
+                '',
+                ccMails,
+              );
+            } catch (error) {
+              console.error('Error sending GetEPay settlement email:', error);
+            }
+          }, 45 * 60 * 1000);
+        }
+
+        return res.status(200).send('OK');
+      } 
+      catch (e) {
+        console.error('Error in GetEPay settlement:', e.message);
+
+        const emailSubject = `Error in GETEPAY SETTLEMENT WEBHOOK`;
+        const emailBody = `
+          <p><strong>Error:</strong> ${e.message}</p>
+          <p><strong>Service:</strong> GETEPAY</p>
+          <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+        `;
+        this.emailService.sendErrorMail(emailSubject, emailBody);
+
+        throw new InternalServerErrorException(e.message);
+      }
+
+  }
 }
 

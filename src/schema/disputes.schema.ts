@@ -8,6 +8,7 @@ export enum DisputeGateways {
   RAZORPAY = 'RAZORPAY',
   CASHFREE = 'CASHFREE',
   EASEBUZZ = 'EASEBUZZ',
+  EDVIRON_RAZORPAY_SEAMLESS = 'EDVIRON_RAZORPAY_SEAMLESS',
 }
 
 @ObjectType()
