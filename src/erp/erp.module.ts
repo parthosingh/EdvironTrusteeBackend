@@ -54,6 +54,8 @@ import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.s
 import { DatabaseService } from 'src/database/database.service';
 import { StudentDetail, StudentDetailSchema } from 'src/schema/student.schema';
 import { TempSettlementReport, TempSettlementReportSchema } from 'src/schema/tempSettlements.schema';
+import { GatewayRates, GatewayRatesSchema } from 'src/schema/gateways.rate.schema';
+import { CommissionService } from 'src/commission/commission.service';
 
 @Module({
   imports: [
@@ -145,6 +147,7 @@ import { TempSettlementReport, TempSettlementReportSchema } from 'src/schema/tem
     ]),
     MongooseModule.forFeature([
       { name: TempSettlementReport.name, schema: TempSettlementReportSchema },
+       { name: GatewayRates.name, schema: GatewayRatesSchema },
     ]),
   ],
   providers: [
@@ -154,7 +157,8 @@ import { TempSettlementReport, TempSettlementReportSchema } from 'src/schema/tem
     EmailService,
     AwsS3Service,
     BusinessAlarmService,
-    DatabaseService
+    DatabaseService,
+    CommissionService
   ],
   controllers: [ErpController],
 })

@@ -14,6 +14,9 @@ import { ErrorLogs, ErrorLogsSchema } from 'src/schema/error.log.schema';
 import { MerchantMember, MerchantMemberSchema } from 'src/schema/merchant.member.schema';
 import { RefundRequest, RefundRequestSchema } from 'src/schema/refund.schema';
 import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.schema';
+import { Commission, CommissionSchema } from 'src/schema/commission.schema';
+import { GatewayRates, GatewayRatesSchema } from 'src/schema/gateways.rate.schema';
+import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
 
 @Module({
     imports: [
@@ -31,7 +34,10 @@ import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.
             { name: ErrorLogs.name, schema: ErrorLogsSchema },
             { name: MerchantMember.name, schema: MerchantMemberSchema },
             { name: RefundRequest.name, schema: RefundRequestSchema },
-            { name: Reconciliation.name, schema: ReconciliationSchema }
+            { name: Reconciliation.name, schema: ReconciliationSchema },
+            { name: Commission.name, schema: CommissionSchema },
+            { name: GatewayRates.name, schema: GatewayRatesSchema },
+            { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
 
         ]),
 
@@ -52,7 +58,10 @@ import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.
             { name: ErrorLogs.name, schema: ErrorLogsSchema },
             { name: MerchantMember.name, schema: MerchantMemberSchema },
             { name: RefundRequest.name, schema: RefundRequestSchema },
-            { name: Reconciliation.name, schema: ReconciliationSchema }
+            { name: Reconciliation.name, schema: ReconciliationSchema },
+            { name: Commission.name, schema: CommissionSchema },
+            { name: GatewayRates.name, schema: GatewayRatesSchema },
+            { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
         ]),
     ]
 })

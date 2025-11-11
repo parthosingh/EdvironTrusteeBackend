@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { EmailService } from 'src/email/email.service';
+import { BaseMdr } from 'src/schema/base.mdr.schema';
+import { Commission } from 'src/schema/commission.schema';
+import { GatewayRates } from 'src/schema/gateways.rate.schema';
 import { Reconciliation } from 'src/schema/Reconciliation.schema';
 import { RefundRequest } from 'src/schema/refund.schema';
+import { SchoolBaseMdr } from 'src/schema/school.base.mdr.schema';
 import { TrusteeSchool } from 'src/schema/school.schema';
 import { SettlementReport } from 'src/schema/settlement.schema';
 import { StudentDetail } from 'src/schema/student.schema';
@@ -24,6 +27,14 @@ export class DatabaseService {
         public refundModel: Model<RefundRequest>,
         @InjectModel(Reconciliation.name)
         public reconModel: Model<Reconciliation>,
+        @InjectModel(GatewayRates.name)
+        public gatewayRatesModel: Model<GatewayRates>,
+        @InjectModel(Commission.name)
+        public commissionModel: Model<Commission>,
+        @InjectModel(BaseMdr.name)
+        public baseMdrModel: Model<BaseMdr>,
+        @InjectModel(SchoolBaseMdr.name)
+        public schoolBaseMdrModel: Model<SchoolBaseMdr>,
     ) { }
 
 }

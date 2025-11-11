@@ -88,6 +88,7 @@ import {
 } from 'src/utils/enums';
 import { SchoolBaseMdr } from 'src/schema/school.base.mdr.schema';
 import { stat } from 'fs';
+import { CommissionService } from 'src/commission/commission.service';
 import { generatePosRequest } from 'src/business-alarm/templates/htmlToSend.format';
 import { DatabaseService } from 'src/database/database.service';
 import { EmailService } from 'src/email/email.service';
@@ -99,6 +100,7 @@ export class ErpController {
     private readonly jwtService: JwtService,
     private readonly trusteeService: TrusteeService,
     private readonly S3BucketService: AwsS3Service,
+    private readonly commissionService:CommissionService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
@@ -4412,6 +4414,7 @@ export class ErpController {
       payment_mode: string;
       platform_type: string;
       collect_id: string;
+      gateway?: string;
     },
   ) {
     const {
@@ -4422,6 +4425,7 @@ export class ErpController {
       school_id,
       trustee_id,
       collect_id,
+      gateway,
     } = body;
     try {
       const decrypted = this.jwtService.verify(token, {
@@ -4506,8 +4510,11 @@ export class ErpController {
       } else {
         erpCommissionWithGST = erpCommission + erpCommission * 0.18;
       }
+      if(erpCommissionWithGST<0){
+        erpCommissionWithGST = 0;
+      }
 
-      await this.commissionModel.findOneAndUpdate(
+      const commission=await this.commissionModel.findOneAndUpdate(
         { collect_id: new Types.ObjectId(collect_id) }, // Filter by collect_id
         {
           $set: {
@@ -4521,7 +4528,15 @@ export class ErpController {
         },
         { upsert: true, new: true }, // upsert: true will insert a new document if no matching document is found
       );
-
+      try{
+        await this.commissionService.updateCommission(
+          commission._id.toString(),
+          'EVIRON_TEST'
+        )
+      }catch(e){
+        console.log('Failed to save beakDown');
+        
+      }
       return {
         status: 'successful',
         msg: 'Commission and Earnings are Updated Successfully',

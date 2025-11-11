@@ -594,7 +594,8 @@ export class ErpService {
 
           const hashBody = `${merchant.easebuzz_non_partner.easebuzz_key}||${formattedDateString}|${merchant.easebuzz_non_partner.easebuzz_salt}`;
           const hash = await this.calculateSHA512Hash(hashBody);
-
+          console.log({hashBody});
+          
           const start = new Date(settlementDate.getTime() - 24 * 60 * 60 * 1000);
           console.log(start, 'start');
           console.log(
@@ -627,6 +628,8 @@ export class ErpService {
             },
             data: data,
           };
+          // console.log(config, 'config');
+          
           try {
             const response = await axios.request(config);
             // console.log(response.data.payouts_history_data, 'data',merchant.school_id);
@@ -1009,6 +1012,8 @@ export class ErpService {
   }
 
   async calculateCommissions(commission, payment_mode, platform_type, amount) {
+    console.log(commission,'comms',{payment_mode,platform_type});
+    
     let commissionEntry = commission.find(
       (c) =>
         c.payment_mode.toLowerCase() === payment_mode.toLowerCase() &&
@@ -1460,7 +1465,7 @@ export class ErpService {
                 razorpay_id: merchant.razorpay.razorpay_id,
                 fromDate: new Date(startDatenew),
                 tillDate: new Date(startDatenew),
-                 status: value.status?.toLowerCase() === 'processed' ? 'Settled' : value.status,
+                status: value.status === 'processed' ? 'SUCCESS' : value.status,
                 gateway: 'EDVIRON_RAZORPAY',
                 utrNumber: value.utr,
                 settlementDate: new Date(value.created_at * 1000).toISOString(),

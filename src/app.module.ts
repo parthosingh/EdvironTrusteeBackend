@@ -30,6 +30,7 @@ import { SubTrusteeModule } from './sub-trustee/sub-trustee.module';
 import { DatabaseModule } from './database/database.module';
 import { CanteenModule } from './canteen/canteen.module';
 import { ReconcilationModule } from './reconcilation/reconcilation.module';
+import { CommissionModule } from './commission/commission.module';
 config();
 
 @Module({
@@ -62,6 +63,7 @@ config();
     DatabaseModule,
     CanteenModule,
     ReconcilationModule,
+    CommissionModule,
   ],
 
   controllers: [AppController],
