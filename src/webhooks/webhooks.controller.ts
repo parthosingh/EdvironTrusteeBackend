@@ -47,6 +47,7 @@ import {
 import { ErrorLogs } from 'src/schema/error.log.schema';
 import { BusinessAlarmService } from 'src/business-alarm/business-alarm.service';
 import { JwtService } from '@nestjs/jwt';
+import { decryptEas } from 'src/utils/crypto.utils';
 
 export enum DISPUTES_STATUS {
   DISPUTE_CREATED = 'DISPUTE_CREATED',
@@ -2175,5 +2176,171 @@ export class WebhooksController {
     }
   }
 
+  @Post('getepay/settlements')
+  async getepaySettlements(@Body() body: any, @Res() res:any){
+    try {
+
+      console.log('GetEPay Settlement Webhook Received');
+      const details = JSON.stringify(body)
+
+      await new this.webhooksLogsModel({
+      type: 'SETTLEMENTS',
+      gateway: 'GETEPAY',
+      body: details,
+      status: 'RECEIVED',
+    }).save();
+
+    const { mid, terminalId, response } = body;
+    if (!response) throw new Error('Missing encrypted response from GetEPay');
+
+     let decryptedData: any;
+      try {
+        const decryptedText = await decryptEas(
+          response,
+          process.env.GETEPAY_AES_KEY!,
+          process.env.GETEPAY_AES_IV!,
+        );
+        decryptedData = JSON.parse(decryptedText);
+      } catch (err) {
+        console.error('Failed to decrypt GetEPay response:', err.message);
+        throw new Error('Invalid or corrupted GetEPay encrypted payload');
+      }
+
+     const {
+      transactions = [],
+      settlementStatus,
+      mid: merchantMid,
+      merchantName,
+      vpa,
+      NetSettlementAmount,
+      settlementAmount,
+      deductionAmount,
+    } = decryptedData;
+
+    if (!transactions.length) throw new Error('No transactions found');
+    const txn = transactions[0];
+    const utr = txn.merchantSettlementRefNo || 'NA';
+    const settlementDate = txn.merchantSettlementDate;
+
+     const merchant = await this.TrusteeSchoolmodel.findOne({
+      terminal_id: vpa,
+    });
+    if (!merchant) throw new Error(`Merchant not found for VPA: ${vpa}`);
+
+    const trustee = await this.TrusteeModel.findById(merchant.trustee_id);
+    if (!trustee) throw new Error('Trustee not found');
+
+    const webhook_urls = trustee.settlement_webhook_url
+
+    await this.TempSettlementReportModel.findOneAndUpdate(
+      { utrNumber: utr },
+      {
+        $set: {
+          settlementAmount,
+          netSettlementAmount: NetSettlementAmount,
+          deductionAmount,
+          settlementDate: new Date(settlementDate),
+          status: settlementStatus,
+          utrNumber: utr,
+          clientId: merchantMid || 'NA',
+          trustee: merchant.trustee_id,
+          schoolId: merchant.school_id,
+        },
+      },
+      { upsert: true, new: true },
+    );
+
+
+    if (webhook_urls) {
+      try {
+        const response = await axios.post(webhook_urls, decryptedData);
+        await this.webhooksLogsModel.create({
+          type: 'ERP_SETTLEMENTS_WEBHOOK_SUCCESS',
+          gateway: 'GETEPAY',
+          status: 'SUCCESS',
+          res: JSON.stringify(response.data),
+          trustee_id: merchant.trustee_id,
+          school_id: merchant.school_id,
+        });
+      } catch (e) {
+        await this.webhooksLogsModel.create({
+          type: 'ERP_SETTLEMENTS_WEBHOOK_ERROR',
+          error: e.message,
+          status: 'FAILED',
+          gateway: 'GETEPAY',
+          trustee_id: merchant.trustee_id,
+          school_id: merchant.school_id,
+        });
+      }
+    }
+
+    if (settlementStatus === 'SUCCESS') {
+      setTimeout(async () => {
+        try {
+          const formattedDate = new Date(settlementDate).toISOString().split('T')[0];
+
+          await this.trusteeService.reconSettlementAndTransaction(
+            merchant.trustee_id.toString(),
+            merchant.school_id.toString(),
+            formattedDate,
+            formattedDate,
+            formattedDate,
+            formattedDate,
+            formattedDate,
+          );
+
+          console.log('Reconciliation triggered for GetEPay');
+        } catch (e) {
+          console.error('Error in reconciliation:', e.message);
+        }
+      }, 40 * 60 * 1000); // 40 min delay
+    }
+
+
+     if (merchant.isNotificationOn && merchant.isNotificationOn.for_settlement){
+          setTimeout(async () => {
+            try {
+              const eventName = 'SETTLEMENT_ALERT';
+              const emails = await this.businessServices.getMails(
+                eventName,
+                merchant.school_id.toString(),
+              );
+              const ccMails = await this.businessServices.getMailsCC(
+                eventName,
+                merchant.school_id.toString(),
+              );
+
+              const htmlBody = `<p>Settlement of ₹${NetSettlementAmount} has been processed successfully for ${merchant.school_name} on ${settlementDate}.</p>`;
+
+              this.emailService.sendSettlementMail(
+                htmlBody,
+                `Edviron | GetEPay Settlement Report - ${merchant.school_name}`,
+                emails,
+                '',
+                ccMails,
+              );
+            } catch (error) {
+              console.error('Error sending GetEPay settlement email:', error);
+            }
+          }, 45 * 60 * 1000);
+        }
+
+        return res.status(200).send('OK');
+      } 
+      catch (e) {
+        console.error('Error in GetEPay settlement:', e.message);
+
+        const emailSubject = `Error in GETEPAY SETTLEMENT WEBHOOK`;
+        const emailBody = `
+          <p><strong>Error:</strong> ${e.message}</p>
+          <p><strong>Service:</strong> GETEPAY</p>
+          <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+        `;
+        this.emailService.sendErrorMail(emailSubject, emailBody);
+
+        throw new InternalServerErrorException(e.message);
+      }
+
+  }
 }
 
