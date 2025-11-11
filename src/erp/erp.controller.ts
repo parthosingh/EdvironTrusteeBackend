@@ -37,7 +37,7 @@ import {
 } from '../schema/settlement.schema';
 import { Trustee } from '../schema/trustee.schema';
 import { Commission } from '../schema/commission.schema';
-import { Earnings } from '../schema/earnings.schema';
+import { CommissionEarning, CommissionEarningSchema } from '../schema/earnings.schema';
 import { BaseMdr } from '../schema/base.mdr.schema';
 import { TrusteeService } from '../trustee/trustee.service';
 import QRCode from 'qrcode';
@@ -109,8 +109,8 @@ export class ErpController {
     private trusteeModel: mongoose.Model<Trustee>,
     @InjectModel(Commission.name)
     private commissionModel: mongoose.Model<Commission>,
-    @InjectModel(Earnings.name)
-    private earningsModel: mongoose.Model<Earnings>,
+    @InjectModel(CommissionEarning.name)
+    private earningsModel: mongoose.Model<CommissionEarning>,
     @InjectModel(BaseMdr.name)
     private baseMdrModel: mongoose.Model<BaseMdr>,
     @InjectModel(RefundRequest.name)

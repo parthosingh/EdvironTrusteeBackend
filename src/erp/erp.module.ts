@@ -9,7 +9,8 @@ import { SettlementSchema } from '../schema/settlement.schema';
 import { BaseMdr, BaseMdrSchema } from '../schema/base.mdr.schema';
 import { SchoolMdr, SchoolMdrSchema } from '../schema/school_mdr.schema';
 import { Commission, CommissionSchema } from '../schema/commission.schema';
-import { Earnings, EarningsSchema } from '../schema/earnings.schema';
+import { CommissionEarning, CommissionEarningSchema,
+ } from '../schema/earnings.schema';
 import { CashfreeModule } from '../cashfree/cashfree.module';
 import { CashfreeService } from '../cashfree/cashfree.service';
 import { TrusteeService } from '../trustee/trustee.service';
@@ -69,7 +70,7 @@ import { CommissionService } from 'src/commission/commission.service';
       { name: Commission.name, schema: CommissionSchema },
     ]),
     MongooseModule.forFeature([
-      { name: Earnings.name, schema: EarningsSchema },
+      { name: CommissionEarning.name, schema: CommissionEarningSchema },
     ]),
     MongooseModule.forFeature([{ name: BaseMdr.name, schema: BaseMdrSchema }]),
     MongooseModule.forFeature([

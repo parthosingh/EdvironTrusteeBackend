@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BaseMdr } from 'src/schema/base.mdr.schema';
 import { Commission } from 'src/schema/commission.schema';
+import { CommissionEarning } from 'src/schema/earnings.schema';
 import { GatewayRates } from 'src/schema/gateways.rate.schema';
 import { Reconciliation } from 'src/schema/Reconciliation.schema';
 import { RefundRequest } from 'src/schema/refund.schema';
@@ -35,6 +36,8 @@ export class DatabaseService {
         public baseMdrModel: Model<BaseMdr>,
         @InjectModel(SchoolBaseMdr.name)
         public schoolBaseMdrModel: Model<SchoolBaseMdr>,
+            @InjectModel(CommissionEarning.name)
+        public earningModel: Model<CommissionEarning>,
     ) { }
 
 }

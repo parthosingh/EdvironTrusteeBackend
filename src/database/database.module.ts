@@ -17,6 +17,7 @@ import { Reconciliation, ReconciliationSchema } from 'src/schema/Reconciliation.
 import { Commission, CommissionSchema } from 'src/schema/commission.schema';
 import { GatewayRates, GatewayRatesSchema } from 'src/schema/gateways.rate.schema';
 import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.schema';
+import { CommissionEarning, CommissionEarningSchema } from 'src/schema/earnings.schema';
 
 @Module({
     imports: [
@@ -38,6 +39,7 @@ import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.s
             { name: Commission.name, schema: CommissionSchema },
             { name: GatewayRates.name, schema: GatewayRatesSchema },
             { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
+            { name: CommissionEarning.name, schema: CommissionEarningSchema },
 
         ]),
 
@@ -62,6 +64,7 @@ import { SchoolBaseMdr, SchoolBaseMdrSchema } from 'src/schema/school.base.mdr.s
             { name: Commission.name, schema: CommissionSchema },
             { name: GatewayRates.name, schema: GatewayRatesSchema },
             { name: SchoolBaseMdr.name, schema: SchoolBaseMdrSchema },
+                     { name: CommissionEarning.name, schema: CommissionEarningSchema },
         ]),
     ]
 })

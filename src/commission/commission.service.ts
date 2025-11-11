@@ -65,7 +65,25 @@ export class CommissionService {
       // calculate gst + with gst
       const { commission_gst_amount, commission_with_gst } =
         this.calculateGstBreakdown(commission_without_gst, this.GST_RATE);
-
+      await this.databaseService.earningModel.findOneAndUpdate(
+        {
+          collect_id:commission.collect_id
+        },
+        {
+          $set:{
+            mdr_amount:mdr,
+            mdr:mdr_amount,
+            commission_without:commission_without_gst,
+            commission_with_gst:commission_with_gst,
+            commission_gst:commission_gst_amount,
+            gateway
+          }
+        },
+        {
+          new:true,
+          upsert:true
+        }
+      )
       return { mdr_amount, mdr, commission_without_gst, commission_gst_amount, commission_with_gst };
     } catch (e) {
       console.error('Commission Update Error:', e);
@@ -125,6 +143,7 @@ export class CommissionService {
       edviron_earning_with_gst: add(base.edviron_earning_without_gst),
       total_commission_with_gst: add(base.total_commission_without_gst),
     };
+
 
     return { commission_gst_amount, commission_with_gst };
   }
@@ -186,7 +205,7 @@ export class CommissionService {
     try {
       const config = {
         method: 'get',
-        url: `${process.env.URL}/check-status?transactionId=${collect_id}`,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/check-status?transactionId=${collect_id}`,
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
