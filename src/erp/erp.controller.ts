@@ -4531,7 +4531,7 @@ export class ErpController {
       try{
         await this.commissionService.updateCommission(
           commission._id.toString(),
-          'EVIRON_TEST'
+          'EVIRON_PG'
         )
       }catch(e){
         console.log('Failed to save beakDown');
