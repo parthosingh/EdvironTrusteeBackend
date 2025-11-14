@@ -37,7 +37,10 @@ import {
 } from '../schema/settlement.schema';
 import { Trustee } from '../schema/trustee.schema';
 import { Commission } from '../schema/commission.schema';
-import { CommissionEarning, CommissionEarningSchema } from '../schema/earnings.schema';
+import {
+  CommissionEarning,
+  CommissionEarningSchema,
+} from '../schema/earnings.schema';
 import { BaseMdr } from '../schema/base.mdr.schema';
 import { TrusteeService } from '../trustee/trustee.service';
 import QRCode from 'qrcode';
@@ -100,7 +103,7 @@ export class ErpController {
     private readonly jwtService: JwtService,
     private readonly trusteeService: TrusteeService,
     private readonly S3BucketService: AwsS3Service,
-    private readonly commissionService:CommissionService,
+    private readonly commissionService: CommissionService,
     @InjectModel(TrusteeSchool.name)
     private trusteeSchoolModel: mongoose.Model<TrusteeSchool>,
     @InjectModel(SettlementReport.name)
@@ -132,7 +135,7 @@ export class ErpController {
     @InjectModel(SchoolBaseMdr.name)
     private SchoolBaseMdrModel: mongoose.Model<SchoolBaseMdr>,
     private emailService: EmailService,
-  ) { }
+  ) {}
 
   @Get('payment-link')
   @UseGuards(ErpGuard)
@@ -705,7 +708,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -893,7 +896,6 @@ export class ErpController {
         all_webhooks = req_webhook_urls || [];
       }
 
-   
       const additionalInfo = {
         student_details: {
           student_id: student_id,
@@ -916,10 +918,14 @@ export class ErpController {
           if (typeof value === 'string') {
             // Check for | or extra spaces
             if (value.includes('|')) {
-              throw new BadRequestException(`Invalid value for key "${key}": contains "|"`);
+              throw new BadRequestException(
+                `Invalid value for key "${key}": contains "|"`,
+              );
             }
             if (value.trim() !== value) {
-              throw new BadRequestException(`Invalid value for key "${key}": has extra spaces`);
+              throw new BadRequestException(
+                `Invalid value for key "${key}": has extra spaces`,
+              );
             }
           }
         }
@@ -1497,7 +1503,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
             if (!vendors_data.gateway?.includes(GATEWAY.WORLDLINE)) {
@@ -1584,7 +1590,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2278,7 +2284,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2366,7 +2372,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -2804,7 +2810,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
           const updatedVendor = {
@@ -3095,13 +3101,14 @@ export class ErpController {
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: collect_request_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status?transactionId=${collect_request_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: collect_request_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3222,15 +3229,16 @@ export class ErpController {
       let config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: order_id,
-              trusteeId: trustee_id,
-              school_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: order_id,
+            trusteeId: trustee_id,
+            school_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: {
           accept: 'application/json',
         },
@@ -3298,15 +3306,16 @@ export class ErpController {
 
       const config = {
         method: 'get',
-        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT
-          }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
-            {
-              transactionId: order_id,
-              trusteeId: trustee_id,
-              school_id,
-            },
-            { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
-          )}`,
+        url: `${
+          process.env.PAYMENTS_SERVICE_ENDPOINT
+        }/check-status/custom-order?transactionId=${order_id}&jwt=${this.jwtService.sign(
+          {
+            transactionId: order_id,
+            trusteeId: trustee_id,
+            school_id,
+          },
+          { noTimestamp: true, secret: process.env.PAYMENTS_SERVICE_SECRET },
+        )}`,
         headers: { accept: 'application/json' },
       };
 
@@ -3697,10 +3706,8 @@ export class ErpController {
           ...query,
           vendor_id: vendors.vendor_id,
         };
-        
       }
 
-      
       if (startDate && endDate) {
         const startUTC = moment
           .tz(startDate, 'YYYY-MM-DD', 'Asia/Kolkata')
@@ -4510,11 +4517,11 @@ export class ErpController {
       } else {
         erpCommissionWithGST = erpCommission + erpCommission * 0.18;
       }
-      if(erpCommissionWithGST<0){
+      if (erpCommissionWithGST < 0) {
         erpCommissionWithGST = 0;
       }
 
-      const commission=await this.commissionModel.findOneAndUpdate(
+      const commission = await this.commissionModel.findOneAndUpdate(
         { collect_id: new Types.ObjectId(collect_id) }, // Filter by collect_id
         {
           $set: {
@@ -4528,14 +4535,13 @@ export class ErpController {
         },
         { upsert: true, new: true }, // upsert: true will insert a new document if no matching document is found
       );
-      try{
+      try {
         await this.commissionService.updateCommission(
           commission._id.toString(),
-          'EVIRON_PG'
-        )
-      }catch(e){
+          'EVIRON_PG',
+        );
+      } catch (e) {
         console.log('Failed to save beakDown');
-        
       }
       return {
         status: 'successful',
@@ -4648,7 +4654,7 @@ export class ErpController {
     // return await this.erpService.testSettlementSingle(settlementDate)
   }
   @Get('/test-callback')
-  async test(@Req() req: any) { }
+  async test(@Req() req: any) {}
 
   @Get('/upi-pay')
   @UseGuards(ErpGuard)
@@ -4665,8 +4671,9 @@ export class ErpController {
 
       throw new HttpException(
         {
-          message: `Missing required field${missingFields.length > 1 ? 's' : ''
-            }: ${missingFields.join(', ')}`,
+          message: `Missing required field${
+            missingFields.length > 1 ? 's' : ''
+          }: ${missingFields.join(', ')}`,
           error: 'Validation Error',
           statusCode: '400',
         },
@@ -5171,8 +5178,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+              refundableAmount +
+              'Rs',
           );
         }
       }
@@ -5459,8 +5466,8 @@ export class ErpController {
         if (refund_amount > refundableAmount) {
           throw new Error(
             'Refund amount cannot be more than remaining refundable amount ' +
-            refundableAmount +
-            'Rs',
+              refundableAmount +
+              'Rs',
           );
         }
       }
@@ -6295,7 +6302,7 @@ export class ErpController {
       if (checkVirtualAccount) {
         throw new ConflictException(
           'Students Virtual account is already created with student id ' +
-          student_id,
+            student_id,
         );
       }
 
@@ -6548,8 +6555,8 @@ export class ErpController {
       console.error('Razorpay settlement error:', error);
       throw new BadRequestException(
         error.error?.description ||
-        error.message ||
-        'Failed to fetch settlements',
+          error.message ||
+          'Failed to fetch settlements',
       );
     }
   }
@@ -6645,7 +6652,8 @@ export class ErpController {
       if (axios.isAxiosError(error)) {
         console.error('Axios Error:', error.response?.data || error.message);
         throw new BadRequestException(
-          `External API error: ${error.response?.data?.message || error.message
+          `External API error: ${
+            error.response?.data?.message || error.message
           }`,
         );
       }
@@ -7395,7 +7403,7 @@ export class ErpController {
           if (vendors_data.status !== 'ACTIVE') {
             throw new BadRequestException(
               'Vendor is not active. Please approve the vendor first. for ' +
-              vendor.vendor_id,
+                vendor.vendor_id,
             );
           }
 
@@ -7547,6 +7555,9 @@ export class ErpController {
         student_number: string;
         student_name: string;
         student_email: string;
+        student_class: string;
+        student_section: string;
+        student_gender: string;
       };
       callback_url: string;
       additional_data: any;
@@ -7568,6 +7579,60 @@ export class ErpController {
           year: string;
           month: string;
           preSelected?: boolean;
+          isPaid?: boolean;
+          payment_mode?: string;
+          payment_detail?: {
+            bank_reference_number: string;
+            upi?: {
+              upi_id: string;
+            };
+            card?: {
+              card_bank_name: string;
+              card_network: string;
+              card_number: string;
+              card_type: string;
+            };
+            net_banking?: {
+              netbanking_bank_name: string;
+              netbanking_bank_code?: string;
+            };
+            dd_detail?: {
+              amount: number;
+              dd_number: string;
+              bank_name: string;
+              branch_name: string;
+              depositor_name?: string;
+              date?: Date;
+              remark?: string;
+            };
+            cheque_detail?: {
+              accountHolderName: string;
+              bankName: string;
+              chequeNo: string;
+              dateOnCheque: string;
+              remarks?: string;
+            };
+            static_qr?: {
+              upiId: string;
+              transactionAmount: number | string;
+              bankReferenceNo: string;
+              appName?: string;
+            };
+            cash_detail?: {
+              notes: {
+                [denomination: number]: number;
+              };
+              total_cash_amount?: number;
+              amount?: number;
+              depositor_name?: string;
+              collector_name?: string;
+              date?: Date;
+              remark?: string;
+            };
+            wallet?: {
+              provider: string;
+            };
+          };
           fee_heads: [
             {
               label: string;
@@ -7603,9 +7668,30 @@ export class ErpController {
       installment_name,
       webhook_url,
     } = body;
-    const { student_id, student_number, student_name, student_email } =
-      student_detail;
+    const {
+      student_id,
+      student_number,
+      student_name,
+      student_email,
+      student_class,
+      student_section,
+      student_gender,
+    } = student_detail;
+
     try {
+      if (
+        !student_id ||
+        !student_number ||
+        !student_name ||
+        !student_email ||
+        !student_class ||
+        !student_section ||
+        !student_gender
+      ) {
+        throw new BadRequestException(
+          'required all student detail like student_id , student_number, student_name, student_email, student_class, student_section, student_gender',
+        );
+      }
       const school = await this.trusteeSchoolModel.findOne({
         school_id: new Types.ObjectId(school_id),
       });
@@ -7615,14 +7701,16 @@ export class ErpController {
       if (school.trustee_id.toString() !== trustee_id.toString()) {
         throw new BadRequestException('Invalid School Id');
       }
+      if (!school.isCollectNow) {
+        throw new BadRequestException('school is not active on collect now');
+      }
       if (!callback_url) {
         throw new BadRequestException('callback url required');
       }
-
       const token = this.jwtService.sign(
         { school_id },
         {
-          secret: process.env.PAYMENTS_SERVICE_SECRET,
+          secret: school.pg_key,
           expiresIn: '1y',
         },
       );
@@ -7694,7 +7782,7 @@ export class ErpController {
         installment_name,
         callback_url,
         webhook_url,
-        sign: 'update later',
+        sign: token,
       };
 
       const config = {
@@ -7726,16 +7814,14 @@ export class ErpController {
       };
       return { res: res, message: 'Installment saved successfully' };
     } catch (e) {
-      console.log(e);
+      console.log(e.response, 'e.response');
 
-      throw new BadRequestException(e.message);
+      throw new BadRequestException(e.response.data);
     }
   }
 
   @Get('/installment-sign')
-  async getInstallmentSign(
-    @Req() req: any
-  ) {
+  async getInstallmentSign(@Req() req: any) {
     try {
       const { school_id } = req.query;
       if (!school_id) {
@@ -7750,6 +7836,7 @@ export class ErpController {
       if (!school.pg_key) {
         throw new BadRequestException('PG is not activated for your school');
       }
+      console.log(school.pg_key, 'school.pg_key');
       const sign = this.jwtService.sign(
         { school_id },
         {
@@ -7910,7 +7997,7 @@ export class ErpController {
       let { student_id, student_name, student_email, student_number } =
         student_detail;
       const authToken = req.headers.authorization.replace('Bearer ', '');
-
+      // const authToken = sign;
 
       if (isInstallment && InstallmentsIds.length <= 0) {
         console.log(InstallmentsIds, 'InstallmentsIds');
@@ -7940,10 +8027,10 @@ export class ErpController {
       if (!school) {
         throw new BadRequestException('school not found');
       }
+
       const decoded = this.jwtService.verify(authToken, {
         secret: school.pg_key,
       });
-      console.log(decoded)
       if (decoded.school_id.toString() !== school_id.toString()) {
         throw new BadRequestException('Authorization Error');
       }
@@ -7992,7 +8079,7 @@ export class ErpController {
         await this.emailService.sendPOSMail(
           htmlBody,
           `Edviron | POS Request of ${school.school_name}`,
-          `tarun.k@edviron.com`
+          `tarun.k@edviron.com`,
           // 'manish.verma@edviron.com'
         );
         return { message: 'POS request has been raised successfully.' };
@@ -8152,7 +8239,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -8282,7 +8369,7 @@ export class ErpController {
             if (vendors_data.status !== 'ACTIVE') {
               throw new BadRequestException(
                 'Vendor is not active. Please approve the vendor first. for ' +
-                vendor.vendor_id,
+                  vendor.vendor_id,
               );
             }
 
@@ -8567,8 +8654,8 @@ export class ErpController {
         console.log(e?.response, 'e?.response');
         throw new BadRequestException(
           e?.response?.data?.message ||
-          e?.response?.message ||
-          'internal server error',
+            e?.response?.message ||
+            'internal server error',
         );
       }
       console.log(e, 'error');
@@ -9905,7 +9992,6 @@ export class ErpController {
     }
   }
 
-
   @Post('/settlements-recon/v2')
   @UseGuards(ErpGuard)
   async settlementReconV2(
@@ -9994,7 +10080,7 @@ export class ErpController {
         let gateway: String =
           await this.erpService.getSettlementGateway(settlementInfo);
         if (school.easebuzz_id) {
-          gateway = "EDVIRON_EASEBUZZ_PARTNER"
+          gateway = 'EDVIRON_EASEBUZZ_PARTNER';
         }
         console.log(gateway);
 
@@ -10246,8 +10332,6 @@ export class ErpController {
         if (gateway === 'EDVIRON_EASEBUZZ_PARTNER') {
           console.log('Easebuzz Partner');
 
-
-
           const previousSettlementDate2 =
             settlementInfo.settlementDate.toISOString();
           const tempPrev = previousSettlementDate2.split('T')[0];
@@ -10295,7 +10379,6 @@ export class ErpController {
 
           const { data: ezbres } = await axios.request(config);
 
-
           for (const tx of ezbres.transactions) {
             let additional_fields = null;
             try {
@@ -10328,7 +10411,6 @@ export class ErpController {
             });
           }
 
-
           // transactionsRecon.push(ezbres)
           settlementsRecon.transactions = transactionsRecon;
           settlementsRecon.refunds = refundsRecon;
@@ -10346,7 +10428,7 @@ export class ErpController {
     }
   }
 
-   @Post('update-pg-credentials')
+  @Post('update-pg-credentials')
   async updatePg(
     @Body()
     body: {
@@ -10481,10 +10563,231 @@ export class ErpController {
       throw new BadRequestException(e.message || 'Something went wrong');
     }
   }
+
+  @Post('transaction-report')
+  async getTransactionReportt(
+    @Body()
+    body: {
+      trustee_id: string;
+      sign: string;
+      startDate?: string;
+      endDate?: string;
+      status?: string;
+      school_id?: string;
+      page?: string;
+      limit?: string;
+      isCustomSearch?: boolean;
+      isCollectNow?: boolean;
+      isQRCode?: boolean;
+      searchFilter?: string;
+      searchParams?: string;
+      payment_modes?: string[];
+      gateway?: string[];
+    },
+  ) {
+    let {
+      startDate,
+      endDate,
+      trustee_id,
+      sign,
+      status,
+      school_id,
+      page,
+      limit,
+      isCustomSearch,
+      isCollectNow,
+      isQRCode,
+      searchFilter,
+      searchParams,
+      payment_modes,
+      gateway,
+    } = body;
+    try {
+      console.log(school_id);
+      // if (searchFilter === 'order_id') {
+      //   const checkId = mongoose.Types.ObjectId.isValid(searchFilter);
+      //   if (!checkId) throw new BadRequestException('Invalid order id');
+      // }
+      // checking for debouncing
+      // if(true){
+      //   throw new Error("debounceKey check")
+      // }
+      let decoded = this.jwtService.verify(sign, {
+        secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
+      });
+
+      if (decoded.id !== trustee_id) {
+        throw new BadRequestException('request Fordge');
+      }
+      let id = trustee_id;
+      console.log(id, trustee_id, 'csafds');
+      console.time('mapping merchant transaction');
+      const merchants = await this.trusteeSchoolModel.find({
+        trustee_id: id,
+      });
+      let transactionReport = [];
+
+      const now = new Date();
+
+      // First day of the month
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const firstLocalDate = firstDay.toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata',
+      });
+      const firstLocalDateObject = new Date(firstLocalDate);
+      const firstYear = firstLocalDateObject.getFullYear();
+      const firstMonth = String(firstLocalDateObject.getMonth() + 1).padStart(
+        2,
+        '0',
+      ); // Month is zero-based
+      const firstDayOfMonth = String(firstLocalDateObject.getDate()).padStart(
+        2,
+        '0',
+      ); // Add leading zero if needed
+      const formattedFirstDay = `${firstYear}-${firstMonth}-${firstDayOfMonth}`;
+      console.log(formattedFirstDay, 'First Day');
+
+      // Last day of the month
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day is 0th of next month
+      const lastLocalDate = lastDay.toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata',
+      });
+      const lastLocalDateObject = new Date(lastLocalDate);
+      const lastYear = lastLocalDateObject.getFullYear();
+      const lastMonth = String(lastLocalDateObject.getMonth() + 1).padStart(
+        2,
+        '0',
+      ); // Month is zero-based
+      const lastDayOfMonth = String(lastLocalDateObject.getDate()).padStart(
+        2,
+        '0',
+      ); // Add leading zero if needed
+      const formattedLastDay = `${lastYear}-${lastMonth}-${lastDayOfMonth}`;
+
+      const first = startDate || formattedFirstDay;
+      const last = endDate || formattedLastDay;
+
+      if (!endDate) {
+        const now = new Date();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endDate = lastDay.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
+      }
+
+      const merchant_ids_to_merchant_map = {};
+      merchants.map((merchant: any) => {
+        merchant_ids_to_merchant_map[merchant.school_id] = merchant;
+      });
+      console.timeEnd('mapping merchant transaction');
+      const token = this.jwtService.sign(
+        { trustee_id: id },
+        { secret: process.env.PAYMENTS_SERVICE_SECRET },
+      );
+      const config = {
+        method: 'get',
+        maxBodyLength: Infinity,
+        url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/edviron-pg/bulk-transactions-report/?limit=${limit}&startDate=${first}&endDate=${last}&page=${page}&status=${status}&school_id=${school_id}`,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        data: {
+          trustee_id: id,
+          token,
+          searchParams,
+          isCustomSearch,
+          seachFilter: searchFilter,
+          payment_modes,
+          isQRCode,
+          gateway,
+          isCollectNow,
+        },
+      };
+
+      console.time('fetching all transaction');
+
+      const response = await axios.request(config);
+      const transactionLimit = Number(limit) || 100;
+      const transactionPage = Number(page) || 1;
+      let total_pages = response.data.totalTransactions / transactionLimit;
+
+      console.timeEnd('fetching all transaction');
+
+      console.time('mapping');
+
+      transactionReport = await Promise.all(
+        response.data.transactions.map(async (item: any) => {
+          let remark = null;
+          let additional_data = item.additional_data || '';
+          if (additional_data === '') {
+            additional_data = {};
+          } else {
+            additional_data = JSON.parse(item.additional_data);
+          }
+          // console.log(additional_data);
+
+          return {
+            ...item,
+            merchant_name:
+              merchant_ids_to_merchant_map[item.merchant_id]?.school_name ||
+              'NA',
+            student_id:
+              JSON.parse(item?.additional_data).student_details?.student_id ||
+              '',
+            student_name:
+              JSON.parse(item?.additional_data).student_details?.student_name ||
+              '',
+            student_email:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_email || '',
+            student_phone:
+              JSON.parse(item?.additional_data).student_details
+                ?.student_phone_no || '',
+            receipt:
+              JSON.parse(item?.additional_data).student_details?.receipt || '',
+            additional_data:
+              JSON.parse(item?.additional_data).additional_fields || '',
+            currency: item.currency || 'INR',
+            school_id: item.merchant_id,
+            school_name:
+              merchant_ids_to_merchant_map[item.merchant_id]?.school_name ||
+              'NA',
+            remarks: remark,
+            // commission: commissionAmount,
+            custom_order_id: item?.custom_order_id || null,
+          };
+        }),
+      );
+
+      console.timeEnd('mapping');
+
+      console.time('sorting');
+      transactionReport.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+      console.timeEnd('sorting');
+      console.log(response.data.totalTransactions);
+      // return transactionReport
+      if (isCustomSearch) {
+        total_pages = 1;
+      }
+      return {
+        transactionReport: transactionReport,
+        total_pages,
+        current_page: transactionPage,
+      };
+    } catch (error) {
+      console.log(error, 'response');
+      if (error?.response?.data?.message) {
+        throw new BadRequestException(error?.response?.data?.message);
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
 }
 
-
 export enum chequeStatus {
- SUCCESS = "SUCCESS",
- BOUNCE = "BOUNCE"
+  SUCCESS = 'SUCCESS',
+  BOUNCE = 'BOUNCE',
 }

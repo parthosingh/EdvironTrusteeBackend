@@ -316,6 +316,10 @@ export class TrusteeSchool {
 
   @Prop({})
   @Field(() => Boolean, { defaultValue: false })
+  isCollectNow: boolean;
+
+  @Prop({})
+  @Field(() => Boolean, { defaultValue: false })
   additionalDataToggle: boolean;
 
   @Prop({})
