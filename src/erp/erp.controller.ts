@@ -10778,6 +10778,32 @@ export class ErpController {
       throw new BadRequestException(error.message);
     }
   }
+
+  @Get('get-trustee-id')
+  async getTrusteeId(
+    @Query('school_id') school_id : string
+  ){
+    try {
+      const school = await this.trusteeSchoolModel.findOne({
+        school_id : new Types.ObjectId(school_id)
+      })
+      if(!school){
+        throw new BadRequestException('school not found')
+      } 
+      const trustee = await this.trusteeModel.findById(school.trustee_id)
+
+      if(!trustee){
+        throw new BadRequestException('trustee not found')
+      }
+
+      return {
+        trustee_id : trustee._id.toString()
+      }
+      
+    } catch (error) {
+      throw new BadRequestException(error.message)
+    }
+  }
 }
 
 export enum chequeStatus {
