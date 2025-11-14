@@ -10568,12 +10568,12 @@ export class ErpController {
   async getTransactionReportt(
     @Body()
     body: {
-      trustee_id: string;
-      sign: string;
+      school_id: string;
+      trustee_id?: string;
+      sign?: string;
       startDate?: string;
       endDate?: string;
       status?: string;
-      school_id?: string;
       page?: string;
       limit?: string;
       isCustomSearch?: boolean;
@@ -10604,14 +10604,7 @@ export class ErpController {
     } = body;
     try {
       console.log(school_id);
-      // if (searchFilter === 'order_id') {
-      //   const checkId = mongoose.Types.ObjectId.isValid(searchFilter);
-      //   if (!checkId) throw new BadRequestException('Invalid order id');
-      // }
-      // checking for debouncing
-      // if(true){
-      //   throw new Error("debounceKey check")
-      // }
+
       let decoded = this.jwtService.verify(sign, {
         secret: process.env.JWT_SECRET_FOR_TRUSTEE_AUTH,
       });
