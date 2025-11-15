@@ -54,7 +54,10 @@ import { refund_status, RefundRequest } from '../schema/refund.schema';
 import { TransactionInfo } from '../schema/transaction.info.schema';
 import { kyc_details, Vendors } from '../schema/vendors.schema';
 import { VendorsSettlement } from '../schema/vendor.settlements.schema';
-import { MerchantRefundRequestRes, SplitRefundDetails } from '../merchant/merchant.resolver';
+import {
+  MerchantRefundRequestRes,
+  SplitRefundDetails,
+} from '../merchant/merchant.resolver';
 import { DisputeGateways, Disputes } from '../schema/disputes.schema';
 import { Reconciliation } from '../schema/Reconciliation.schema';
 import { TempSettlementReport } from '../schema/tempSettlements.schema';
@@ -1541,12 +1544,12 @@ export class TrusteeResolver {
 
     // Validate trustee-school relationship
     const school = await this.trusteeSchoolModel.findOne({
-      school_id : new Types.ObjectId(school_id),
-      trustee_id: trustee_id
+      school_id: new Types.ObjectId(school_id),
+      trustee_id: trustee_id,
     });
 
     if (!school) throw new NotFoundException('School not found for trustee');
-    
+
     const checkRefundRequest = await this.refundRequestModel
       .findOne({
         order_id: new Types.ObjectId(order_id),
@@ -1592,8 +1595,8 @@ export class TrusteeResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -1631,7 +1634,7 @@ export class TrusteeResolver {
       reason: reason || 'NA',
     }).save();
     console.log(school_id, 'school');
-    
+
     // Send notification email if enabled
     if (refund) {
       this.trusteeService.scheduleRefundNotificationEmail(
@@ -1666,7 +1669,7 @@ export class TrusteeResolver {
 
     const school = await this.trusteeSchoolModel.findOne({
       school_id: new Types.ObjectId(school_id),
-      trustee_id: trustee_id
+      trustee_id: trustee_id,
     });
 
     const checkRefundRequest = await this.refundRequestModel
@@ -1682,7 +1685,7 @@ export class TrusteeResolver {
     if (
       checkRefundRequest &&
       checkRefundRequest.split_refund_details[0]?.vendor_id ===
-      split_refund_details[0].vendor_id &&
+        split_refund_details[0].vendor_id &&
       checkRefundRequest.status === refund_status.INITIATED
     ) {
       throw new ConflictException(
@@ -1720,8 +1723,8 @@ export class TrusteeResolver {
       if (refund_amount > refundableAmount) {
         throw new Error(
           'Refund amount cannot be more than remaining refundable amount ' +
-          refundableAmount +
-          'Rs',
+            refundableAmount +
+            'Rs',
         );
       }
     }
@@ -1783,7 +1786,9 @@ export class TrusteeResolver {
 
     // Verify the refund request belongs to this trustee
     if (refundRequests.trustee_id.toString() !== trustee_id.toString()) {
-      throw new UnauthorizedException('You are not authorized to delete this refund request');
+      throw new UnauthorizedException(
+        'You are not authorized to delete this refund request',
+      );
     }
 
     if (refundRequests.status === refund_status.APPROVED) {
@@ -2683,15 +2688,26 @@ export class TrusteeResolver {
         {
           $lookup: {
             from: 'trusteeschools',
-            localField: 'school_id',
-            foreignField: 'school_id',
+            let: { refundSchoolId: '$school_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $or: [
+                      { $eq: ['$school_id', '$$refundSchoolId'] },
+                      { $eq: ['$_id', '$$refundSchoolId'] },
+                    ],
+                  },
+                },
+              },
+            ],
             as: 'result',
           },
         },
         { $unwind: '$result' },
         { $count: 'total' },
       ]);
-      console.log(countAggregation, "countAggregation")
+      console.log(countAggregation, 'countAggregation');
       const totalItems = countAggregation[0]?.total || 0;
       const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -2700,8 +2716,19 @@ export class TrusteeResolver {
         {
           $lookup: {
             from: 'trusteeschools',
-            localField: 'school_id',
-            foreignField: 'school_id',
+            let: { refundSchoolId: '$school_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $or: [
+                      { $eq: ['$school_id', '$$refundSchoolId'] },
+                      { $eq: ['$_id', '$$refundSchoolId'] },
+                    ],
+                  },
+                },
+              },
+            ],
             as: 'result',
           },
         },
@@ -3546,7 +3573,7 @@ export class TrusteeResolver {
           action: action,
           documents: uploadedFiles,
           collect_id: disputDetails.collect_id.toString(),
-          url : `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay-nonseamless/update-dispute`
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay-nonseamless/update-dispute`,
         });
         const school_details = await this.trusteeSchoolModel.findOne({
           school_id: disputDetails.school_id,
@@ -3577,7 +3604,7 @@ export class TrusteeResolver {
           action: action,
           documents: uploadedFiles,
           collect_id: disputDetails.collect_id.toString(),
-          url : `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay/update-dispute`
+          url: `${process.env.PAYMENTS_SERVICE_ENDPOINT}/razorpay/update-dispute`,
         });
         const school_details = await this.trusteeSchoolModel.findOne({
           school_id: disputDetails.school_id,
