@@ -2642,7 +2642,6 @@ export class TrusteeResolver {
               }
           : {}),
       };
-
       if (!searchQuery && startDate && endDate) {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -2685,13 +2684,14 @@ export class TrusteeResolver {
           $lookup: {
             from: 'trusteeschools',
             localField: 'school_id',
-            foreignField: '_id',
+            foreignField: 'school_id',
             as: 'result',
           },
         },
         { $unwind: '$result' },
         { $count: 'total' },
       ]);
+      console.log(countAggregation, "countAggregation")
       const totalItems = countAggregation[0]?.total || 0;
       const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -2701,7 +2701,7 @@ export class TrusteeResolver {
           $lookup: {
             from: 'trusteeschools',
             localField: 'school_id',
-            foreignField: '_id',
+            foreignField: 'school_id',
             as: 'result',
           },
         },
@@ -2735,7 +2735,6 @@ export class TrusteeResolver {
           $limit: pageSize,
         },
       ]);
-      // console.log(refunds, 'refunds');
       return {
         refund: Array.isArray(refunds) ? refunds : [],
         currentPage: pageNumber,
