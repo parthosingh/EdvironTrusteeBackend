@@ -7814,9 +7814,12 @@ export class ErpController {
       };
       return { res: res, message: 'Installment saved successfully' };
     } catch (e) {
-      console.log(e.response, 'e.response');
+      console.log(e.response.message, 'e.response');
+      if(e.response?.data?.message){
+        throw new BadRequestException(e.response.data.message);
+      }
+      throw new BadRequestException(e.message)
 
-      throw new BadRequestException(e.response.data);
     }
   }
 
@@ -7845,7 +7848,7 @@ export class ErpController {
       );
       return { sign };
     } catch (error) {
-      console.log(error);
+      console.log(error.response,'Error Response ');
 
       throw new BadRequestException(error.message);
     }
