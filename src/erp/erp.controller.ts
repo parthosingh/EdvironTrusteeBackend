@@ -20,6 +20,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+
 import { Response } from 'express';
 import { ErpService } from './erp.service';
 import { JwtService } from '@nestjs/jwt';
@@ -58,6 +59,9 @@ import { VirtualAccount } from 'src/schema/virtual.account.schema';
 import { Disputes } from 'src/schema/disputes.schema';
 import { add } from 'date-fns';
 import { generatePaymentEmail } from 'src/email/templates/dipute.template';
+import {v4 as uuidv4} from 'uuid';
+
+
 const enum PG_GATEWAYS {
   RAZORPAY = 'RAZORPAY',
   CASHFREE = 'CASHFREE',
@@ -10807,7 +10811,90 @@ export class ErpController {
       throw new BadRequestException(error.message)
     }
   }
+
+
+
+@Post('subscription-manage')
+@UseGuards(ErpGuard)
+async manageSubscription(
+    @Body()
+    body: {
+      subscription_id: string;
+      action: string;
+      action_details?: any;
+      client_id: string;
+      client_secret: string;
+    },
+    @Req() req) {
+  try {
+    const { subscription_id, action, action_details, client_id, client_secret } = body;
+
+    if (!client_id || !client_secret) {
+      throw new BadRequestException('Client Id and Secret are required');
+    }
+
+    if (!subscription_id) {
+      throw new BadRequestException('Subscription ID is required');
+    }
+
+    if (!action) {
+      throw new BadRequestException('Action is required');
+    }
+
+    const payloadToGateway = {
+      subscription_id,
+      action,
+      ...(action_details ? { action_details } : {}),
+      client_id,
+      client_secret,
+      jwt: this.jwtService.sign(
+        {
+          subscription_id,
+          action,
+          client_id
+        },
+        {
+          secret: process.env.PAYMENTS_SERVICE_SECRET,
+          noTimestamp: true
+        }
+      )
+    };
+
+    const config = {
+      method: 'post',
+      url: `${process.env.PAYMENTS_GATEWAY_URL}/cashfree-manage`,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      data: JSON.stringify(payloadToGateway)
+    };
+
+    const { data: gatewayResponse } = await axios.request(config);
+
+    return {
+      message: 'Subscription managed successfully',
+      gatewayResponse
+    };
+  } catch (error) {
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    
+    const cashfreeError = error.response?.data;
+    console.error('Cashfree manage subscriptions error', cashfreeError || error.message);
+
+    throw new BadRequestException(
+      cashfreeError?.message || error.message || 'Failed to manage subscription'
+    );
+  }
 }
+
+}
+
+
+  
+
+
 
 export enum chequeStatus {
   SUCCESS = 'SUCCESS',
